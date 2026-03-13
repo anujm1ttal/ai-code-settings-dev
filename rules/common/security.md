@@ -1,115 +1,66 @@
 ---
 name: security-guidelines
-description: Mandatory security protocols for local file access, MCP tool execution, secret management, and language-specific defenses across Python, TypeScript, C#, and DAX.
+description: Security protocols for secret management, language-specific defenses, MCP tool safety, and incident response.
 ---
 
-# Security Protocol: Antigravity Defense
+# Security Protocol
 
-## 🛡️ The Auditor's Security Gate
-The **auditor** agent is the final gatekeeper. No task is "Done" until these checks pass:
-- [ ] **No Hardcoded Secrets**: Scour for API keys, tokens, connection strings, or local file paths in code or prose.
-- [ ] **Input Sanitization**: All user-provided strings (especially in Rhino layers, filenames, MCP inputs, and DAX parameters) must be validated and escaped.
-- [ ] **Boundary Validation**: MCP tools must strictly validate the scope of file access (no `../` path traversal).
-- [ ] **Fail-Safe Errors**: Tracebacks do not leak local system usernames, internal network IPs, or directory structures.
-- [ ] **Dependency Hygiene**: No deprecated, abandoned, or known-vulnerable packages in the dependency tree.
+## Auditor Security Gate
 
-## 🔑 Secret & Environment Management
+No task is "Done" until:
+- [ ] No hardcoded secrets (API keys, tokens, connection strings, local paths)
+- [ ] Input sanitization on all user-provided strings (Rhino layers, filenames, MCP inputs, DAX params)
+- [ ] MCP tools validate file access scope (no `../` traversal)
+- [ ] Tracebacks don't leak usernames, IPs, or directory structures
+- [ ] No deprecated or known-vulnerable dependencies
 
-### Storage
-- **Persistence**: Use `.env` files for local development. Use a secure vault (e.g., Azure Key Vault, 1Password CLI) for production.
-- **Never Commit**: `.env`, `.env.local`, and any file containing secrets must be in `.gitignore` before the first commit.
-- **Bootstrapping**: The `strategist` must include a "Secret Check" in Phase 1 of every project plan.
+## Secret Management
 
-### Rotation
-- If a session is shared or logged to a public cloud, immediately rotate all associated project keys.
-- If `/audit` detects an exposed secret, trigger the Incident Response Protocol (below).
+- **Storage**: `.env` for local dev. Secure vault (Azure Key Vault, 1Password CLI) for production.
+- **Never commit**: `.env*` must be in `.gitignore` before first commit.
+- **Access**: Load via environment variables at runtime.
+  - Python: `os.environ["KEY"]` or Pydantic `BaseSettings`
+  - TypeScript: `process.env.KEY` with Zod validation
+  - C#: `IConfiguration` + User Secrets (local) / Key Vault (prod)
+- **Rotation**: Rotate immediately if session shared publicly or `/audit` detects exposure.
 
-### Access Patterns
-- Load secrets via environment variables at runtime. Never import from a config file that could be committed.
-- Python: `os.environ["KEY"]` or Pydantic `BaseSettings` with `.env` file support.
-- TypeScript: `process.env.KEY` with Zod validation on startup.
-- C#: `IConfiguration` with User Secrets for local dev, Key Vault for production.
-
-## 🗣️ Language-Specific Security
+## Language-Specific Security
 
 ### Python
-- **Forbidden**: `eval()`, `exec()`, `pickle.loads()`, `yaml.load()` (use `yaml.safe_load()`) on untrusted input.
-- **Auth**: Use `secrets.token_urlsafe()` over `random` for anything authentication-related.
-- **SQL**: Parameterized queries only. No f-string or `.format()` query construction.
-- **Dependencies**: Pin all versions in `pyproject.toml`. Audit with `pip-audit` or `uv` before releases.
-- **File I/O**: Validate and sanitize all file paths. Reject paths containing `..`, `~`, or absolute paths when relative is expected.
+- **Forbidden**: `eval()`, `exec()`, `pickle.loads()`, `yaml.load()` on untrusted input (use `yaml.safe_load()`)
+- **Auth**: `secrets.token_urlsafe()` over `random`
+- **SQL**: Parameterized queries only. No f-string/`.format()` query construction.
+- **Deps**: Pin versions in `pyproject.toml`. Audit with `pip-audit` or `uv`.
+- **File I/O**: Reject paths containing `..`, `~`, or unexpected absolute paths.
 
 ### TypeScript / MCP
-- **Zod Mandatory**: All MCP tool `inputSchema` definitions must use Zod validation. No raw `JSON.parse()` without schema verification.
-- **Shell Safety**: Never pass raw user input to `Shell` commands. All parameters must be Zod-validated and escaped before execution.
-- **Stdout Integrity**: Use `console.error` for debug/operational logs. `stdout` is reserved for JSON-RPC transport — corruption here breaks the MCP protocol.
-- **Destructive Tools**: Any tool that writes files, deletes resources, or executes shell commands must:
-  - Include a `[DESTRUCTIVE]` warning in its tool description.
-  - Require explicit user confirmation via `AskUserQuestion` before execution.
-- **Dependencies**: Pin versions in `package-lock.json`. Audit with `npm audit` before releases.
+- **Zod mandatory** on all `inputSchema`. No raw `JSON.parse()`.
+- **Shell safety**: Never pass raw user input to Shell. Zod-validate and escape first.
+- **Destructive tools**: Must include `[DESTRUCTIVE]` warning + `AskUserQuestion` confirmation.
+- **Deps**: Pin in `package-lock.json`. Audit with `npm audit`.
 
-### C# / Grasshopper
-- **NuGet Hygiene**: Pin all package versions. No floating version ranges (`*` or `>=`). Audit for deprecated or vulnerable packages before builds.
-- **Assembly Trust**: Only load Grasshopper plugin assemblies from trusted, verified sources. Never dynamically load assemblies from user-provided paths.
-- **Input Validation**: Validate all GH component input parameters at entry. Reject null geometry, empty lists, and out-of-range values before processing.
-- **Disposal**: Implement `IDisposable` on all classes holding unmanaged resources. Use `using` statements. Failure to dispose geometry objects in large loops is a **CRITICAL** security and stability issue.
-- **Serialization**: Never use `BinaryFormatter`. Use `System.Text.Json` with explicit type handling.
-- **File Paths**: Validate all paths from GH file-picker components. Reject `..` traversal and absolute paths outside the project directory.
+### C#
+- **NuGet**: Pin versions. No floating ranges. Audit for vulnerabilities.
+- **Assembly trust**: Only load from verified sources. No dynamic loading from user paths.
+- **Serialization**: Never `BinaryFormatter`. Use `System.Text.Json`.
+- **File paths**: Reject `..` traversal and paths outside project directory.
 
 ### DAX / Power BI
-- **Row-Level Security (RLS)**: Implement RLS roles on all models exposed to multi-tenant or multi-user scenarios.
-- **Connection Strings**: Never embed connection strings in `.pbix` files. Use Power BI parameters with environment-specific values.
-- **Data Source Privacy**: Set privacy levels explicitly for all data sources. Default to `Private` unless cross-source queries are required and approved.
-- **Export Controls**: Disable underlying data export in published reports when the data contains PII or sensitive operational metrics.
+- **RLS**: Implement on all multi-tenant/multi-user models.
+- **Connection strings**: Never embed in `.pbix`. Use Power BI parameters.
+- **Privacy levels**: Set explicitly. Default `Private`.
+- **Exports**: Disable underlying data export for PII/sensitive metrics.
 
-## 🛰️ MCP & Tool Security
+## MCP & Tool Security
 
-Since agents can execute code, follow the **Principle of Least Privilege**:
+- **Read-only by default**. Write access scoped to project directory only.
+- **No elevation**: Tools must not request system privileges.
+- **Destructive command confirmation** required for: `rm`, `del`, `git reset --hard`, `git push --force`, `DROP`, `TRUNCATE`, `chmod`/`chown`.
 
-### Access Control
-- **Read-Only by Default**: Tools should only have `Write` access to the specific project directory.
-- **Scoped Permissions**: MCP tools must declare their file system scope. No tool should access paths outside its declared boundary.
-- **No Elevation**: Tools must not request or assume elevated system privileges.
+## Incident Response
 
-### Destructive Command Protection
-Any command matching these patterns requires explicit `AskUserQuestion` confirmation:
-- File deletion: `rm`, `del`, `unlink`, `shutil.rmtree`
-- Git destructive: `git reset --hard`, `git clean -fd`, `git push --force`
-- System modification: `chmod`, `chown`, environment variable writes
-- Database writes: `DROP`, `TRUNCATE`, `DELETE FROM`
-
-### Shell Execution Rules
-- All shell commands must be constructed from validated, escaped parameters.
-- No string interpolation in shell commands. Use argument arrays where possible.
-- Log all shell executions to `.agent/shell_log.md` with timestamp, command, and outcome.
-
-## 🚨 Incident Response Protocol
-
-If a vulnerability or exposed secret is detected:
-
-### 1. FREEZE
-- Halt all active `coder` and `scribe` agents immediately.
-- No further file writes until the incident is resolved.
-
-### 2. AUDIT
-- Invoke the `auditor` with the `security` tag.
-- Full codebase sweep for:
-  - Exposed secrets (API keys, tokens, passwords, connection strings).
-  - Vulnerable dependencies.
-  - Path traversal or injection vectors.
-  - Leaked system information in error messages or logs.
-
-### 3. REMEDIATE
-- Rotate all potentially compromised keys and tokens.
-- Update `.gitignore` to prevent future exposure.
-- Patch the vulnerability or remove the offending code.
-- If secrets were committed to git history: `git filter-branch` or `BFG Repo-Cleaner` to purge.
-
-### 4. VERIFY
-- Auditor performs a second sweep to confirm the fix.
-- Run `/sync` to ensure state files reflect the remediation.
-
-### 5. RESUME
-- Only once the auditor provides a `CLEAN` status.
-- Log the incident in `DECISION_LOG.md` with date, cause, impact, and resolution.
-- Update security practices if the incident revealed a gap in this protocol.
+1. **FREEZE**: Halt all coder/scribe agents. No file writes.
+2. **AUDIT**: Full codebase sweep — secrets, vulnerable deps, injection vectors, leaked system info.
+3. **REMEDIATE**: Rotate keys, update `.gitignore`, patch vulnerability. Purge git history if secrets were committed.
+4. **VERIFY**: Auditor second sweep → `CLEAN` status.
+5. **RESUME**: Log incident in `DECISION_LOG.md` (date, cause, impact, resolution). Update this protocol if gap revealed.

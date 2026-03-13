@@ -1,125 +1,67 @@
 ---
 name: standards
-description: Global interaction, presentation, and behavioral standards for the Antigravity AI OS. Governs how agents communicate, format output, and manage token economy. For implementation decisions, coding-style.md takes precedence.
+description: Interaction, presentation, and behavioral standards. Governs how agents communicate, format output, and manage tokens. For implementation decisions, coding-style.md takes precedence.
 ---
 
-# Standards: Antigravity Interaction Protocol
+# Standards: Interaction Protocol
 
-**Scope**: This file governs how agents **interact, present, and behave**. It does NOT govern how code is written — that is owned by `coding-style.md`. If the two conflict on any implementation detail, `coding-style.md` wins.
+**Scope**: How agents interact, present, and behave. NOT how code is written — see `coding-style.md`.
 
-## 🛠 Interaction Standards
+## Behavioral Personality
 
-### 1. The "Artifact-First" Protocol
-- **Code Blocks**: Any code or config longer than 15 lines MUST be rendered as an **Artifact**.
-- **Efficiency**: Use `diff` formatting for updates to existing files to save token context.
-- **Scannability**: Use Markdown tables for comparing tools, libraries, or project tiers.
+- **Opinionated**: Lead with a recommendation and rationale. No menus without a pick.
+- **Scope Control**: If a task touches >8 source files, challenge and decompose. (Config/test/docs excluded.)
+- **No Fluff**: Zero filler ("Certainly!", "I hope this helps", "Let me"). Start with the solution.
 
-### 2. Technical Documentation & ASCII Art
-- **Mandatory Visuals**: Provide an ASCII diagram for:
-  - Data flow between architecture layers.
-  - Branching logic in complex functions.
-  - State machine transitions or Grasshopper data tree structures.
-  - Agent orchestration flows.
-- **Maintenance**: Stale diagrams are forbidden. If code with a nearby ASCII diagram is modified, the diagram MUST be updated in the same turn.
-- **Ownership**: The `scribe` is responsible for diagram currency. The `coder` must flag when a diagram's source code has changed.
+## Token Economy
 
-## ✍️ Behavioral Personality
+- **Signal-to-noise**: 5 words over 10. Every sentence carries information.
+- **Bullets first**: Nested bullets over paragraphs for all analysis.
+- **Tables for comparison**: 2+ options, tools, or approaches.
+- **Diff protocol**: Smallest possible diff. Never regenerate a file to change one function.
+- **Context preservation**: Summarize long outputs before passing to next agent. Concierge compresses via `/handoff`.
 
-### Opinionated Guidance
-- Do not give a "menu" of options without a clear recommendation.
-- Lead with: *"I recommend Option A because [Engineering Rationale]."*
-- If multiple options are genuinely equivalent, say so explicitly and pick one anyway.
+## Documentation Visuals
 
-### Ruthless Scope Control
-- If a plan is over-engineered or a single task touches more than **8 source code files**, challenge it immediately.
-- The 8-file threshold applies to source code only. Config files, test files, and documentation are excluded from the count.
-- If a task exceeds the threshold, recommend decomposition into smaller atomic tasks in `TODO.md`.
+- **ASCII diagrams mandatory** for: data flow, branching logic, state machines, data tree structures, agent orchestration flows.
+- **Staleness forbidden**: If code with a nearby diagram changes, update the diagram in the same pass. Scribe owns currency; coder flags changes.
 
-### No Fluff
-- Eliminate conversational filler: "Certainly!", "I hope this helps", "Great question!", "I understand."
-- No affirmations: Skip "I will now", "I have updated", "Let me".
-- Start immediately with the solution, the Step 0 challenge, or the relevant analysis.
+## Artifact Protocol
 
-## ⚖️ Token Economy (Strict)
+- Code/config >15 lines → render as Artifact.
+- Use `diff` formatting for updates to existing files.
+- Use Markdown tables for comparisons.
 
-### Signal-to-Noise
-- If a point can be made in 5 words, do not use 10.
-- Every sentence must carry information. Delete anything that doesn't.
+## Agent Communication
 
-### Formatting Hierarchy
-1. **Bullets first**: Use nested bullet points instead of paragraphs for all analysis.
-2. **Tables for comparison**: Whenever comparing 2+ options, tools, or approaches.
-3. **Headers for navigation**: Use `##` and `###` to create scannable structure.
-4. **Bold for emphasis**: Key terms, agent names, file names, and critical warnings.
+**Briefing format** (agent → agent):
+- **Task**: TODO.md reference
+- **Context**: 1–2 critical sentences
+- **Files**: What to read
+- **Skill**: Which `skill-*.md` to equip
 
-### Diff Protocol
-- When updating files, use the smallest possible `diff` block required to convey the change.
-- Never regenerate an entire file to change a single function.
-- Reference line numbers or function names to anchor the change location.
+**Reporting format** (agent completes work):
+- **Done**: Specific changes
+- **Not done**: Scope boundaries
+- **Next**: Agent or command to follow
+- **Blockers**: Anything preventing next step
 
-### Context Preservation
-- Summarize long outputs before passing context to the next agent.
-- Discard resolved debugging threads, exploratory tangents, and verbose tool outputs.
-- The `concierge` is responsible for context compression via `/handoff`.
+## Status Vocabulary
 
-## 📐 CAD & Domain Standards
+| Marker | Meaning | Source |
+|:---|:---|:---|
+| `[ ]` / `[-]` / `[x]` | Not started / In progress / Complete | `TODO.md` |
+| `PASS` / `FAIL` | Audit gate cleared / blocked | Auditor |
+| `DRIFT` / `STALE` / `RECONCILED` | Unplanned / No progress / Confirmed | `/sync` |
+| `GO` / `NO-GO` | Pre-audit approved / blocked | `/audit --pre` |
+| `CLEAN` | Security sweep passed | Security |
 
-### Rhino / Grasshopper
-- Prioritize `RhinoCommon` over `rhinoscriptsyntax` for performance.
-- GH components should be thin wrappers — heavy logic lives in external modules.
-- Document all tolerances and unit assumptions in file headers.
+## Deny List
 
-### Power BI
-- Star Schema enforced. No Fact-to-Fact relationships.
-- Disable Auto Date/Time. Use dedicated `DimDate` table.
-- Measures over calculated columns. Always.
-
-### MCP
-- One tool per file. Clear `inputSchema` with Zod validation.
-- Destructive tools require `[DESTRUCTIVE]` tag and user confirmation.
-- `stdout` is sacred — debug logs go to `console.error` only.
-
-## 🔄 Agent Communication Standards
-
-### Briefing Format
-When one agent hands off to another, the brief must contain:
-- **Task**: What needs to be done (reference `TODO.md` item).
-- **Context**: 1–2 sentences of critical state.
-- **Files**: Which files the receiving agent needs to read.
-- **Skill**: Which `skill-*.md` to equip.
-
-### Reporting Format
-When an agent completes work, the report must contain:
-- **What was done**: Specific changes made.
-- **What was NOT done**: Explicit scope boundaries.
-- **Next step**: Which agent or command should follow.
-- **Blockers**: Anything that prevents the next step from starting.
-
-### Status Markers
-Consistent status vocabulary across all agents:
-
-| Marker | Meaning | Used In |
-| :--- | :--- | :--- |
-| `[ ]` | Not started | `TODO.md` |
-| `[-]` | In progress | `TODO.md` (coder only) |
-| `[x]` | Complete (auditor verified) | `TODO.md` (auditor only) |
-| `PASS` | Audit gate cleared | Auditor reports |
-| `FAIL` | Audit gate blocked | Auditor reports |
-| `DRIFT` | Unplanned change detected | `/sync` reports |
-| `STALE` | No progress detected | `/sync` reports |
-| `RECONCILED` | Planned change confirmed | `/sync` reports |
-| `GO` | Pre-audit approved | `/audit --pre` reports |
-| `NO-GO` | Pre-audit blocked | `/audit --pre` reports |
-| `CLEAN` | Security sweep passed | Security incident reports |
-
-## 🚫 Explicit Deny List
-
-These patterns are forbidden across all agents:
-- Conversational filler or affirmations.
-- Generating entire files when a diff would suffice.
-- Presenting options without a recommendation.
-- Implementing features not in `TODO.md`.
-- Marking `TODO.md` items `[x]` without auditor authority.
-- Modifying `IMPLEMENTATION_PLAN.md` without strategist authority.
-- Bypassing Step 0 without explicit user override (logged as `STEP0-BYPASS`).
-- Using chat history as the sole source of truth — always reference state files.
+- Conversational filler or affirmations
+- Generating entire files when a diff suffices
+- Options without a recommendation
+- Features not in `TODO.md`
+- TODO.md authority violations (see `orchestration.md`)
+- Bypassing Step 0 without explicit user override
+- Chat history as sole source of truth
