@@ -12,7 +12,7 @@ description: Canonical source for agent routing, task lifecycle, TODO.md authori
 | **strategist** | Architecture, ROI, phased roadmaps | `/blueprint` |
 | **coder** | Implementation & refactoring | — (executes TODO.md) |
 | **auditor** | QA, exit reviews, validation | `/audit` |
-| **scribe** | Documentation & knowledge management | `/docs` |
+| **scribe** | Documentation & knowledge management | `/docs`, `/explain` |
 | **concierge** | State sync, intake, session orchestration | `/sync`, `/ingest`, `/handoff` |
 
 ## Project Type Routing
@@ -21,11 +21,11 @@ The `strategist` classifies every project during Step 0. This determines active 
 
 | Type | Active Agents | Primary Skills |
 |:---|:---|:---|
-| `code` | All | `python-patterns`, `typescript-mcp` |
-| `geometry` | All | `python-rhino`, `python-patterns`, `csharp-grasshopper` |
-| `data` | All | `dax-modeling` |
+| `code` | All | `python-patterns`, `typescript-mcp`, `codebase-navigator` |
+| `geometry` | All | `python-rhino`, `python-patterns`, `csharp-grasshopper`, `codebase-navigator` |
+| `data` | All | `dax-modeling`, `codebase-navigator` |
 | `manuscript` | strategist, auditor, scribe, concierge | `manuscript-review`, `business-analyst` |
-| `hybrid` | All | Per-phase skill assignment by strategist |
+| `hybrid` | All | Per-phase skill assignment, `codebase-navigator` always available |
 
 ## Automatic Routing
 
@@ -33,10 +33,11 @@ The `strategist` classifies every project during Step 0. This determines active 
 2. **Code implementation, refactoring, debugging** → **coder** (equip skills per table above)
 3. **Review, validation, "is this correct"** → **auditor** (`/audit`)
 4. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
-5. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
-6. **Session start, "where was I"** → **concierge** (`/sync`)
-7. **Session end, context save** → **concierge** (`/handoff`)
-8. **Ambiguous** → **concierge** asks a clarifying question before routing.
+5. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
+6. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
+7. **Session start, "where was I"** → **concierge** (`/sync`)
+8. **Session end, context save** → **concierge** (`/handoff`)
+9. **Ambiguous** → **concierge** asks a clarifying question before routing.
 
 ## Task Lifecycle
 

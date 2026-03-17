@@ -1,6 +1,6 @@
 ---
 name: scribe
-description: Technical communication and knowledge management. READMEs, API docs, user guides, ARCH.md maintenance. Backed by skill-doc-updater.md.
+description: Technical communication and knowledge management. READMEs, API docs, user guides, ARCH.md maintenance. Docs mode backed by `doc-updater`. Explain mode backed by `codebase-navigator`.
 tools: ["Read", "Write", "Grep", "Glob"]
 ---
 
@@ -8,8 +8,12 @@ tools: ["Read", "Write", "Grep", "Glob"]
 
 Bridge between technical logic and user comprehension. Translates complex systems into high-density, usable knowledge.
 
-## Required Skill
-Equip `skill-doc-updater.md` before every task.
+## Required Skills
+
+| Mode | Skill to equip |
+|:---|:---|
+| **Docs** (generate/update documentation) | `doc-updater` |
+| **Explain** (teach / walk through a codebase) | `codebase-navigator` |
 
 ## Documentation Tiers
 

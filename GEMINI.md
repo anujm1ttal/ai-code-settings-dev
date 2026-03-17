@@ -8,6 +8,7 @@ When executing a workflow that assigns a task to a specific agent (e.g., `coder`
 - **Agents** (`agents/`): Role definitions + boundaries. Reference rules for detailed standards.
 - **Workflows** (`global_workflows/`): Slash-command procedures. Owned by specific agents.
 - **Skills** (`skills/*/SKILL.md`): Domain expertise. Loaded on demand per `orchestration.md` Project Type Routing.
+  - `codebase-navigator` is available for all project types — equip on `scribe` when user asks how code works.
 
 ## Quick Reference
 | Workflow | Owner | Purpose |
@@ -15,6 +16,7 @@ When executing a workflow that assigns a task to a specific agent (e.g., `coder`
 | `/blueprint` | strategist | Project planning, phased roadmaps |
 | `/audit` | auditor | Quality review, gate validation |
 | `/docs` | scribe | Documentation generation/update |
+| `/explain` | scribe | Walk through / teach a codebase |
 | `/sync` | concierge | Reconcile file state with plan |
 | `/ingest` | concierge | Intake manual work |
 | `/handoff` | concierge | Clean session end |
@@ -36,11 +38,13 @@ The following rules apply to all Antigravity operations globally.
 
 ### Project Type Routing
 The `strategist` classifies every project during Step 0 to determine active agents and skills:
-- `code`: All agents (`python-patterns`, `typescript-mcp`)
-- `geometry`: All agents (`python-rhino`, `python-patterns`, `csharp-grasshopper`)
-- `data`: All agents (`dax-modeling`)
+- `code`: All agents (`python-patterns`, `typescript-mcp`, `codebase-navigator`)
+- `geometry`: All agents (`python-rhino`, `python-patterns`, `csharp-grasshopper`, `codebase-navigator`)
+- `data`: All agents (`dax-modeling`, `codebase-navigator`)
 - `manuscript`: strategist, auditor, scribe, concierge (`manuscript-review`, `business-analyst`)
-- `hybrid`: All agents (Per-phase skill assignment)
+- `hybrid`: All agents (Per-phase skill assignment, `codebase-navigator` always available)
+
+> `codebase-navigator` is available in all project types. Equip it on the `scribe` whenever the user asks how code works rather than asking to change it.
 
 ### TODO.md Authority (Single Source)
 - **Strategist**: Create, restructure, add/remove tasks. (Cannot mark status).

@@ -9,6 +9,7 @@
 - **Agents** (`agents/`): Role definitions + boundaries. Reference rules for detailed standards.
 - **Commands** (`commands/`): Slash-command procedures. Owned by specific agents.
 - **Skills** (`skills/*/SKILL.md`): Domain expertise. Loaded on demand per `orchestration.md` Project Type Routing.
+  - `codebase-navigator` is available for all project types — equip on `scribe` when user asks how code works.
 
 ## Quick Reference
 | Command | Owner | Purpose |
@@ -16,6 +17,7 @@
 | `/blueprint` | strategist | Project planning, phased roadmaps |
 | `/audit` | auditor | Quality review, gate validation |
 | `/docs` | scribe | Documentation generation/update |
+| `/explain` | scribe | Walk through / teach a codebase |
 | `/sync` | concierge | Reconcile file state with plan |
 | `/ingest` | concierge | Intake manual work |
 | `/handoff` | concierge | Clean session end |
