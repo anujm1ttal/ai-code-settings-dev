@@ -17,6 +17,9 @@ When executing a workflow that assigns a task to a specific agent (e.g., `coder`
 | `/audit` | auditor | Quality review, gate validation |
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
+| `/ideate` | strategist | YouTube video conceptualization |
+| `/script` | scribe | YouTube script creation from VIDEO_PLAN.md |
+| `/pack` | scribe | YouTube upload metadata and SEO |
 | `/sync` | concierge | Reconcile file state with plan |
 | `/ingest` | concierge | Intake manual work |
 | `/handoff` | concierge | Clean session end |
@@ -42,6 +45,7 @@ The `strategist` classifies every project during Step 0 to determine active agen
 - `geometry`: All agents (`python-rhino`, `python-patterns`, `csharp-grasshopper`, `codebase-navigator`)
 - `data`: All agents (`dax-modeling`, `codebase-navigator`)
 - `manuscript`: strategist, auditor, scribe, concierge (`manuscript-review`, `business-analyst`)
+- `youtube`: strategist, scribe, auditor, concierge (`youtube-strategy`, `youtube-scriptwriting`, `youtube-retention`)
 - `hybrid`: All agents (Per-phase skill assignment, `codebase-navigator` always available)
 
 > `codebase-navigator` is available in all project types. Equip it on the `scribe` whenever the user asks how code works rather than asking to change it.

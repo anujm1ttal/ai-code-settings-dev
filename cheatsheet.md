@@ -16,6 +16,9 @@
 | `/docs --internal` | Update README.md, ARCH.md, developer docs |
 | `/docs --user` | Generate Quick Start guides for stakeholders |
 | `/docs --reference` | Generate API docs, MCP tool schemas, DAX measure catalogs |
+| `/ideate` | Generate YouTube concepts (Title, Thumbnail, Angle) |
+| `/script` | Draft YouTube A/V scripts |
+| `/pack` | Generate YouTube SEO metadata |
 | `/handoff` | Save session state and exit cleanly — run at every session end |
 
 ## Agents
@@ -47,6 +50,7 @@
 | `geometry` | Rhino/GH, stadium design | Yes |
 | `data` | Power BI, DAX | Yes |
 | `manuscript` | Books, editorial review | No |
+| `youtube` | Video packaging, scripting, retention | No |
 | `hybrid` | Multi-domain | Per-phase |
 
 ## Rule Precedence

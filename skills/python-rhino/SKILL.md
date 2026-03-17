@@ -7,6 +7,9 @@ verbosity_control: "STRICT. Focus on API syntax and geometric constraints. No in
 
 # Skill: Python for Rhino & Grasshopper
 
+## 📜 Scripting Standards
+- **Shebang**: EVERY Python script MUST begin with `#! python 3` as the first line to ensure the Rhino 8 CPython engine is targeted.
+
 ## 📐 Geometric Standards
 - **API Choice**: Prioritize `Rhino.Geometry` (RhinoCommon). Use `rhinoscriptsyntax` only for simple document-level tasks (layer management, object selection).
 - **Precision**: Never hardcode tolerances. Use `Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance`.
@@ -113,6 +116,7 @@ The GH component imports and calls the external module:
 | Fat GH component | Impossible to debug, test, or reuse | Extract to external module, keep GH as thin wrapper |
 
 ## 📋 Code Review Checklist
+- [ ] Starts with `#! python 3` as the first line?
 - [ ] Uses RhinoCommon (`Rhino.Geometry`) over `rhinoscriptsyntax`?
 - [ ] Handles Data Trees correctly without "Path Hell"?
 - [ ] References document tolerance, not hardcoded values?

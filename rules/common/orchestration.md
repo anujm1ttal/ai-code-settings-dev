@@ -25,6 +25,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `geometry` | All | `python-rhino`, `python-patterns`, `csharp-grasshopper`, `codebase-navigator` |
 | `data` | All | `dax-modeling`, `codebase-navigator` |
 | `manuscript` | strategist, auditor, scribe, concierge | `manuscript-review`, `business-analyst` |
+| `youtube` | strategist, scribe, auditor, concierge | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` |
 | `hybrid` | All | Per-phase skill assignment, `codebase-navigator` always available |
 
 ## Automatic Routing

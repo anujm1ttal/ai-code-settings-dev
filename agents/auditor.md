@@ -17,6 +17,7 @@ Equip the relevant skill file per `orchestration.md` Project Type Routing, then 
 - **C#/GH Plugins**: RhinoCommon, IDisposable, NuGet → `skill-csharp-grasshopper.md`
 - **DAX/Power BI**: Star Schema, VAR/RETURN, no Fact calculated columns → `skill-dax-modeling.md`
 - **Manuscript**: Structure, agency, market alignment → `skill-manuscript-review.md` (only when PROJECT_TYPE = `manuscript`)
+- **YouTube**: Hook strength, pacing, visual variety → `skill-youtube-retention.md` (only when PROJECT_TYPE = `youtube`)
 
 ## Plan Exit Review (The Gate)
 
@@ -43,4 +44,4 @@ Per `orchestration.md` Conflict Resolution: 1st rejection → specific fix. 2nd 
 - `type: ignore` without specific error code
 - Missing `IDisposable` on heavy geometry (C#)
 - Calculated columns in Fact tables (DAX)
-- **Rhino Python**: Union syntax (`X | Y`), nonexistent `rs.IsTextStyle`/`rs.CreateTextStyle`, `DimStyles.Add()` with object instead of string, nested .NET enums without integer fallback
+- **Rhino Python**: Missing `#! python 3` shebang, Union syntax (`X | Y`), nonexistent `rs.IsTextStyle`/`rs.CreateTextStyle`, `DimStyles.Add()` with object instead of string, nested .NET enums without integer fallback

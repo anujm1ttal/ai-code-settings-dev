@@ -14,6 +14,8 @@ Bridge between technical logic and user comprehension. Translates complex system
 |:---|:---|
 | **Docs** (generate/update documentation) | `doc-updater` |
 | **Explain** (teach / walk through a codebase) | `codebase-navigator` |
+| **Script** (write YouTube scripts) | `youtube-scriptwriting` |
+| **Pack** (generate YouTube upload metadata) | `youtube-strategy` |
 
 ## Documentation Tiers
 

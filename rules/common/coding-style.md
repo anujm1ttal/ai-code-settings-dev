@@ -45,6 +45,7 @@ Return new state; never mutate in-place.
 
 ### Rhino Python (CPython ~3.9)
 Overrides for the constrained Rhino 8 runtime:
+- **Shebang**: EVERY script MUST begin with `#! python 3` to target the CPython 3 engine.
 - **Types**: `Optional[T]`, `List[T]`, `Dict[K, V]` from `typing`. No union syntax, no lowercase generics.
 - **Logging**: `print()` is the only reliable channel. Do not use `loguru` or `logging`.
 - **Validation**: No Pydantic. Manual validation with early `return`/`raise`.

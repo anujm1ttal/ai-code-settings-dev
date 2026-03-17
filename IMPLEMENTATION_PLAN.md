@@ -1,34 +1,52 @@
-# Explain Mode Implementation
+# YouTube Integration Implementation
 
-Add a "teacher/explainer" capability to the AI settings. This allows users to ask how a codebase works, walk through call chains, and understand design decisions interactive-style, rather than just generating static documentation.
+Add a "youtube" capability to the AI settings. This allows users to conceptualize, script, and package YouTube videos using the existing agent fleet.
 
 ## User Review Required
 
-- **Agent Choice**: Capability implemented as a skill (`codebase-navigator`) on the `scribe` agent rather than a standalone agent.
-- **Trigger**: New `/explain` command added to the fleet.
+- **Agent Choice**: Capability implemented by extending existing agents (`strategist`, `scribe`, `auditor`) with new skills (`youtube-strategy`, `youtube-scriptwriting`, `youtube-retention`) rather than creating new agents.
+- **Trigger**: New `/ideate`, `/script`, and `/pack` commands added to the fleet.
 
 ## Proposed Changes
 
 ### [Core]
-#### [NEW] [codebase-navigator](file:///C:/Users/44547/source/repos/ai-code-settings/skills/codebase-navigator/SKILL.md)
-Implements four explanation tiers (Overview, Module Map, Call Chain, Code Spotlight) and templates for design decision rationale.
+#### [NEW] [youtube-strategy](file:///c:/Users/44547/source/repos/ai-code-settings/skills/youtube-strategy/SKILL.md)
+Rules for YouTube video packaging, including Title phrasing, Thumbnail visual descriptions, and SEO constraints.
 
-#### [NEW] [explain.md](file:///C:/Users/44547/source/repos/ai-code-settings/commands/explain.md)
-New slash command that wires the scribe to the navigator skill.
+#### [NEW] [youtube-scriptwriting](file:///c:/Users/44547/source/repos/ai-code-settings/skills/youtube-scriptwriting/SKILL.md)
+Rules for YouTube A/V script formatting, active voice, and writing for the spoken word.
+
+#### [NEW] [youtube-retention](file:///c:/Users/44547/source/repos/ai-code-settings/skills/youtube-retention/SKILL.md)
+Audit gates for viewer retention, pacing, hook strength, and visual variety in scripts.
+
+#### [NEW] [ideate.md](file:///c:/Users/44547/source/repos/ai-code-settings/commands/ideate.md)
+Slash command for the strategist to generate video concepts.
+
+#### [NEW] [script.md](file:///c:/Users/44547/source/repos/ai-code-settings/commands/script.md)
+Slash command for the scribe to write the A/V script.
+
+#### [NEW] [pack.md](file:///c:/Users/44547/source/repos/ai-code-settings/commands/pack.md)
+Slash command for the scribe to generate upload metadata.
 
 ### [Fleet Configuration]
 #### [MODIFY] [scribe.md](file:///C:/Users/44547/source/repos/ai-code-settings/agents/scribe.md)
-Updated to support two distinct modes: **Docs** (via `doc-updater`) and **Explain** (via `codebase-navigator`).
+Updated to support **Script** and **Pack** modes.
+
+#### [MODIFY] [auditor.md](file:///C:/Users/44547/source/repos/ai-code-settings/agents/auditor.md)
+Updated to include YouTube retention audit gates.
 
 #### [MODIFY] [orchestration.md](file:///C:/Users/44547/source/repos/ai-code-settings/rules/common/orchestration.md)
-Updated project routing and automatic command routing tables.
+Updated project routing table to include `youtube`.
 
 #### [MODIFY] [CLAUDE.md](file:///C:/Users/44547/source/repos/ai-code-settings/CLAUDE.md) / [GEMINI.md](file:///C:/Users/44547/source/repos/ai-code-settings/GEMINI.md)
 Updated quick-reference tables and architecture notes.
 
+#### [MODIFY] [cheatsheet.md](file:///C:/Users/44547/source/repos/ai-code-settings/cheatsheet.md)
+Updated to include new commands and project type.
+
 ## Verification Plan
 
 ### Manual Verification
-- Verify `/explain` is listed in `CLAUDE.md` and `GEMINI.md`.
-- Verify `scribe.md` correctly references `codebase-navigator`.
-- Verify `orchestration.md` routing table covers all project types for the new skill.
+- Verify `/ideate`, `/script`, `/pack` are listed in `CLAUDE.md`, `GEMINI.md`, and `cheatsheet.md`.
+- Verify `scribe.md` and `auditor.md` correctly reference new skills.
+- Verify `orchestration.md` routing table has `youtube`.

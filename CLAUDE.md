@@ -9,6 +9,7 @@
 - **Agents** (`agents/`): Role definitions + boundaries. Reference rules for detailed standards.
 - **Commands** (`commands/`): Slash-command procedures. Owned by specific agents.
 - **Skills** (`skills/*/SKILL.md`): Domain expertise. Loaded on demand per `orchestration.md` Project Type Routing.
+  - `youtube`: strategist, scribe, auditor, concierge (`youtube-strategy`, `youtube-scriptwriting`, `youtube-retention`)
   - `codebase-navigator` is available for all project types — equip on `scribe` when user asks how code works.
 
 ## Quick Reference
@@ -18,6 +19,9 @@
 | `/audit` | auditor | Quality review, gate validation |
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
+| `/ideate` | strategist | YouTube video conceptualization |
+| `/script` | scribe | YouTube script creation from VIDEO_PLAN.md |
+| `/pack` | scribe | YouTube upload metadata and SEO |
 | `/sync` | concierge | Reconcile file state with plan |
 | `/ingest` | concierge | Intake manual work |
 | `/handoff` | concierge | Clean session end |
