@@ -13,7 +13,7 @@ description: Canonical source for agent routing, task lifecycle, TODO.md authori
 | **coder** | Implementation & refactoring | — (executes TODO.md) |
 | **auditor** | QA, exit reviews, validation | `/audit` |
 | **scribe** | Documentation & knowledge management | `/docs`, `/explain` |
-| **concierge** | State sync, intake, session orchestration | `/sync`, `/ingest`, `/handoff` |
+| **concierge** | State sync, intake, session orchestration | `/sync`, `/ingest`, `/handoff`, `/learn` |
 
 ## Project Type Routing
 
@@ -72,6 +72,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `ARCH.md` | Strategist | Scribe (formatting), Strategist (structure) |
 | `.agent/current_task.md` | Concierge | Concierge |
 | `DECISION_LOG.md` | Concierge | Concierge (append-only, on pivots) |
+| `LEARNINGS.md` | Concierge | Concierge (append-only, prune at 50) |
 | `BRD_SUMMARY.md` | Strategist | Scribe |
 | `EDITORIAL_LETTER.md` | Auditor | Scribe |
 

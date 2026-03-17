@@ -19,6 +19,7 @@
 | `/ideate` | Generate YouTube concepts (Title, Thumbnail, Angle) |
 | `/script` | Draft YouTube A/V scripts |
 | `/pack` | Generate YouTube SEO metadata |
+| `/learn` | Capture project-specific lessons and gotchas |
 | `/handoff` | Save session state and exit cleanly — run at every session end |
 
 ## Agents
@@ -74,6 +75,7 @@ Audit fail #1 → Coder fixes · #2 → Coder reviews skill file · #3 → Strat
 | `ARCH.md` | Strategist (creates) / Scribe (maintains) |
 | `.agent/current_task.md` | Concierge |
 | `DECISION_LOG.md` | Concierge |
+| `LEARNINGS.md` | Concierge |
 
 ## When In Doubt
 - Lost context? → `/sync`

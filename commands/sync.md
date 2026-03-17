@@ -8,12 +8,13 @@ Owned by the **concierge**. The "Truth Engine" — reconciles manual work with t
 
 ## Execution Sequence
 
-1. **Inventory Delta**: `git status --short`, `git diff --name-only HEAD~1`, recent file modifications.
-2. **Domain Recon**: Rhino/GH (`.gh`, `.py` in CAD dirs) | Power BI (`.dax`, `.sql`) | MCP/Dev (`src/`, `package.json`, configs) | C# (`.cs`, `.csproj`, NuGet) | Docs (stale README, ARCH).
-3. **State File Validation**: `TODO.md` ↔ `IMPLEMENTATION_PLAN.md` sync. `.agent/current_task.md` freshness. `DECISION_LOG.md` unresolved entries.
-4. **Reconciliation**: Cross-reference changes against `TODO.md` → categorize.
-5. **State Refresh**: Update `.agent/current_task.md` with validated next step.
-6. **Output**: Sync Report.
+1. **Learnings Load**: Read `LEARNINGS.md` to surface relevant project-specific knowledge.
+2. **Inventory Delta**: `git status --short`, `git diff --name-only HEAD~1`, recent file modifications.
+3. **Domain Recon**: Rhino/GH (`.gh`, `.py` in CAD dirs) | Power BI (`.dax`, `.sql`) | MCP/Dev (`src/`, `package.json`, configs) | C# (`.cs`, `.csproj`, NuGet) | Docs (stale README, ARCH).
+4. **State File Validation**: `TODO.md` ↔ `IMPLEMENTATION_PLAN.md` sync. `.agent/current_task.md` freshness. `DECISION_LOG.md` unresolved entries.
+5. **Reconciliation**: Cross-reference changes against `TODO.md` → categorize.
+6. **State Refresh**: Update `.agent/current_task.md` with validated next step.
+7. **Output**: Sync Report.
 
 ## Reconciliation Categories
 

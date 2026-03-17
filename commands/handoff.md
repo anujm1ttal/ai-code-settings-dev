@@ -8,11 +8,12 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
 
 ## Execution Sequence
 
-1. **Session Summary**: Tasks worked on, agents active, decisions/pivots made.
-2. **State Snapshot**: Update `.agent/current_task.md`, verify `TODO.md` markers, append to `DECISION_LOG.md`.
-3. **Context Compression**: Summarize resolved threads. Preserve active tasks/open questions. Discard superseded plans and verbose outputs.
-4. **TODO Hygiene**: Scrub completed micro-tasks. Archive to `history/TODO_phase_[n].md` if >200 lines.
-5. **Generate Brief**.
+1. **Learnings Capture**: Scan session for mistakes/preferences/gotchas. Propose `/learn` candidates to user. Append approved entries to `LEARNINGS.md` (pruning if >50).
+2. **Session Summary**: Tasks worked on, agents active, decisions/pivots made.
+3. **State Snapshot**: Update `.agent/current_task.md`, verify `TODO.md` markers, append to `DECISION_LOG.md`.
+4. **Context Compression**: Summarize resolved threads. Preserve active tasks/open questions. Discard superseded plans and verbose outputs.
+5. **TODO Hygiene**: Scrub completed micro-tasks. Archive to `history/TODO_phase_[n].md` if >200 lines.
+6. **Generate Brief**.
 
 ## Handoff Brief Format
 

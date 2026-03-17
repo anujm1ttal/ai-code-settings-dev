@@ -1,17 +1,31 @@
 # Antigravity AI OS Settings
 
-## Agent Personas
-The roles, boundaries, and checklists for different agent personas are stored in the global `~/.gemini/antigravity/agents/` folder. 
-When executing a workflow that assigns a task to a specific agent (e.g., `coder`, `auditor`, `strategist`, `scribe`, `concierge`), you MUST use the `view_file` tool to read the corresponding file in that directory (e.g., `~/.gemini/antigravity/agents/auditor.md`) BEFORE beginning work, to understand your constraints and authority.
+Orchestration layer for Gemini sessions.
 
 ## Architecture
-- **Agents** (`agents/`): Role definitions + boundaries. Reference rules for detailed standards.
-- **Workflows** (`global_workflows/`): Slash-command procedures. Owned by specific agents.
-- **Skills** (`skills/*/SKILL.md`): Domain expertise. Loaded on demand per `orchestration.md` Project Type Routing.
-  - `codebase-navigator` is available for all project types — equip on `scribe` when user asks how code works.
 
-## Quick Reference
-| Workflow | Owner | Purpose |
+- **Rules** (`rules/common/`): Canonical standards. All agents reference these.
+  - `orchestration.md` — routing, lifecycle, TODO authority, conflict resolution
+  - `coding-style.md` — implementation standards, language patterns, domain rules
+  - `standards.md` — interaction, formatting, token economy
+  - `security.md` — secrets, defenses, incident response
+- **Agents** (`agents/`): Role definitions + boundaries. Reference rules for detailed standards.
+- **Commands** (`commands/`): Slash-command procedures. Owned by specific agents.
+- **Skills** (`skills/*/SKILL.md`): Domain expertise. Loaded on demand per project type routing in `orchestration.md`.
+
+## Agents
+
+| Agent | Role |
+|:---|:---|
+| strategist | Architecture, planning, project classification |
+| coder | Implementation execution |
+| auditor | Quality gates, technical review |
+| scribe | Documentation, communication, code explanation |
+| concierge | Session orchestration, state management, intake |
+
+## Commands
+
+| Command | Owner | Purpose |
 |:---|:---|:---|
 | `/blueprint` | strategist | Project planning, phased roadmaps |
 | `/audit` | auditor | Quality review, gate validation |
@@ -20,95 +34,78 @@ When executing a workflow that assigns a task to a specific agent (e.g., `coder`
 | `/ideate` | strategist | YouTube video conceptualization |
 | `/script` | scribe | YouTube script creation from VIDEO_PLAN.md |
 | `/pack` | scribe | YouTube upload metadata and SEO |
-| `/sync` | concierge | Reconcile file state with plan |
-| `/ingest` | concierge | Intake manual work |
-| `/handoff` | concierge | Clean session end |
+| `/sync` | concierge | Reconcile filesystem state with plan artifacts |
+| `/ingest` | concierge | Register manual/external changes into project state |
+| `/handoff` | concierge | Clean session end — compress context, update state |
+
+## Concierge Operations
+
+- **`/sync`** — Filesystem-driven. Scans for drift between files and TODO/state artifacts. Use when plan and reality may have diverged.
+- **`/ingest`** — User-driven. Registers work done outside AI IDE (manual edits, external contributions) into project state.
+- **`/handoff`** — Session boundary. Compresses context, scrubs TODO, captures decisions, writes next-session brief.
+
+## Session Lifecycle
+
+- **Boot**: Concierge runs state recovery → drift scan → validation → session brief. Automatic at session start.
+- **Shutdown**: `/handoff` to close cleanly.
+
+## Project Type Routing
+
+`orchestration.md` defines project type classification and skill loading.
+
+| Project Type | Skills Loaded |
+|:---|:---|
+| `youtube` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` → strategist, scribe, auditor, concierge |
+| *(all types)* | `codebase-navigator` available — equip on scribe when user asks how code works |
+
+Full routing logic lives in `orchestration.md`. Add new project types there.
+
+## YouTube Pipeline
+
+    /ideate → VIDEO_PLAN.md → /script → SCRIPT.md → /pack → metadata
+
+**Gates:**
+- `/script` requires `VIDEO_PLAN.md` to exist
+- `/pack` requires `SCRIPT.md` to exist
 
 ## Project State Persistence
-All project-specific state files MUST be created/maintained in the **current working project root**, never in the global `~/.gemini/` directory:
+
+All state files MUST live in the **current working project root**, never in `~/.gemini/`:
+
 - **Architecture**: `ARCH.md`, `IMPLEMENTATION_PLAN.md`
 - **Roadmap**: `TODO.md`, `DECISION_LOG.md`
 - **Context**: `.agent/current_task.md`
-- **History**: `history/` subdirectory for archived plans and task lists
+- **Learnings**: `LEARNINGS.md`
+- **History**: `history/` subdirectory for archived plans, task lists, and learnings
 
----
+## Error Handling
 
-# Global Rules & Instructions
+- **Command failure**: Agent reports what failed and why. No silent failures.
+- **Missing precondition**: Agent blocks execution, tells user what's needed.
+- **Agent conflict**: `orchestration.md` conflict resolution rules apply. Strategist has final architectural authority.
+- **Unknown command**: Concierge catches and routes or rejects with guidance.
 
-The following rules apply to all Antigravity operations globally.
+## Persistent Learnings
 
-## 1. Agent Orchestration
+Gemini accumulates project-specific knowledge in `LEARNINGS.md` at the project root.
 
-### Project Type Routing
-The `strategist` classifies every project during Step 0 to determine active agents and skills:
-- `code`: All agents (`python-patterns`, `typescript-mcp`, `codebase-navigator`)
-- `geometry`: All agents (`python-rhino`, `python-patterns`, `csharp-grasshopper`, `codebase-navigator`)
-- `data`: All agents (`dax-modeling`, `codebase-navigator`)
-- `manuscript`: strategist, auditor, scribe, concierge (`manuscript-review`, `business-analyst`)
-- `youtube`: strategist, scribe, auditor, concierge (`youtube-strategy`, `youtube-scriptwriting`, `youtube-retention`)
-- `hybrid`: All agents (Per-phase skill assignment, `codebase-navigator` always available)
+**Lifecycle:**
+- **Read**: Concierge loads `LEARNINGS.md` during session boot (state recovery phase)
+- **Write**: Concierge appends new entries during `/handoff`
+- **Manual**: `/learn` command captures lessons mid-session
 
-> `codebase-navigator` is available in all project types. Equip it on the `scribe` whenever the user asks how code works rather than asking to change it.
+**Boundaries:**
+- Max 50 active entries. When exceeded, oldest entries archive to `history/learnings_archive.md`.
+- No task status (use `TODO.md`), no architecture decisions (use `DECISION_LOG.md`), no temporary context.
 
-### TODO.md Authority (Single Source)
-- **Strategist**: Create, restructure, add/remove tasks. (Cannot mark status).
-- **Coder**: Mark `[-]` (in-progress). (Cannot mark `[x]`).
-- **Auditor**: Mark `[x]` (complete) after all gates pass. (Cannot add/remove tasks).
-- **Concierge**: Propose completion. (Cannot mark `[x]` directly).
-- **Task format**: `[ ] [agent] Task description — Success: metric`
+**Entry format:**
+```
+### [YYYY-MM-DD] Category: Short title
+What happened and what to do differently.
+```
 
-### Persistence Owners
-- `IMPLEMENTATION_PLAN.md` / `TODO.md`: Strategist owns structure.
-- `ARCH.md`: Strategist (structure), Scribe (formatting).
-- `.agent/current_task.md` / `DECISION_LOG.md`: Concierge.
+**Categories:** `mistake`, `preference`, `gotcha`, `workflow`, `pattern`
 
-## 2. Coding Style & Implementation
-
-**Immutability (CRITICAL)**: Return new state; never mutate in-place.
-- Python: `@dataclass(frozen=True)`. TS: `readonly`. C#: `readonly struct`. DAX: `VAR/RETURN`.
-
-**File Architecture**:
-- Density: 200–400 lines typical. Hard cap **800 lines**.
-- Cohesion: One primary class/feature per file. Domain-organized, not type-organized.
-
-**Language-Specific Standards**:
-- **Python (3.12+)**: 100% types (`list[T]`, `T | None`), `loguru` only, `pytest`, `ruff+pyright`.
-- **Rhino Python (3.9)**: `Optional[T]`, use `print()` for logs, manual validation.
-- **TypeScript**: Strict mode, Zod mandatory on MCP inputs, `console.error` for debug (`stdout` is sacred).
-- **C#**: Nullable enable, `IDisposable` on geometry, naming conventions.
-- **DAX**: `DIVIDE(n, d, 0)`, `SWITCH(TRUE())`, no calculated columns in Fact tables.
-
-**Error Handling**: Need specific exceptions with state context. No silent failures. No bare `except:`.
-
-## 3. Interaction Standards
-
-**Behavioral Personality**:
-- **Opinionated**: Lead with a recommendation and rationale. No menus without a pick.
-- **Scope Control**: Challenge and decompose if task touches >8 source files.
-- **No Fluff**: Zero filler ("Certainly!", "I hope this helps"). Start with the solution.
-
-**Token Economy & Visuals**:
-- Signal-to-noise: 5 words over 10. Bullets first. Tables for comparisons.
-- **ASCII diagrams mandatory** for: data flow, branching logic, state machines. Update diagrams if code changes.
-- Artifact Protocol: Use artifacts for code/config >15 lines. Use `diff` formatting for existing files.
-
-**Agent Communication**:
-- Briefings (agent→agent): Task, Context, Files, Skill to equip.
-- Reports: Done, Not done (boundaries), Next agent, Blockers.
-
-## 4. Security Protocol
-
-**Auditor Security Gate**:
-- No hardcoded secrets (API keys, connection strings). Load via env vars at runtime.
-- Input sanitization on all user strings.
-- MCP tools must validate file access scope (no `../` traversal).
-- Tracebacks must not leak usernames or system paths.
-
-**Language Defenses**:
-- Python: No `eval()`, `exec()`, raw `yaml.load()`. Parameterize SQL.
-- TypeScript: Zod mandatory. Destructive tools require `[DESTRUCTIVE]` warning + confirmation.
-- C#: Pin NuGet versions. No `BinaryFormatter` (use `System.Text.Json`).
-- DAX: RLS for multi-tenant. No connection strings in `.pbix`.
-
-**Incident Response**:
-1. FREEZE (halt agents) → 2. AUDIT (sweep codebase) → 3. REMEDIATE (rotate/patch) → 4. VERIFY (auditor) → 5. RESUME (log in DECISION_LOG.md).
+| Command | Owner | Purpose |
+|:---|:---|:---|
+| `/learn` | concierge | Capture a lesson into LEARNINGS.md |
