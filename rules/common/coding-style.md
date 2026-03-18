@@ -112,3 +112,14 @@ Overrides for the constrained Rhino 8 runtime:
 - [ ] Constants — zero magic numbers
 - [ ] Logging — correct channel per language
 - [ ] Step 0 Alignment — code achieves strategist's Minimalism goal
+
+## Codebase Scanning & Search
+
+All automated or manual codebase sweeps (e.g., `grep_search`, `find_by_name`, `list_dir` for analysis) MUST adhere to these exclusion rules to prevent noise and performance degradation.
+
+- **Exclusions**: Always skip the following directories:
+  - Virtual Environments: `venv/`, `.venv/`, `env/`
+  - Build Artifacts: `dist/`, `build/`, `bin/`, `obj/`
+  - Version Control: `.git/`
+  - AI Shadow Directories: `.gemini/`, `.claude/`
+- **Tooling**: When using `grep_search`, use the `Includes` or `Excludes` parameters to enforce these boundaries.

@@ -43,7 +43,10 @@ The `strategist` classifies every project during Step 0. This determines active 
 ## Task Lifecycle
 
 ```
-/blueprint (strategist) → TODO.md task assigned
+/blueprint (strategist)
+  → Requirements Interview (Step 1)
+  → Step 0 Challenge (Step 2)
+  → TODO.md task assigned (Phase 1)
   → /audit --pre (optional) → GO / NO-GO
   → Implementation (coder) — marks [-]
   → /audit (auditor) — validates → PASS: marks [x] | FAIL: return to coder
@@ -64,6 +67,10 @@ The `strategist` classifies every project during Step 0. This determines active 
 - `[ ]` Not started | `[-]` In progress | `[x]` Auditor-verified complete
 
 ## Persistence
+
+All state files MUST live in the **true logical project root** (the source code repository). Never write project-specific state to global AI directories (e.g., `~/.claude/projects/` or `~/.gemini/`). 
+
+**STRICT RULE**: Always use the **absolute file path** of the current code workspace when writing or reading state files to prevent shadow directory collisions.
 
 | File | Owner (Create) | Owner (Maintain) |
 |:---|:---|:---|

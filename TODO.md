@@ -1,16 +1,10 @@
-# TODO: YouTube Integration
+# TODO: Requirements Interviewer Integration
 
-[x] [strategist] Define requirements for video creation capability — Success: user approval
-[x] [strategist] Create IMPLEMENTATION_PLAN.md — Success: file exists
-[x] [strategist] Update `rules/common/orchestration.md`, `CLAUDE.md`, and `GEMINI.md` routing — Success: youtube project type added
-[x] [scribe] Create `skills/youtube-strategy/SKILL.md` — Success: skill documented
-[x] [scribe] Create `skills/youtube-scriptwriting/SKILL.md` — Success: skill documented
-[x] [scribe] Create `skills/youtube-retention/SKILL.md` — Success: skill documented
-[x] [scribe] Create `commands/ideate.md` — Success: command defined
-[x] [scribe] Create `commands/script.md` — Success: command defined
-[x] [scribe] Create `commands/pack.md` — Success: command defined
-[x] [scribe] Update `agents/scribe.md` to reference skills — Success: scribe has video modes
-[x] [auditor] Update `agents/auditor.md` to reference skills — Success: auditor has retention gates
-[x] [scribe] Update `cheatsheet.md` — Success: new commands and type listed
-[-] [auditor] Cross-check all changes for consistency — Success: all files correlate
-[ ] [concierge] /sync project state — Success: TODO.md and state files reconciled
+- [x] [strategist] Define requirements for Interviewer feature — Success: user approval (implied by feedback)
+- [x] [strategist] Create `IMPLEMENTATION_PLAN.md` and update `TODO.md` — Success: files exist in root
+- [x] [strategist] Update `agents/strategist.md` with Interviewer protocol — Success: agent instructions updated
+- [x] [scribe] Update `commands/blueprint.md` with Interview step — Success: command defined
+- [x] [scribe] Update `skills/business-analyst/SKILL.md` with Interview Methodology — Success: skill updated
+- [x] [scribe] Update `skills/project-planner/SKILL.md` with Interview Methodology — Success: skill updated
+- [x] [strategist] Update `rules/common/orchestration.md` task lifecycle — Success: orchestration updated
+- [-] [auditor] Verify the new workflow — Success: strategist initiates interview on mock project

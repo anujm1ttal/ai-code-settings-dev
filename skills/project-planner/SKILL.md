@@ -170,6 +170,25 @@ Flag immediately if:
 4. If rejected: document the rejection in `DECISION_LOG.md` with rationale.
 5. Never silently absorb scope — every change is explicit and logged.
 
+## 🎙 Interview Methodology (The Delivery)
+
+The `strategist` uses these questions to ensure the phased roadmap is grounded in reality:
+
+### 1. The "First Win" (Sequencing)
+- "What is the smallest piece of this project we can audit and verify in 48 hours?"
+- "What is the most 'boring' dependency that must be solved before the 'exciting' parts can start?"
+
+### 2. The "Data Baseline" (Dependencies)
+- "Do you have a 'gold standard' dataset or model we can use to verify the first phase?"
+- "How do we know Phase 1 is 'correct' without comparing it to a human-made version?"
+
+### 3. The "Handoff Boundary" (Ownership)
+- "Who owns the data we need? Are they ready to provide it, or is 'getting the data' Phase 1 task 1?"
+- "Who is the final authority to say 'Yes, this phase meets the success metric'?"
+
+### 4. The "Scaling Trigger" (Future)
+- "Does Phase 1 need to support the full data load (e.g., 50k seats), or can we prove the logic on a 100-seat subset first?"
+
 ## 🚫 Planning Anti-Patterns
 - **Big Bang phases**: One massive phase with 20+ tasks. Decompose.
 - **Vague success metrics**: "Working correctly" is not measurable. Define the threshold.

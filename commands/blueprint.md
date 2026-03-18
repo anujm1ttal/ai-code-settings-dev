@@ -17,10 +17,11 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 
 ## New Project
 1. Analyze user's project idea.
-2. **Step 0 Challenge**: PROJECT_TYPE, VALUE_CHECK, MINIMALISM, RISKS (see `strategist.md`).
-3. **Phased Roadmap**: 3–4 phases with numeric success metrics.
-4. **Create files**: `IMPLEMENTATION_PLAN.md`, `TODO.md`, `ARCH.md`.
-5. **Handoff**: Identify first agent + task.
+2. **Requirements Interview**: Ask 3–5 targeted questions to uncover hidden constraints and goals (see `strategist.md`).
+3. **Step 0 Challenge**: PROJECT_TYPE, VALUE_CHECK, MINIMALISM, RISKS.
+4. **Phased Roadmap**: 3–4 phases with numeric success metrics.
+5. **Create files**: `IMPLEMENTATION_PLAN.md`, `TODO.md`, `ARCH.md`.
+6. **Handoff**: Identify first agent + task.
 
 ## New Phase
 1. Run `/sync` via concierge to validate current state.
@@ -31,8 +32,9 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 ## Re-Plan
 1. Archive current `IMPLEMENTATION_PLAN.md` + `TODO.md` to `history/` with timestamp.
 2. Post-mortem in `DECISION_LOG.md`: original assumption → invalidating evidence → constraint changes.
-3. Full Step 0 referencing what failed.
-4. Fresh files. Restart pipeline.
+3. **Requirements Interview**: Re-verify boundaries if failure was due to requirement drift.
+4. Full Step 0 referencing what failed.
+5. Fresh files. Restart pipeline.
 
 ## Standards
 - **Success Metrics**: Numeric, verifiable. Forbidden: "Done", "Complete", "Working".

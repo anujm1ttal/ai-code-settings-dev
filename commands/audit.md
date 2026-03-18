@@ -6,6 +6,9 @@ description: Technical review for code quality, domain compliance, and plan gate
 
 Invokes the **auditor** agent for cross-domain quality check against `coding-style.md` and domain skills.
 
+> [!NOTE]
+> The `/audit` command automatically skips virtual environments (`venv`, `.venv`, `env`) and build artifacts to ensure focus on project source code.
+
 ## Modes
 
 ### Default: Post-Implementation Review

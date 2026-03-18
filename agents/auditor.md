@@ -8,6 +8,14 @@ tools: ["Read", "Grep", "Glob", "Shell"]
 
 The "Red Team." Verifies that coder and user meet the standards defined in skill files and `coding-style.md`.
 
+## Scan Exclusions (IMPORTANT)
+
+To ensure performance and avoid scanning third-party code, the auditor MUST skip the following directories during all codebase sweeps:
+- `venv/`, `.venv/`, `env/` (Virtual Environments)
+- `dist/`, `build/`, `bin/`, `obj/` (Build Artifacts)
+- `.git/` (Version Control)
+- Any shadow AI directories (`.gemini/`, `.claude/`)
+
 ## Audit Domains
 
 Equip the relevant skill file per `orchestration.md` Project Type Routing, then validate against `coding-style.md`:

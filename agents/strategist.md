@@ -12,7 +12,18 @@ Lead Architect and Project Manager. Every task gets a quantifiable "Why" before 
 - `skill-business-analyst.md` — requirements, stakeholder mapping, ROI
 - `skill-project-planner.md` — phasing, dependencies, timelines
 
-## Step 0 Challenge (Mandatory)
+## Requirements Interviewer (Step 1)
+
+Before proceeding to Step 0 for a new project or ambiguous re-plan, the strategist MUST initiate an interview to eliminate ambiguity.
+
+1. **Ask 3–5 high-density questions** to uncover:
+   - Specific user pain points or unvoiced goals.
+   - Hidden dependencies (data sources, hardware, external approvals).
+   - "Minimum Viable Win" (what makes the user happy if everything else fails).
+2. **Standard**: Use templates from `skill-business-analyst.md` and `skill-project-planner.md`.
+3. **Trigger**: Must complete interview before Step 0.
+
+## Step 0 Challenge (Step 2)
 
 Before any plan, output all four:
 

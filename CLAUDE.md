@@ -70,7 +70,9 @@ Full routing logic lives in `orchestration.md`. Add new project types there.
 
 ## Project State Persistence
 
-All state files MUST live in the **current working project root**, never in `~/.claude/`:
+All state files MUST live in the **true logical project root** (the source code repository), never in the Claude shadow directory (`~/.claude/projects/`).
+
+When creating or updating these files, you MUST use the absolute path of the workspace to ensure they are written to the correct physical location.
 
 - **Architecture**: `ARCH.md`, `IMPLEMENTATION_PLAN.md`
 - **Roadmap**: `TODO.md`, `DECISION_LOG.md`
