@@ -26,6 +26,8 @@ Equip the relevant skill file per `orchestration.md` Project Type Routing, then 
 - **DAX/Power BI**: Star Schema, VAR/RETURN, no Fact calculated columns → `skill-dax-modeling.md`
 - **Manuscript**: Structure, agency, market alignment → `skill-manuscript-review.md` (only when PROJECT_TYPE = `manuscript`)
 - **YouTube**: Hook strength, pacing, visual variety → `skill-youtube-retention.md` (only when PROJECT_TYPE = `youtube`)
+- **PowerPoint**: Slide builders, template workflow, composition → `skill-powerpoint-patterns.md`, `skill-visual-composition.md`
+- **Power BI Report**: Theme JSON, page layouts, visual selection → `skill-powerbi-report.md`, `skill-visual-composition.md`
 
 ## Plan Exit Review (The Gate)
 

@@ -13,6 +13,7 @@ description: Canonical source for agent routing, task lifecycle, TODO.md authori
 | **coder** | Implementation & refactoring | — (executes TODO.md) |
 | **auditor** | QA, exit reviews, validation | `/audit` |
 | **scribe** | Documentation & knowledge management | `/docs`, `/explain` |
+| **creative-director** | Visual spec & composition planning | — (produces `LAYOUT_SPEC.md`) |
 | **concierge** | State sync, intake, session orchestration | `/sync`, `/ingest`, `/handoff`, `/learn` |
 
 ## Project Type Routing
@@ -26,6 +27,8 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `data` | All | `dax-modeling`, `codebase-navigator` |
 | `manuscript` | strategist, auditor, scribe, concierge | `manuscript-review`, `business-analyst` |
 | `youtube` | strategist, scribe, auditor, concierge | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` |
+| `pptx` | strategist, creative-director, coder, auditor, scribe, concierge | `powerpoint-patterns`, `visual-composition`, `python-patterns` |
+| `pbi-report` | strategist, creative-director, coder, auditor, scribe, concierge | `powerbi-report`, `visual-composition`, `dax-modeling` |
 | `hybrid` | All | Per-phase skill assignment, `codebase-navigator` always available |
 
 ## Automatic Routing
@@ -38,7 +41,8 @@ The `strategist` classifies every project during Step 0. This determines active 
 6. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
 7. **Session start, "where was I"** → **concierge** (`/sync`)
 8. **Session end, context save** → **concierge** (`/handoff`)
-9. **Ambiguous** → **concierge** asks a clarifying question before routing.
+9. **Visual deliverable, composition, deck, report** → **creative-director** (produce `LAYOUT_SPEC.md` → then `/deck` or coder)
+10. **Ambiguous** → **concierge** asks a clarifying question before routing.
 
 ## Task Lifecycle
 
@@ -47,6 +51,7 @@ The `strategist` classifies every project during Step 0. This determines active 
   → Requirements Interview (Step 1)
   → Step 0 Challenge (Step 2)
   → TODO.md task assigned (Phase 1)
+  → [pptx/pbi-report only] creative-director → LAYOUT_SPEC.md
   → /audit --pre (optional) → GO / NO-GO
   → Implementation (coder) — marks [-]
   → /audit (auditor) — validates → PASS: marks [x] | FAIL: return to coder
@@ -80,6 +85,7 @@ All state files MUST live in the **true logical project root** (the source code 
 | `.agent/current_task.md` | Concierge | Concierge |
 | `DECISION_LOG.md` | Concierge | Concierge (append-only, on pivots) |
 | `LEARNINGS.md` | Concierge | Concierge (append-only, prune at 50) |
+| `LAYOUT_SPEC.md` | Creative Director | Creative Director |
 | `BRD_SUMMARY.md` | Strategist | Scribe |
 | `EDITORIAL_LETTER.md` | Auditor | Scribe |
 

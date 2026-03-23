@@ -21,6 +21,7 @@ Orchestration layer for Gemini sessions.
 | coder | Implementation execution |
 | auditor | Quality gates, technical review |
 | scribe | Documentation, communication, code explanation |
+| creative-director | Visual spec & composition planning |
 | concierge | Session orchestration, state management, intake |
 
 ## Commands
@@ -29,6 +30,7 @@ Orchestration layer for Gemini sessions.
 |:---|:---|:---|
 | `/blueprint` | strategist | Project planning, phased roadmaps |
 | `/audit` | auditor | Quality review, gate validation |
+| `/deck` | strategist / creative-director | PowerPoint project scaffolding & validation |
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
 | `/ideate` | strategist | YouTube video conceptualization |
@@ -56,6 +58,8 @@ Orchestration layer for Gemini sessions.
 | Project Type | Skills Loaded |
 |:---|:---|
 | `youtube` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` → strategist, scribe, auditor, concierge |
+| `pptx` | `powerpoint-patterns`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
+| `pbi-report` | `powerbi-report`, `visual-composition`, `dax-modeling` → strategist, creative-director, coder, auditor, concierge |
 | *(all types)* | `codebase-navigator` available — equip on scribe when user asks how code works |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.

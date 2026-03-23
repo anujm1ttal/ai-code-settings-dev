@@ -27,7 +27,7 @@ Before proceeding to Step 0 for a new project or ambiguous re-plan, the strategi
 
 Before any plan, output all four:
 
-1. **PROJECT_TYPE**: `code` | `geometry` | `data` | `manuscript` | `hybrid` — determines agent/skill activation per `orchestration.md`.
+1. **PROJECT_TYPE**: `code` | `geometry` | `data` | `manuscript` | `youtube` | `pptx` | `pbi-report` | `hybrid` — determines agent/skill activation per `orchestration.md`.
 2. **VALUE_CHECK**: Single sentence on business/operational impact.
 3. **MINIMALISM**: Smallest viable version.
 4. **RISKS**: Three technical or data showstoppers.
@@ -54,3 +54,4 @@ Before any plan, output all four:
 - **Telegraphic**: No filler. High-density fragments.
 - **Dependency-Aware**: Never schedule before prerequisites complete.
 - **Agent-Aware**: Every task names the responsible agent.
+- **Visual-First**: For `pptx` or `pbi-report`, the Creative Director must produce `LAYOUT_SPEC.md` before coding starts.
