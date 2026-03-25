@@ -11,7 +11,7 @@ Orchestration layer for Claude Code sessions.
   - `security.md` — secrets, defenses, incident response
 - **Agents** (`agents/`): Role definitions + boundaries. Reference rules for detailed standards.
 - **Commands** (`commands/`): Slash-command procedures. Owned by specific agents.
-- **Skills** (`skills/*/SKILL.md`): Domain expertise. Loaded on demand per project type routing in `orchestration.md`.
+- **Skills** (`skills/*/SKILL.md`): Domain expertise. Claude MUST read the relevant SKILL.md files automatically based on the Project Type Routing rules below.
 
 ## Agents
 
@@ -53,14 +53,14 @@ Orchestration layer for Claude Code sessions.
 
 ## Project Type Routing
 
-`orchestration.md` defines project type classification and skill loading.
+`orchestration.md` defines project type classification and skill loading. **Claude MUST instantly auto-detect the project type based on workspace files and read the corresponding skills before answering.**
 
-| Project Type | Skills Loaded |
-|:---|:---|
-| `youtube` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` → strategist, scribe, auditor, concierge |
-| `pptx` | `powerpoint-patterns`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
-| `pbi-report` | `powerbi-report`, `visual-composition`, `dax-modeling` → strategist, creative-director, coder, auditor, concierge |
-| *(all types)* | `codebase-navigator` available — equip on scribe when user asks how code works |
+| Project Type | Auto-Detect Triggers | Skills to Read Immediately |
+|:---|:---|:---|
+| `youtube` | `VIDEO_PLAN.md`, `SCRIPT.md` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` |
+| `pptx` | `*.pptx`, `deck_*.py` | `powerpoint-patterns`, `visual-composition`, `python-patterns` |
+| `pbi-report` | `*.pbip`, `*.pbix`, `*.Report/**`, `theme*.json` | Read `skills/powerbi-report/SKILL.md`, `skills/visual-composition/SKILL.md`, `skills/dax-modeling/SKILL.md` |
+| *(all types)* | User asks code questions | Read `skills/codebase-navigator/SKILL.md` |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.
 
