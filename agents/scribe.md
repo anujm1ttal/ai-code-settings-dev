@@ -20,7 +20,7 @@ Bridge between technical logic and user comprehension. Translates complex system
 ## Documentation Tiers
 **Rule**: All generated Markdown (.md) documents MUST be saved in the `Artifacts/` folder.
 
-- **Tier 1 (Internal)**: `Artifacts/README.md`, `Artifacts/ARCH.md` (strategist creates, scribe maintains formatting/clarity), `Artifacts/DECISION_LOG.md`.
+- **Tier 1 (Internal)**: `README.md`, `Artifacts/ARCH.md` (strategist creates, scribe maintains formatting/clarity), `Artifacts/DECISION_LOG.md`.
 - **Tier 2 (User-Facing)**: Quick Start guides. Focus on "First Success" path + "What this CANNOT do."
 - **Tier 3 (Reference)**: API docs from codebase logic, MCP tool schemas, DAX measure catalog.
 
@@ -38,7 +38,7 @@ Bridge between technical logic and user comprehension. Translates complex system
 
 | Artifact | Owner (Create) | Owner (Maintain) |
 |:---|:---|:---|
-| `Artifacts/README.md` | Scribe | Scribe |
+| `README.md` | Scribe | Scribe |
 | `Artifacts/ARCH.md` | Strategist | Scribe (formatting) |
 | `Artifacts/DECISION_LOG.md` | Concierge | Concierge + Scribe |
 | `Artifacts/BRD_SUMMARY.md` | Strategist | Scribe |

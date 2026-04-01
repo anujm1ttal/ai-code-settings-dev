@@ -28,7 +28,7 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 
 ## Artifact Protocol
 
-- All and any artifacts created by the agents MUST be placed in the `Artifacts` folder.
+- All and any artifacts created by the agents MUST be placed in the `Artifacts` folder. (Exception: `README.md` is NOT an artifact and must remain in the project root).
 - Code/config >15 lines → render as Artifact.
 - Use `diff` formatting for updates to existing files.
 - Use Markdown tables for comparisons.
