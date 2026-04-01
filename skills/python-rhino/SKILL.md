@@ -127,6 +127,8 @@ The GH component imports and calls the external module:
 - [ ] `Parallel.ForEach` considered for independent per-section work?
 - [ ] C-Value output is per-seat for auditor verification?
 - [ ] Constants defined in `config.py`, not inline?
+- [ ] `rhinoinside` + `pytest` test coverage for core geometry logic?
+- [ ] `Rhino-stubs` installed for IDE autocomplete?
 
 ## Pitfalls & Platform Constraints
 
@@ -153,9 +155,76 @@ The GH component imports and calls the external module:
 - Command-line options render in Rhino viewport, not editor
 - Rhino 8: `ScriptEditor` command; run with F5
 
+## 🧪 Testing with rhinoinside + pytest
+
+### Overview
+**`rhinoinside`** loads the Rhino runtime inside CPython, enabling standard `pytest` execution without the Rhino UI. This is the recommended approach for testing Rhino/Grasshopper logic outside the editor.
+
+- **Best option**: `rhinoinside` — full RhinoCommon API available in headless CPython.
+- **Alternatives**: `rhino3dm` (geometry-only, no full RhinoCommon), `compute.rhino3d` (server-based), `ghpythonremote` (community).
+- **Reference implementation**: Ladybug Tools — best real-world example of this pattern.
+
+### Project Structure
+
+```
+project/
+├── src/
+│   └── geometry_utils.py      # Testable Rhino logic
+├── tests/
+│   ├── conftest.py            # rhinoinside session-scoped fixture
+│   ├── test_geometry_utils.py # Tests using RhinoCommon via rhinoinside
+│   └── pytest.ini             # Pytest config
+└── requirements-dev.txt       # rhinoinside, pytest, Rhino-stubs
+```
+
+### conftest.py Pattern
+
+```python
+import pytest
+
+@pytest.fixture(scope="session", autouse=True)
+def rhino_setup():
+    """Load Rhino runtime once for the entire test session."""
+    import rhinoinside
+    rhinoinside.load()
+    import Rhino  # noqa: F401 — available after load()
+    yield
+```
+
+### Key Testing Patterns
+- **Session-scoped loading**: `rhinoinside.load()` is expensive — load once per session, not per test.
+- **Reusable geometry fixtures**: Create shared `Point3d`, `Curve`, `Brep` fixtures for common test inputs.
+- **Float comparison**: Use `pytest.approx` for all geometric value assertions (distances, areas, volumes).
+- **Parametrize**: Use `@pytest.mark.parametrize` for multi-input geometric validation (e.g., different C-Value thresholds).
+- **Class-based grouping**: Group related tests by geometric domain (`TestSightlines`, `TestRakeProfile`, `TestMeshOps`).
+
+### pytest.ini
+
+```ini
+[pytest]
+testpaths = tests
+python_files = test_*.py
+python_classes = Test*
+python_functions = test_*
+markers =
+    slow: marks tests as slow (e.g., full bowl generation)
+    rhino: marks tests requiring rhinoinside
+```
+
+## 🔤 Stubs for Autocomplete
+
+- **Package**: `pip install Rhino-stubs` — official McNeel package from `mcneel/pythonstubs`.
+- **Coverage**: Provides `.pyi` stubs for `RhinoCommon`, `Grasshopper`, `GH_IO`, `GH_Util`.
+- **Rhino 7**: PyPI version is pinned to Rhino 7.
+- **Rhino 8**: Clone the repo directly (`github.com/mcneel/pythonstubs`) for Rhino 8 coverage — PyPI lags behind.
+- **Usage**: Install into your dev environment for IDE autocomplete and type checking. Does NOT affect runtime.
+
 ## Anti-Patterns
 - ❌ `rhinoscriptsyntax` for dimension/annotation styles
 - ❌ `DimStyles.Add(style_object)` — expects string
 - ❌ `DimensionStyle.LeaderContentAngleType.Horizontal` — use int `1`
 - ❌ `str | None` syntax — use `Optional[str]`
 - ❌ `logging.basicConfig()` without explicit file target
+- ❌ Testing Rhino logic only inside the GH canvas — use `rhinoinside` + `pytest` for headless CI
+- ❌ Loading `rhinoinside` per-test instead of session-scoped — causes massive slowdown
+- ❌ Exact float equality in geometry assertions — use `pytest.approx`
