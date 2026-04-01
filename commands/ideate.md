@@ -19,4 +19,4 @@ description: Triggers the strategist to ideate YouTube video concepts. Generates
    - Thumbnail must have a clear visual description and minimal text.
    - Angle must explain the emotional payoff for the viewer.
 4. **Output Format**: Present the 3 options to the user clearly. Ask the user to select one or request modifications.
-5. **Next Steps**: Once the user approves a concept, create a `VIDEO_PLAN.md` file documenting the approved Title, Thumbnail description, Target Audience, and a bulleted outline of the video flow. Prompt the user to run `/script` when ready.
+5. **Next Steps**: Once the user approves a concept, create a `Artifacts/VIDEO_PLAN.md` file documenting the approved Title, Thumbnail description, Target Audience, and a bulleted outline of the video flow. Prompt the user to run `/script` when ready.

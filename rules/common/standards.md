@@ -28,6 +28,7 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 
 ## Artifact Protocol
 
+- All and any artifacts created by the agents MUST be placed in the `Artifacts` folder.
 - Code/config >15 lines → render as Artifact.
 - Use `diff` formatting for updates to existing files.
 - Use Markdown tables for comparisons.
@@ -35,7 +36,7 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 ## Agent Communication
 
 **Briefing format** (agent → agent):
-- **Task**: TODO.md reference
+- **Task**: Artifacts/TODO.md reference
 - **Context**: 1–2 critical sentences
 - **Files**: What to read
 - **Skill**: Which `skill-*.md` to equip
@@ -50,7 +51,7 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 
 | Marker | Meaning | Source |
 |:---|:---|:---|
-| `[ ]` / `[-]` / `[x]` | Not started / In progress / Complete | `TODO.md` |
+| `[ ]` / `[-]` / `[x]` | Not started / In progress / Complete | `Artifacts/TODO.md` |
 | `PASS` / `FAIL` | Audit gate cleared / blocked | Auditor |
 | `DRIFT` / `STALE` / `RECONCILED` | Unplanned / No progress / Confirmed | `/sync` |
 | `GO` / `NO-GO` | Pre-audit approved / blocked | `/audit --pre` |
@@ -61,7 +62,7 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 - Conversational filler or affirmations
 - Generating entire files when a diff suffices
 - Options without a recommendation
-- Features not in `TODO.md`
-- TODO.md authority violations (see `orchestration.md`)
+- Features not in `Artifacts/TODO.md`
+- Artifacts/TODO.md authority violations (see `orchestration.md`)
 - Bypassing Step 0 without explicit user override
 - Chat history as sole source of truth

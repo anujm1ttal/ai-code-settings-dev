@@ -18,7 +18,7 @@ This is the "You Are Here" marker. It must be updated at every session start, en
 
 **# Current Task**
 
-- **## Objective**: The single atomic task from TODO.md currently active.
+- **## Objective**: The single atomic task from Artifacts/TODO.md currently active.
 - **## Status**: Not Started / In Progress / Blocked / Awaiting Audit.
 - **## Technical Context**:
   - **Active Files**: Specific files being modified.
@@ -45,10 +45,10 @@ This is the "You Are Here" marker. It must be updated at every session start, en
 
 ### Staleness Rules
 - If `Last Updated` is more than 1 session old, flag as **STALE** during `/sync`.
-- If `Objective` doesn't match any task in `TODO.md`, flag as **ORPHANED** during `/sync`.
+- If `Objective` doesn't match any task in `Artifacts/TODO.md`, flag as **ORPHANED** during `/sync`.
 - If `Active Files` reference files that no longer exist, flag as **DRIFT** during `/sync`.
 
-## 🏛 Long-Term Memory: `DECISION_LOG.md`
+## 🏛 Long-Term Memory: `Artifacts/DECISION_LOG.md`
 
 For major architectural shifts, technology pivots, or scope changes. This is an append-only file — never edit or delete existing entries.
 
@@ -70,26 +70,26 @@ For major architectural shifts, technology pivots, or scope changes. This is an 
 - User override of Step 0 (`STEP0-BYPASS` — document the justification).
 
 ### When NOT to Log
-- Routine task completion (that's `TODO.md`).
+- Routine task completion (that's `Artifacts/TODO.md`).
 - Bug fixes that don't change architecture.
 - Formatting or naming changes.
 - Session summaries (that's `.agent/current_task.md`).
 
-## 📦 Archive Protocol: `history/`
+## 📦 Archive Protocol: `Artifacts/history/`
 
-### TODO.md Archival
-- When `TODO.md` exceeds 200 lines, archive completed phases.
-- Format: `history/TODO_phase_[n]_[date].md`.
+### Artifacts/TODO.md Archival
+- When `Artifacts/TODO.md` exceeds 200 lines, archive completed phases.
+- Format: `Artifacts/history/TODO_phase_[n]_[date].md`.
 - The archive is read-only — never modify archived files.
-- Current `TODO.md` retains only active and upcoming phases.
+- Current `Artifacts/TODO.md` retains only active and upcoming phases.
 
 ### Plan Archival
 - When `/blueprint` runs in Re-Plan mode, archive the current plan.
-- Format: `history/IMPLEMENTATION_PLAN_[date].md`.
+- Format: `Artifacts/history/IMPLEMENTATION_PLAN_[date].md`.
 - The `strategist` references archived plans during post-mortem analysis.
 
 ### Archive Index
-Maintain a `history/INDEX.md` file:
+Maintain a `Artifacts/history/INDEX.md` file:
 
 | File | Archived Date | Reason |
 | :--- | :--- | :--- |
@@ -100,9 +100,9 @@ Maintain a `history/INDEX.md` file:
 
 ### Session Start Sequence
 1. **Read** `.agent/current_task.md` — restore context.
-2. **Validate** against `TODO.md`:
+2. **Validate** against `Artifacts/TODO.md`:
    - Does the Objective match an existing task?
-   - Is the Status consistent with the `TODO.md` marker (`[ ]`, `[-]`, `[x]`)?
+   - Is the Status consistent with the `Artifacts/TODO.md` marker (`[ ]`, `[-]`, `[x]`)?
    - Are Active Files still present in the file system?
 3. **Delta Scan** — identify changes since `Last Updated`.
 4. **Reconcile** — update `current_task.md` with validated state.
@@ -110,9 +110,9 @@ Maintain a `history/INDEX.md` file:
 
 ### Session End Sequence
 1. **Summarize** — compress the session into `current_task.md` fields.
-2. **Scrub** — remove completed micro-tasks from `TODO.md`.
-3. **Archive** — move completed phases to `history/` if threshold exceeded.
-4. **Log** — append decisions to `DECISION_LOG.md` if any occurred.
+2. **Scrub** — remove completed micro-tasks from `Artifacts/TODO.md`.
+3. **Archive** — move completed phases to `Artifacts/history/` if threshold exceeded.
+4. **Log** — append decisions to `Artifacts/DECISION_LOG.md` if any occurred.
 5. **Brief** — output the handoff summary for the next session.
 
 ## 🧠 Context Compression Rules
@@ -123,7 +123,7 @@ When summarizing for handoff or context window management:
 - Current task objective and status.
 - Active file paths and their modification state.
 - Unresolved blockers and open questions.
-- Decisions made this session (even if logged in `DECISION_LOG.md`).
+- Decisions made this session (even if logged in `Artifacts/DECISION_LOG.md`).
 - The next recommended agent and action.
 
 ### Compress (Summarize to One Line)
@@ -141,12 +141,12 @@ When summarizing for handoff or context window management:
 
 Run at every session end (`/handoff`):
 
-- [ ] `.agent/current_task.md` reflects the exact current state?
+- [ ] `Artifacts/.agent/current_task.md` reflects the exact current state?
 - [ ] All fields populated — no blanks in Objective, Status, or Handoff?
-- [ ] `TODO.md` status markers are accurate (`[ ]`, `[-]`, `[x]`)?
+- [ ] `Artifacts/TODO.md` status markers are accurate (`[ ]`, `[-]`, `[x]`)?
 - [ ] Any manual drift documented in current_task.md or flagged for `/sync`?
-- [ ] Decisions logged in `DECISION_LOG.md` if applicable?
-- [ ] `TODO.md` under 200 lines (archive if needed)?
-- [ ] `history/INDEX.md` updated if archival occurred?
+- [ ] Decisions logged in `Artifacts/DECISION_LOG.md` if applicable?
+- [ ] `Artifacts/TODO.md` under 200 lines (archive if needed)?
+- [ ] `Artifacts/history/INDEX.md` updated if archival occurred?
 - [ ] Next agent and action clearly identified in Handoff section?
 - [ ] Context window is lean — no stale threads or verbose outputs retained?

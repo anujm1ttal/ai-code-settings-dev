@@ -123,7 +123,7 @@ Compare against industry standards:
 
 ## 🖋 Editorial Output (The Artifact)
 
-Generate an `EDITORIAL_LETTER.md` using these headers:
+Generate an `Artifacts/EDITORIAL_LETTER.md` using these headers:
 
 ### MANUSCRIPT OVERVIEW
 - **Title**: [title]

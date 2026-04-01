@@ -34,7 +34,7 @@ Orchestration layer for Gemini sessions.
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
 | `/ideate` | strategist | YouTube video conceptualization |
-| `/script` | scribe | YouTube script creation from VIDEO_PLAN.md |
+| `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
 | `/pack` | scribe | YouTube upload metadata and SEO |
 | `/sync` | concierge | Reconcile filesystem state with plan artifacts |
 | `/ingest` | concierge | Register manual/external changes into project state |
@@ -66,23 +66,23 @@ Full routing logic lives in `orchestration.md`. Add new project types there.
 
 ## YouTube Pipeline
 
-    /ideate → VIDEO_PLAN.md → /script → SCRIPT.md → /pack → metadata
+    /ideate → Artifacts/VIDEO_PLAN.md → /script → Artifacts/SCRIPT.md → /pack → metadata
 
 **Gates:**
-- `/script` requires `VIDEO_PLAN.md` to exist
-- `/pack` requires `SCRIPT.md` to exist
+- `/script` requires `Artifacts/VIDEO_PLAN.md` to exist
+- `/pack` requires `Artifacts/SCRIPT.md` to exist
 
 ## Project State Persistence
 
-All state files MUST live in the **true logical project root** (the source code repository), never in the Antigravity/Gemini shadow directory (`~/.gemini/`).
+All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository), never in the Antigravity/Gemini shadow directory (`~/.gemini/`).
 
-When creating or updating these files, you MUST use the absolute path of the workspace to ensure they are written to the correct physical location.
+When creating or updating these files, you MUST use the absolute path of the workspace and place them in the `Artifacts/` folder.
 
-- **Architecture**: `ARCH.md`, `IMPLEMENTATION_PLAN.md`
-- **Roadmap**: `TODO.md`, `DECISION_LOG.md`
-- **Context**: `.agent/current_task.md`
-- **Learnings**: `LEARNINGS.md`
-- **History**: `history/` subdirectory for archived plans, task lists, and learnings
+- **Architecture**: `Artifacts/ARCH.md`, `Artifacts/IMPLEMENTATION_PLAN.md`
+- **Roadmap**: `Artifacts/TODO.md`, `Artifacts/DECISION_LOG.md`
+- **Context**: `Artifacts/.agent/current_task.md`
+- **Learnings**: `Artifacts/LEARNINGS.md`
+- **History**: `Artifacts/history/` subdirectory for archived plans, task lists, and learnings
 
 ## Error Handling
 
@@ -93,16 +93,16 @@ When creating or updating these files, you MUST use the absolute path of the wor
 
 ## Persistent Learnings
 
-Gemini accumulates project-specific knowledge in `LEARNINGS.md` at the project root.
+Gemini accumulates project-specific knowledge in `Artifacts/LEARNINGS.md` at the project root.
 
 **Lifecycle:**
-- **Read**: Concierge loads `LEARNINGS.md` during session boot (state recovery phase)
+- **Read**: Concierge loads `Artifacts/LEARNINGS.md` during session boot (state recovery phase)
 - **Write**: Concierge appends new entries during `/handoff`
 - **Manual**: `/learn` command captures lessons mid-session
 
 **Boundaries:**
-- Max 50 active entries. When exceeded, oldest entries archive to `history/learnings_archive.md`.
-- No task status (use `TODO.md`), no architecture decisions (use `DECISION_LOG.md`), no temporary context.
+- Max 50 active entries. When exceeded, oldest entries archive to `Artifacts/history/learnings_archive.md`.
+- No task status (use `Artifacts/TODO.md`), no architecture decisions (use `Artifacts/DECISION_LOG.md`), no temporary context.
 
 **Entry format:**
 ```
@@ -114,4 +114,4 @@ What happened and what to do differently.
 
 | Command | Owner | Purpose |
 |:---|:---|:---|
-| `/learn` | concierge | Capture a lesson into LEARNINGS.md |
+| `/learn` | concierge | Capture a lesson into Artifacts/LEARNINGS.md |

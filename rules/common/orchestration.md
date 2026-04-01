@@ -1,6 +1,6 @@
 ---
 name: agent-orchestration
-description: Canonical source for agent routing, task lifecycle, TODO.md authority, conflict resolution, and project-type activation across the Antigravity fleet.
+description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.md authority, conflict resolution, and project-type activation across the Antigravity fleet.
 ---
 
 # Agent Orchestration
@@ -10,10 +10,10 @@ description: Canonical source for agent routing, task lifecycle, TODO.md authori
 | Agent | Purpose | Owned Commands |
 |:---|:---|:---|
 | **strategist** | Architecture, ROI, phased roadmaps | `/blueprint` |
-| **coder** | Implementation & refactoring | — (executes TODO.md) |
+| **coder** | Implementation & refactoring | — (executes Artifacts/TODO.md) |
 | **auditor** | QA, exit reviews, validation | `/audit` |
 | **scribe** | Documentation & knowledge management | `/docs`, `/explain` |
-| **creative-director** | Visual spec & composition planning | — (produces `LAYOUT_SPEC.md`) |
+| **creative-director** | Visual spec & composition planning | — (produces `Artifacts/LAYOUT_SPEC.md`) |
 | **concierge** | State sync, intake, session orchestration | `/sync`, `/ingest`, `/handoff`, `/learn` |
 
 ## Project Type Routing
@@ -41,7 +41,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 6. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
 7. **Session start, "where was I"** → **concierge** (`/sync`)
 8. **Session end, context save** → **concierge** (`/handoff`)
-9. **Visual deliverable, composition, deck, report** → **creative-director** (produce `LAYOUT_SPEC.md` → then `/deck` or coder)
+9. **Visual deliverable, composition, deck, report** → **creative-director** (produce `Artifacts/LAYOUT_SPEC.md` → then `/deck` or coder)
 10. **Ambiguous** → **concierge** asks a clarifying question before routing.
 
 ## Task Lifecycle
@@ -50,15 +50,15 @@ The `strategist` classifies every project during Step 0. This determines active 
 /blueprint (strategist)
   → Requirements Interview (Step 1)
   → Step 0 Challenge (Step 2)
-  → TODO.md task assigned (Phase 1)
-  → [pptx/pbi-report only] creative-director → LAYOUT_SPEC.md
+  → Artifacts/TODO.md task assigned (Phase 1)
+  → [pptx/pbi-report only] creative-director → Artifacts/LAYOUT_SPEC.md
   → /audit --pre (optional) → GO / NO-GO
   → Implementation (coder) — marks [-]
   → /audit (auditor) — validates → PASS: marks [x] | FAIL: return to coder
   → /docs (scribe) → /sync (concierge) → /handoff (if ending)
 ```
 
-## TODO.md Authority (Single Source)
+## Artifacts/TODO.md Authority (Single Source)
 
 | Agent / Command | Allowed | Forbidden |
 |:---|:---|:---|
@@ -66,34 +66,34 @@ The `strategist` classifies every project during Step 0. This determines active 
 | **Coder** | Mark `[-]` (in-progress) | Mark `[x]`, add/remove tasks |
 | **Auditor** | Mark `[x]` (complete) after all gates pass | Add/remove tasks |
 | **`/sync`, `/ingest`** | Propose completion (flag for auditor) | Mark `[x]` directly |
-| **Scribe, Concierge** | Read-only (concierge may archive to `history/`) | Modify content or status |
+| **Scribe, Concierge** | Read-only (concierge may archive to `Artifacts/history/`) | Modify content or status |
 
 **Task format**: `[ ] [agent] Task description — Success: metric`
 - `[ ]` Not started | `[-]` In progress | `[x]` Auditor-verified complete
 
 ## Persistence
 
-All state files MUST live in the **true logical project root** (the source code repository). Never write project-specific state to global AI directories (e.g., `~/.claude/projects/` or `~/.gemini/`). 
+All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository). Never write project-specific state to global AI directories (e.g., `~/.claude/projects/` or `~/.gemini/`). 
 
-**STRICT RULE**: Always use the **absolute file path** of the current code workspace when writing or reading state files to prevent shadow directory collisions.
+**STRICT RULE**: Always use the **absolute file path** of the current code workspace and the `Artifacts/` folder when writing or reading state files to prevent shadow directory collisions.
 
 | File | Owner (Create) | Owner (Maintain) |
 |:---|:---|:---|
-| `IMPLEMENTATION_PLAN.md` | Strategist | Strategist (read-only for others) |
-| `TODO.md` | Strategist | Strategist (structure) + see authority above |
-| `ARCH.md` | Strategist | Scribe (formatting), Strategist (structure) |
 | `.agent/current_task.md` | Concierge | Concierge |
-| `DECISION_LOG.md` | Concierge | Concierge (append-only, on pivots) |
-| `LEARNINGS.md` | Concierge | Concierge (append-only, prune at 50) |
-| `LAYOUT_SPEC.md` | Creative Director | Creative Director |
-| `BRD_SUMMARY.md` | Strategist | Scribe |
-| `EDITORIAL_LETTER.md` | Auditor | Scribe |
+| `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist (read-only for others) |
+| `Artifacts/TODO.md` | Strategist | Strategist (structure) + see authority above |
+| `Artifacts/ARCH.md` | Strategist | Scribe (formatting), Strategist (structure) |
+| `Artifacts/DECISION_LOG.md` | Concierge | Concierge (append-only, on pivots) |
+| `Artifacts/LEARNINGS.md` | Concierge | Concierge (append-only, prune at 50) |
+| `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director |
+| `Artifacts/BRD_SUMMARY.md` | Strategist | Scribe |
+| `Artifacts/EDITORIAL_LETTER.md` | Auditor | Scribe |
 
 ## Conflict Resolution
 
 - **Auditor rejection loop**: 1st → specific fix. 2nd → mandatory skill-file review. 3rd → escalate to strategist (task definition may be flawed).
 - **Agent disagreement**: Coder documents concern → routes to strategist. Strategist has final authority on success metrics.
-- **User override**: User says "Skip Step 0" → logged as `[STEP0-BYPASS]` in TODO.md → auditor flags HIGH severity.
+- **User override**: User says "Skip Step 0" → logged as `[STEP0-BYPASS]` in Artifacts/TODO.md → auditor flags HIGH severity.
 
 ## Parallel Execution
 
@@ -104,4 +104,4 @@ All state files MUST live in the **true logical project root** (the source code 
 
 - **Context window >60%**: Concierge triggers `/handoff`. All agents yield.
 - **Security incident**: FREEZE → AUDIT → REMEDIATE → RESUME (see `security.md`).
-- **State file corruption**: Check `history/` → reconstruct from `.agent/current_task.md` + `DECISION_LOG.md` → `/sync`.
+- **State file corruption**: Check `Artifacts/history/` → reconstruct from `Artifacts/.agent/current_task.md` + `Artifacts/DECISION_LOG.md` → `/sync`.

@@ -63,4 +63,4 @@ No task is "Done" until:
 2. **AUDIT**: Full codebase sweep — secrets, vulnerable deps, injection vectors, leaked system info.
 3. **REMEDIATE**: Rotate keys, update `.gitignore`, patch vulnerability. Purge git history if secrets were committed.
 4. **VERIFY**: Auditor second sweep → `CLEAN` status.
-5. **RESUME**: Log incident in `DECISION_LOG.md` (date, cause, impact, resolution). Update this protocol if gap revealed.
+5. **RESUME**: Log incident in `Artifacts/DECISION_LOG.md` (date, cause, impact, resolution). Update this protocol if gap revealed.

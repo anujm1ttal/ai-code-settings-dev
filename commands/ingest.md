@@ -9,16 +9,16 @@ Owned by the **concierge**. Intake of manual design work for validation and rout
 ## Execution Sequence
 
 1. **Source Detection**: Geometry export (CSV/JSON/TXT) | DAX/SQL | Script handoff (GhPython/C#/Python) | Config/data files.
-2. **Schema Validation**: Check naming + structure rules from `IMPLEMENTATION_PLAN.md`. Verify parseable format + required fields.
+2. **Schema Validation**: Check naming + structure rules from `Artifacts/IMPLEMENTATION_PLAN.md`. Verify parseable format + required fields.
 3. **Logic Capture**: Stage code for auditor review with the relevant skill file.
-4. **Metadata Tag**: Timestamp, source tool, version/git ref, linked IMPLEMENTATION_PLAN.md task.
-5. **TODO.md Proposal**: Flag for auditor. Do NOT mark `[x]`.
+4. **Metadata Tag**: Timestamp, source tool, version/git ref, linked Artifacts/IMPLEMENTATION_PLAN.md task.
+5. **Artifacts/TODO.md Proposal**: Flag for auditor. Do NOT mark `[x]`.
 6. **Route Next Agent**: Needs refactoring → coder. Implementation-complete → auditor. Architecture change → strategist. Needs docs → scribe.
 
 ## Validation
 
-- **Pass**: Parseable, naming matches conventions, matching TODO.md task exists.
-- **Soft Fail**: Parseable but naming deviates OR no matching TODO.md task (flagged as **DRIFT** for strategist). Ingest proceeds with warning.
+- **Pass**: Parseable, naming matches conventions, matching Artifacts/TODO.md task exists.
+- **Soft Fail**: Parseable but naming deviates OR no matching Artifacts/TODO.md task (flagged as **DRIFT** for strategist). Ingest proceeds with warning.
 - **Hard Fail**: Malformed/unparseable, contains hardcoded secrets or local system paths. Ingest blocked.
 
 ## Ingestion Report Format

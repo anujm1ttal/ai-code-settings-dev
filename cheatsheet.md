@@ -18,13 +18,13 @@ Boot: /sync (drift scan) → work → Shutdown: /handoff (persist)
 | `/ingest` | Import manual work from Rhino, Power BI, or external editors (Concierge) |
 | `/sync` | Reconcile project state — run at every session start (Concierge) |
 | `/docs` | Auto-detect and fix documentation gaps (Scribe) |
-| `/docs --internal` | Update README.md, ARCH.md, developer docs |
+| `/docs --internal` | Update README.md, Artifacts/ARCH.md, developer docs |
 | `/docs --user` | Generate Quick Start guides for stakeholders (Tier 2) |
 | `/docs --reference` | Generate API docs, MCP tool schemas, DAX measure catalogs (Tier 3) |
 | `/ideate` | Generate YouTube concepts: Title, Thumbnail, Angle (Strategist) |
 | `/script` | Draft YouTube A/V scripts (Scribe) |
 | `/pack` | Generate YouTube SEO metadata (Scribe) |
-| `/learn` | Capture project-specific lessons into LEARNINGS.md (Concierge) |
+| `/learn` | Capture project-specific lessons into Artifacts/LEARNINGS.md (Concierge) |
 | `/handoff` | Save session state and exit cleanly (Concierge) |
 
 ## Agents
@@ -35,10 +35,10 @@ Boot: /sync (drift scan) → work → Shutdown: /handoff (persist)
 | **Coder** | Implements, refactors, debugs, marks `[-]` | Mark `[x]`, modify plan structure |
 | **Auditor** | QA, exit reviews, marks `[x]` (sole authority) | Write code, modify plan structure |
 | **Scribe** | Documentation, ARCH maintenance, /explain tours | Write code, mark tasks complete |
-| **Creative Director** | Visual spec, LAYOUT_SPEC.md, composition | Write code, mark tasks `[x]` |
+| **Creative Director** | Visual spec, Artifacts/LAYOUT_SPEC.md, composition | Write code, mark tasks `[x]` |
 | **Concierge** | Syncs state, ingests work, /handoff, /learn | Write code, mark tasks `[x]` |
 
-## TODO.md Status
+## Artifacts/TODO.md Status
 
 | Marker | Meaning | Set By |
 | :--- | :--- | :--- |
@@ -91,15 +91,15 @@ Audit fail #1 → Coder fixes · #2 → Coder reviews skill file · #3 → Strat
 
 | File | Owner |
 | :--- | :--- |
-| `IMPLEMENTATION_PLAN.md` | Strategist |
-| `TODO.md` | Strategist (structure) / Auditor (completion) |
-| `ARCH.md` | Strategist (creates) / Scribe (maintains) |
 | `.agent/current_task.md` | Concierge |
-| `DECISION_LOG.md` | Concierge |
-| `LEARNINGS.md` | Concierge (append-only) |
-| `LAYOUT_SPEC.md` | Creative Director |
-| `BRD_SUMMARY.md` | Strategist |
-| `EDITORIAL_LETTER.md` | Auditor |
+| `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist |
+| `Artifacts/TODO.md` | Strategist (structure) / Auditor (completion) |
+| `Artifacts/ARCH.md` | Strategist (creates) / Scribe (maintains) |
+| `Artifacts/DECISION_LOG.md` | Concierge |
+| `Artifacts/LEARNINGS.md` | Concierge (append-only) |
+| `Artifacts/LAYOUT_SPEC.md` | Creative Director |
+| `Artifacts/BRD_SUMMARY.md` | Strategist |
+| `Artifacts/EDITORIAL_LETTER.md` | Auditor |
 
 ## When In Doubt
 - Lost context? → `/sync`

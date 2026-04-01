@@ -9,7 +9,7 @@ Invokes the **scribe** agent. Scribe equips `skill-doc-updater.md`.
 ## Modes
 
 - **`/docs`** (default): Auto-detect — staleness scan + coverage check → prioritized gap report → execute.
-- **`/docs --internal`**: Tier 1 — `README.md`, `ARCH.md`, developer docs.
+- **`/docs --internal`**: Tier 1 — `README.md`, `Artifacts/ARCH.md`, developer docs.
 - **`/docs --user`**: Tier 2 — Quick Start guides, stakeholder docs.
 - **`/docs --reference`**: Tier 3 — API docs, MCP schemas, DAX measure catalog.
 - **`/docs --all`**: All three tiers in sequence.
@@ -31,4 +31,4 @@ Invokes the **scribe** agent. Scribe equips `skill-doc-updater.md`.
 ## Integration
 - Stale docs block auditor `[x]` gates. Run `/docs` to unblock.
 - After coder completes a task, run `/docs` to catch drift.
-- After strategist updates `IMPLEMENTATION_PLAN.md`, run `/docs --internal`.
+- After strategist updates `Artifacts/IMPLEMENTATION_PLAN.md`, run `/docs --internal`.

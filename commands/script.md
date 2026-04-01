@@ -8,12 +8,12 @@ description: Triggers the scribe to write or expand a YouTube script based on an
 
 ## Pre-requisites
 1. The project type must be `youtube`.
-2. A `VIDEO_PLAN.md` must exist with an approved title, thumbnail, and outline.
+2. A `Artifacts/VIDEO_PLAN.md` must exist with an approved title, thumbnail, and outline.
 3. Equip the `youtube-scriptwriting` skill.
 
 ## Workflow Execution
 
-1. **Context Intake**: Read the `VIDEO_PLAN.md` to understand the pacing, angle, and core message.
+1. **Context Intake**: Read the `Artifacts/VIDEO_PLAN.md` to understand the pacing, angle, and core message.
 2. **Drafting the Script**: 
    - Create or update `script.md`.
    - Write exactly as it will be spoken (active voice, short punchy sentences, conversational tone).

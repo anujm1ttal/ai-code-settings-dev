@@ -2,7 +2,7 @@
 name: visual-composition
 description: Cross-medium visual design principles — hierarchy, layout systems, density control, accessibility, and brand governance. Reference for Creative Director, Auditor, and Coder agents.
 tags: ["design", "layout", "accessibility", "visual-design"]
-globs: ["LAYOUT_SPEC.md", "style_constants.py"]
+globs: ["Artifacts/LAYOUT_SPEC.md", "style_constants.py"]
 verbosity_control: "STRICT. Bullet-driven rules. No subjective language — every principle must be auditable."
 ---
 
@@ -24,7 +24,7 @@ verbosity_control: "STRICT. Bullet-driven rules. No subjective language — ever
   - **Dashboards**: 4–6 column grid. Visuals snap to columns.
   - **Reports/Documents**: Single or two-column body. Sidebar optional.
 - All elements align to grid edges. No free-floating objects.
-- Consistent margins across all pages of a deliverable. Define once in `LAYOUT_SPEC.md`.
+- Consistent margins across all pages of a deliverable. Define once in `Artifacts/LAYOUT_SPEC.md`.
 
 ### Spacing
 - Use a base spacing unit (e.g., 0.25in / 8px). All gaps are multiples of this unit.
@@ -127,7 +127,7 @@ verbosity_control: "STRICT. Bullet-driven rules. No subjective language — ever
 | **Left Narrative + Right Visual** | Text left, chart/image right | Analysis slides, case studies |
 | **Full-Bleed Visual** | Single image or graphic, minimal text overlay | Section openers, impact moments |
 
-- Choose 3–5 patterns per deliverable. Document in `LAYOUT_SPEC.md`.
+- Choose 3–5 patterns per deliverable. Document in `Artifacts/LAYOUT_SPEC.md`.
 - Deviations from established patterns require justification.
 
 ## 🚫 Anti-Patterns (Explicit Deny List)
@@ -161,4 +161,4 @@ Used by Auditor agent to verify visual deliverables against this skill:
 - **Consumed by**: Creative Director (composition planning), Auditor (compliance checks), Coder (implementation guidance).
 - **Complements**: `skill-powerpoint-patterns.md` (PowerPoint-specific), `skill-powerbi-report.md` (Power BI-specific).
 - **Style tokens**: `style_constants.py` is the single source of truth for colors, fonts, and sizes.
-- **Layout plans**: `LAYOUT_SPEC.md` is the per-deliverable application of these principles.
+- **Layout plans**: `Artifacts/LAYOUT_SPEC.md` is the per-deliverable application of these principles.

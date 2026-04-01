@@ -44,14 +44,14 @@ Before any plan, output all four:
 
 | File | Create | Maintain |
 |:---|:---|:---|
-| `IMPLEMENTATION_PLAN.md` | ✅ | ✅ (read-only for others) |
-| `TODO.md` | ✅ | ✅ (structure only — see `orchestration.md` for status authority) |
-| `ARCH.md` | ✅ | ✅ (major shifts). Scribe owns formatting. |
-| `BRD_SUMMARY.md` | ✅ | Scribe maintains |
+| `Artifacts/IMPLEMENTATION_PLAN.md` | ✅ | ✅ (read-only for others) |
+| `Artifacts/TODO.md` | ✅ | ✅ (structure only — see `orchestration.md` for status authority) |
+| `Artifacts/ARCH.md` | ✅ | ✅ (major shifts). Scribe owns formatting. |
+| `Artifacts/BRD_SUMMARY.md` | ✅ | Scribe maintains |
 
 ## Principles
 - **80/20**: Prioritize 20% effort → 80% result.
 - **Telegraphic**: No filler. High-density fragments.
 - **Dependency-Aware**: Never schedule before prerequisites complete.
 - **Agent-Aware**: Every task names the responsible agent.
-- **Visual-First**: For `pptx` or `pbi-report`, the Creative Director must produce `LAYOUT_SPEC.md` before coding starts.
+- **Visual-First**: For `pptx` or `pbi-report`, the Creative Director must produce `Artifacts/LAYOUT_SPEC.md` before coding starts.

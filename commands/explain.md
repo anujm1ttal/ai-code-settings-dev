@@ -39,4 +39,4 @@ Invokes the **scribe** agent in Explain mode. Scribe equips `codebase-navigator`
 
 - Run `/explain` before `/blueprint` when starting a new phase on an unfamiliar codebase.
 - Run `/explain --why [topic]` before `/audit` if a design choice looks suspect.
-- `/explain` does not modify files or TODO.md — read-only, no side effects.
+- `/explain` does not modify files or Artifacts/TODO.md — read-only, no side effects.

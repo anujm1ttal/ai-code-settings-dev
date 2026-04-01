@@ -26,7 +26,7 @@ Manages PowerPoint deck generation via `python-pptx`. All actions follow `skill-
 ### `/deck build [--template PATH] [--data PATH] [--output PATH]`
 **Agent**: Coder
 
-1. Read `LAYOUT_SPEC.md` for composition plan (if exists).
+1. Read `Artifacts/LAYOUT_SPEC.md` for composition plan (if exists).
 2. Import style tokens from `style_constants.py`.
 3. Run `main.py` (or specified script).
 4. Validate output `.pptx` exists and has slides.
@@ -64,7 +64,7 @@ Report: pass/fail per check, standard severity format (CRITICAL / HIGH / MEDIUM)
 3. For each layout, print:
    - Layout index and name.
    - Placeholder index, name, type, and dimensions.
-4. Output as table for quick reference and `LAYOUT_SPEC.md` population.
+4. Output as table for quick reference and `Artifacts/LAYOUT_SPEC.md` population.
 
 ## File Dependencies
 
@@ -72,7 +72,7 @@ Report: pass/fail per check, standard severity format (CRITICAL / HIGH / MEDIUM)
 |:---|:---|:---|
 | `templates/*.pptx` | Source templates (read-only) | `/deck init` |
 | `style_constants.py` | Colors, fonts, sizes | `/deck init` |
-| `LAYOUT_SPEC.md` | Composition plan | Creative Director (optional) |
+| `Artifacts/LAYOUT_SPEC.md` | Composition plan | Creative Director (optional) |
 | `main.py` | Generation script | `/deck init` scaffold, Coder extends |
 | `output/*.pptx` | Generated decks (gitignored) | `/deck build` |
 
@@ -87,4 +87,4 @@ Report: pass/fail per check, standard severity format (CRITICAL / HIGH / MEDIUM)
 ## Integration
 - `/deck audit` follows the same severity format as `/audit`.
 - All script code follows `skill-python-patterns.md`.
-- Visual rules flow from `skill-visual-composition.md` → `LAYOUT_SPEC.md` → script.
+- Visual rules flow from `skill-visual-composition.md` → `Artifacts/LAYOUT_SPEC.md` → script.

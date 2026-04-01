@@ -92,7 +92,7 @@ The business analysis feeds directly into the `strategist`'s Step 0 `PROJECT_TYP
 
 ## 🖋 Business Output (The Artifact)
 
-When triggered, generate a `BRD_SUMMARY.md` (Business Requirements Document) with:
+When triggered, generate a `Artifacts/BRD_SUMMARY.md` (Business Requirements Document) with:
 
 ### THE VALUE PROPOSITION
 - Single sentence on why this project is a priority for the organization.

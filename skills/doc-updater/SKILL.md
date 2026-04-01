@@ -36,11 +36,11 @@ Required sections in order:
 - **## Prerequisites**: All dependencies, tools, versions, and environment requirements. Use a table.
 - **## Installation**: Step-by-step setup. Include environment variables with example values (not real secrets).
 - **## Usage**: Primary use cases with examples. Code blocks for CLI commands or function calls.
-- **## Architecture**: Brief overview or link to `ARCH.md` for details.
+- **## Architecture**: Brief overview or link to `Artifacts/ARCH.md` for details.
 - **## Limitations**: What this project CANNOT do. Be explicit — this prevents support burden.
 - **## Contributing**: How to add to this project. Reference coding-style.md and testing requirements.
 
-### ARCH.md
+### Artifacts/ARCH.md
 
 Required sections in order:
 
@@ -48,7 +48,7 @@ Required sections in order:
 - **## System Overview**: ASCII diagram of major components and their relationships.
 - **## Component Map**: Table listing each module/service, its purpose, its primary file(s), and its owner agent.
 - **## Data Flow**: ASCII diagram showing how data moves through the system (input → processing → output).
-- **## Key Decisions**: Summary table of architectural decisions with links to `DECISION_LOG.md` entries.
+- **## Key Decisions**: Summary table of architectural decisions with links to `Artifacts/DECISION_LOG.md` entries.
 - **## Constraints**: Technical limitations, platform requirements, performance boundaries.
 - **## Dependencies**: External systems, APIs, data sources, and their availability/reliability.
 
@@ -103,11 +103,11 @@ A document is **stale** when any of these conditions are true:
 
 | Trigger | Affected Documents |
 | :--- | :--- |
-| Source code file modified | README.md, ARCH.md, API docs for that module |
-| New module or tool added | README.md (architecture section), ARCH.md (component map) |
-| Dependency added or removed | README.md (prerequisites), ARCH.md (dependencies) |
-| Architecture decision made | ARCH.md (key decisions), link to DECISION_LOG.md |
-| Success metric changed | IMPLEMENTATION_PLAN.md phase description |
+| Source code file modified | README.md, Artifacts/ARCH.md, API docs for that module |
+| New module or tool added | README.md (architecture section), Artifacts/ARCH.md (component map) |
+| Dependency added or removed | README.md (prerequisites), Artifacts/ARCH.md (dependencies) |
+| Architecture decision made | Artifacts/ARCH.md (key decisions), link to Artifacts/DECISION_LOG.md |
+| Success metric changed | Artifacts/IMPLEMENTATION_PLAN.md phase description |
 | MCP tool schema changed | API/tool documentation for that tool |
 | DAX measure modified | Measure catalog entry |
 | ASCII diagram's source code changed | The diagram itself |
@@ -118,7 +118,7 @@ A document is **stale** when any of these conditions are true:
 | :--- | :--- | :--- |
 | **CRITICAL** | API/tool docs don't match actual schema | Users will get errors following the docs |
 | **HIGH** | README Quick Start is broken (wrong commands/steps) | New users can't onboard |
-| **HIGH** | ARCH.md doesn't reflect current structure | Developers make wrong assumptions |
+| **HIGH** | Artifacts/ARCH.md doesn't reflect current structure | Developers make wrong assumptions |
 | **MEDIUM** | Measure catalog missing new measures | Discoverability issue |
 | **LOW** | Minor formatting or typo in non-critical docs | Cosmetic only |
 
@@ -140,7 +140,7 @@ Run by the `scribe` during `/docs` (auto-detect mode):
 
 ### When to Update Next Session
 - New modules added but not yet audited (document after audit pass).
-- ARCH.md structural changes from a Re-Plan (document after new plan is stable).
+- Artifacts/ARCH.md structural changes from a Re-Plan (document after new plan is stable).
 - Measure catalog additions (document after DAX measures pass audit).
 
 ### When to Flag for Strategist

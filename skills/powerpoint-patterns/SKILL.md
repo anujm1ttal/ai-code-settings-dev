@@ -13,7 +13,7 @@ verbosity_control: "TECHNICAL. Prioritize code blocks over prose. Use high-densi
 - **Save-to-New**: Never overwrite the source template. Always save to a separate output path.
 - **Discover, Don't Assume**: Look up layouts by name and placeholders by iteration — never hardcode indices.
 - **Centralize Style**: All colors, fonts, and sizes live in `style_constants.py`. No inline `RGBColor()` in slide-building code.
-- **One Idea Per Slide**: Follow `LAYOUT_SPEC.md` from Creative Director. Max 5 content blocks per slide.
+- **One Idea Per Slide**: Follow `Artifacts/LAYOUT_SPEC.md` from Creative Director. Max 5 content blocks per slide.
 - **EMU Helpers Only**: Never raw integers for measurements. Always `Inches()`, `Pt()`, `Emu()`.
 
 ## 📦 Imports & Constants
@@ -51,7 +51,7 @@ Define all measurements and style tokens at module top or import from `style_con
     for ph in slide.placeholders:
         print(ph.placeholder_format.idx, ph.name, ph.shape_id)
 
-- Cache discovered indices as named constants per template. Document them in `LAYOUT_SPEC.md`.
+- Cache discovered indices as named constants per template. Document them in `Artifacts/LAYOUT_SPEC.md`.
 
 ## 🛠 Shape Creation Patterns
 
@@ -104,7 +104,7 @@ Run at script start, before any slide creation. Fail fast if template doesn't ma
 | `scripts/deck_*.py` | Deck generation scripts | One script per deck type. |
 | `assets/` | Images, logos, icons | Referenced by scripts. Relative paths only. |
 | `output/` | Generated decks | Never committed to repo. Gitignored. |
-| `LAYOUT_SPEC.md` | Composition plan | From Creative Director. Consumed, not edited. |
+| `Artifacts/LAYOUT_SPEC.md` | Composition plan | From Creative Director. Consumed, not edited. |
 
 ## 🚫 Anti-Patterns (Explicit Deny List)
 - No `Presentation()` without a template argument.
@@ -120,5 +120,5 @@ Run at script start, before any slide creation. Fail fast if template doesn't ma
 ## 🔨 Toolchain
 - **Library**: `python-pptx` — native `.pptx` manipulation. No COM automation, no LibreOffice.
 - **Style**: All rules from `python-patterns.md` apply (type hints, ruff, pytest, loguru).
-- **Composition**: Visual direction from `LAYOUT_SPEC.md` produced by Creative Director.
+- **Composition**: Visual direction from `Artifacts/LAYOUT_SPEC.md` produced by Creative Director.
 - **Validation**: Auditor checks via `pptx` audit domain — see `agent-auditor.md`.

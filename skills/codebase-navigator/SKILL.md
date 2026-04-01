@@ -126,7 +126,7 @@ When asked "why is it built this way?":
 1. State the decision as a sentence.
 2. List what it enables (the upside).
 3. List what it costs (the tradeoff).
-4. Note alternatives that were rejected, if detectable from comments, git history, or `DECISION_LOG.md`.
+4. Note alternatives that were rejected, if detectable from comments, git history, or `Artifacts/DECISION_LOG.md`.
 
 ```
 Decision: All DB access goes through Repository classes.

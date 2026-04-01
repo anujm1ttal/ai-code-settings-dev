@@ -2,7 +2,7 @@
 name: powerbi-report
 description: Power BI front-end patterns — theme JSON, visual selection, page layout, formatting, interactions, mobile, performance, and conditional formatting. Reference for Creative Director, Auditor, and Coder agents.
 tags: ["powerbi", "visualization", "dashboard", "reporting"]
-globs: ["*.pbip", "*.Report/**", "theme*.json", "LAYOUT_SPEC.md"]
+globs: ["*.pbip", "*.Report/**", "theme*.json", "Artifacts/LAYOUT_SPEC.md"]
 verbosity_control: "TECHNICAL. Prioritize JSON blocks and tables over prose. Bullet-driven rules."
 ---
 
@@ -97,7 +97,7 @@ All visual styling defined in a single theme file. No manual formatting override
 
 ### Page Count Guidelines
 - Target 3–7 pages per report. More than 10 → split into multiple reports or use bookmarks.
-- Every page has a defined purpose documented in `LAYOUT_SPEC.md`.
+- Every page has a defined purpose documented in `Artifacts/LAYOUT_SPEC.md`.
 - Navigation: use buttons or bookmarks for non-linear reports. Tab strip for linear.
 
 ## 🎛 Formatting Conventions
@@ -186,7 +186,7 @@ All visual styling defined in a single theme file. No manual formatting override
 - No >8 visuals per page.
 - No raw columns in visual values — use measures.
 - No default filter pane visible in published reports.
-- No pages without a defined purpose in `LAYOUT_SPEC.md`.
+- No pages without a defined purpose in `Artifacts/LAYOUT_SPEC.md`.
 - No unsorted bar charts — always sort by value descending.
 - No visual titles that describe chart type instead of insight.
 - No gradients or background images on visuals.
@@ -214,7 +214,7 @@ Used by Auditor agent (`pbi-report` domain) to verify compliance:
 - **Consumed by**: Creative Director (page layout decisions), Auditor (`pbi-report` domain checks), Coder (theme generation, PBIP manipulation).
 - **Depends on**: `skill-dax-modeling.md` (all measures), `skill-visual-composition.md` (hierarchy and grid principles).
 - **Style tokens**: Theme JSON is the Power BI equivalent of `style_constants.py`.
-- **Layout plans**: `LAYOUT_SPEC.md` governs page composition per deliverable. **The Creative Director MUST include high-level ASCII wireframes in the `LAYOUT_SPEC.md` modeled directly after the structural examples in the Visual Example Output section.**
+- **Layout plans**: `Artifacts/LAYOUT_SPEC.md` governs page composition per deliverable. **The Creative Director MUST include high-level ASCII wireframes in the `Artifacts/LAYOUT_SPEC.md` modeled directly after the structural examples in the Visual Example Output section.**
 
 ## 🔨 Toolchain
 - **Desktop**: Power BI Desktop for authoring.

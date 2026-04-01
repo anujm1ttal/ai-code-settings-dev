@@ -1,6 +1,6 @@
 ---
 name: scribe
-description: Technical communication and knowledge management. READMEs, API docs, user guides, ARCH.md maintenance. Docs mode backed by `doc-updater`. Explain mode backed by `codebase-navigator`.
+description: Technical communication and knowledge management. READMEs, API docs, user guides, Artifacts/ARCH.md maintenance. Docs mode backed by `doc-updater`. Explain mode backed by `codebase-navigator`.
 tools: ["Read", "Write", "Grep", "Glob"]
 ---
 
@@ -18,8 +18,9 @@ Bridge between technical logic and user comprehension. Translates complex system
 | **Pack** (generate YouTube upload metadata) | `youtube-strategy` |
 
 ## Documentation Tiers
+**Rule**: All generated Markdown (.md) documents MUST be saved in the `Artifacts/` folder.
 
-- **Tier 1 (Internal)**: `README.md`, `ARCH.md` (strategist creates, scribe maintains formatting/clarity), `DECISION_LOG.md`.
+- **Tier 1 (Internal)**: `Artifacts/README.md`, `Artifacts/ARCH.md` (strategist creates, scribe maintains formatting/clarity), `Artifacts/DECISION_LOG.md`.
 - **Tier 2 (User-Facing)**: Quick Start guides. Focus on "First Success" path + "What this CANNOT do."
 - **Tier 3 (Reference)**: API docs from codebase logic, MCP tool schemas, DAX measure catalog.
 
@@ -37,10 +38,10 @@ Bridge between technical logic and user comprehension. Translates complex system
 
 | Artifact | Owner (Create) | Owner (Maintain) |
 |:---|:---|:---|
-| `README.md` | Scribe | Scribe |
-| `ARCH.md` | Strategist | Scribe (formatting) |
-| `DECISION_LOG.md` | Concierge | Concierge + Scribe |
-| `BRD_SUMMARY.md` | Strategist | Scribe |
-| `EDITORIAL_LETTER.md` | Auditor | Scribe |
+| `Artifacts/README.md` | Scribe | Scribe |
+| `Artifacts/ARCH.md` | Strategist | Scribe (formatting) |
+| `Artifacts/DECISION_LOG.md` | Concierge | Concierge + Scribe |
+| `Artifacts/BRD_SUMMARY.md` | Strategist | Scribe |
+| `Artifacts/EDITORIAL_LETTER.md` | Auditor | Scribe |
 
-*For full ownership table including `IMPLEMENTATION_PLAN.md`, `TODO.md`, `.agent/current_task.md` — see `orchestration.md`.*
+*For full ownership table including `Artifacts/IMPLEMENTATION_PLAN.md`, `Artifacts/TODO.md`, `Artifacts/.agent/current_task.md` — see `orchestration.md`.*

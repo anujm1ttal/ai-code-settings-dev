@@ -33,7 +33,7 @@ verbosity_control: "STRICT. Focus on deliverables, dependencies, and metrics. No
 
 ### Phase Template
 
-Every phase in `IMPLEMENTATION_PLAN.md` must contain:
+Every phase in `Artifacts/IMPLEMENTATION_PLAN.md` must contain:
 
 - **Phase [N]: [Descriptive Title]**
 - **Objective**: One sentence — what does this phase deliver?
@@ -67,7 +67,7 @@ Every phase in `IMPLEMENTATION_PLAN.md` must contain:
 ## 📋 Task Decomposition
 
 ### Atomic Task Rules
-Every item in `TODO.md` must be:
+Every item in `Artifacts/TODO.md` must be:
 - **Atomic**: Completable in a single agent session (typically 1–2 hours of focused work).
 - **Owned**: Assigned to exactly one agent: `[ ] [coder] Task description`.
 - **Measurable**: Has a verifiable outcome — code compiles, test passes, metric threshold met.
@@ -89,7 +89,7 @@ When breaking a phase into tasks, verify:
 | **Implement** | Coder | Write new code or logic | `[coder] Implement C-Value function in c_value.py` |
 | **Refactor** | Coder | Restructure existing code | `[coder] Extract data tree logic to separate module` |
 | **Validate** | Auditor | Review and verify work | `[auditor] Audit sightline module against skill-python-rhino.md` |
-| **Document** | Scribe | Create or update docs | `[scribe] Update ARCH.md with new module structure` |
+| **Document** | Scribe | Create or update docs | `[scribe] Update Artifacts/ARCH.md with new module structure` |
 | **Ingest** | Concierge | Import manual work | `[concierge] Ingest exported GH sightline script` |
 | **Plan** | Strategist | Scope or re-plan | `[strategist] Define Phase 3 scope and success metrics` |
 
@@ -103,7 +103,7 @@ When breaking a phase into tasks, verify:
 | **Soft** | `~>` | B benefits from A but can start independently | Docs ~> Code review |
 | **External** | `⇒` | Depends on input outside the project | CAD files ⇒ Sightline calc |
 
-### Dependency Notation in TODO.md
+### Dependency Notation in Artifacts/TODO.md
 
 Tasks reference their dependencies explicitly:
 
@@ -118,7 +118,7 @@ During `/sync` and `/audit --pre`, the `concierge` and `auditor` check:
 - No task is proposed for `[x]` while a dependent task has failing tests.
 - External dependencies are flagged as **BLOCKED** with a clear owner and expected resolution.
 
-## 🗺 IMPLEMENTATION_PLAN.md Structure
+## 🗺 Artifacts/IMPLEMENTATION_PLAN.md Structure
 
 The `strategist` produces this file during `/blueprint`. It is the architectural North Star.
 
@@ -144,7 +144,7 @@ The `strategist` produces this file during `/blueprint`. It is the architectural
 ### Plan Health Checks
 The `concierge` validates during `/sync`:
 - Every phase has at least one success metric that is numeric.
-- Every task in `TODO.md` maps to a phase in the plan.
+- Every task in `Artifacts/TODO.md` maps to a phase in the plan.
 - No orphaned tasks (in TODO but not in any phase).
 - No phantom phases (in plan but with zero TODO tasks).
 - Dependency chain has no cycles.
@@ -158,7 +158,7 @@ The `concierge` validates during `/sync`:
 
 ### Scope Creep Detection
 Flag immediately if:
-- A task is added to `TODO.md` without a corresponding update to `IMPLEMENTATION_PLAN.md`.
+- A task is added to `Artifacts/TODO.md` without a corresponding update to `Artifacts/IMPLEMENTATION_PLAN.md`.
 - The `coder` implements functionality not in the current phase.
 - A "quick fix" grows beyond 3 files touched.
 - The user requests a feature that doesn't align with the current phase's objective.
@@ -166,8 +166,8 @@ Flag immediately if:
 ### Scope Change Protocol
 1. User or agent identifies a scope change need.
 2. Route to `strategist` for evaluation against Step 0.
-3. If approved: update `IMPLEMENTATION_PLAN.md`, add tasks to `TODO.md`, log in `DECISION_LOG.md`.
-4. If rejected: document the rejection in `DECISION_LOG.md` with rationale.
+3. If approved: update `Artifacts/IMPLEMENTATION_PLAN.md`, add tasks to `Artifacts/TODO.md`, log in `Artifacts/DECISION_LOG.md`.
+4. If rejected: document the rejection in `Artifacts/DECISION_LOG.md` with rationale.
 5. Never silently absorb scope — every change is explicit and logged.
 
 ## 🎙 Interview Methodology (The Delivery)
@@ -194,5 +194,5 @@ The `strategist` uses these questions to ensure the phased roadmap is grounded i
 - **Vague success metrics**: "Working correctly" is not measurable. Define the threshold.
 - **Implicit dependencies**: If task B needs task A, write it down. Don't assume ordering.
 - **Gold plating**: Exceeding the success metric "just in case." If C-Value > 60mm is the metric, don't optimize for 120mm unless the plan says so.
-- **Orphan tasks**: Tasks in TODO.md with no parent phase. Every task traces to a phase.
+- **Orphan tasks**: Tasks in Artifacts/TODO.md with no parent phase. Every task traces to a phase.
 - **Infinite Phase 1**: A first phase that tries to do everything. Phase 1 should be the smallest demonstrable win.

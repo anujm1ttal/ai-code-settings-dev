@@ -8,11 +8,11 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
 
 ## Execution Sequence
 
-1. **Learnings Capture**: Scan session for mistakes/preferences/gotchas. Propose `/learn` candidates to user. Append approved entries to `LEARNINGS.md` (pruning if >50).
+1. **Learnings Capture**: Scan session for mistakes/preferences/gotchas. Propose `/learn` candidates to user. Append approved entries to `Artifacts/LEARNINGS.md` (pruning if >50).
 2. **Session Summary**: Tasks worked on, agents active, decisions/pivots made.
-3. **State Snapshot**: Update `.agent/current_task.md`, verify `TODO.md` markers, append to `DECISION_LOG.md`.
+3. **State Snapshot**: Update `.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md`.
 4. **Context Compression**: Summarize resolved threads. Preserve active tasks/open questions. Discard superseded plans and verbose outputs.
-5. **TODO Hygiene**: Scrub completed micro-tasks. Archive to `history/TODO_phase_[n].md` if >200 lines.
+5. **TODO Hygiene**: Scrub completed micro-tasks. Archive to `Artifacts/history/TODO_phase_[n].md` if >200 lines.
 6. **Generate Brief**.
 
 ## Handoff Brief Format
@@ -21,8 +21,8 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
 - **Completed**: Task → outcome.
 - **In Progress**: Task → current state.
 - **Blockers**: Open questions or dependencies.
-- **Decisions**: Decision → rationale (also in `DECISION_LOG.md`).
-- **State File Health**: `.agent/current_task.md` / `TODO.md` / `IMPLEMENTATION_PLAN.md` / `ARCH.md` — status each.
+- **Decisions**: Decision → rationale (also in `Artifacts/DECISION_LOG.md`).
+- **State File Health**: `.agent/current_task.md` / `Artifacts/TODO.md` / `Artifacts/IMPLEMENTATION_PLAN.md` / `Artifacts/ARCH.md` — status each.
 - **Next Session**: Agent → task → 1-2 sentences critical context.
 
 ## Handoff Targets
@@ -38,4 +38,4 @@ Concierge proactively suggests `/handoff` when:
 - Extended work without sync/handoff.
 
 ## Boundaries
-Does NOT: mark `[x]`, modify `IMPLEMENTATION_PLAN.md`, run `/sync`, execute code.
+Does NOT: mark `[x]`, modify `Artifacts/IMPLEMENTATION_PLAN.md`, run `/sync`, execute code.
