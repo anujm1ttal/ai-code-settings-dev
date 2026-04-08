@@ -101,10 +101,33 @@ function main() {
     }
 
     const brief = buildSessionBrief(cwd);
+    
+    // Role-aware context injection
+    let roleBrief = '';
+    const agentRole = process.env.AGENT_ROLE;
+    if (agentRole) {
+      const root = findProjectRoot(cwd);
+      const profilesPath = path.join(root, 'Artifacts', 'LOCAL_AGENT_PROFILES.json');
+      if (fs.existsSync(profilesPath)) {
+        try {
+          const profiles = JSON.parse(fs.readFileSync(profilesPath, 'utf-8'));
+          const profile = profiles.profiles[agentRole];
+          if (profile && profile.instructions) {
+            const instrPath = path.join(root, profile.instructions);
+            if (fs.existsSync(instrPath)) {
+              const instructions = fs.readFileSync(instrPath, 'utf-8');
+              roleBrief = `\n\n# ROLE: ${agentRole.toUpperCase()}\n\n${instructions}`;
+            }
+          }
+        } catch (e) {
+          process.stderr.write(`[claude-code/session-boot] Role profile error: ${e.message}\n`);
+        }
+      }
+    }
 
-    if (brief) {
+    if (brief || roleBrief) {
       const output = {
-        additionalContext: brief,
+        additionalContext: (brief || '') + roleBrief,
       };
       process.stdout.write(JSON.stringify(output));
     }

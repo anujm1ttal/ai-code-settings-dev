@@ -1,0 +1,29 @@
+{
+  "profiles": {
+    "strategist": {
+      "instructions": "agents/strategist.md",
+      "env": { "AGENT_ROLE": "strategist" },
+      "primary_paths": ["Artifacts/IMPLEMENTATION_PLAN.md", "Artifacts/TODO.md"]
+    },
+    "coder": {
+      "instructions": "agents/coder.md",
+      "env": { "AGENT_ROLE": "coder" },
+      "primary_paths": ["src/", "tests/", "Artifacts/TODO.md"]
+    },
+    "auditor": {
+      "instructions": "agents/auditor.md",
+      "env": { "AGENT_ROLE": "auditor" },
+      "primary_paths": ["Artifacts/AUDIT_REPORT.md", "Artifacts/TODO.md"]
+    },
+    "scribe": {
+      "instructions": "agents/scribe.md",
+      "env": { "AGENT_ROLE": "scribe" },
+      "primary_paths": ["docs/", "Artifacts/LEARNINGS.md"]
+    },
+    "concierge": {
+      "instructions": "agents/concierge.md",
+      "env": { "AGENT_ROLE": "concierge" },
+      "primary_paths": ["Artifacts/DECISION_LOG.md", "Artifacts/LEARNINGS.md"]
+    }
+  }
+}

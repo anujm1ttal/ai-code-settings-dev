@@ -10,25 +10,12 @@ Implementation Dispatch allows the `coder` agent to delegate specific tasks to f
 
 ## 🚀 The Dispatch Workflow
 
-### 1. Task Packaging
-For the selected task from `Artifacts/TODO.md`, construct a `dispatch` package:
-- **Scope**: List only the files the subagent is authorized to modify.
-- **Context**: Provide the `Artifacts/IMPLEMENTATION_PLAN.md` segment relevant to the task.
-- **Skills**: Explicitly state which Claude Code skills (e.g., `python-rhino`) the subagent must load.
-- **Constraint**: "Do not change code outside the authorized scope."
-
-### 2. Subagent Invocation
-Use the `Agent` tool (or `browser_subagent`) with a focused prompt.
-- **Agent Type Mapping**: You MUST set the `subagent_type` parameter to match the agent fleet when possible:
-    | Agent Role | `subagent_type` value |
-    | :--- | :--- |
-    | `coder` | `general-purpose` (or specialized if available) |
-    | `auditor` | `auditor` |
-    | `scribe` | `scribe` |
-    | `strategist` | `general-purpose` |
-- **Model Selection**: 
-    - Use highly capable models (e.g., Gemini 1.5 Pro, Claude Opus) for architectural tasks.
-    - Use faster models (e.g., Gemini 1.5 Flash, Claude Haiku) for mechanical refactors or unit tests.
+### 2. Subagent Invocation (Ollama Optimized)
+Use the `agent` tool with a focused prompt. Since Ollama loads one model at a time, we prioritize sequential execution to maintain performance.
+- **Local Profile**: Reference `Artifacts/LOCAL_AGENT_PROFILES.json` to determine the instructions and paths for the subagent.
+- **Role Assignment**: Explicitly instruct the subagent to "Assume the identity and instructions for the [Role] profile."
+- **Environment**: If your environment supports it, ensure `AGENT_ROLE` is set to trigger role-aware context injection in `hooks/session-boot.js`.
+- **Model Selection**: For Ollama, the model will be the same across all instances. Focus on role-based context rather than model switching.
 
 ### 3. Two-Stage Review (CRITICAL)
 When the subagent returns, the main agent MUST perform two distinct reviews BEFORE integrating:
@@ -47,12 +34,15 @@ When the subagent returns, the main agent MUST perform two distinct reviews BEFO
 - Merge the changes.
 - Update `Artifacts/TODO.md` to `[-]` (if verifying) or wait for the `auditor` to mark `[x]`.
 
-## 📐 Dispatch Prompts
-Dispatch prompts must be role-play based:
-> "You are a Claude Code Agent specialized in [Domain]. Your task is to [Task Description]. 
-> Constraints: Follow [Skill Name] strictly. Stay within [File Paths].
+## 📐 Dispatch Prompts (Local Agent OS)
+Dispatch prompts must be identity-based to trigger the correct local context:
+> "Assume the identity of the **[Role]** agent. 
+> 1. Read your instructions from [Instructions Path].
+> 2. Initialize your state by reading Artifacts/TODO.md.
+> 3. Task: [Task Description]. 
+> Constraints: Stay within [File Paths].
 > Success Metric: [Metric from Plan].
-> Output: Return a summary of changes and the fresh command output showing verification."
+> Output: Return a summary of changes and verification evidence."
 
 ## 🚫 Anti-Rationalization Table
 
