@@ -9,7 +9,7 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 
 | Agent | Purpose | Owned Commands |
 |:---|:---|:---|
-| **strategist** | Architecture, ROI, phased roadmaps | `/blueprint` |
+| **strategist** | Architecture, ROI, phased roadmaps, tech-debt discovery | `/blueprint`, `/sweep` |
 | **coder** | Implementation & refactoring | — (executes Artifacts/TODO.md) |
 | **auditor** | QA, exit reviews, validation | `/audit` |
 | **scribe** | Documentation & knowledge management | `/docs`, `/explain` |
@@ -27,22 +27,24 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `data` | All | `dax-modeling`, `codebase-navigator` |
 | `manuscript` | strategist, auditor, scribe, concierge | `manuscript-review`, `business-analyst` |
 | `youtube` | strategist, scribe, auditor, concierge | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` |
-| `pptx` | strategist, creative-director, coder, auditor, scribe, concierge | `powerpoint-patterns`, `visual-composition`, `python-patterns` |
-| `pbi-report` | strategist, creative-director, coder, auditor, scribe, concierge | `powerbi-report`, `visual-composition`, `dax-modeling` |
+| `pptx` | strategist, creative-director, coder, auditor, concierge | `powerpoint-patterns`, `visual-composition`, `python-patterns` |
+| `pbi-report` | strategist, creative-director, coder, auditor, concierge | `powerbi-report`, `visual-composition`, `dax-modeling` |
 | `hybrid` | All | Per-phase skill assignment, `codebase-navigator` always available |
+| *(all types)* | coder, auditor, scribe | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` |
 
 ## Automatic Routing
 
 1. **Planning, scoping, "should we"** → **strategist** (`/blueprint`)
-2. **Code implementation, refactoring, debugging** → **coder** (equip skills per table above)
-3. **Review, validation, "is this correct"** → **auditor** (`/audit`)
-4. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
-5. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
-6. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
-7. **Session start, "where was I"** → **concierge** (`/sync`)
-8. **Session end, context save** → **concierge** (`/handoff`)
-9. **Visual deliverable, composition, deck, report** → **creative-director** (produce `Artifacts/LAYOUT_SPEC.md` → then `/deck` or coder)
-10. **Ambiguous** → **concierge** asks a clarifying question before routing.
+2. **Codebase discovery, tech-debt mapping, redundancy scans** → **strategist** (`/sweep`)
+3. **Code implementation, refactoring, debugging** → **coder** (equip skills per table above)
+4. **Review, validation, "is this correct"** → **auditor** (`/audit`)
+5. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
+6. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
+7. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
+8. **Session start, "where was I"** → **concierge** (`/sync`)
+9. **Session end, context save** → **concierge** (`/handoff`)
+10. **Visual deliverable, composition, deck, report** → **creative-director** (produce `Artifacts/LAYOUT_SPEC.md` → then `/deck` or coder)
+11. **Ambiguous** → **concierge** asks a clarifying question before routing.
 
 ## Task Lifecycle
 

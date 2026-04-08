@@ -36,6 +36,12 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 4. Full Step 0 referencing what failed.
 5. Fresh files. Restart pipeline.
 
+## Parallel Team Execution (`/blueprint --team`)
+Leverages Claude Agent Teams to independently challenge the architecture. If token context limits are hit, automatically fall back to standard execution.
+1. **Spawn Integrator**: While the lead `strategist` is mapping the phased roadmap based on user inputs, spawn a **Risk Assessor** teammate.
+2. **Step 0 Challenge**: The Risk Assessor performs the Step 0 Challenge (MINIMALISM and RISKS validation) independently, reviewing the draft plan to find scope creep, invalidating evidence, or unaddressed dependencies.
+3. **Synthesize**: The lead `strategist` utilizes the Risk Assessor's feedback to finalize `Artifacts/IMPLEMENTATION_PLAN.md`.
+
 ## Standards
 - **Success Metrics**: Numeric, verifiable. Forbidden: "Done", "Complete", "Working".
 - **Minimalism**: If plan >4 phases, challenge — can phases merge?

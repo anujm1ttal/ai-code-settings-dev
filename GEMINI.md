@@ -26,11 +26,16 @@ Orchestration layer for Gemini sessions.
 
 ## Commands
 
-| Command | Owner | Purpose |
+| Command / Skill | Owner | Purpose |
 |:---|:---|:---|
 | `/blueprint` | strategist | Project planning, phased roadmaps |
-| `/audit` | auditor | Quality review, gate validation |
+| `/sweep` | strategist | Codebase discovery, tech-debt mapping, redundancy scans |
+| `typescript-mcp` | `strategist, auditor, coder` | MCP server standards, Zod, JSON-RPC, async boundaries |
+| `systematic-debugging` | `coder, auditor` | 4-phase root-cause investigation process |
+| `implementation-dispatch` | `coder` | Subagent orchestration and two-stage review workflow |
+| `visual-composition` | `creative-director, auditor` | Hierarchy, layout, brand governance, and accessibility |
 | `/deck` | strategist / creative-director | PowerPoint project scaffolding & validation |
+| `/audit` | auditor | Quality review, gate validation |
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
 | `/ideate` | strategist | YouTube video conceptualization |
@@ -60,7 +65,7 @@ Orchestration layer for Gemini sessions.
 | `youtube` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` → strategist, scribe, auditor, concierge |
 | `pptx` | `powerpoint-patterns`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
 | `pbi-report` | `powerbi-report`, `visual-composition`, `dax-modeling` → strategist, creative-director, coder, auditor, concierge |
-| *(all types)* | `codebase-navigator` available — equip on scribe when user asks how code works |
+| *(all types)* | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` available — equip on coder/auditor as needed |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.
 

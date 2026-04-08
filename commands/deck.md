@@ -23,24 +23,25 @@ Manages PowerPoint deck generation via `python-pptx`. All actions follow `skill-
 4. Generate `main.py` skeleton with template validation, layout lookup, and save-to-output pattern.
 5. Run `/deck layouts` on the default template to populate placeholder mappings.
 
-### `/deck build [--template PATH] [--data PATH] [--output PATH]`
+### `/deck build [--template PATH] [--data PATH] [--output PATH] [--team]`
 **Agent**: Coder
 
 1. Read `Artifacts/LAYOUT_SPEC.md` for composition plan (if exists).
-2. Import style tokens from `style_constants.py`.
-3. Run `main.py` (or specified script).
-4. Validate output `.pptx` exists and has slides.
-5. Report: slide count, file size, output path.
+2. If `--team` is passed and slide count > 5, spawn multiple **coder teammates** to implement different sections in parallel. If token context limits are hit, fallback to standard execution.
+3. Import style tokens from `style_constants.py`.
+4. Run `main.py` (or specified script).
+5. Validate output `.pptx` exists and has slides.
+6. Report: slide count, file size, output path.
 
 Defaults:
 - `--template`: `templates/` first `.pptx` found.
 - `--data`: none (script handles its own data).
 - `--output`: `output/<project_name>.pptx`.
 
-### `/deck audit [--file PATH]`
+### `/deck audit [--file PATH] [--team]`
 **Agent**: Auditor (domain: `pptx`)
 
-Runs two-pass audit against source files and generated output.
+Runs two-pass audit against source files and generated output. If `--team` is passed, spawn a `creative-director` teammate to perform Pass 2 (visual compliance) simultaneously while the lead `auditor` computes Pass 1. If token context limits are hit, fallback to standard execution.
 
 **Pass 1 — Source code** (per `skill-powerpoint-patterns.md`):
 - Raw EMU values instead of `Inches()` / `Pt()`.

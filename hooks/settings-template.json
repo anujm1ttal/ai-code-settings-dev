@@ -1,0 +1,60 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/session-boot.js\"",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/guard-paths.js\"",
+            "timeout": 3000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/guard-commands.js\"",
+            "timeout": 3000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/auto-lint.js\"",
+            "timeout": 20000
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/audit-trail.js\"",
+            "timeout": 3000
+          }
+        ]
+      }
+    ]
+  }
+}

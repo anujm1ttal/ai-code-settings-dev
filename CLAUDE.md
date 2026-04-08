@@ -26,11 +26,16 @@ Orchestration layer for Claude Code sessions.
 
 ## Commands
 
-| Command | Owner | Purpose |
+| Command / Skill | Owner | Purpose |
 |:---|:---|:---|
 | `/blueprint` | strategist | Project planning, phased roadmaps |
-| `/audit` | auditor | Quality review, gate validation |
+| `/sweep` | strategist | Codebase discovery, tech-debt mapping, redundancy scans |
+| `typescript-mcp` | `strategist, auditor, coder` | MCP server standards, Zod, JSON-RPC, async boundaries |
+| `systematic-debugging` | `coder, auditor` | 4-phase root-cause investigation process |
+| `implementation-dispatch` | `coder` | Subagent orchestration and two-stage review workflow |
+| `visual-composition` | `creative-director, auditor` | Hierarchy, layout, brand governance, and accessibility |
 | `/deck` | strategist / creative-director | PowerPoint project scaffolding & validation |
+| `/audit` | auditor | Quality review, gate validation |
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
 | `/ideate` | strategist | YouTube video conceptualization |
@@ -60,7 +65,7 @@ Orchestration layer for Claude Code sessions.
 | `youtube` | `Artifacts/VIDEO_PLAN.md`, `Artifacts/SCRIPT.md` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` |
 | `pptx` | `*.pptx`, `deck_*.py` | `powerpoint-patterns`, `visual-composition`, `python-patterns` |
 | `pbi-report` | `*.pbip`, `*.pbix`, `*.Report/**`, `theme*.json` | Read `skills/powerbi-report/SKILL.md`, `skills/visual-composition/SKILL.md`, `skills/dax-modeling/SKILL.md` |
-| *(all types)* | User asks code questions | Read `skills/codebase-navigator/SKILL.md` |
+| *(all types)* | coder/auditor active | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.
 
@@ -115,3 +120,17 @@ What happened and what to do differently.
 | Command | Owner | Purpose |
 |:---|:---|:---|
 | `/learn` | concierge | Capture a lesson into Artifacts/LEARNINGS.md |
+
+## Hooks (Enforcement Layer)
+
+Claude Code hooks provide **hard guardrails** that cannot be rationalized away. They fire automatically at lifecycle events. Configured globally in `~/.claude/settings.json`.
+
+| Hook | Event | Purpose |
+|:---|:---|:---|
+| `session-boot.js` | `SessionStart` | Injects Artifacts state (TODO, Learnings, Current Task) into context |
+| `guard-paths.js` | `PreToolUse` | **Blocks** writes to binaries (`.pbix`, `.3dm`), secrets (`.env`), build artifacts |
+| `guard-commands.js` | `PreToolUse` | **Blocks** dangerous commands (`rm -rf`, force push, SQL drops) |
+| `auto-lint.js` | `PostToolUse` | Reports lint violations after file edits (report-only, no auto-fix) |
+| `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
+
+**Design**: All hooks are fail-open — script errors exit 0. See `hooks/README.md` for setup and customization.

@@ -13,6 +13,7 @@ Invokes the **scribe** agent. Scribe equips `skill-doc-updater.md`.
 - **`/docs --user`**: Tier 2 — Quick Start guides, stakeholder docs.
 - **`/docs --reference`**: Tier 3 — API docs, MCP schemas, DAX measure catalog.
 - **`/docs --all`**: All three tiers in sequence.
+- **`/docs --team`**: Spawns 3 parallel scribes (Architect, UX, Technical) to document all three tiers simultaneously. If token limits are hit, falls back to `--all`.
 - **`/docs [filename]`**: Update specific file.
 
 ## Auto-Detect Sequence

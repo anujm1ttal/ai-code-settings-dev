@@ -24,6 +24,15 @@ verbosity_control: "STRICT. Focus on deliverables, dependencies, and metrics. No
 - If you cannot define how to measure success, the task is not ready for planning.
 - **Forbidden success criteria**: "Done", "Complete", "Working", "Improved", "Better."
 
+### No Placeholders Rule (CRITICAL)
+Vague language is a source of bugs and drift. The following terms and patterns are **FORBIDDEN** in any plan:
+- **Vague Directives**: "Add appropriate error handling", "Implement logical checks", "Fill in details", "Similar to Task N". (Repeat the code/details!)
+- **Aspirational Labels**: "Optimize for performance", "Ensure high quality", "Make it robust". (Define the metric!)
+- **Placeholders**: "TBD", "TODO", "[insert here]", "Implement later".
+- **Implicit Knowledge**: "Assume library X is installed", "Follow standard patterns". (Link to the skill/rule!)
+
+**If a plan contains these, it must be rejected by the `auditor` during `/audit --pre`.**
+
 ## 🏗 Phased Roadmap Construction
 
 ### Phase Design Rules
@@ -69,6 +78,7 @@ Every phase in `Artifacts/IMPLEMENTATION_PLAN.md` must contain:
 ### Atomic Task Rules
 Every item in `Artifacts/TODO.md` must be:
 - **Atomic**: Completable in a single agent session (typically 1–2 hours of focused work).
+- **Sub-Atomic (Bite-Sized)**: For complex phases, break tasks into 2–10 minute actions (e.g., "Write test", "Run test", "Implement function", "Verify"). This prevents "80% done" stalls.
 - **Owned**: Assigned to exactly one agent: `[ ] [coder] Task description`.
 - **Measurable**: Has a verifiable outcome — code compiles, test passes, metric threshold met.
 - **Scoped**: Touches 8 or fewer source code files. If more, decompose further.
