@@ -14,13 +14,13 @@ Implementation Dispatch allows the `coder` agent to delegate specific tasks to f
 For the selected task from `Artifacts/TODO.md`, construct a `dispatch` package:
 - **Scope**: List only the files the subagent is authorized to modify.
 - **Context**: Provide the `Artifacts/IMPLEMENTATION_PLAN.md` segment relevant to the task.
-- **Skills**: Explicitly state which Antigravity skills (e.g., `python-rhino`) the subagent must load.
+- **Skills**: Explicitly state which Claude Code skills (e.g., `python-rhino`) the subagent must load.
 - **Constraint**: "Do not change code outside the authorized scope."
 
 ### 2. Subagent Invocation
 Use the `Agent` tool (or `browser_subagent`) with a focused prompt.
-- **Agent Type Mapping**: You MUST set the `subagent_type` parameter to match the Antigravity agent fleet when possible:
-    | Antigravity Agent | `subagent_type` value |
+- **Agent Type Mapping**: You MUST set the `subagent_type` parameter to match the agent fleet when possible:
+    | Agent Role | `subagent_type` value |
     | :--- | :--- |
     | `coder` | `general-purpose` (or specialized if available) |
     | `auditor` | `auditor` |
@@ -49,7 +49,7 @@ When the subagent returns, the main agent MUST perform two distinct reviews BEFO
 
 ## 📐 Dispatch Prompts
 Dispatch prompts must be role-play based:
-> "You are an Antigravity Agent specialized in [Domain]. Your task is to [Task Description]. 
+> "You are a Claude Code Agent specialized in [Domain]. Your task is to [Task Description]. 
 > Constraints: Follow [Skill Name] strictly. Stay within [File Paths].
 > Success Metric: [Metric from Plan].
 > Output: Return a summary of changes and the fresh command output showing verification."

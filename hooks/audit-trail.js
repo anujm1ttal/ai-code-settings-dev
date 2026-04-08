@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Antigravity AI OS — PostToolUse Hook: Audit Trail
+ * Claude Code — PostToolUse Hook: Audit Trail
  * 
  * Logs every tool action to Artifacts/.agent/audit_trail.jsonl
  * for post-session review and accountability.
@@ -63,7 +63,7 @@ function main() {
 
   } catch (err) {
     // Fail-open: never block work for logging failures
-    process.stderr.write(`[antigravity/audit-trail] Error: ${err.message}\n`);
+    process.stderr.write(`[claude-code/audit-trail] Error: ${err.message}\n`);
     process.exit(0);
   }
 }

@@ -1,8 +1,8 @@
-# Antigravity AI OS
+# Claude Code AI OS
 
 Orchestration layer for Claude Code sessions.
 
-## Architecture
+## Claude Code — Cheat Sheet
 
 - **Rules** (`rules/common/`): Canonical standards. All agents reference these.
   - `orchestration.md` — routing, lifecycle, TODO authority, conflict resolution
@@ -123,7 +123,8 @@ What happened and what to do differently.
 
 ## Hooks (Enforcement Layer)
 
-Claude Code hooks provide **hard guardrails** that cannot be rationalized away. They fire automatically at lifecycle events. Configured globally in `~/.claude/settings.json`.
+Claude Code hooks provide **hard guardrails** that cannot be rationalized away.
+ They fire automatically at lifecycle events. Configured globally in `~/.claude/settings.json`.
 
 | Hook | Event | Purpose |
 |:---|:---|:---|

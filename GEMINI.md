@@ -1,4 +1,4 @@
-# Antigravity AI OS Settings
+# AI Code OS Settings
 
 Orchestration layer for Gemini sessions.
 
@@ -79,7 +79,7 @@ Full routing logic lives in `orchestration.md`. Add new project types there.
 
 ## Project State Persistence
 
-All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository), never in the Antigravity/Gemini shadow directory (`~/.gemini/`).
+All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository), never in the Gemini shadow directory (`~/.gemini/`).
 
 When creating or updating these files, you MUST use the absolute path of the workspace and place them in the `Artifacts/` folder.
 

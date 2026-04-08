@@ -1,6 +1,6 @@
 ---
 name: agent-orchestration
-description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.md authority, conflict resolution, and project-type activation across the Antigravity fleet.
+description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.md authority, conflict resolution, and project-type activation across the Claude Code AI OS.
 ---
 
 # Agent Orchestration

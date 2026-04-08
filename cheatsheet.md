@@ -1,4 +1,4 @@
-# Antigravity — Cheat Sheet
+# Claude Code — Cheat Sheet
 
 ## The Golden Loop (Task Lifecycle)
 /sync (recover) → /blueprint (plan + interview) → work (build) → /audit (verify) → /docs (document) → /handoff (save)

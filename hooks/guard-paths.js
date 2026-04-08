@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Antigravity AI OS — PreToolUse Hook: Path Guard
+ * Claude Code — PreToolUse Hook: Path Guard
  * 
  * Blocks writes to protected file patterns (binaries, secrets, build artifacts).
  * Returns exit code 2 to deny the action, with a message explaining why.
@@ -92,7 +92,7 @@ function main() {
     if (reason) {
       const output = {
         decision: 'deny',
-        message: `🛡️ Antigravity Path Guard: BLOCKED\nFile: ${filePath}\nReason: ${reason}\n\nIf this is intentional, ask the user to make this change manually.`,
+        message: `🛡️ Claude Code Path Guard: BLOCKED\nFile: ${filePath}\nReason: ${reason}\n\nIf this is intentional, ask the user to make this change manually.`,
       };
       process.stdout.write(JSON.stringify(output));
       process.exit(2);
@@ -103,7 +103,7 @@ function main() {
 
   } catch (err) {
     // Fail-open: log error but never block legitimate work
-    process.stderr.write(`[antigravity/guard-paths] Error: ${err.message}\n`);
+    process.stderr.write(`[claude-code/guard-paths] Error: ${err.message}\n`);
     process.exit(0);
   }
 }

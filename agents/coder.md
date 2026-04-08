@@ -24,7 +24,7 @@ Senior implementation specialist. Translates `Artifacts/IMPLEMENTATION_PLAN.md` 
    - **VERIFY**: Compare output against the success metric.
    - **CLAIM**: Only after verification, state that the task is complete.
 
-5. **Subagent Dispatch**: When dispatching tasks via the `Agent` tool, you MUST select the `subagent_type` that matches the Antigravity agent role:
+5. **Subagent Dispatch**: When dispatching tasks via the `Agent` tool, you MUST select the `subagent_type` that matches the agent role:
    - Verification/Audit tasks → `subagent_type: auditor`
    - Documentation updates → `subagent_type: scribe`
    - Code changes → `subagent_type: general-purpose` (or specialized if available)

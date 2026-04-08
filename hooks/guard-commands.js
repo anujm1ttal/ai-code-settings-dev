@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Antigravity AI OS — PreToolUse Hook: Command Guard
+ * Claude Code — PreToolUse Hook: Command Guard
  * 
  * Blocks dangerous shell commands before they execute.
  * Returns exit code 2 to deny the action.
@@ -60,7 +60,7 @@ function main() {
       if (pattern.test(command)) {
         const output = {
           decision: 'deny',
-          message: `⚠️ Antigravity Command Guard: BLOCKED\nCommand: ${command}\nReason: ${reason}\n\nIf this is intentional, ask the user to run it manually.`,
+          message: `⚠️ Claude Code Command Guard: BLOCKED\nCommand: ${command}\nReason: ${reason}\n\nIf this is intentional, ask the user to run it manually.`,
         };
         process.stdout.write(JSON.stringify(output));
         process.exit(2);
@@ -71,7 +71,7 @@ function main() {
     process.exit(0);
 
   } catch (err) {
-    process.stderr.write(`[antigravity/guard-commands] Error: ${err.message}\n`);
+    process.stderr.write(`[claude-code/guard-commands] Error: ${err.message}\n`);
     process.exit(0);
   }
 }

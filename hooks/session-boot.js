@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Antigravity AI OS — SessionStart Hook
+ * Claude Code — SessionStart Hook: State Recovery
  * 
  * Scans the workspace for Artifacts state files and injects a session brief
  * into Claude's context. Guarantees state recovery without relying on the
@@ -72,7 +72,7 @@ function buildSessionBrief(cwd) {
   }
 
   return [
-    '# Antigravity Session Brief (Auto-Injected)',
+    '# Claude Code Session Brief (Auto-Injected)',
     `Project root: ${root}`,
     '',
     ...sections,
@@ -112,7 +112,7 @@ function main() {
     process.exit(0);
   } catch (err) {
     // Fail-open: log error but never block the session
-    process.stderr.write(`[antigravity/session-boot] Error: ${err.message}\n`);
+    process.stderr.write(`[claude-code/session-boot] Error: ${err.message}\n`);
     process.exit(0);
   }
 }

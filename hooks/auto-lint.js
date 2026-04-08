@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Antigravity AI OS — PostToolUse Hook: Auto-Lint (Report Only)
+ * Claude Code — PostToolUse Hook: Auto-Lint (Report Only)
  * 
  * Detects the file type after an edit and runs the appropriate linter.
  * Reports violations back to Claude as additionalContext.
@@ -107,7 +107,7 @@ function main() {
     if (!result.success && result.output) {
       const output = {
         additionalContext: [
-          `🔍 Antigravity Auto-Lint (${linter.name}) — Issues Found:`,
+          `🔍 Claude Code Auto-Lint (${linter.name}) — Issues Found:`,
           '```',
           result.output.substring(0, 2000), // Cap output length
           '```',
@@ -120,7 +120,7 @@ function main() {
     process.exit(0);
 
   } catch (err) {
-    process.stderr.write(`[antigravity/auto-lint] Error: ${err.message}\n`);
+    process.stderr.write(`[claude-code/audit-trail] Error: ${err.message}\n`);
     process.exit(0);
   }
 }

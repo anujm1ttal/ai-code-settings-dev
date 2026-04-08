@@ -1,4 +1,4 @@
-# Antigravity Hooks — Setup Guide
+# Claude Code Hooks — Setup Guide
 
 Claude Code hooks that enforce security guardrails, auto-lint, inject session state, and log an audit trail.
 
