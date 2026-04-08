@@ -23,12 +23,31 @@ If a technical approach failed and you need to rewrite the plan:
 /blueprint We need to pivot. The SQLite approach is too slow; we are moving to PostgreSQL. Please archive the old plan and let's start over.
 ```
 
+### Codebase Discovery & Tech Debt
+To map out a new codebase, find redundancies, or plan a refactor for technical debt:
+```prompt
+/sweep
+```
+*(The strategist will scan the repository and identify areas for improvement or architectural drift)*
+
 ## Daily Workflow
 
 ### 1. Doing the Work
 You can work with the `coder` agent normally without slash commands for standard implementation tasks:
 ```prompt
 Please implement the database connection module as outlined in Phase 1 of the Artifacts/IMPLEMENTATION_PLAN.md.
+```
+
+#### Systematic Debugging (When stuck or fixing a bug)
+If you encounter a bug or a test failure, trigger the 4-phase debugging process:
+```prompt
+I'm seeing a NilReferenceException in the logger. Use the systematic-debugging skill to find the root cause.
+```
+
+#### Subagent Dispatch (For complex/large tasks)
+When a task touches many files or the context is getting full, offload it to a subagent:
+```prompt
+This refactor is complex. Use the implementation-dispatch skill to delegate the API updates to a subagent.
 ```
 
 ### 2. Auditing (The Gatekeeper)
@@ -93,6 +112,12 @@ When a feature is done and you need to update docs, use the `scribe` via `/docs`
 When you are done working, compress the context and write a handoff brief for your next session:
 ```prompt
 /handoff
+```
+
+### 7. Verifying Hooks (Claude Code only)
+To see your active security guardrails, path guards, and auto-linters:
+```prompt
+/hooks
 ```
 
 ---

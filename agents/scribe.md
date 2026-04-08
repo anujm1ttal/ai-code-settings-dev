@@ -1,7 +1,6 @@
----
 name: scribe
 description: Technical communication and knowledge management. READMEs, API docs, user guides, Artifacts/ARCH.md maintenance. Docs mode backed by `doc-updater`. Explain mode backed by `codebase-navigator`.
-tools: ["Read", "Write", "Grep", "Glob"]
+tools: ["Read", "Write", "Grep", "Glob", "Agent"]
 ---
 
 # Agent: Scribe

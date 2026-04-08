@@ -18,7 +18,14 @@ For the selected task from `Artifacts/TODO.md`, construct a `dispatch` package:
 - **Constraint**: "Do not change code outside the authorized scope."
 
 ### 2. Subagent Invocation
-Use the `browser_subagent` or a direct `Task` invocation with a focused prompt.
+Use the `Agent` tool (or `browser_subagent`) with a focused prompt.
+- **Agent Type Mapping**: You MUST set the `subagent_type` parameter to match the Antigravity agent fleet when possible:
+    | Antigravity Agent | `subagent_type` value |
+    | :--- | :--- |
+    | `coder` | `general-purpose` (or specialized if available) |
+    | `auditor` | `auditor` |
+    | `scribe` | `scribe` |
+    | `strategist` | `general-purpose` |
 - **Model Selection**: 
     - Use highly capable models (e.g., Gemini 1.5 Pro, Claude Opus) for architectural tasks.
     - Use faster models (e.g., Gemini 1.5 Flash, Claude Haiku) for mechanical refactors or unit tests.

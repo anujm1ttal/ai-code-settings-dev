@@ -11,6 +11,7 @@ Boot: /sync (drift scan) → work → Shutdown: /handoff (persist)
 | Command | What It Does |
 | :--- | :--- |
 | `/blueprint` | Plan a new project, add a phase, or re-plan after a pivot (Strategist) |
+| `/sweep` | Map codebase discovery, tech-debt, and redundancies (Strategist) |
 | `/audit` | Validate completed work against skill standards and success metrics (Auditor) |
 | `/audit --pre` | Pre-check a task definition before implementation begins |
 | `/deck` | Scaffold, build, and validate PowerPoint projects (Strategist / CD) |
@@ -26,14 +27,15 @@ Boot: /sync (drift scan) → work → Shutdown: /handoff (persist)
 | `/pack` | Generate YouTube SEO metadata (Scribe) |
 | `/learn` | Capture project-specific lessons into Artifacts/LEARNINGS.md (Concierge) |
 | `/handoff` | Save session state and exit cleanly (Concierge) |
+| `/hooks` | **[Claude Code Only]** View active path guards and auto-linters |
 
 ## Agents
 
 | Agent | Does | Does NOT |
 | :--- | :--- | :--- |
-| **Strategist** | Plans, scopes, architects, Step 0 ROI | Write code, mark tasks complete |
-| **Coder** | Implements, refactors, debugs, marks `[-]` | Mark `[x]`, modify plan structure |
-| **Auditor** | QA, exit reviews, marks `[x]` (sole authority) | Write code, modify plan structure |
+| **Strategist** | Plans, scopes, architects, Step 0 ROI, **NO PLACEHOLDERS** | Write code, mark tasks complete |
+| **Coder** | Implements, refactors, **DEBUGGING**, **SUBAGENT DISPATCH** | Mark `[x]`, modify plan structure |
+| **Auditor** | QA, exit reviews, **EVIDENCE-FIRST**, marks `[x]` | Write code, modify plan structure |
 | **Scribe** | Documentation, ARCH maintenance, /explain tours | Write code, mark tasks complete |
 | **Creative Director** | Visual spec, Artifacts/LAYOUT_SPEC.md, composition | Write code, mark tasks `[x]` |
 | **Concierge** | Syncs state, ingests work, /handoff, /learn | Write code, mark tasks `[x]` |
@@ -69,7 +71,8 @@ security → coding-style → orchestration → standards
 1. **PROJECT_TYPE**: code, geometry, data, manuscript, youtube, pptx, pbi-report, hybrid
 2. **VALUE_CHECK**: Single sentence on business/operational impact
 3. **MINIMALISM**: Smallest viable version (kill bloat)
-4. **RISKS**: Three technical or data showstoppers
+4. **NO PLACEHOLDERS**: No "TBD", "error handling", or vague directives
+5. **RISKS**: Three technical or data showstoppers
 
 ## Escalation
 Audit fail #1 → Coder fixes · #2 → Coder reviews skill file · #3 → Strategist re-evaluates task
@@ -84,6 +87,8 @@ Audit fail #1 → Coder fixes · #2 → Coder reviews skill file · #3 → Strat
 | `NO-GO` | Pre-audit blocked | `/audit --pre` |
 | `RECONCILED`| Planned work confirmed | `/sync` |
 | `DRIFT` | Unplanned changes | `/sync` |
+| `BLOCKED` | Hook prevented a dangerous path/command | Hooks |
+| `FIXED` | Systematic debug success | Coder |
 | `STALE` | No progress detected | `/sync` |
 | `CLEAN` | Security sweep passed | Security |
 

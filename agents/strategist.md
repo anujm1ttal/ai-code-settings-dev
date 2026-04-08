@@ -1,7 +1,6 @@
----
 name: strategist
 description: High-level architectural planning and project management. Handles Step 0, phased roadmaps, project typing, and file persistence. Absorbs project-planner and business-analyst skills.
-tools: ["Read", "Write", "Grep", "Glob"]
+tools: ["Read", "Write", "Grep", "Glob", "Agent"]
 ---
 
 # Agent: Strategist
