@@ -8,7 +8,7 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
 
 ## Execution Sequence
 
-1. **Learnings Capture**: Scan session for mistakes/preferences/gotchas. Propose `/learn` candidates to user. Append approved entries to `Artifacts/LEARNINGS.md` (pruning if >50).
+1. **Learnings Capture**: Scan session for mistakes/preferences/gotchas. Propose `/learn` candidates to user. Detect recurring patterns and suggest `--global` flag for graduation. Append local entries to `Artifacts/LEARNINGS.md` (pruning if >50) or global entries to `GLOBAL_INBOX.md`.
 2. **Session Summary**: Tasks worked on, agents active, decisions/pivots made.
 3. **State Snapshot**: Update `.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md`.
 4. **Context Compression**: Summarize resolved threads. Preserve active tasks/open questions. Discard superseded plans and verbose outputs.

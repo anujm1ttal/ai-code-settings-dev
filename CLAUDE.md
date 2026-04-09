@@ -44,6 +44,7 @@ Orchestration layer for Claude Code sessions.
 | `/sync` | concierge | Reconcile filesystem state with plan artifacts |
 | `/ingest` | concierge | Register manual/external changes into project state |
 | `/handoff` | concierge | Clean session end — compress context, update state |
+| `/graduate` | concierge | Triage global inbox entries into global settings |
 
 ## Concierge Operations
 

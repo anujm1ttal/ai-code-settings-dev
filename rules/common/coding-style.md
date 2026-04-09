@@ -41,6 +41,7 @@ Return new state; never mutate in-place.
 - **Tooling**: `ruff` (lint+format), `pyright` strict, `uv` for deps, `pytest` for testing.
 - **Logging**: `loguru` only. Never `print()`. Never stdlib `logging`.
 - **Async**: `asyncio.TaskGroup` (3.11+). Always set timeouts on network calls.
+- **Circular Imports**: Schema/model modules must NOT import from tool-registration or service modules. Use `from __future__ import annotations` and `TYPE_CHECKING` guards for cross-module type hints. Verify with `python -c "import module"` after restructuring.
 - **Full reference**: `skill-python-patterns.md`
 
 ### Rhino Python (CPython ~3.9)
@@ -111,6 +112,7 @@ Overrides for the constrained Rhino 8 runtime:
 - [ ] Error Handling — specific exceptions, chained tracebacks, contextual messages
 - [ ] Constants — zero magic numbers
 - [ ] Logging — correct channel per language
+- [ ] Post-Schema Test — run `pytest` after any Pydantic model or validation schema change before committing
 - [ ] Step 0 Alignment — code achieves strategist's Minimalism goal
 
 ## Codebase Scanning & Search

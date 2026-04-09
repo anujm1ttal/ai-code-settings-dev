@@ -97,10 +97,19 @@ All state files MUST live in the **Artifacts/** directory within the true logica
 - **Agent disagreement**: Coder documents concern → routes to strategist. Strategist has final authority on success metrics.
 - **User override**: User says "Skip Step 0" → logged as `[STEP0-BYPASS]` in Artifacts/TODO.md → auditor flags HIGH severity.
 
+## Global Repository (AI OS Settings)
+
+The repository at `c:\Users\44547\source\repos\ai-code-settings` acts as the **Global Registry** for rules, skills, and standards.
+
+- **Global Inbox**: Cross-project learnings are staged at `c:\Users\44547\source\repos\ai-code-settings\Artifacts\GLOBAL_INBOX.md`.
+- **Graduation**: Recurring patterns identified in project-specific `LEARNINGS.md` should be graduated to the global registry using `/learn --global` during a project session, or `/graduate` when working inside the global repository.
+
 ## Parallel Execution
 
-- **Allowed**: Independent file edits, parallel audits, batch documentation.
-- **Forbidden**: Shared mutable state, dependent outputs, pre-audit-gate tasks.
+## Session Discipline
+
+- **Always `/handoff` before ending**: Any session with code changes, documentation updates, or design decisions MUST end with `/handoff`. This captures learnings, snapshots TODO state, and writes a brief for the next session. Exiting without `/handoff` breaks the feedback loop and wastes re-orientation time.
+- **Concierge prompt**: If the agent detects the user is wrapping up (e.g., "thanks", "that's it", "done for now") without a `/handoff`, the concierge should suggest it.
 
 ## Emergency Protocols
 

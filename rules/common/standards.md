@@ -57,6 +57,10 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 | `GO` / `NO-GO` | Pre-audit approved / blocked | `/audit --pre` |
 | `CLEAN` | Security sweep passed | Security |
 
+## Pre-Flight Checks
+
+- **File Content Verification**: Before reorganising, merging, or splitting files, verify they are non-empty (check byte size or line count). If a source file is empty, ask the user to populate it first — do not proceed with empty inputs.
+
 ## Deny List
 
 - Conversational filler or affirmations
@@ -66,3 +70,4 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 - Artifacts/TODO.md authority violations (see `orchestration.md`)
 - Bypassing Step 0 without explicit user override
 - Chat history as sole source of truth
+- Operating on empty files without flagging to the user

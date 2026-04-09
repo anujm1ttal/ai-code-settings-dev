@@ -1,26 +1,33 @@
 # /learn
 
 **Owner:** concierge
-**Purpose:** Capture a project-specific lesson into `Artifacts/LEARNINGS.md`.
+**Purpose:** Capture a project-specific or global lesson into `Artifacts/LEARNINGS.md` or `GLOBAL_INBOX.md`.
+
+## Flags
+- `--global`: If specified, the lesson is written to the central `ai-code-settings` repository's `Artifacts/GLOBAL_INBOX.md` for later graduation instead of the local project's learnings.
 
 ## Trigger
-- User runs `/learn` with a description
+- User runs `/learn` with a description (and optional `--global` flag)
 - User says "remember this", "don't do that again", or similar intent
+- Concierge identifies a candidate during `/handoff`
 
 ## Procedure
 
 1. **Parse** the lesson from user input or recent context
 2. **Classify** into category: `mistake` | `preference` | `gotcha` | `workflow` | `pattern`
-3. **Check for duplicates** — grep `Artifacts/LEARNINGS.md` for similar entries. If exists, update instead of append.
-4. **Append** to `Artifacts/LEARNINGS.md` using entry format:
+3. **Target Selection**:
+   - **Local (Default)**: Use `Artifacts/LEARNINGS.md` in the current project root.
+   - **Global (`--global`)**: Use `c:\Users\44547\source\repos\ai-code-settings\Artifacts\GLOBAL_INBOX.md`.
+4. **Check for duplicates** — grep target file for similar entries. If exists, update instead of append.
+5. **Append** to the target file using entry format:
    ```
    ### [YYYY-MM-DD] category: Short title
    Description of what to remember and why.
    ```
-5. **Prune check** — if entry count > 50:
+6. **Prune check (Local only)** — if entry count > 50:
    - Move oldest 10 entries to `Artifacts/history/learnings_archive.md`
    - Log pruning in session output
-6. **Confirm** to user what was captured
+7. **Confirm** to user what was captured and where (local vs. global inbox)
 
 ## Examples
 
