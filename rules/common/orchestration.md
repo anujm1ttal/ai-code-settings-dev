@@ -79,17 +79,26 @@ All state files MUST live in the **Artifacts/** directory within the true logica
 
 **STRICT RULE**: Always use the **absolute file path** of the current code workspace and the `Artifacts/` folder when writing or reading state files to prevent shadow directory collisions.
 
-| File | Owner (Create) | Owner (Maintain) |
-|:---|:---|:---|
-| `.agent/current_task.md` | Concierge | Concierge |
-| `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist (read-only for others) |
-| `Artifacts/TODO.md` | Strategist | Strategist (structure) + see authority above |
-| `Artifacts/ARCH.md` | Strategist | Scribe (formatting), Strategist (structure) |
-| `Artifacts/DECISION_LOG.md` | Concierge | Concierge (append-only, on pivots) |
-| `Artifacts/LEARNINGS.md` | Concierge | Concierge (append-only, prune at 50) |
-| `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director |
-| `Artifacts/BRD_SUMMARY.md` | Strategist | Scribe |
-| `Artifacts/EDITORIAL_LETTER.md` | Auditor | Scribe |
+| File | Owner (Create) | Owner (Maintain) | Purpose |
+|:---|:---|:---|:---|
+| `.agent/current_task.md` | Concierge | Concierge | Session focus |
+| `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist | **The "How & Why"**: Technical design, architecture, file-specific logic, and rationale. |
+| `Artifacts/TODO.md` | Strategist | All (see authority) | **The "Who & When"**: High-level execution status, milestones, and agent assignments. |
+| `Artifacts/ARCH.md` | Strategist | Scribe (formatting) | Long-term system architecture |
+| `Artifacts/DECISION_LOG.md` | Concierge | Concierge | Pivot tracking |
+| `Artifacts/LEARNINGS.md` | Concierge | Concierge | Knowledge capture |
+| `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director | Visual specs |
+
+## Artifact Separation: Plan vs. TODO
+
+To prevent information redundancy and "maintenance debt":
+
+1.  **IMPLEMENTATION_PLAN.md**: Must contain the **technical heavy lifting**. Specific file paths, logical changes, dependency orders, and code snippets belong here.
+2.  **TODO.md**: Must remain a **"Thin TODO"**. It should reference Phase numbers or high-level milestones from the plan.
+    - **Forbidden**: Copy-pasting detailed file logic or implementation steps from the Plan into the TODO.
+    - **Required**: Status tracking (`[-]`, `[x]`) only happens in the TODO.
+
+**Rule**: If a change requires updating technical logic, update the Plan. If a change requires updating execution status, update the TODO.
 
 ## Conflict Resolution
 
