@@ -1,7 +1,7 @@
 ---
-name: python-rhino
-description: Expert in RhinoCommon API, GhPython, and stadium geometry logic. Includes performance scaling for large venue models (50k+ seats).
-tags: ["rhino", "grasshopper", "computational-design", "stadium"]
+name: python-rhino-grasshopper
+description: Expert in RhinoCommon API, GhPython, and computational design scripting. Covers geometry standards, data trees, performance scaling, testing, and platform constraints.
+tags: ["rhino", "grasshopper", "computational-design", "python"]
 verbosity_control: "STRICT. Focus on API syntax and geometric constraints. No introductory text."
 ---
 
@@ -22,34 +22,7 @@ verbosity_control: "STRICT. Focus on API syntax and geometric constraints. No in
 - **Paths**: Define explicit paths using `GH_Path(i, j)`. Never rely on implicit path inheritance.
 - **Efficiency**: Avoid `tree.Flatten()` inside loops; maintain path hierarchy for downstream Grasshopper components.
 - **Debugging**: When data tree output is unexpected, log `tree.BranchCount`, `tree.PathCount`, and a sample of `tree.Path(0)` to identify structural issues.
-- **Convention**: Match branch structure to the geometric hierarchy:
-  - Level 0: Section / Zone
-  - Level 1: Row
-  - Level 2: Seat
-
-## 🏟 Stadium Engineering
-
-### Sightlines (C-Value)
-- **Formula**: $C = \frac{R(D+e)}{D} - H$
-  - `R`: Riser height to the eye point of the row behind.
-  - `D`: Horizontal distance from the focal point to the current row.
-  - `e`: Eye height offset (typically 120mm seated).
-  - `H`: Height of the current eye point above the focal point.
-- **Thresholds**:
-  - General seating: $C \geq 60mm$
-  - Premium / Club: $C \geq 90mm$
-  - Accessible seating: $C \geq 120mm$ (elevated eye point considerations)
-- **Validation**: The `auditor` will reject any sightline script that does not output a per-seat C-Value for verification.
-
-### Rake Geometry
-- **Parabolic Profile**: Stadium rakes are typically parabolic, not linear. Use iterative row-by-row calculation rather than uniform step heights.
-- **Row Spacing**: Validate tread depth against code minimums (typically 760mm for standard, 900mm for accessible).
-- **Section Boundaries**: Handle section transitions (e.g., lower bowl to upper bowl) as separate calculation contexts with independent focal points.
-
-### Bowl Geometry
-- **Coordinate System**: Origin at pitch center, Z-up. All section geometry referenced from this datum.
-- **Symmetry**: Exploit bilateral or quadrilateral symmetry where possible. Generate one section, mirror/rotate for the rest.
-- **Seating Kill Zones**: Areas with $C < 60mm$ must be flagged and reported, not silently excluded.
+- **Convention**: Match branch structure to the geometric hierarchy of the domain. Define a consistent path-level mapping per project and document it in `config.py`.
 
 ## 🏎 Performance & Scaling
 
@@ -57,20 +30,20 @@ verbosity_control: "STRICT. Focus on API syntax and geometric constraints. No in
 - **Dispose Pattern**: Dispose heavy geometry objects (`Mesh`, `Brep`, `Surface`) in large loops. Use `try/finally` to guarantee cleanup.
   - `mesh.Dispose()` after extracting required data (vertices, normals).
   - Never hold references to disposed geometry — extract values first, then dispose.
-- **Lazy Evaluation**: For 50k+ seat models, generate geometry on-demand per section rather than all-at-once.
-- **Lightweight Proxies**: Use `Point3d` or `BoundingBox` as stand-ins during analysis phases. Generate full seat geometry only for final output.
+- **Lazy Evaluation**: For large models, generate geometry on-demand per section rather than all-at-once.
+- **Lightweight Proxies**: Use `Point3d` or `BoundingBox` as stand-ins during analysis phases. Generate full geometry only for final output.
 
 ### Computation Optimization
 - **BoundingBox Culling**: Before performing expensive intersections (`Mesh.Intersect`, `Brep.ClosestPoint`), cull candidates using `BoundingBox.Contains` or `BoundingBox.IsDegenerate`.
 - **Spatial Indexing**: For proximity queries across large point sets, use `RTree` (`Rhino.Geometry.RTree`) instead of brute-force distance loops.
 - **Batch Operations**: Prefer `Mesh.CreateFromBrep()` on arrays over individual conversions in loops.
-- **Parallel Processing**: Use `System.Threading.Tasks.Parallel.ForEach` for independent per-section calculations. Guard shared state with locks.
-  - Safe to parallelize: Per-section sightline calculation, per-row rake generation.
+- **Parallel Processing**: Use `System.Threading.Tasks.Parallel.ForEach` for independent calculations. Guard shared state with locks.
+  - Safe to parallelize: Independent per-group geometry generation, per-element analysis.
   - NOT safe to parallelize: Operations that write to `RhinoDoc`, data tree construction.
 
 ### Grasshopper-Specific Performance
 - **Component Weight**: Keep GhPython components as thin wrappers (< 50 lines). Heavy logic lives in external `.py` modules imported via `sys.path`.
-- **Caching**: Use Grasshopper's built-in caching. Set `ExpireSolution` strategically — don't trigger full recompute for parameter changes that only affect one section.
+- **Caching**: Use Grasshopper's built-in caching. Set `ExpireSolution` strategically — don't trigger full recompute for parameter changes that only affect one group.
 - **Data Tree Size**: If a single branch exceeds 10,000 items, consider splitting into sub-branches or streaming output.
 - **Profiling**: Use `System.Diagnostics.Stopwatch` to time critical sections. Log results for the `auditor` to evaluate.
 
@@ -79,30 +52,52 @@ verbosity_control: "STRICT. Focus on API syntax and geometric constraints. No in
 ### Structure
 Heavy logic extracted from GH components into importable modules:
 
-stadium/
-├── sightlines/
+~~~
+project_name/
+├── domain_a/
 │   ├── __init__.py
-│   ├── c_value.py        # Core C-Value calculation
-│   ├── focal_points.py   # Focal point management
-│   └── validation.py     # Threshold checks
-├── rake/
+│   ├── core_logic.py
+│   ├── helpers.py
+│   └── validation.py
+├── domain_b/
 │   ├── __init__.py
-│   ├── profile.py        # Parabolic rake generation
-│   └── constraints.py    # Code compliance checks
+│   ├── profile.py
+│   └── constraints.py
 ├── geometry/
 │   ├── __init__.py
-│   ├── seating.py        # Seat proxy generation
-│   └── culling.py        # BoundingBox / RTree culling
-└── config.py             # Constants: MIN_C_VALUE, EYE_HEIGHT, etc.
-
+│   ├── proxies.py
+│   └── culling.py
+└── config.py               # Constants and project-specific settings
+~~~
 
 ### GhPython Wrapper Pattern
 The GH component imports and calls the external module:
-- Import: `sys.path.append(r"path/to/stadium"); from sightlines.c_value import calculate_c_values`
+- Import: `sys.path.append(r"path/to/project_name"); from domain_a.core_logic import compute`
 - Input: Receive raw GH inputs (points, curves, parameters).
 - Transform: Convert GH types to RhinoCommon types if needed.
 - Delegate: Call the external module function.
 - Output: Return results to GH outputs (geometry, data trees, values).
+
+## 📖 API Reference Lookups
+
+For deep-dives into specific RhinoCommon classes, methods, or properties, use the offline documentation provided in the skill resources.
+
+- **Files**:
+  - `skills/python-rhino/resources/RhinoCommon.xml`
+  - `skills/python-rhino/resources/Grasshopper.xml`
+  - `skills/python-rhino/resources/GH_IO.XML`
+- **Retrieval Method**: Use `grep_search` with `MatchPerLine: true`. These files are highly efficient for line-based searching; lookups typically resolve in <5 seconds.
+
+### Example Lookup Patterns:
+1. **RhinoCommon**:
+   - `grep_search(Query="member name=\"M:Rhino.Geometry.Mesh.CreateFromBrep", SearchPath="skills/python-rhino/resources/RhinoCommon.xml", MatchPerLine=true)`
+2. **Grasshopper**:
+   - `grep_search(Query="member name=\"M:Grasshopper.DataTree", SearchPath="skills/python-rhino/resources/Grasshopper.xml", MatchPerLine=true)`
+3. **GH_IO**:
+   - `grep_search(Query="member name=\"T:GH_IO.Serialization.GH_Archive", SearchPath="skills/python-rhino/resources/GH_IO.XML", MatchPerLine=true)`
+
+> [!TIP]
+> Use this as the "ground truth" when you need to verify exact API signatures that may be missing from your internal training data.
 
 ## 🔧 Common Pitfalls
 
@@ -111,8 +106,8 @@ The GH component imports and calls the external module:
 | Hardcoded tolerance | Geometry joins fail in different models | Use `doc.ModelAbsoluteTolerance` |
 | Flatten in loop | Exponential slowdown on large models | Maintain path hierarchy, flatten only at final output |
 | Non-unitized vectors | Unpredictable translation magnitudes | `.Unitize()` before every transform |
-| Undisposed meshes | Memory leak, GH freeze on large bowls | `try/finally` dispose pattern |
-| Single-threaded sections | 50k seat model takes 10+ minutes | `Parallel.ForEach` on independent sections |
+| Undisposed meshes | Memory leak, GH freeze on large models | `try/finally` dispose pattern |
+| Single-threaded groups | Large models take 10+ minutes | `Parallel.ForEach` on independent groups |
 | Fat GH component | Impossible to debug, test, or reuse | Extract to external module, keep GH as thin wrapper |
 
 ## 📋 Code Review Checklist
@@ -124,13 +119,12 @@ The GH component imports and calls the external module:
 - [ ] Unit system validated at script entry?
 - [ ] External module pattern used for logic > 50 lines?
 - [ ] BoundingBox culling before expensive intersections?
-- [ ] `Parallel.ForEach` considered for independent per-section work?
-- [ ] C-Value output is per-seat for auditor verification?
+- [ ] `Parallel.ForEach` considered for independent work?
 - [ ] Constants defined in `config.py`, not inline?
 - [ ] `rhinoinside` + `pytest` test coverage for core geometry logic?
 - [ ] `Rhino-stubs` installed for IDE autocomplete?
 
-## Pitfalls & Platform Constraints
+## ⚠ Pitfalls & Platform Constraints
 
 ### Type Hints
 - NO union syntax (`str | None`) — Rhino Python targets <3.10
@@ -166,7 +160,7 @@ The GH component imports and calls the external module:
 
 ### Project Structure
 
-```
+~~~
 project/
 ├── src/
 │   └── geometry_utils.py      # Testable Rhino logic
@@ -175,11 +169,11 @@ project/
 │   ├── test_geometry_utils.py # Tests using RhinoCommon via rhinoinside
 │   └── pytest.ini             # Pytest config
 └── requirements-dev.txt       # rhinoinside, pytest, Rhino-stubs
-```
+~~~
 
 ### conftest.py Pattern
 
-```python
+~~~python
 import pytest
 
 @pytest.fixture(scope="session", autouse=True)
@@ -189,27 +183,27 @@ def rhino_setup():
     rhinoinside.load()
     import Rhino  # noqa: F401 — available after load()
     yield
-```
+~~~
 
 ### Key Testing Patterns
 - **Session-scoped loading**: `rhinoinside.load()` is expensive — load once per session, not per test.
 - **Reusable geometry fixtures**: Create shared `Point3d`, `Curve`, `Brep` fixtures for common test inputs.
 - **Float comparison**: Use `pytest.approx` for all geometric value assertions (distances, areas, volumes).
-- **Parametrize**: Use `@pytest.mark.parametrize` for multi-input geometric validation (e.g., different C-Value thresholds).
-- **Class-based grouping**: Group related tests by geometric domain (`TestSightlines`, `TestRakeProfile`, `TestMeshOps`).
+- **Parametrize**: Use `@pytest.mark.parametrize` for multi-input geometric validation.
+- **Class-based grouping**: Group related tests by geometric domain (`TestSightlines`, `TestMeshOps`, etc.).
 
 ### pytest.ini
 
-```ini
+~~~ini
 [pytest]
 testpaths = tests
 python_files = test_*.py
 python_classes = Test*
 python_functions = test_*
 markers =
-    slow: marks tests as slow (e.g., full bowl generation)
+    slow: marks tests as slow (e.g., full model generation)
     rhino: marks tests requiring rhinoinside
-```
+~~~
 
 ## 🔤 Stubs for Autocomplete
 
@@ -219,7 +213,7 @@ markers =
 - **Rhino 8**: Clone the repo directly (`github.com/mcneel/pythonstubs`) for Rhino 8 coverage — PyPI lags behind.
 - **Usage**: Install into your dev environment for IDE autocomplete and type checking. Does NOT affect runtime.
 
-## Anti-Patterns
+## 🚫 Anti-Patterns
 - ❌ `rhinoscriptsyntax` for dimension/annotation styles
 - ❌ `DimStyles.Add(style_object)` — expects string
 - ❌ `DimensionStyle.LeaderContentAngleType.Horizontal` — use int `1`
