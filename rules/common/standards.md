@@ -57,6 +57,40 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 | `GO` / `NO-GO` | Pre-audit approved / blocked | `/audit --pre` |
 | `CLEAN` | Security sweep passed | Security |
 
+## Approval Rubric
+
+Use a 2-tag (mandatory) or 3-tag (optional) system on **EVERY** approval request.
+
+**Format**: `[ACTION] · [IMPACT]` or `[ACTION] · [IMPACT] · [SCOPE]`
+
+### 1. Action Labels
+| Label | Examples |
+|:---|:---|
+| **READ** | Inspect only (ls, cat, search, view logs) |
+| **WRITE** | Create new content only |
+| **EDIT** | Modify existing content |
+| **OVERWRITE** | Replace existing content |
+| **DELETE** | Remove content or records |
+| **EXECUTE** | Run command, script, build, test, migration |
+| **INSTALL** | Add packages, tools, plugins |
+| **NETWORK** | Send/fetch data over network, call APIs |
+| **DEPLOY** | Push to shared, remote, staging, or production |
+| **PERMISSION** | Change roles, access, credentials, settings |
+
+### 2. Impact Labels
+| Label | Description |
+|:---|:---|
+| **SAFE** | Read-only. No state change. |
+| **REVERSIBLE** | Local changes, easy to undo, no deletion of unique data. |
+| **DESTRUCTIVE** | Deletes, overwrites, or resets state. |
+| **IRREVERSIBLE** | Cannot be reliably undone (permanent deletion, external publish). |
+| **HIGH IMPACT** | Broad scope, shared environment, or installations. |
+
+### 3. Scope Labels (Optional)
+`LOCAL`, `PROJECT`, `SHARED`, `EXTERNAL`, `PRODUCTION`
+
+**Priority**: `SAFE` < `REVERSIBLE` < `DESTRUCTIVE` < `IRREVERSIBLE` < `HIGH IMPACT`
+
 ## Pre-Flight Checks
 
 - **File Content Verification**: Before reorganising, merging, or splitting files, verify they are non-empty (check byte size or line count). If a source file is empty, ask the user to populate it first — do not proceed with empty inputs.

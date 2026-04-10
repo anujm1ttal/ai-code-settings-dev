@@ -58,6 +58,9 @@ The `strategist` classifies every project during Step 0. This determines active 
   → Implementation (coder) — marks [-]
   → /audit (auditor) — validates → PASS: marks [x] | FAIL: return to coder
   → /docs (scribe) → /sync (concierge) → /handoff (if ending)
+
+> [!IMPORTANT]
+> **Approval Discipline**: Every plan approval or execution request MUST follow the `Approval Label Rubric` defined in `standards.md`.
 ```
 
 ## Artifacts/TODO.md Authority (Single Source)
