@@ -90,6 +90,10 @@ When creating or updating these files, you MUST use the absolute path of the wor
 - **Learnings**: `Artifacts/LEARNINGS.md`
 - **History**: `Artifacts/history/` subdirectory for archived plans, task lists, and learnings
 
+> [!NOTE]
+> **Transient State Exception**: Background command outputs managed by the platform (e.g., in `AppData/Local/Temp/claude`) are transient and managed by the tool binary. These are exempt from the `Artifacts/` persistence rule.
+
+
 ## Error Handling
 
 - **Command failure**: Agent reports what failed and why. No silent failures.

@@ -78,9 +78,17 @@ The GH component imports and calls the external module:
 - Delegate: Call the external module function.
 - Output: Return results to GH outputs (geometry, data trees, values).
 
-## 📖 API Reference Lookups
+## 📖 API Reference Lookups (MANDATORY GATE)
 
-For deep-dives into specific RhinoCommon classes, methods, or properties, use the offline documentation provided in the skill resources.
+> [!IMPORTANT]
+> **Ground-Truth Requirement**: You are FORBIDDEN from making "best guess" API calls in the `Rhino.Geometry` or `Grasshopper` namespaces if they are not already used correctly in the current workspace.
+> 
+> **Lookup Protocol**:
+> 1.  **Identify**: Note the specific class and member you intend to use.
+> 2.  **Verify**: Execute `grep_search` on the XML resources below to confirm the exact signature (Method vs. Property, required arguments).
+> 3.  **Cross-Check**: If the XML shows a `M:` prefix, it is a **Method** (requires `()`). If it shows `P:`, it is a **Property**.
+> 
+> Failure to perform this lookup for new API surface areas will result in a mandatory `auditor` failure.
 
 - **Files**:
   - `skills/python-rhino/resources/RhinoCommon.xml`
@@ -212,6 +220,16 @@ markers =
 - **Rhino 7**: PyPI version is pinned to Rhino 7.
 - **Rhino 8**: Clone the repo directly (`github.com/mcneel/pythonstubs`) for Rhino 8 coverage — PyPI lags behind.
 - **Usage**: Install into your dev environment for IDE autocomplete and type checking. Does NOT affect runtime.
+
+## 🚫 Common API Hallucinations (DENY LIST)
+
+| Hallucination | Reality | Context |
+| :--- | :--- | :--- |
+| `obj.BoundingBox` | `obj.GetBoundingBox(True)` | Methods inherited from `GeometryBase` (Curves, Breps) |
+| `rs.CreateTextStyle()` | Does NOT exist | Use `sc.doc.DimStyles.Add(name)` |
+| `GH_Path(i)` | `GH_Path(i, j)` | Always use explicit multi-D paths for DataTrees |
+| `doc.DimStyles.Add(obj)` | `doc.DimStyles.Add(string)` | Method only accepts a unique name string |
+| `rs.IsTextStyle()` | Does NOT exist | Check `sc.doc.DimStyles.FindName(name)` |
 
 ## 🚫 Anti-Patterns
 - ❌ `rhinoscriptsyntax` for dimension/annotation styles

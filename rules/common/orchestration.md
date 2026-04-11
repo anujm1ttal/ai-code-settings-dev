@@ -92,6 +92,10 @@ All state files MUST live in the **Artifacts/** directory within the true logica
 | `Artifacts/LEARNINGS.md` | Concierge | Concierge | Knowledge capture |
 | `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director | Visual specs |
 
+> [!NOTE]
+> **Transient State Exception**: Platform-level logs for background commands (e.g., in system Temp directories) are managed by the host binary and are inherently transient. They are exempt from the `Artifacts/` persistence requirement.
+
+
 ## Artifact Separation: Plan vs. TODO
 
 To prevent information redundancy and "maintenance debt":
