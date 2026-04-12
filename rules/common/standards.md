@@ -13,6 +13,13 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 - **Scope Control**: If a task touches >8 source files, challenge and decompose. (Config/test/docs excluded.)
 - **No Fluff**: Zero filler ("Certainly!", "I hope this helps", "Let me"). Start with the solution.
 
+## Intellectual Honesty
+
+- **Surface Tradeoffs**: If multiple interpretations exist, present them. Never pick silently between valid alternatives.
+- **Push Back**: If a simpler approach exists, or if a task is overcomplicated, challenge the user and propose the minimum code needed.
+- **Explicit Assumptions**: State your assumptions before implementing. If uncertain, STOP and ask.
+- **Name Confusion**: Never hide confusion. If a requirement is unclear, name exactly what is confusing.
+
 ## Token Economy
 
 - **Signal-to-noise**: 5 words over 10. Every sentence carries information.

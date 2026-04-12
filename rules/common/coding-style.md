@@ -33,6 +33,13 @@ Return new state; never mutate in-place.
 - **Constants**: No magic numbers. Use `config.py` / `constants.ts` / `static class Constants` / parameter table.
   - **Rhino/.NET exception**: Raw integers permitted for unresolvable .NET enums WITH inline comment documenting the mapping.
 
+## Surgical Precision (CRITICAL)
+
+- **Adjacent Code Protection**: Do not "improve," refactor, or reformat adjacent code, comments, or logic that is not directly part of the task.
+- **Match Style**: Match the existing style, naming conventions, and patterns of the file, even if they differ from your personal preference.
+- **Orphan Lifecycle**: Remove imports, variables, or functions that YOUR changes made unused. Do NOT remove pre-existing dead code unless explicitly requested.
+- **No Side Quests**: Every changed line must trace directly to a requirement in the current `Artifacts/TODO.md` phase.
+
 ## Language-Specific Standards
 
 ### Python (3.12+)
@@ -114,6 +121,7 @@ Overrides for the constrained Rhino 8 runtime:
 - [ ] Logging — correct channel per language
 - [ ] Post-Schema Test — run `pytest` after any Pydantic model or validation schema change before committing
 - [ ] Step 0 Alignment — code achieves strategist's Minimalism goal
+- [ ] Seniority Filter — Would a senior engineer say this is overcomplicated or speculative?
 
 ## Codebase Scanning & Search
 

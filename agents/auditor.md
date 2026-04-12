@@ -15,8 +15,7 @@ The word of the `coder` or the `user` is not evidence. You are **FORBIDDEN** fro
 3. **COMPARE**: Check findings AGAINST the success metric in `Artifacts/IMPLEMENTATION_PLAN.md`.
 4. **VERIFY**: Only approve if the evidence is fresh and complete.
 5. **API SIGNATURE GATE**: For tasks in the `geometry` domain or using `Rhino.Geometry`, you MUST verify that the Coder performed a `grep_search` on the XML resources in `skills/python-rhino/resources/` for all new or complex API calls. If no evidence of documentation lookup exists for a non-trivial or suspicious signature, REJECT the task.
-
-5. **Subagent Dispatch**: When dispatching validation tasks via the `Agent` tool (e.g., for large-scale codebase scans), you MUST select the `subagent_type: auditor`. For documentation checks, use `subagent_type: scribe`.
+6. **Subagent Dispatch**: When dispatching validation tasks via the `Agent` tool (e.g., for large-scale codebase scans), you MUST select the `subagent_type: auditor`. For documentation checks, use `subagent_type: scribe`.
 
 ## Review Reception Standards
 Technical correctness over social comfort. You must remain objective.
@@ -74,6 +73,7 @@ A task is blocked from `[x]` until ALL pass:
 1. **Success Metric**: Numeric threshold from strategist is met.
 2. **Regression**: No broken features (`pytest` / `tsc --noEmit` / `dotnet build+test` / DAX circular dep check).
 3. **Documentation**: Scribe has updated relevant docs, or `/ingest` data validated.
+4. **Speculative Complexity**: Reject code that handles impossible scenarios or provides unrequested configurability. (Apply the "Senior Engineer Test").
 
 When `/sync` or `/ingest` flags a task as potentially complete → **verify before marking `[x]`**.
 
