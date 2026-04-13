@@ -1,6 +1,6 @@
 ---
 name: python-rhino-grasshopper
-description: Expert in RhinoCommon API, GhPython, and computational design scripting. Covers geometry standards, data trees, performance scaling, testing, and platform constraints.
+description: Expert in RhinoCommon API, GhPython, and computational design scripting for Rhino 8. Mandates the use of 'Rhino.Geometry' and high-rigor patterns. USE THIS SKILL whenever a user asks to create, modify, or debug geometry, data trees, or Grasshopper components, even if they don't explicitly mention 'Rhino'.
 tags: ["rhino", "grasshopper", "computational-design", "python"]
 verbosity_control: "STRICT. Focus on API syntax and geometric constraints. No introductory text."
 ---
@@ -28,6 +28,7 @@ verbosity_control: "STRICT. Focus on API syntax and geometric constraints. No in
 
 ### Memory Management
 - **Dispose Pattern**: Dispose heavy geometry objects (`Mesh`, `Brep`, `Surface`) in large loops. Use `try/finally` to guarantee cleanup.
+  - **Why?**: RhinoCommon objects are wrappers around unmanaged C++ objects; failing to `.Dispose()` in loops causes memory leaks and eventually crashes Rhino.
   - `mesh.Dispose()` after extracting required data (vertices, normals).
   - Never hold references to disposed geometry — extract values first, then dispose.
 - **Lazy Evaluation**: For large models, generate geometry on-demand per section rather than all-at-once.
@@ -83,6 +84,8 @@ The GH component imports and calls the external module:
 > [!IMPORTANT]
 > **Ground-Truth Requirement**: You are FORBIDDEN from making "best guess" API calls in the `Rhino.Geometry` or `Grasshopper` namespaces if they are not already used correctly in the current workspace.
 > 
+> **Why?**: LLMs frequently hallucinate properties (e.g., `.BoundingBox` vs `.GetBoundingBox()`) due to the massive API surface of RhinoCommon. This gate ensures your code matches the exact signature installed on the user's machine.
+> 
 > **Lookup Protocol**:
 > 1.  **Identify**: Note the specific class and member you intend to use.
 > 2.  **Verify**: Execute `grep_search` on the XML resources below to confirm the exact signature (Method vs. Property, required arguments).
@@ -91,21 +94,18 @@ The GH component imports and calls the external module:
 > Failure to perform this lookup for new API surface areas will result in a mandatory `auditor` failure.
 
 - **Files**:
-  - `skills/python-rhino/resources/RhinoCommon.xml`
-  - `skills/python-rhino/resources/Grasshopper.xml`
-  - `skills/python-rhino/resources/GH_IO.XML`
+  - `skills/python-rhino-grasshopper/resources/RhinoCommon.xml`
+  - `skills/python-rhino-grasshopper/resources/Grasshopper.xml`
+  - `skills/python-rhino-grasshopper/resources/GH_IO.XML`
 - **Retrieval Method**: Use `grep_search` with `MatchPerLine: true`. These files are highly efficient for line-based searching; lookups typically resolve in <5 seconds.
 
 ### Example Lookup Patterns:
 1. **RhinoCommon**:
-   - `grep_search(Query="member name=\"M:Rhino.Geometry.Mesh.CreateFromBrep", SearchPath="skills/python-rhino/resources/RhinoCommon.xml", MatchPerLine=true)`
+   - `grep_search(Query="member name=\"M:Rhino.Geometry.Mesh.CreateFromBrep", SearchPath="skills/python-rhino-grasshopper/resources/RhinoCommon.xml", MatchPerLine=true)`
 2. **Grasshopper**:
-   - `grep_search(Query="member name=\"M:Grasshopper.DataTree", SearchPath="skills/python-rhino/resources/Grasshopper.xml", MatchPerLine=true)`
+   - `grep_search(Query="member name=\"M:Grasshopper.DataTree", SearchPath="skills/python-rhino-grasshopper/resources/Grasshopper.xml", MatchPerLine=true)`
 3. **GH_IO**:
-   - `grep_search(Query="member name=\"T:GH_IO.Serialization.GH_Archive", SearchPath="skills/python-rhino/resources/GH_IO.XML", MatchPerLine=true)`
-
-> [!TIP]
-> Use this as the "ground truth" when you need to verify exact API signatures that may be missing from your internal training data.
+   - `grep_search(Query="member name=\"T:GH_IO.Serialization.GH_Archive", SearchPath="skills/python-rhino-grasshopper/resources/GH_IO.XML", MatchPerLine=true)`
 
 ## 🔧 Common Pitfalls
 
@@ -157,60 +157,20 @@ The GH component imports and calls the external module:
 - Command-line options render in Rhino viewport, not editor
 - Rhino 8: `ScriptEditor` command; run with F5
 
-## 🧪 Testing with rhinoinside + pytest
+## 🧪 Testing & E2E Validation
 
 ### Overview
-**`rhinoinside`** loads the Rhino runtime inside CPython, enabling standard `pytest` execution without the Rhino UI. This is the recommended approach for testing Rhino/Grasshopper logic outside the editor.
+All geometric and Grasshopper logic must be validated using headless CI patterns. This ensures that refactors don't break complex geometric invariants (closure, tolerances, manifoldness).
 
-- **Best option**: `rhinoinside` — full RhinoCommon API available in headless CPython.
-- **Alternatives**: `rhino3dm` (geometry-only, no full RhinoCommon), `compute.rhino3d` (server-based), `ghpythonremote` (community).
-- **Reference implementation**: Ladybug Tools — best real-world example of this pattern.
+- **Source of Truth**: Refer to the **[rhino-e2e-testing](file:///c:/Users/44547/source/repos/ai-code-settings/skills/rhino-e2e-testing/SKILL.md)** skill for:
+  - `conftest.py` initialization patterns for Rhino 8.
+  - `GHHeadlessRunner` utility for executing `.gh` files.
+  - `geometry_assertions` library for high-rigor validation.
 
-### Project Structure
-
-~~~
-project/
-├── src/
-│   └── geometry_utils.py      # Testable Rhino logic
-├── tests/
-│   ├── conftest.py            # rhinoinside session-scoped fixture
-│   ├── test_geometry_utils.py # Tests using RhinoCommon via rhinoinside
-│   └── pytest.ini             # Pytest config
-└── requirements-dev.txt       # rhinoinside, pytest, Rhino-stubs
-~~~
-
-### conftest.py Pattern
-
-~~~python
-import pytest
-
-@pytest.fixture(scope="session", autouse=True)
-def rhino_setup():
-    """Load Rhino runtime once for the entire test session."""
-    import rhinoinside
-    rhinoinside.load()
-    import Rhino  # noqa: F401 — available after load()
-    yield
-~~~
-
-### Key Testing Patterns
-- **Session-scoped loading**: `rhinoinside.load()` is expensive — load once per session, not per test.
-- **Reusable geometry fixtures**: Create shared `Point3d`, `Curve`, `Brep` fixtures for common test inputs.
+### Key Testing Principles
+- **Session-scoped loading**: `rhinoinside.load()` is expensive — load once per session.
+- **Reusable geometry fixtures**: Create shared `Point3d`, `Curve`, `Brep` fixtures for common inputs.
 - **Float comparison**: Use `pytest.approx` for all geometric value assertions (distances, areas, volumes).
-- **Parametrize**: Use `@pytest.mark.parametrize` for multi-input geometric validation.
-- **Class-based grouping**: Group related tests by geometric domain (`TestSightlines`, `TestMeshOps`, etc.).
-
-### pytest.ini
-
-~~~ini
-[pytest]
-testpaths = tests
-python_files = test_*.py
-python_classes = Test*
-python_functions = test_*
-markers =
-    slow: marks tests as slow (e.g., full model generation)
-    rhino: marks tests requiring rhinoinside
 ~~~
 
 ## 🔤 Stubs for Autocomplete
