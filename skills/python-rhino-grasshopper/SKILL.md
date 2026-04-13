@@ -89,24 +89,25 @@ The GH component imports and calls the external module. **Zero logic** should re
 > 
 > **Lookup Protocol**:
 > 1.  **Identify**: Note the specific class and member you intend to use.
-> 2.  **Verify**: Execute `grep_search` on the XML resources below to confirm the exact signature (Method vs. Property, required arguments).
+> 2.  **Verify**: Execute `grep_search` on the **resource directory** using the `Includes` filter for the specific file. You MUST use the **absolute path** of the workspace.
 > 3.  **Cross-Check**: If the XML shows a `M:` prefix, it is a **Method** (requires `()`). If it shows `P:`, it is a **Property**.
+> 
+> > [!CAUTION]
+> > **Tool Constraint**: `grep_search` consistently returns "No results found" when the `SearchPath` points directly to an XML file. You MUST point `SearchPath` to the containing `resources` directory and use `Includes` to target the specific file.
 > 
 > Failure to perform this lookup for new API surface areas will result in a mandatory `auditor` failure.
 
-- **Files**:
-  - `skills/python-rhino-grasshopper/resources/RhinoCommon.xml`
-  - `skills/python-rhino-grasshopper/resources/Grasshopper.xml`
-  - `skills/python-rhino-grasshopper/resources/GH_IO.XML`
-- **Retrieval Method**: Use `grep_search` with `MatchPerLine: true`. These files are highly efficient for line-based searching; lookups typically resolve in <5 seconds.
+- **Resource Directory**: `skills/python-rhino-grasshopper/resources/` (Resolve to absolute path)
+- **Files**: `RhinoCommon.xml`, `Grasshopper.xml`, `GH_IO.XML`
+- **Retrieval Method**: Use `grep_search` with `MatchPerLine: true`.
 
 ### Example Lookup Patterns:
 1. **RhinoCommon**:
-   - `grep_search(Query="member name=\"M:Rhino.Geometry.Mesh.CreateFromBrep", SearchPath="skills/python-rhino-grasshopper/resources/RhinoCommon.xml", MatchPerLine=true)`
+   - `grep_search(Query="member name=\"M:Rhino.Geometry.Mesh.CreateFromBrep", SearchPath="C:/path/to/ai-code-settings/skills/python-rhino-grasshopper/resources", Includes=["RhinoCommon.xml"], MatchPerLine=true)`
 2. **Grasshopper**:
-   - `grep_search(Query="member name=\"M:Grasshopper.DataTree", SearchPath="skills/python-rhino-grasshopper/resources/Grasshopper.xml", MatchPerLine=true)`
+   - `grep_search(Query="member name=\"M:Grasshopper.DataTree", SearchPath="C:/path/to/ai-code-settings/skills/python-rhino-grasshopper/resources", Includes=["Grasshopper.xml"], MatchPerLine=true)`
 3. **GH_IO**:
-   - `grep_search(Query="member name=\"T:GH_IO.Serialization.GH_Archive", SearchPath="skills/python-rhino-grasshopper/resources/GH_IO.XML", MatchPerLine=true)`
+   - `grep_search(Query="member name=\"T:GH_IO.Serialization.GH_Archive", SearchPath="C:/path/to/ai-code-settings/skills/python-rhino-grasshopper/resources", Includes=["GH_IO.XML"], MatchPerLine=true)`
 
 ## 🔧 Common Pitfalls
 
