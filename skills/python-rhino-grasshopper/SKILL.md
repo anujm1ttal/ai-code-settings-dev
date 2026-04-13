@@ -50,34 +50,35 @@ verbosity_control: "STRICT. Focus on API syntax and geometric constraints. No in
 
 ## 🔌 External Module Pattern
 
-### Structure
-Heavy logic extracted from GH components into importable modules:
+### Structure & Testability
+Heavy logic MUST be extracted from GH components into importable modules. This enables **Headless E2E Verification** without the Rhino UI.
+
+- **1:1 Mapping**: Every `.py` module in `src/` MUST have a corresponding `test_*.py` file in `tests/`.
 
 ~~~
 project_name/
-├── domain_a/
-│   ├── __init__.py
-│   ├── core_logic.py
-│   ├── helpers.py
-│   └── validation.py
-├── domain_b/
-│   ├── __init__.py
-│   ├── profile.py
-│   └── constraints.py
-├── geometry/
-│   ├── __init__.py
-│   ├── proxies.py
-│   └── culling.py
-└── config.py               # Constants and project-specific settings
+├── src/                    # Logic modules
+│   ├── domain_a/
+│   │   ├── core_logic.py
+│   │   ├── helpers.py
+│   │   └── validation.py
+│   ├── domain_b/
+│   │   ├── __init__.py
+│   │   ├── profile.py
+│   │   └── constraints.py
+│   └── config.py           # Constants and project-specific settings
+└── tests/                  # Headless E2E tests
+    └── test_core_logic.py
 ~~~
 
 ### GhPython Wrapper Pattern
-The GH component imports and calls the external module:
+The GH component imports and calls the external module. **Zero logic** should remain in the GH component beyond transformation/delegation.
+- **Why?**: Logic in the GH canvas is "dark code"—it cannot be unit tested or linted.
 - Import: `sys.path.append(r"path/to/project_name"); from domain_a.core_logic import compute`
 - Input: Receive raw GH inputs (points, curves, parameters).
-- Transform: Convert GH types to RhinoCommon types if needed.
+- Transform: Convert GH types (DataTree, etc.) to RhinoCommon types if needed.
 - Delegate: Call the external module function.
-- Output: Return results to GH outputs (geometry, data trees, values).
+- Output: Return results to GH outputs.
 
 ## 📖 API Reference Lookups (MANDATORY GATE)
 
@@ -130,7 +131,8 @@ The GH component imports and calls the external module:
 - [ ] `Parallel.ForEach` considered for independent work?
 - [ ] Constants defined in `config.py`, not inline?
 - [ ] `rhinoinside` + `pytest` test coverage for core geometry logic?
-- [ ] `Rhino-stubs` installed for IDE autocomplete?
+- [ ] 1:1 Test-to-Source mapping maintained for `src/` modules?
+- [ ] Rhino-stubs installed for IDE autocomplete?
 
 ## ⚠ Pitfalls & Platform Constraints
 

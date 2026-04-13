@@ -1,32 +1,50 @@
 import pytest
-import sys
-import os
+import rhinoinside
+rhinoinside.load(8)
 
-# Optional: Add specific Rhino paths if not in standard locations
-# sys.path.append(r"C:\Program Files\Rhino 8\System")
+import Rhino # noqa: E402
+import Rhino.Geometry as rg # noqa: E402
 
-@pytest.fixture(scope="session", autouse=True)
-def rhino_setup():
-    """
-    Initializes the Rhino.Inside environment for the entire test session.
-    Loads Rhino 8 runtime and ensures RhinoCommon is importable.
-    """
-    try:
-        import rhinoinside
-        rhinoinside.load(8)
-        
-        # Now we can import Rhino-specific namespaces
-        import Rhino
-        import Grasshopper
-        
-        # Verify loading
-        print(f"\n[Rhino-E2E] Runtime Loaded: {Rhino.RhinoApp.Version}")
-        
-    except Exception as e:
-        print(f"\n[Rhino-E2E] FATAL ERROR: Could not load Rhino 8. {e}")
-        pytest.exit("Aborting tests due to Rhino initialization failure.")
-    
-    yield
-    
-    # Optional: Perform any cleanup if necessary
-    # Note: rhinoinside usually handles process teardown on exit.
+@pytest.fixture(scope="session")
+def rhino():
+    """Returns the Rhino namespace."""
+    return Rhino
+
+@pytest.fixture(scope="session")
+def rg_module():
+    """Returns the Rhino.Geometry namespace."""
+    return rg
+
+@pytest.fixture(scope="session")
+def origin():
+    """Returns a Point3d at 0,0,0."""
+    return rg.Point3d(0, 0, 0)
+
+@pytest.fixture(scope="session")
+def xy_plane():
+    """Returns the World XY plane."""
+    return rg.Plane.WorldXY
+
+@pytest.fixture(scope="session")
+def sample_brep():
+    """Returns a 10x10x5 Brep box."""
+    box = rg.Box(
+        rg.Plane.WorldXY,
+        rg.Interval(0, 10),
+        rg.Interval(0, 10),
+        rg.Interval(0, 5),
+    )
+    return rg.Brep.CreateFromBox(box)
+
+@pytest.fixture(scope="session")
+def sample_mesh():
+    """Returns a simple quad mesh."""
+    mesh = rg.Mesh()
+    mesh.Vertices.Add(0, 0, 0)
+    mesh.Vertices.Add(10, 0, 0)
+    mesh.Vertices.Add(10, 10, 0)
+    mesh.Vertices.Add(0, 10, 0)
+    mesh.Faces.AddFace(0, 1, 2, 3)
+    mesh.Normals.ComputeNormals()
+    mesh.Compact()
+    return mesh

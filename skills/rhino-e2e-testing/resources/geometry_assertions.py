@@ -15,14 +15,13 @@ def assert_is_manifold(mesh, label="Mesh"):
     assert isinstance(mesh, rg.Mesh), f"{label} must be a mesh."
     assert mesh.IsManifold(True), f"{label} is non-manifold."
 
-def assert_near_point(pt_a, pt_b, tolerance=None, label="Point Comparison"):
-    """Asserts that two points are within tolerance of each other."""
-    if tolerance is None:
-        import Rhino
-        tolerance = Rhino.RhinoDoc.ActiveDoc.ModelAbsoluteTolerance if Rhino.RhinoDoc.ActiveDoc else 0.001
-        
-    distance = pt_a.DistanceTo(pt_b)
-    assert distance <= tolerance, f"{label} failed: Distance {distance} exceeds tolerance {tolerance}."
+def assert_near(pt_a, pt_b, tolerance=1e-6, label="Value Comparison"):
+    """Asserts that two points or values are within tolerance using pytest.approx."""
+    if hasattr(pt_a, "DistanceTo"):
+        dist = pt_a.DistanceTo(pt_b)
+        assert dist == pytest.approx(0.0, abs=tolerance), f"{label} failed: Distance {dist} > {tolerance}."
+    else:
+        assert pt_a == pytest.approx(pt_b, abs=tolerance), f"{label} failed: {pt_a} != {pt_b}"
 
 def assert_intersection(geom_a, geom_b, expect_intersection=True, label="Intersection Check"):
     """Asserts that two geometries do (or do not) intersect."""

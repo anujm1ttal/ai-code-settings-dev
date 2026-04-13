@@ -20,13 +20,12 @@ This skill enables headless testing of geometric logic and Grasshopper definitio
 ~~~
 project/
 ├── src/
-│   └── geometry/        # Your logic
+│   └── geometry_utils.py       # Core logic (no GH dependency)
 ├── tests/
-│   ├── conftest.py     # Initialization & fixtures
-│   ├── e2e/            # High-level geometric tests
-│   │   └── test_stadium.py
-│   └── unit/           # Low-level component tests
-├── pytest.ini          # Pytest configuration
+│   ├── conftest.py             # rhinoinside loaded once here
+│   ├── test_geometry.py        # Tests using RhinoCommon via rhinoinside
+│   └── test_data/              # Optional .3dm, .json fixtures
+├── pytest.ini
 └── requirements.txt
 ~~~
 
@@ -34,21 +33,22 @@ project/
 
 Always load Rhino in a session-scoped `conftest.py` fixture to avoid the massive overhead of re-loading the runtime for every test.
 
-### conftest.py
+### conftest.py Pattern
 ~~~python
 import pytest
 import rhinoinside
+rhinoinside.load(8)
 
-@pytest.fixture(scope="session", autouse=True)
-def rhino_session():
-    """Load Rhino 8 runtime once for the entire test session."""
-    try:
-        rhinoinside.load(8)
-        import Rhino  # noqa: F401
-        import Grasshopper # noqa: F401
-    except Exception as e:
-        pytest.exit(f"Failed to load Rhino 8: {e}")
-    yield
+import Rhino # noqa: E402
+import Rhino.Geometry as rg # noqa: E402
+
+@pytest.fixture(scope="session")
+def rhino():
+    return Rhino
+
+@pytest.fixture(scope="session")
+def rg_module():
+    return Rhino.Geometry
 ~~~
 
 ## 📏 Geometric Assertions
@@ -65,33 +65,36 @@ Use the `geometry_assertions` library to verify geometric invariants. Never use 
 
 ## 🦗 Headless Grasshopper Runner
 
-To test a `.gh` definition, use the `GH_DocumentIO` API to load, solve, and extract data.
+To test a `.gh` definition, use the `GH_DocumentIO` API to load, solve, and extract data. Keep components as thin wrappers that call into tested source modules.
 
+## 📜 Key Rules
+1. **Load First**: `rhinoinside.load(8)` must be called BEFORE any Rhino imports.
+2. **Session Scope**: Use `scope="session"` on fixtures — loading Rhino takes 2-3 seconds; do it once.
+3. **Linter Gates**: All Rhino imports use `# noqa: E402` if they appear after `rhinoinside.load()`.
+4. **Float Accuracy**: Use `pytest.approx` for all floating point comparisons with geometry.
+5. **Thin Wrappers**: Separate core logic into pure Python modules under `src/`. GH components should only handle I/O.
+6. **1:1 Mapping**: Test files map 1:1 to source files: `src/utils.py` -> `tests/test_utils.py`.
+
+## 🧪 Writing a Test File
 ~~~python
-import Grasshopper as gh
+import pytest
+import Rhino.Geometry as rg
+from src.geometry_utils import my_function
 
-def run_headless_gh(file_path, inputs=None):
-    io = gh.Kernel.GH_DocumentIO()
-    if not io.Open(file_path):
-        raise FileNotFoundError(f"Could not open {file_path}")
-    
-    doc = io.Document
-    
-    # Optional: Set inputs
-    if inputs:
-        for name, value in inputs.items():
-            param = doc.FindParameter(name)
-            if param:
-                param.PersistentData.Clear()
-                # Use appropriate GH wrapper (GH_Number, GH_Point, etc.)
-                
-    doc.NewSolution(True) # Force solver
-    
-    # Extract results from output parameters
-    results = {}
-    # ... extraction logic ...
-    return results
+class TestMyFunction:
+    def test_basic_case(self, sample_brep):
+        result = my_function(sample_brep)
+        assert result == pytest.approx(100.0, rel=1e-6)
+
+    @pytest.mark.parametrize("input_val,expected", [(1.0, 10.0), (0.0, 0.0)])
+    def test_parametric(self, input_val, expected):
+        assert my_function(input_val) == pytest.approx(expected)
 ~~~
+
+## 💻 Running Tests
+- `pytest` : Basic run.
+- `pytest --cov=src --cov-report=term-missing` : Run with coverage.
+- `pytest -s` : Show print output.
 
 ## 🚫 Ground-Truth Gates (E2E First)
 
