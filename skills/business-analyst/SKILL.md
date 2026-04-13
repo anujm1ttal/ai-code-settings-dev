@@ -84,7 +84,7 @@ The business analysis feeds directly into the `strategist`'s Step 0 `PROJECT_TYP
 
 | Business Need | Likely Project Type | Primary Skills Activated |
 | :--- | :--- | :--- |
-| Geometry optimization, sightlines, seating | `geometry` | `python-rhino`, `csharp-grasshopper` |
+| Geometry optimization, sightlines, seating | `geometry` | `python-rhino-grasshopper`, `rhino-e2e-testing`, `csharp-grasshopper` |
 | Analytics dashboard, KPI tracking | `data` | `dax-modeling` |
 | Tool integration, API development | `code` | `typescript-mcp`, `python-patterns` |
 | Book, report, editorial review | `manuscript` | `manuscript-review` |

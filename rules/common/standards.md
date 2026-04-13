@@ -46,7 +46,7 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 - **Task**: Artifacts/TODO.md reference
 - **Context**: 1–2 critical sentences
 - **Files**: What to read
-- **Skill**: Which `skill-*.md` to equip
+- **Skill**: Refer to the relevant "skill-name" folder
 
 **Reporting format** (agent completes work):
 - **Done**: Specific changes

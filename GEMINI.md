@@ -65,6 +65,7 @@ Orchestration layer for Gemini sessions.
 | `youtube` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` → strategist, scribe, auditor, concierge |
 | `pptx` | `powerpoint-patterns`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
 | `pbi-report` | `powerbi-report`, `visual-composition`, `dax-modeling` → strategist, creative-director, coder, auditor, concierge |
+| `geometry` | `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns` → strategist, coder, auditor, concierge |
 | *(all types)* | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` available — equip on coder/auditor as needed |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.

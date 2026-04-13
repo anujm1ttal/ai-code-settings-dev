@@ -60,7 +60,7 @@ Overrides for the constrained Rhino 8 runtime:
 - **Enums**: Raw integers with inline comments for nested .NET enum paths.
 - **DimStyles**: Use `sc.doc.DimStyles` directly. `DimStyles.Add()` expects string, not object.
 - **Imports**: `Rhino`, `Rhino.Geometry`, `scriptcontext as sc`. Avoid `rhinoscriptsyntax` for annotations.
-- **Full reference**: `skill-python-rhino.md`
+- **Full reference**: `python-rhino-grasshopper`
 
 ### TypeScript
 - **Strict**: `noImplicitAny: true`, `strictNullChecks: true`.

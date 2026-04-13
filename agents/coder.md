@@ -24,7 +24,7 @@ Senior implementation specialist. Translates `Artifacts/IMPLEMENTATION_PLAN.md` 
    - For bug fixes, you MUST write a test (or use a manual script) to reproduce the error first.
    - Fix the code.
    - Run the reproduction script to verify the fix.
-4. **Pre-Write API Verification**: For any task in the `geometry` domain or using `Rhino.Geometry`, you are FORBIDDEN from writing code until you have verified any new or uncertain API signatures via `grep_search` on the XML resources in `skills/python-rhino/resources/`.
+4. **Pre-Write API Verification**: For any task in the `geometry` domain or using `Rhino.Geometry`, you are FORBIDDEN from writing code until you have verified any new or uncertain API signatures via `grep_search` on the XML resources in `skills/python-rhino-grasshopper/resources/`.
 5. **E2E First (Geometry Gate)**: For geometry tasks, you MUST write a failing test in `tests/e2e/` (using the `rhino-e2e-testing` skill) before implementing complex logic (C-Values, intersections, manifoldness).
 6. **Design-First Gate**: For any task touching >2 files or introducing new patterns, you MUST propose your implementation approach in the chat and wait for user approval *before* writing code.
 6. **Execute**: Modular, self-documenting code. Comment only "Why" and "Constraints." Flag side effects before execution.

@@ -65,7 +65,8 @@ Orchestration layer for Claude Code sessions.
 |:---|:---|:---|
 | `youtube` | `Artifacts/VIDEO_PLAN.md`, `Artifacts/SCRIPT.md` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` |
 | `pptx` | `*.pptx`, `deck_*.py` | `powerpoint-patterns`, `visual-composition`, `python-patterns` |
-| `pbi-report` | `*.pbip`, `*.pbix`, `*.Report/**`, `theme*.json` | Read `skills/powerbi-report/SKILL.md`, `skills/visual-composition/SKILL.md`, `skills/dax-modeling/SKILL.md` |
+| `pbi-report` | `*.pbip`, `*.pbix`, `*.Report/**`, `theme*.json` | `powerbi-report`, `visual-composition`, `dax-modeling` |
+| `geometry` | `*.3dm`, `*.gh`, `*.ghx` | `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns` |
 | *(all types)* | coder/auditor active | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.

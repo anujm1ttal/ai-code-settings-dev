@@ -98,7 +98,7 @@ When breaking a phase into tasks, verify:
 | :--- | :--- | :--- | :--- |
 | **Implement** | Coder | Write new code or logic | `[coder] Implement C-Value function in c_value.py` |
 | **Refactor** | Coder | Restructure existing code | `[coder] Extract data tree logic to separate module` |
-| **Validate** | Auditor | Review and verify work | `[auditor] Audit sightline module against skill-python-rhino.md` |
+| **Validate** | Auditor | Review and verify work | `[auditor] Audit sightline module against python-rhino-grasshopper` |
 | **Document** | Scribe | Create or update docs | `[scribe] Update Artifacts/ARCH.md with new module structure` |
 | **Ingest** | Concierge | Import manual work | `[concierge] Ingest exported GH sightline script` |
 | **Plan** | Strategist | Scope or re-plan | `[strategist] Define Phase 3 scope and success metrics` |

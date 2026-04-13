@@ -30,7 +30,7 @@ Invokes the **auditor** agent for cross-domain quality check against `coding-sty
 Leverages Claude Agent Teams to perform a significantly faster and deeper code review. If token context limits are hit, automatically fall back to standard execution.
 1. Instruct the `auditor` to spawn a parallel team:
    - **Compliance Reviewer**: Focuses only on `coding-style.md` standard compliance, PEP 8, and structure.
-   - **Domain Specialist**: Executes the domain-specific scan (e.g., `skill-csharp-grasshopper.md` or `skill-dax-modeling.md`).
+   - **Domain Specialist**: Executes the domain-specific scan (e.g., `csharp-grasshopper` or `dax-modeling`).
    - **Risk Reviewer**: Audits for security, edge cases, and math correctness.
 2. The lead `auditor` waits for teammates to finish and aggregates findings into `Artifacts/AUDIT_REPORT.md` and appends to `Artifacts/TODO.md`.
 

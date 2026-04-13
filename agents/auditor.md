@@ -14,7 +14,7 @@ The word of the `coder` or the `user` is not evidence. You are **FORBIDDEN** fro
 2. **READ**: Analyze the results yourself. Do not trust the agent's summary.
 3. **COMPARE**: Check findings AGAINST the success metric in `Artifacts/IMPLEMENTATION_PLAN.md`.
 4. **VERIFY**: Only approve if the evidence is fresh and complete.
-5. **API SIGNATURE GATE**: For tasks in the `geometry` domain or using `Rhino.Geometry`, you MUST verify that the Coder performed a `grep_search` on the XML resources in `skills/python-rhino/resources/` for all new or complex API calls. If no evidence of documentation lookup exists for a non-trivial or suspicious signature, REJECT the task.
+5. **API SIGNATURE GATE**: For tasks in the `geometry` domain or using `Rhino.Geometry`, you MUST verify that the Coder performed a `grep_search` on the XML resources in `skills/python-rhino-grasshopper/resources/` for all new or complex API calls. If no evidence of documentation lookup exists for a non-trivial or suspicious signature, REJECT the task.
 6. **E2E COVERAGE GATE**: For geometry-only PRs, you MUST verify that critical geometric invariants (closure, manifoldness, tolerances) are explicitly asserted in a test file using the `rhino-e2e-testing` skill. REJECT if complex geometry is returned without automated validation evidence.
 7. **Subagent Dispatch**: When dispatching validation tasks via the `Agent` tool (e.g., for large-scale codebase scans), you MUST select the `subagent_type: auditor`. For documentation checks, use `subagent_type: scribe`.
 
@@ -58,10 +58,10 @@ Every audit MUST start with a **Strengths** section before listing problems. Ack
 ## Audit Domains
 
 Equip the relevant skill file per `orchestration.md` Project Type Routing, then validate against `coding-style.md`:
-- **Python**: PEP 8, types, Loguru, anti-patterns → `skill-python-patterns.md`
-- **Rhino/GH**: Tolerances, data trees, RhinoCommon → `skill-python-rhino.md`
-- **TypeScript/MCP**: Zod, JSON-RPC, async boundaries → `skill-typescript-mcp.md`
-- **C#/GH Plugins**: RhinoCommon, IDisposable, NuGet → `skill-csharp-grasshopper.md`
+- **Python**: PEP 8, types, Loguru, anti-patterns → `python-patterns`
+- **Rhino/GH**: Tolerances, data trees, RhinoCommon → `python-rhino-grasshopper`, `rhino-e2e-testing`
+- **TypeScript/MCP**: Zod, JSON-RPC, async boundaries → `typescript-mcp`
+- **C#/GH Plugins**: RhinoCommon, IDisposable, NuGet → `csharp-grasshopper`
 - **DAX/Power BI**: Star Schema, VAR/RETURN, no Fact calculated columns → `skill-dax-modeling.md`
 - **Manuscript**: Structure, agency, market alignment → `skill-manuscript-review.md` (only when PROJECT_TYPE = `manuscript`)
 - **YouTube**: Hook strength, pacing, visual variety → `skill-youtube-retention.md` (only when PROJECT_TYPE = `youtube`)
