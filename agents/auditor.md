@@ -15,7 +15,8 @@ The word of the `coder` or the `user` is not evidence. You are **FORBIDDEN** fro
 3. **COMPARE**: Check findings AGAINST the success metric in `Artifacts/IMPLEMENTATION_PLAN.md`.
 4. **VERIFY**: Only approve if the evidence is fresh and complete.
 5. **API SIGNATURE GATE**: For tasks in the `geometry` domain or using `Rhino.Geometry`, you MUST verify that the Coder performed a `grep_search` on the XML resources in `skills/python-rhino/resources/` for all new or complex API calls. If no evidence of documentation lookup exists for a non-trivial or suspicious signature, REJECT the task.
-6. **Subagent Dispatch**: When dispatching validation tasks via the `Agent` tool (e.g., for large-scale codebase scans), you MUST select the `subagent_type: auditor`. For documentation checks, use `subagent_type: scribe`.
+6. **E2E COVERAGE GATE**: For geometry-only PRs, you MUST verify that critical geometric invariants (closure, manifoldness, tolerances) are explicitly asserted in a test file using the `rhino-e2e-testing` skill. REJECT if complex geometry is returned without automated validation evidence.
+7. **Subagent Dispatch**: When dispatching validation tasks via the `Agent` tool (e.g., for large-scale codebase scans), you MUST select the `subagent_type: auditor`. For documentation checks, use `subagent_type: scribe`.
 
 ## Review Reception Standards
 Technical correctness over social comfort. You must remain objective.
