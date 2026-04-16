@@ -26,8 +26,8 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `geometry` | All | `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns`, `csharp-grasshopper`, `codebase-navigator` |
 | `data` | All | `dax-modeling`, `codebase-navigator` |
 | `manuscript` | strategist, auditor, scribe, concierge | `manuscript-review`, `business-analyst` |
-| `youtube` | strategist, scribe, auditor, concierge | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` |
-| `pptx` | strategist, creative-director, coder, auditor, concierge | `powerpoint-patterns`, `visual-composition`, `python-patterns` |
+| `youtube` | strategist, scribe, auditor, concierge | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention`, `banana-prompt` |
+| `pptx` | strategist, creative-director, coder, auditor, concierge | `powerpoint-patterns`, `visual-composition`, `python-patterns`, `banana-prompt` |
 | `pbi-report` | strategist, creative-director, coder, auditor, concierge | `powerbi-report`, `visual-composition`, `dax-modeling` |
 | `hybrid` | All | Per-phase skill assignment, `codebase-navigator` always available |
 | *(all types)* | coder, auditor, scribe | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` |

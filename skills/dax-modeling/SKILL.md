@@ -1,6 +1,9 @@
 ---
 name: dax-modeling
 description: Power BI data modeling, DAX authoring, and performance optimization. Star Schema enforcement and measure validation for the coder and auditor agents.
+argument-hint: "<DAX measure requirement or modeling question>"
+metadata:
+  version: "1.0.0"
 tags: ["dax", "power-bi", "data-modeling", "analytics"]
 verbosity_control: "CONCISE. Use VAR/RETURN patterns in all examples. Avoid explaining basic BI concepts."
 ---

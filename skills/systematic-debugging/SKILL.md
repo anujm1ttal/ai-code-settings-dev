@@ -1,6 +1,9 @@
 ---
 name: systematic-debugging
 description: Use when investigating bugs, test failures, or inconsistent behavior. Enforces a rigid 4-phase root-cause-first process.
+argument-hint: "<error message or failing test description>"
+metadata:
+  version: "1.0.0"
 ---
 
 # Skill: Systematic Debugging

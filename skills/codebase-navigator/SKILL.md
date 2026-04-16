@@ -1,6 +1,9 @@
 ---
 name: codebase-navigator
 description: Interactive codebase explanation and teaching. Use when a user asks how a codebase works, wants a tour of unfamiliar code, needs architecture explained, asks "what does X do?", "where does Y happen?", "walk me through Z", or wants to understand data flow, call chains, module dependencies, or design decisions. Activated by the scribe in Explain mode. Should trigger whenever the user is trying to build mental models of code rather than change it.
+argument-hint: "<file_path_or_symbol_to_explain>"
+metadata:
+  version: "1.0.0"
 ---
 
 # Skill: Codebase Navigator

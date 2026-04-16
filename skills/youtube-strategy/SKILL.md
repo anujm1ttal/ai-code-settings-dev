@@ -1,6 +1,9 @@
 ---
 name: youtube-strategy
 description: Rules for YouTube video packaging, including Title phrasing, Thumbnail visual descriptions, and SEO constraints.
+argument-hint: "<video concept or target audience description>"
+metadata:
+  version: "1.0.0"
 ---
 
 # YouTube Strategy Skill

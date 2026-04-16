@@ -1,6 +1,9 @@
 ---
 name: python-patterns
 description: Pythonic idioms, PEP 8, type hints, and best practices for Python 3.12+. Reference for the coder and auditor agents.
+argument-hint: "<Python logic requirement or code style question>"
+metadata:
+  version: "1.0.0"
 tags: ["python", "development", "standards"]
 globs: ["*.py", "pyproject.toml", "setup.cfg"]
 verbosity_control: "TECHNICAL. Prioritize code blocks over prose. Use high-density bullet points for logic rules."

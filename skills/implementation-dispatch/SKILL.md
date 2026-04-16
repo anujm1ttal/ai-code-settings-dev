@@ -1,6 +1,9 @@
 ---
 name: implementation-dispatch
 description: Use when executing a roadmap with 3+ independent tasks or when context length is at 70%+. Orchestrates subagents for task execution.
+argument-hint: "[--dispatch <agent_type> | --status]"
+metadata:
+  version: "1.0.0"
 ---
 
 # Skill: Implementation Dispatch
