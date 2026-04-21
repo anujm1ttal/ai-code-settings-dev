@@ -23,21 +23,25 @@ Use the `agent` tool with a focused prompt. Since Ollama loads one model at a ti
 - **Environment**: If your environment supports it, ensure `AGENT_ROLE` is set to trigger role-aware context injection in `hooks/session-boot.js`.
 - **Model Selection**: For Ollama, the model will be the same across all instances. Focus on role-based context rather than model switching.
 
-### 3. Two-Stage Review (CRITICAL)
+### 3. Two-Stage Review (STANDARD)
 When the subagent returns, the main agent MUST perform two distinct reviews BEFORE integrating:
 
 **Stage A: Spec Compliance (The "What")**
 - Did the subagent implement exactly what was in the task?
 - Did they miss any success metrics?
-- Did they touch unauthorized files?
 
 **Stage B: Technical Quality (The "How")**
 - Does the code follow `rules/common/coding-style.md`?
 - Are there any potential regressions or logic flaws?
-- Is the error handling specific?
 
-### 4. Integration & State Update
-- Merge the changes.
+### 4. Council Review (HIGH RIGOR)
+For critical tasks flagged in `Artifacts/COUNCIL_PROTOCOLS.md`, swap Stage A/B for a **Council Dispatch**:
+1. **Dispatch Member A (Skeptic)**: Review for security and edge cases.
+2. **Dispatch Member B (Maintainer)**: Review for docs and readability.
+3. **Synthesis**: The main agent (as Chair) merges critiques into the final review summary before marking `[x]`.
+
+### 5. Integration & State Update
+- Merge the changes only after review PASS.
 - Update `Artifacts/TODO.md` to `[-]` (if verifying) or wait for the `auditor` to mark `[x]`.
 
 ## 📐 Dispatch Prompts (Local Agent OS)

@@ -13,6 +13,7 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 | **coder** | Implementation & refactoring | — (executes Artifacts/TODO.md) |
 | **auditor** | QA, exit reviews, validation | `/audit` |
 | **scribe** | Documentation & knowledge management | `/docs`, `/explain` |
+| **council** | High-rigor deliberation & consensus | `/council` |
 | **creative-director** | Visual spec & composition planning | — (produces `Artifacts/LAYOUT_SPEC.md`) |
 | **concierge** | State sync, intake, session orchestration | `/sync`, `/ingest`, `/handoff`, `/learn` |
 
@@ -44,8 +45,9 @@ The `strategist` classifies every project during Step 0. This determines active 
 7. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
 8. **Session start, "where was I"** → **concierge** (`/sync`)
 9. **Session end, context save** → **concierge** (`/handoff`)
-10. **Visual deliverable, composition, deck, report** → **creative-director** (produce `Artifacts/LAYOUT_SPEC.md` → then `/deck` or coder)
-11. **Ambiguous** → **concierge** asks a clarifying question before routing.
+| **concierge** (as orchestrator) or **strategist** (as synthesis chair). The "Conflict Resolution Engine" — forces multiple perspectives on a single decision.
+11. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
+12. **Ambiguous** → **concierge** asks a clarifying question before routing.
 
 ## Task Lifecycle
 
