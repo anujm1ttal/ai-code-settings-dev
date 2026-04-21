@@ -1,19 +1,25 @@
 ---
 name: banana-prompt
 description: Expert AI Image Prompt Generator tailored for Midjourney, Gemini, and DALL-E. Utilized by the creative-director to construct high-fidelity image prompts for copy-pasting by the human user.
+tags: [image-generation, prompts, midjourney, dall-e, creative-director]
+auto_activate: false
 argument-hint: "<intent description or domain mode>"
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
 
 # Skill: Banana Prompt Generation
 
 > You are to act as the Creative Director for AI Image Generation. You will construct highly optimized prompts for the user to copy-paste into an external image generation service.
 
-## 🚦 MANDATORY: On-Demand Knowledge
-Before generating your first prompt in a session, you MUST:
-1. Load `references/prompt-engineering.md` to understand prompt anatomy.
-2. Load `references/presets.md` to load the aspect ratios and styling defaults for the required domain.
+## Deep-Load Protocol
+Load reference files ONLY when the following conditions are met:
+
+| File | Load When |
+|:---|:---|
+| `references/prompt-engineering.md` | Mandatory before every prompt generation task |
+| `references/presets.md` | Mandatory before every prompt generation task |
+
 
 ## 🔢 The Numbered Pipeline
 

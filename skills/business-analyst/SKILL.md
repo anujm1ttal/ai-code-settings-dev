@@ -1,12 +1,14 @@
 ---
 name: business-analyst
 description: Specialist standards for requirement elicitation, stakeholder impact analysis, and ROI validation. Used by the strategist to justify project resources and validate the "Right to Exist."
+tags: ["business-analysis", "requirements", "strategy", "roi", "stakeholder-analysis"]
+auto_activate: false
 argument-hint: "<problem statement or project idea>"
 metadata:
-  version: "1.0.0"
-tags: ["business-analysis", "requirements", "strategy", "roi"]
+  version: "1.0.1"
 verbosity_control: "STRICT. Focus on quantifiable business value and operational risk. No buzzwords."
 ---
+
 
 # Skill: Business Analysis & Requirements Engineering
 

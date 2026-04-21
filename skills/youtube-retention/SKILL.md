@@ -1,10 +1,13 @@
 ---
 name: youtube-retention
 description: Audit gates for viewer retention, pacing, hook strength, and visual variety in scripts.
+tags: [youtube, retention, pacing, hooks, auditing]
+auto_activate: false
 argument-hint: "<script draft or retention concern>"
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
+
 
 # YouTube Retention Skill
 

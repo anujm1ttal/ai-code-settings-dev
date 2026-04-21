@@ -1,13 +1,15 @@
 ---
 name: visual-composition
 description: Cross-medium visual design principles — hierarchy, layout systems, density control, accessibility, and brand governance. Reference for Creative Director, Auditor, and Coder agents.
+tags: ["design", "layout", "accessibility", "visual-design", "composition", "standards"]
+auto_activate: false
 argument-hint: "<design requirement or layout constraint>"
 metadata:
-  version: "1.0.0"
-tags: ["design", "layout", "accessibility", "visual-design"]
+  version: "1.0.1"
 globs: ["Artifacts/LAYOUT_SPEC.md", "style_constants.py"]
 verbosity_control: "STRICT. Bullet-driven rules. No subjective language — every principle must be auditable."
 ---
+
 
 # Skill: Visual Composition
 

@@ -1,14 +1,24 @@
 ---
 name: typescript-mcp
 description: MCP specialist focusing on JSON-RPC 2.0, Zod validation, server architecture, async patterns, testing, and operational stability.
+tags: ["mcp", "typescript", "api", "json-rpc", "zod", "server-architecture"]
+auto_activate: false
 argument-hint: "<MCP tool requirement or JSON-RPC question>"
 metadata:
-  version: "1.0.0"
-tags: ["mcp", "typescript", "api", "json-rpc"]
+  version: "1.0.1"
 verbosity_control: "FORMAL. Use interface definitions and error codes as primary communication."
 ---
 
 # Skill: TypeScript & MCP Development
+
+## Deep-Load Protocol
+Load reference files ONLY when the following conditions are met:
+
+| File | Load When |
+|:---|:---|
+| `references/error-taxonomy.md` | When defining custom error codes or handling complex failures |
+| `references/zod-patterns.md` | When constructing complex input schemas or validation logic |
+
 
 ## 🏗 Project Structure
 

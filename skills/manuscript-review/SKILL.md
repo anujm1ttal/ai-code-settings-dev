@@ -1,12 +1,14 @@
 ---
 name: manuscript-review
 description: Senior developmental editor standards for narrative structure, character agency, and market-readiness. Used by the auditor for structural audits. Activated only when project type is "manuscript."
+tags: ["editing", "narrative-design", "publishing", "review", "manuscript-analysis"]
+auto_activate: false
 argument-hint: "<narrative premise or chapter snippet>"
 metadata:
-  version: "1.0.0"
-tags: ["editing", "narrative-design", "publishing", "review"]
+  version: "1.0.1"
 verbosity_control: "STRICT. Use telegraphic feedback. Prioritize structural logic over prose style."
 ---
+
 
 # Skill: Developmental Manuscript Review
 

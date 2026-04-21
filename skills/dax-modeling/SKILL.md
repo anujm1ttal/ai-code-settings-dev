@@ -1,14 +1,24 @@
 ---
 name: dax-modeling
 description: Power BI data modeling, DAX authoring, and performance optimization. Star Schema enforcement and measure validation for the coder and auditor agents.
+tags: ["dax", "power-bi", "data-modeling", "star-schema", "analytics", "business-intelligence"]
+auto_activate: false
 argument-hint: "<DAX measure requirement or modeling question>"
 metadata:
-  version: "1.0.0"
-tags: ["dax", "power-bi", "data-modeling", "analytics"]
+  version: "1.0.1"
 verbosity_control: "CONCISE. Use VAR/RETURN patterns in all examples. Avoid explaining basic BI concepts."
 ---
 
 # Skill: DAX & Power BI Modeling
+
+## Deep-Load Protocol
+Load reference files ONLY when the following conditions are met:
+
+| File | Load When |
+|:---|:---|
+| `references/measure-catalog.md` | When viewing existing measures or documenting new ones |
+| `references/optimization.md` | When performance issues are reported or object count > 1M rows |
+
 
 ## 📊 Modeling Standards
 

@@ -1,3 +1,4 @@
+---
 name: auditor
 description: Technical quality assurance and final gatekeeper. Prevents "Done" status until success metrics are met. ONLY agent authorized to mark Artifacts/TODO.md items [x].
 tools: ["Read", "Grep", "Glob", "Shell", "Agent"]

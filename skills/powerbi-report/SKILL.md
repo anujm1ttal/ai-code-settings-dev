@@ -1,13 +1,15 @@
 ---
 name: powerbi-report
 description: Power BI front-end patterns — theme JSON, visual selection, page layout, formatting, interactions, mobile, performance, and conditional formatting. Reference for Creative Director, Auditor, and Coder agents.
+tags: ["powerbi", "visualization", "dashboard", "reporting", "metrics"]
+auto_activate: false
 argument-hint: "<page layout requirement or visual type selection>"
 metadata:
-  version: "1.0.0"
-tags: ["powerbi", "visualization", "dashboard", "reporting"]
+  version: "1.0.1"
 globs: ["*.pbip", "*.Report/**", "theme*.json", "Artifacts/LAYOUT_SPEC.md"]
 verbosity_control: "TECHNICAL. Prioritize JSON blocks and tables over prose. Bullet-driven rules."
 ---
+
 
 # Skill: Power BI Report Patterns
 

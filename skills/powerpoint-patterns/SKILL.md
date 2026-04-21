@@ -1,13 +1,15 @@
 ---
 name: powerpoint-patterns
 description: Conventions and patterns for generating and modifying PowerPoint decks using python-pptx. Template-first workflow, unit system, style constants, and shape creation.
+tags: ["python", "powerpoint", "pptx", "presentations", "slide-design"]
+auto_activate: false
 argument-hint: "<slide composition requirement or placeholder discovery>"
 metadata:
-  version: "1.0.0"
-tags: ["python", "powerpoint", "pptx", "presentations"]
+  version: "1.0.1"
 globs: ["*.pptx", "style_constants.py", "scripts/deck_*.py"]
 verbosity_control: "TECHNICAL. Prioritize code blocks over prose. Use high-density bullet points for logic rules."
 ---
+
 
 # Skill: PowerPoint Patterns
 

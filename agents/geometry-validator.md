@@ -1,4 +1,4 @@
-name: geometry-validator
+---name: geometry-validator
 description: >
   Specialized subagent for the Auditor. Performs high-rigor geometric validation
   on Rhino/Grasshopper outputs. Verifies closure, manifoldness, tolerance

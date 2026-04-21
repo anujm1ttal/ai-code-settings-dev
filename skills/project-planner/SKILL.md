@@ -1,12 +1,14 @@
 ---
 name: project-planner
 description: Phased project planning methodology, dependency mapping, timeline estimation, and task decomposition. Backing skill for the strategist agent. Powers the /blueprint command.
+tags: ["planning", "project-management", "phasing", "estimation", "strategist", "roadmap"]
+auto_activate: false
 argument-hint: "<vague project idea or roadmap requirement>"
 metadata:
-  version: "1.0.0"
-tags: ["planning", "project-management", "phasing", "estimation"]
+  version: "1.0.1"
 verbosity_control: "STRICT. Focus on deliverables, dependencies, and metrics. No aspirational language."
 ---
+
 
 # Skill: Project Planning & Phased Delivery
 
@@ -209,3 +211,29 @@ The `strategist` uses these questions to ensure the phased roadmap is grounded i
 - **Gold plating**: Exceeding the success metric "just in case." If C-Value > 60mm is the metric, don't optimize for 120mm unless the plan says so.
 - **Orphan tasks**: Tasks in Artifacts/TODO.md with no parent phase. Every task traces to a phase.
 - **Infinite Phase 1**: A first phase that tries to do everything. Phase 1 should be the smallest demonstrable win.
+
+## 📄 Output Templates
+
+### /blueprint Response Block
+When initializing or updating a plan, the `strategist` must present the summary in this format:
+
+```markdown
+# 🗺 Blueprint: [Project Name]
+
+## 🎯 Step 0: Value Check
+- **Value**: [One-sentence rationale]
+- **Minimalism**: [Smallest viable win]
+- **Risk**: [Primary showstopper]
+
+## 🏗 Phased Roadmap
+1. **Phase 1**: [Title] → [Success Metric]
+2. **Phase 2**: [Title] → [Success Metric]
+3. **Phase 3**: [Title] → [Success Metric]
+
+## 🚦 Next Actions
+- [ ] [Agent] Task 1
+- [ ] [Agent] Task 2
+
+> [!IMPORTANT]
+> This plan is optimized for [Minimalism/Speed/Rigor]. Approve to initialize Artifacts/TODO.md.
+```

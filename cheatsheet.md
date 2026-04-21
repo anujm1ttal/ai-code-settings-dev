@@ -1,4 +1,4 @@
-# Claude Code — Cheat Sheet
+# Agent OS — Cheat Sheet
 
 ## The Golden Loop (Task Lifecycle)
 /sync (recover) → /blueprint (plan + interview) → work (build) → /audit (verify) → /docs (document) → /handoff (save)
@@ -27,7 +27,9 @@ Boot: /sync (drift scan) → work → Shutdown: /handoff (persist)
 | `/pack` | Generate YouTube SEO metadata (Scribe) |
 | `/learn` | Capture project-specific lessons into Artifacts/LEARNINGS.md (Concierge) |
 | `/handoff` | Save session state and exit cleanly (Concierge) |
-| `/hooks` | **[Claude Code Only]** View active path guards and auto-linters |
+| `/hooks` | **[Legacy]** View active path guards and auto-linters |
+| `systematic-debug` | 4-phase root-cause investigation process (Coder/Auditor) |
+| `dispatch` | Subagent orchestration and two-stage review (Coder) |
 
 ## Agents
 
@@ -45,7 +47,7 @@ Boot: /sync (drift scan) → work → Shutdown: /handoff (persist)
 | Marker | Meaning | Set By |
 | :--- | :--- | :--- |
 | `[ ]` | Not started | Strategist |
-| `[-]` | In progress | Coder |
+| `[/]` | In progress | Coder |
 | `[x]` | Complete + verified | Auditor only |
 
 ## Task Format
@@ -105,6 +107,34 @@ Audit fail #1 → Coder fixes · #2 → Coder reviews skill file · #3 → Strat
 | `Artifacts/LAYOUT_SPEC.md` | Creative Director |
 | `Artifacts/BRD_SUMMARY.md` | Strategist |
 | `Artifacts/EDITORIAL_LETTER.md` | Auditor |
+
+## Active Agent Skills
+
+| Skill | Primary Agent | Focus Area |
+| :--- | :--- | :--- |
+| **Core / System** | | |
+| `project-planner` | Strategist | Phased mapping, timeline modeling |
+| `project-journal` | Concierge | State tracking, session memory |
+| `implementation-dispatch`| Coder | Complex subagent orchestration |
+| `systematic-debugging`| Coder/Auditor | Root-cause isolation (4-phase) |
+| `codebase-navigator` | Scribe | Codebase touring & explanations |
+| `doc-updater` | Scribe | Staleness detection, READMEs |
+| `business-analyst` | Strategist | Requirements, stakeholder ROI |
+| `skill-creator` | (Any) | Authoring & optimizing Agent skills|
+| **Engineering / Data** | | |
+| `python-patterns` | Coder/Auditor | PEP 8, types, pythonic idioms |
+| `typescript-mcp` | Coder | JSON-RPC 2.0, Zod validation |
+| `dax-modeling` | Coder/Auditor | Power BI star schemas, metrics |
+| **Design / Content** | | |
+| `visual-composition` | Creative Dir | UI, hierarchy, accessibility |
+| `banana-prompt` | Creative Dir | Midjourney/DALL-E image concepts |
+| **Specialized Domains** | | |
+| `python-rhino-grasshopper`| Coder | RhinoCommon, GhPython scripts |
+| `rhino-e2e-testing` | Auditor | Headless computational design tests|
+| `powerbi-report` | CD/Coder | Power BI themes, interactions |
+| `powerpoint-patterns` | Coder/CD | `python-pptx` automated decking |
+| `youtube-*` | Scribe/Strat | Strategy, scriptwriting, retention |
+| `manuscript-review` | Auditor | Narrative structure, pacing |
 
 ## When In Doubt
 - Lost context? → `/sync`

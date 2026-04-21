@@ -1,21 +1,28 @@
 ---
 name: python-rhino-grasshopper
 description: "Expert in RhinoCommon API, GhPython, and computational design scripting for Rhino 8. Mandates the use of 'Rhino.Geometry' and high-rigor patterns. Use this skill for geometry creation, panelization, structural logic, and Grasshopper data tree management."
+tags: [rhino, grasshopper, rhinocommon, ghpython, geometry, computational-design, architecture]
+auto_activate: false
 argument-hint: "[stadium|facade|landscape|furniture|general] <geometric goal>"
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
   author: "Agent OS"
 ---
 
 # Skill: Python for Rhino & Grasshopper
 
-## 🚦 MANDATORY — Read these before every task
-Before constructing any script or plan, you MUST load:
-1. `references/pitfalls.md` — To avoid common hallucinations and performance traps.
-2. `references/architecture.md` — To ensure project structural alignment.
+## Deep-Load Protocol
+Load reference files ONLY when the following conditions are met:
+
+| File | Load When |
+|:---|:---|
+| `references/pitfalls.md` | Mandatory before EVERY task — avoids hallucinations and traps |
+| `references/architecture.md` | New project setup or questions about structural alignment |
+| `references/performance.md` | Object count > 1,000 or performance is a project focus |
 
 ## 🏗 The Computational Pipeline
 Follow this pipeline for every geometry task:
+
 
 ### Step 1: Analyze Intent & Domain
 Determine the geometric scale and success metrics.

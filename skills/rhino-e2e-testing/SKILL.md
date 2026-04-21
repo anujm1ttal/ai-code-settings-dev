@@ -1,11 +1,13 @@
 ---
 name: rhino-e2e-testing
 description: Headless E2E testing for Rhino 8 and Grasshopper using pytest and rhinoinside.
+tags: ["rhino", "grasshopper", "testing", "pytest", "rhinoinside", "e2e"]
+auto_activate: false
 argument-hint: "[--run-tests|--setup-reproduction]"
 metadata:
-  version: "1.0.0"
-tags: ["rhino", "grasshopper", "testing", "pytest", "rhinoinside"]
+  version: "1.0.1"
 ---
+
 
 # Skill: Rhino E2E Testing
 

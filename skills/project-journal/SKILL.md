@@ -1,12 +1,14 @@
 ---
 name: project-journal
 description: Standards for maintaining session history, decision logs, and project memory. Powers the /sync, /ingest, and /handoff commands. Backing skill for the concierge agent.
+tags: ["context", "memory", "management", "workflow", "state", "handoff", "concierge"]
+auto_activate: false
 argument-hint: "[--sync|--handoff|--ingest]"
 metadata:
-  version: "1.0.0"
-tags: ["context", "memory", "management", "workflow"]
+  version: "1.0.1"
 verbosity_control: "TELEGRAPHIC. Focus on state-changes and hand-off requirements. Keep logs to the bare minimum required for continuity."
 ---
+
 
 # Skill: Project Journaling & State Persistence
 

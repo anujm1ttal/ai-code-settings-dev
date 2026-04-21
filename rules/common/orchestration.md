@@ -18,12 +18,12 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 
 ## Project Type Routing
 
-The `strategist` classifies every project during Step 0. This determines active agents and skills.
+The `strategist` classifies every project during Step 0. This determines active agents and skills. Foundational skills (e.g., `cd-foundations`) are auto-activated based on project type.
 
 | Type | Active Agents | Primary Skills |
 |:---|:---|:---|
 | `code` | All | `python-patterns`, `typescript-mcp`, `codebase-navigator` |
-| `geometry` | All | `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns`, `csharp-grasshopper`, `codebase-navigator` |
+| `geometry` | All | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns`, `codebase-navigator` |
 | `data` | All | `dax-modeling`, `codebase-navigator` |
 | `manuscript` | strategist, auditor, scribe, concierge | `manuscript-review`, `business-analyst` |
 | `youtube` | strategist, scribe, auditor, concierge | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention`, `banana-prompt` |
@@ -31,6 +31,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `pbi-report` | strategist, creative-director, coder, auditor, concierge | `powerbi-report`, `visual-composition`, `dax-modeling` |
 | `hybrid` | All | Per-phase skill assignment, `codebase-navigator` always available |
 | *(all types)* | coder, auditor, scribe | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` |
+
 
 ## Automatic Routing
 

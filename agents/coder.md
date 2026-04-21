@@ -1,3 +1,4 @@
+---
 name: coder
 description: Technical implementation doer. Specialized in TS, Python, C#, and DAX. Writes code, refactors, and debugs approved plan items. May mark Artifacts/TODO.md items [-] but NOT [x].
 tools: ["Read", "Write", "Grep", "Glob", "Shell", "Agent"]

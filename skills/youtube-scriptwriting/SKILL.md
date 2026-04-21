@@ -1,10 +1,13 @@
 ---
 name: youtube-scriptwriting
 description: Rules for YouTube A/V script formatting, active voice, and writing for the spoken word.
+tags: [youtube, scriptwriting, storytelling, creative-writing, production]
+auto_activate: false
 argument-hint: "<outline or video topic>"
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
+
 
 # YouTube Scriptwriting Skill
 

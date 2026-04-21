@@ -1,10 +1,13 @@
 ---
 name: systematic-debugging
 description: Use when investigating bugs, test failures, or inconsistent behavior. Enforces a rigid 4-phase root-cause-first process.
+tags: [debugging, troubleshooting, root-cause, testing, verification]
+auto_activate: false
 argument-hint: "<error message or failing test description>"
 metadata:
-  version: "1.0.0"
+  version: "1.0.1"
 ---
+
 
 # Skill: Systematic Debugging
 
@@ -60,3 +63,39 @@ When declaring a bug "Fixed," you must provide:
 1. The **Reproduction Script/Test** that initially failed.
 2. The **Root Cause** description (1 sentence).
 3. The **Fresh Evidence** (command output) showing the test now passes.
+
+## 📄 Output Templates
+
+### DEBUG_LOG.md
+When performing a systematic deep-dive, maintain an `Artifacts/DEBUG_LOG.md` file using this structure:
+
+```markdown
+# 🔍 Debugging Session: [Symptom Name]
+
+- **Status**: [Gathering / Investigating / Verifying / Fixed]
+- **Reproduction**: `pytest tests/test_failure.py`
+- **Root Cause**: [Pending / One-sentence description]
+
+## 🛠 Phase 1: Data Gathering
+- [ ] Captured stack trace
+- [ ] Isolated minimal failing input
+- [ ] Evidence: [Log snippet or snapshot link]
+
+## 🔬 Phase 2: Root Cause Investigation
+- [ ] Why 1: [Reason]
+- [ ] Why 2: [Reason]
+- [ ] Why 3: [Reason]
+- [ ] Why 4: [Reason]
+- [ ] Why 5: [Root Cause]
+
+## 💡 Phase 3: Hypothesis & Verification
+- **Hypothesis**: [Description]
+- **Proposed Fix**: [Minimal code change]
+- **Predicted Outcome**: [What should happen]
+
+## ✅ Phase 4: implementation & Defense
+- [ ] Fix implemented
+- [ ] Regression test added
+- [ ] Defense-in-depth: [e.g., added assertion to module_x.py]
+```
+
