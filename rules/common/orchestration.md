@@ -11,11 +11,11 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 |:---|:---|:---|
 | **strategist** | Architecture, ROI, phased roadmaps, tech-debt discovery | `/blueprint`, `/sweep` |
 | **coder** | Implementation & refactoring | — (executes Artifacts/TODO.md) |
-| **auditor** | QA, exit reviews, validation | `/audit` |
+| **auditor** | QA, exit reviews, validation, factual snapshots | `/audit`, `/snapshot` |
 | **scribe** | Documentation & knowledge management | `/docs`, `/explain` |
 | **council** | High-rigor deliberation & consensus | `/council` |
 | **creative-director** | Visual spec & composition planning | — (produces `Artifacts/LAYOUT_SPEC.md`) |
-| **concierge** | State sync, intake, session orchestration | `/sync`, `/ingest`, `/handoff`, `/learn` |
+| **concierge** | State sync, intake, session orchestration, hygiene | `/sync`, `/ingest`, `/handoff`, `/learn`, `/clean` |
 
 ## Project Type Routing
 
@@ -40,11 +40,13 @@ The `strategist` classifies every project during Step 0. This determines active 
 2. **Codebase discovery, tech-debt mapping, redundancy scans** → **strategist** (`/sweep`)
 3. **Code implementation, refactoring, debugging** → **coder** (equip skills per table above)
 4. **Review, validation, "is this correct"** → **auditor** (`/audit`)
-5. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
-6. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
+5. **Factual codebase snapshot, compliance report** → **auditor** (`/snapshot`)
+6. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
+7. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
 7. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
 8. **Session start, "where was I"** → **concierge** (`/sync`)
 9. **Session end, context save** → **concierge** (`/handoff`)
+10. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
 | **concierge** (as orchestrator) or **strategist** (as synthesis chair). The "Conflict Resolution Engine" — forces multiple perspectives on a single decision.
 11. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
 12. **Ambiguous** → **concierge** asks a clarifying question before routing.
@@ -92,6 +94,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 
 | File | Owner (Create) | Owner (Maintain) | Purpose |
 |:---|:---|:---|:---|
+| `Artifacts/Temp/` | All | Concierge (Cleanup) | **Transient Storage**: One-off diagrams, scratch scripts, and temporary analysis. |
 | `.agent/current_task.md` | Concierge | Concierge | Session focus |
 | `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
 | `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist | **The "How & Why"**: Technical design and rationale. |

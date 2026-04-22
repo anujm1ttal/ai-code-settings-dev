@@ -36,6 +36,7 @@ Orchestration layer for Gemini sessions.
 | `visual-composition` | `creative-director, auditor` | Hierarchy, layout, brand governance, and accessibility |
 | `/deck` | strategist / creative-director | PowerPoint project scaffolding & validation |
 | `/audit` | auditor | Quality review, gate validation |
+| `/snapshot` | auditor | Factual codebase snapshot for external review |
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
 | `/ideate` | strategist | YouTube video conceptualization |
@@ -43,7 +44,8 @@ Orchestration layer for Gemini sessions.
 | `/pack` | scribe | YouTube upload metadata and SEO |
 | `/sync` | concierge | Reconcile filesystem state with plan artifacts |
 | `/ingest` | concierge | Register manual/external changes into project state |
-| `/handoff` | concierge | Clean session end — compress context, update state |
+| `/handoff` | concierge | Clean session end — compress context, update state, cleanup |
+| `/clean` | concierge | Manually trigger project hygiene and cleanup |
 
 ## Concierge Operations
 

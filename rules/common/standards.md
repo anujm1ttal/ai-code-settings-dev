@@ -39,6 +39,9 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
   - The workspace `Artifacts/` folder is the **Canonical Source of Truth**. 
   - The brain/shadow directory copy is for UI rendering purposes only.
   - If drift occurs, the workspace version wins.
+- **Transient vs. Persistent**: 
+  - **Persistent**: Core state (`TODO.md`, `PLAN.md`, `ARCH.md`) remains in `Artifacts/` root.
+  - **Transient**: Scratchpads, temporary diagrams, and one-off analysis MUST be placed in `Artifacts/Temp/`.
 - All and any artifacts created by the agents MUST be placed in the `Artifacts` folder. (Exception: `README.md` is NOT an artifact and must remain in the project root).
 - Code/config >15 lines → render as Artifact.
 - Use `diff` formatting for updates to existing files.

@@ -1,9 +1,9 @@
-# Task: LLM Council Implementation
+# Task: /snapshot Command Implementation
 
-Implementing a sequential multi-persona deliberation pattern for the Agent OS, optimized for local single-model (Qwen 3.5) setups.
+Implementing the `/snapshot` command for exhaustive, factual project reporting.
 
-- [x] Create `Artifacts/COUNCIL_PROTOCOLS.md` (Workflow definitions)
-- [x] Create `commands/council.md` (Command logic for concierge)
-- [x] Register `/council` in `rules/common/orchestration.md`
-- [x] Update `skills/implementation-dispatch/SKILL.md` (Multi-agent review logic)
-- [x] Final verification and Walkthrough
+- [x] Create `commands/snapshot.md` (Command definition and section logic)
+- [x] Update `rules/common/orchestration.md` (Register command and assign to Auditor)
+- [x] Update `GEMINI.md` (Global registry update)
+- [x] Update `CLAUDE.md` (Parity update for Claude Code)
+- [x] Final verification with a self-snapshot
