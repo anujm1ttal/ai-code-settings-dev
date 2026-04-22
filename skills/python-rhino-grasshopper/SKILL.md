@@ -19,6 +19,14 @@ Load reference files ONLY when the following conditions are met:
 | `references/pitfalls.md` | Mandatory before EVERY task — avoids hallucinations and traps |
 | `references/architecture.md` | New project setup or questions about structural alignment |
 | `references/performance.md` | Object count > 1,000 or performance is a project focus |
+\r
+## 🛠 Environment & Tooling\r
+\r
+To ensure type safety and high-rigor geometric validation, the following environment setup is required:\r
+\r
+- **IntelliSense**: Install `Rhino-stubs` in your virtual environment (`pip install Rhino-stubs`). This is mandatory for external editor development to prevent API hallucinations.\r
+- **Headless Testing**: Use `rhinoinside` for E2E geometric testing outside of the Rhino UI (see `skill-rhino-e2e-testing.md`).\r
+- **Version Control**: Never commit `.gh` or `.3dm` files to the main source tree; store them in `assets/` or use Git LFS.
 
 ## 🏗 The Computational Pipeline
 Follow this pipeline for every geometry task:
@@ -75,6 +83,7 @@ Run the Review Checklist (see below) and delegate to the **geometry-validator** 
 ## 📋 Code Review Checklist
 - [ ] Starts with `#! python 3`?
 - [ ] Uses `Rhino.Geometry` (RhinoCommon) over `rhinoscriptsyntax`?
+- [ ] **IntelliSense**: `Rhino-stubs` installed in the environment for type hinting?
 - [ ] References document tolerance (`doc.ModelAbsoluteTolerance`)?
 - [ ] Disposes heavy geometry in loops? (See `references/performance.md`)
 - [ ] Unit system validated at entry?
