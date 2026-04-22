@@ -92,9 +92,11 @@ All state files MUST live in the **Artifacts/** directory within the true logica
 | File | Owner (Create) | Owner (Maintain) | Purpose |
 |:---|:---|:---|:---|
 | `.agent/current_task.md` | Concierge | Concierge | Session focus |
-| `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist | **The "How & Why"**: Technical design, architecture, file-specific logic, and rationale. |
-| `Artifacts/TODO.md` | Strategist | All (see authority) | **The "Who & When"**: High-level execution status, milestones, and agent assignments. |
+| `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
+| `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist | **The "How & Why"**: Technical design and rationale. |
+| `Artifacts/TODO.md` | Strategist | All (see authority) | **The "Who & When"**: High-level execution status. |
 | `Artifacts/ARCH.md` | Strategist | Scribe (formatting) | Long-term system architecture |
+| `Artifacts/COUNCIL_PROTOCOLS.md` | Strategist | Strategist | Deliberation rules for high-rigor decisions |
 | `Artifacts/DECISION_LOG.md` | Concierge | Concierge | Pivot tracking |
 | `Artifacts/LEARNINGS.md` | Concierge | Concierge | Knowledge capture |
 | `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director | Visual specs |

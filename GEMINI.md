@@ -87,9 +87,17 @@ When creating or updating these files, you MUST use the absolute path of the wor
 
 - **Architecture**: `Artifacts/ARCH.md`, `Artifacts/IMPLEMENTATION_PLAN.md`
 - **Roadmap**: `Artifacts/TODO.md`, `Artifacts/DECISION_LOG.md`
-- **Context**: `Artifacts/.agent/current_task.md`
+- **Context**: `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
+- **Protocols**: `Artifacts/COUNCIL_PROTOCOLS.md`
 - **Learnings**: `Artifacts/LEARNINGS.md`
 - **History**: `Artifacts/history/` subdirectory for archived plans, task lists, and learnings
+
+## 🪞 Mirroring Rule
+
+If you create or update a system-level artifact in the brain directory (using `IsArtifact: true`), you **MUST** simultaneously write a mirrored copy to the workspace `Artifacts/` directory (using `IsArtifact: false`). 
+
+The workspace `Artifacts/` folder is the **Canonical Source of Truth**. The brain directory copy is for UI rendering purposes only. 
+If drift occurs, the workspace version wins.
 
 ## Error Handling
 
