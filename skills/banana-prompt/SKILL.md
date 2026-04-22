@@ -1,6 +1,6 @@
 ---
 name: banana-prompt
-description: Expert AI Image Prompt Generator tailored for Midjourney, Gemini, and DALL-E. Utilized by the creative-director to construct high-fidelity image prompts for copy-pasting by the human user.
+description: Use when the user needs AI image prompts for Midjourney, Gemini, or DALL-E.
 tags: [image-generation, prompts, midjourney, dall-e, creative-director]
 auto_activate: false
 argument-hint: "<intent description or domain mode>"

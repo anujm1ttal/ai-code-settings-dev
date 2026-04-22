@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Use when investigating bugs, test failures, or inconsistent behavior. Enforces a rigid 4-phase root-cause-first process.
+description: Use when investigating bugs, test failures, or inconsistent behavior — before proposing any fix.
 tags: [debugging, troubleshooting, root-cause, testing, verification]
 auto_activate: false
 argument-hint: "<error message or failing test description>"

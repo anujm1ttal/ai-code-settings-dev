@@ -1,6 +1,6 @@
 ---
 name: powerpoint-patterns
-description: Conventions and patterns for generating and modifying PowerPoint decks using python-pptx. Template-first workflow, unit system, style constants, and shape creation.
+description: Use when generating or modifying PowerPoint decks using python-pptx.
 tags: ["python", "powerpoint", "pptx", "presentations", "slide-design"]
 auto_activate: false
 argument-hint: "<slide composition requirement or placeholder discovery>"

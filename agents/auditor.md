@@ -80,6 +80,16 @@ A task is blocked from `[x]` until ALL pass:
 
 When `/sync` or `/ingest` flags a task as potentially complete → **verify before marking `[x]`**.
 
+## Skill Verification Gate
+
+Before any NEW or MODIFIED skill is deployed, the auditor MUST verify it was pressure-tested:
+
+1. **Baseline Evidence (RED)**: Was the skill tested WITHOUT the skill content? Document what the agent did wrong.
+2. **Compliance Evidence (GREEN)**: Was the skill tested WITH the skill content? Did the agent comply?
+3. **Rationalization Coverage (REFACTOR)**: Does the anti-rationalization table contain entries from observed agent failures, not speculation?
+
+Skills shipped without pressure-testing evidence are flagged `HIGH` severity.
+
 ## Escalation
 
 Per `orchestration.md` Conflict Resolution: 1st rejection → specific fix. 2nd → skill-file review. 3rd → escalate to strategist.

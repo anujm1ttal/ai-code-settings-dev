@@ -1,6 +1,6 @@
 ---
 name: project-journal
-description: Standards for maintaining session history, decision logs, and project memory. Powers the /sync, /ingest, and /handoff commands. Backing skill for the concierge agent.
+description: Use when maintaining session history, decision logs, or project memory across sessions.
 tags: ["context", "memory", "management", "workflow", "state", "handoff", "concierge"]
 auto_activate: false
 argument-hint: "[--sync|--handoff|--ingest]"

@@ -66,6 +66,10 @@ The `strategist` classifies every project during Step 0. This determines active 
 > **Approval Discipline**: Every plan approval or execution request MUST follow the `Approval Label Rubric` defined in `standards.md`.
 ```
 
+<HARD-GATE>
+No agent may begin implementation, write code, scaffold projects, or take any implementation action until Step 0 is complete AND the user has approved the plan. This applies to EVERY project regardless of perceived simplicity. "Simple" projects are where unexamined assumptions cause the most wasted work.
+</HARD-GATE>
+
 ## Artifacts/TODO.md Authority (Single Source)
 
 | Agent / Command | Allowed | Forbidden |

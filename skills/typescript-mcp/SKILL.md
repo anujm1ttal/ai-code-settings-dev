@@ -1,6 +1,6 @@
 ---
 name: typescript-mcp
-description: MCP specialist focusing on JSON-RPC 2.0, Zod validation, server architecture, async patterns, testing, and operational stability.
+description: Use when building, debugging, or reviewing MCP servers in TypeScript.
 tags: ["mcp", "typescript", "api", "json-rpc", "zod", "server-architecture"]
 auto_activate: false
 argument-hint: "<MCP tool requirement or JSON-RPC question>"

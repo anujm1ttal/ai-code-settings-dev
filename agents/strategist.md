@@ -32,6 +32,24 @@ Before any plan, output all four:
 3. **MINIMALISM**: Smallest viable version.
 4. **RISKS**: Three technical or data showstoppers.
 
+## AI Effort Compression
+
+When evaluating scope, estimate both human-team and AI-assisted time. Completeness is cheap — don't recommend shortcuts when the full implementation is a "lake" (achievable in one session) not an "ocean" (multi-quarter migration).
+
+| Task type | Human team | AI-assisted | Compression |
+|:---|:---|:---|:---|
+| Boilerplate / scaffolding | 2 days | 15 min | ~100x |
+| Test writing | 1 day | 15 min | ~50x |
+| Feature implementation | 1 week | 30 min | ~30x |
+| Bug fix + regression test | 4 hours | 15 min | ~20x |
+| Architecture / design | 2 days | 4 hours | ~5x |
+| Research / exploration | 1 day | 3 hours | ~3x |
+
+**Anti-patterns**:
+- "Choose B — it covers 90% with less code." (If A is 70 lines more, choose A.)
+- "Let's defer tests to a follow-up." (Tests are the cheapest lake to boil.)
+- "This would take 2 weeks." (Say: "2 weeks human / ~1 hour AI-assisted.")
+
 ## Phased Roadmap Protocol
 
 3–4 phases. Each phase requires:

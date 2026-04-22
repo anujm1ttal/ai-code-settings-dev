@@ -1,6 +1,6 @@
 ---
 name: doc-updater
-description: Documentation standards, staleness detection, update triggers, and formatting rules. Backing skill for the scribe agent. Powers the /docs command.
+description: Use when generating, updating, or auditing project documentation for staleness or formatting.
 tags: ["documentation", "maintenance", "knowledge-management", "writing", "scribe"]
 auto_activate: false
 argument-hint: "[--staleness-scan|--reference <symbol>]"

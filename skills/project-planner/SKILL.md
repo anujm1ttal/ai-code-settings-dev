@@ -1,6 +1,6 @@
 ---
 name: project-planner
-description: Phased project planning methodology, dependency mapping, timeline estimation, and task decomposition. Backing skill for the strategist agent. Powers the /blueprint command.
+description: Use when planning phased roadmaps, mapping dependencies, estimating timelines, or decomposing tasks.
 tags: ["planning", "project-management", "phasing", "estimation", "strategist", "roadmap"]
 auto_activate: false
 argument-hint: "<vague project idea or roadmap requirement>"

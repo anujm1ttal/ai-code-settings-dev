@@ -47,6 +47,15 @@ All scan rules are defined in `coding-style.md`. Domain-specific additions:
 - **PowerPoint (pptx)**: Template-first, no raw EMUs, no inline colors, layout name lookup, composition compliance → `skill-powerpoint-patterns.md`, `skill-visual-composition.md`.
 - **Power BI Report (pbi-report)**: Theme JSON applied, ≤8 visuals/page, measures only, mobile layout required, no pie/3D/gauge → `skill-powerbi-report.md`, `skill-visual-composition.md`.
 
+### AI Code Quality (All Languages — Slop Detection)
+- **Empty catches**: `catch {}` around file ops or process management → require specific error handling
+- **Redundant `return await`**: Remove when no enclosing try block
+- **Generic error swallowing**: `catch (Exception)` without re-throw or specific handling
+- **Placeholder comments**: "TODO", "FIXME", "HACK" without associated task in `Artifacts/TODO.md`
+- **Unreachable code**: Dead branches, impossible conditions, redundant null checks
+
+**Nuance**: Not all "sloppy" patterns are bugs. Fire-and-forget operations, shutdown cleanup, and best-effort paths may legitimately swallow errors. Flag the pattern, but assess whether it's the correct engineering choice before requiring a fix.
+
 ## Severity Levels
 
 - **CRITICAL**: Security flaws, math errors, crashes, data corruption, unit mismatches, schema violations, missing IDisposable.
@@ -98,3 +107,11 @@ Map all dependencies at the bottom of the report.
 ## Integration
 - Run after coder finishes a task, or before coder begins (`--pre`).
 - Auditor is sole authority for `[x]` in `Artifacts/TODO.md` (see `orchestration.md`).
+
+## Skill Registry Consistency
+
+During `/audit` or `/sweep`, verify skill registry integrity:
+- All skills listed in `GEMINI.md` / user rules have corresponding `skills/*/SKILL.md` directories
+- All `skills/*/SKILL.md` files are listed in `GEMINI.md`
+- Command owners in `GEMINI.md` match agent definitions in `agents/*.md`
+- Flag orphaned skills or phantom registry entries as `MEDIUM` severity

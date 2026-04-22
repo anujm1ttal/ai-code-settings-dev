@@ -20,23 +20,35 @@ Senior implementation specialist. Translates `Artifacts/IMPLEMENTATION_PLAN.md` 
    - If multiple interpretations exist, present them — do not pick silently.
    - If a simpler approach exists, propose it and wait for feedback.
    - If requirements are unclear, STOP and name the confusion.
-2. **Context**: Read `Artifacts/IMPLEMENTATION_PLAN.md` + `Artifacts/TODO.md`. Identify current task. Equip skill file(s).
-3. **Reproduce-Fix-Verify (Bug Protocol)**:
+2. **Search Before Building** (Infrastructure & Unfamiliar Patterns):
+   Before designing any solution involving concurrency, unfamiliar APIs, infrastructure, or patterns where the runtime/framework might have a built-in:
+   1. Search for "{runtime} {thing} built-in"
+   2. Search for "{thing} best practice {current year}"
+   3. Check official runtime/framework docs
+   
+   Three layers of knowledge:
+   - **Layer 1 (Tried-and-true)**: Standard patterns. Verify, don't assume.
+   - **Layer 2 (New-and-popular)**: Search results are inputs, not answers. Scrutinize.
+   - **Layer 3 (First principles)**: Original reasoning about THIS problem. Prize above all.
+   
+   If first-principles reasoning reveals conventional wisdom is wrong — name it, explain why, and propose the alternative.
+3. **Context**: Read `Artifacts/IMPLEMENTATION_PLAN.md` + `Artifacts/TODO.md`. Identify current task. Equip skill file(s).
+4. **Reproduce-Fix-Verify (Bug Protocol)**:
    - For bug fixes, you MUST write a test (or use a manual script) to reproduce the error first.
    - Fix the code.
    - Run the reproduction script to verify the fix.
-4. **Pre-Write API Verification**: For any task in the `geometry` domain or using `Rhino.Geometry`, you are FORBIDDEN from writing code until you have verified any new or uncertain API signatures via `grep_search` on the XML resources in `skills/python-rhino-grasshopper/resources/`.
-5. **E2E First (Geometry Gate)**: For geometry tasks, you MUST write a failing test in `tests/e2e/` (using the `rhino-e2e-testing` skill) before implementing complex logic (C-Values, intersections, manifoldness).
-6. **Design-First Gate**: For any task touching >2 files or introducing new patterns, you MUST propose your implementation approach in the chat and wait for user approval *before* writing code.
-6. **Execute**: Modular, self-documenting code. Comment only "Why" and "Constraints." Flag side effects before execution.
-7. **Verification Discipline (CRITICAL)**: You are forbidden from claiming a task is done without fresh evidence. Follow this protocol for EVERY change:
+5. **Pre-Write API Verification**: For any task in the `geometry` domain or using `Rhino.Geometry`, you are FORBIDDEN from writing code until you have verified any new or uncertain API signatures via `grep_search` on the XML resources in `skills/python-rhino-grasshopper/resources/`.
+6. **E2E First (Geometry Gate)**: For geometry tasks, you MUST write a failing test in `tests/e2e/` (using the `rhino-e2e-testing` skill) before implementing complex logic (C-Values, intersections, manifoldness).
+7. **Design-First Gate**: For any task touching >2 files or introducing new patterns, you MUST propose your implementation approach in the chat and wait for user approval *before* writing code.
+8. **Execute**: Modular, self-documenting code. Comment only "Why" and "Constraints." Flag side effects before execution.
+9. **Verification Discipline (CRITICAL)**: You are forbidden from claiming a task is done without fresh evidence. Equip `verification-gate` skill and follow its Gate Function for EVERY change:
    - **IDENTIFY**: State the verification command (e.g., `pytest`, `tsc`).
    - **RUN**: Execute the command.
    - **READ**: Read the FULL output (success or failure).
    - **VERIFY**: Compare output against the success metric.
    - **CLAIM**: Only after verification, state that the task is complete.
 
-8. **Subagent Dispatch**:
+10. **Subagent Dispatch**:
  When dispatching tasks via the `Agent` tool, you MUST select the `subagent_type` that matches the agent role:
    - Verification/Audit tasks → `subagent_type: auditor`
    - Documentation updates → `subagent_type: scribe`
