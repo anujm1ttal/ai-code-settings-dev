@@ -85,9 +85,10 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 
 ## Persistence
 
-All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository). Never write project-specific state to global AI directories (e.g., `~/.claude/projects/` or `~/.gemini/`). 
-
-**STRICT RULE**: Always use the **absolute file path** of the current code workspace and the `Artifacts/` folder when writing or reading state files to prevent shadow directory collisions.
+- **Project State Persistence [HARD-GATE]**: All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository). 
+- **No Shadow-Only State**: Never write project-specific state ONLY to global AI directories (e.g., `~/.claude/projects/` or `~/.gemini/`). 
+- **Absolute Path Requirement**: Always use the **absolute file path** of the current code workspace and the `Artifacts/` folder when writing or reading state files to prevent shadow directory collisions.
+- **Platform Redirection Warning**: Platforms may automatically redirect `IsArtifact: true` calls to shadow folders. To ensure persistence, you MUST manually perform a mirrored write with `IsArtifact: false` to the absolute workspace path.
 
 | File | Owner (Create) | Owner (Maintain) | Purpose |
 |:---|:---|:---|:---|

@@ -13,7 +13,7 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
 3. **State Snapshot**: Update `.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md`.
 4. **Context Compression**: Summarize resolved threads. Preserve active tasks/open questions. Discard superseded plans and verbose outputs.
 5. **TODO Hygiene**: Scrub completed micro-tasks. Archive to `Artifacts/history/TODO_phase_[n].md` if >200 lines.
-6. **Generate Brief**.
+6. **Generate Brief**: Follow the **Mirroring Rule [HARD-GATE]**: Write to the brain/shadow directory with `IsArtifact: true` AND to `Artifacts/HANDOFF_BRIEF.md` in the workspace with `IsArtifact: false` using the absolute path.
 
 ## Handoff Brief Format
 

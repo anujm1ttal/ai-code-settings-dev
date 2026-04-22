@@ -35,6 +35,10 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 
 ## Artifact Protocol
 
+- **Mirroring Rule [HARD-GATE]**: If you create or update a system-level artifact in the brain/shadow directory (using `IsArtifact: true`), you **MUST** simultaneously write a mirrored copy to the workspace `Artifacts/` folder (using `IsArtifact: false`) at the absolute path. 
+  - The workspace `Artifacts/` folder is the **Canonical Source of Truth**. 
+  - The brain/shadow directory copy is for UI rendering purposes only.
+  - If drift occurs, the workspace version wins.
 - All and any artifacts created by the agents MUST be placed in the `Artifacts` folder. (Exception: `README.md` is NOT an artifact and must remain in the project root).
 - Code/config >15 lines → render as Artifact.
 - Use `diff` formatting for updates to existing files.
