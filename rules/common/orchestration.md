@@ -94,6 +94,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 
 | File | Owner (Create) | Owner (Maintain) | Purpose |
 |:---|:---|:---|:---|
+| `Artifacts/MEMORY_ANCHORS.md` | Strategist | Strategist | **Cold Storage**: Project-wide constants, constraints, and non-negotiables. |
 | `Artifacts/Temp/` | All | Concierge (Cleanup) | **Transient Storage**: One-off diagrams, scratch scripts, and temporary analysis. |
 | `.agent/current_task.md` | Concierge | Concierge | Session focus |
 | `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
@@ -114,7 +115,8 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 To prevent information redundancy and "maintenance debt":
 
 1.  **IMPLEMENTATION_PLAN.md**: Must contain the **technical heavy lifting**. Specific file paths, logical changes, dependency orders, and code snippets belong here.
-2.  **TODO.md**: Must remain a **"Thin TODO"**. It should reference Phase numbers or high-level milestones from the plan.
+2.  **Plan Pruning [HARD-GATE]**: To prevent bloat, only the **Current Phase** and **Upcoming Phases** remain in the Plan. Once a Phase is completed, its technical spec MUST be moved to `Artifacts/history/PLAN_Phase_[N].md`.
+3.  **TODO.md**: Must remain a **"Thin TODO"**. It should reference Phase numbers or high-level milestones from the plan.
     - **Forbidden**: Copy-pasting detailed file logic or implementation steps from the Plan into the TODO.
     - **Required**: Status tracking (`[-]`, `[x]`) only happens in the TODO.
 

@@ -17,6 +17,8 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
 7. **Hygiene Phase**: 
    - Delete all files in `Artifacts/Temp/`.
    - Identify and propose deletion of stray transient files (e.g., `*.tmp`, `debug.log`, uncommitted scratch files not in `.gitignore`).
+8. **Memory Graduation**: Extract new constraints/constants and graduate them to `Artifacts/MEMORY_ANCHORS.md`.
+9. **Plan Pruning**: Move technical specs of completed phases from `Artifacts/IMPLEMENTATION_PLAN.md` to `Artifacts/history/PLAN_Phase_[N].md`.
 
 ## Handoff Brief Format
 

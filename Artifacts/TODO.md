@@ -1,9 +1,9 @@
-# Task: /snapshot Command Implementation
+# Task: Sliding Window Persistence Implementation
 
-Implementing the `/snapshot` command for exhaustive, factual project reporting.
+Implementing high-density memory storage and automated plan pruning.
 
-- [x] Create `commands/snapshot.md` (Command definition and section logic)
-- [x] Update `rules/common/orchestration.md` (Register command and assign to Auditor)
-- [x] Update `GEMINI.md` (Global registry update)
-- [x] Update `CLAUDE.md` (Parity update for Claude Code)
-- [x] Final verification with a self-snapshot
+- [x] Define `Artifacts/MEMORY_ANCHORS.md` in `orchestration.md`
+- [x] Update `standards.md` with Memory Density rules
+- [x] Update `handoff.md` with Memory Graduation and Plan Pruning steps
+- [x] Create `Artifacts/MEMORY_ANCHORS.md` template
+- [x] Verify by pruning the current IMPLEMENTATION_PLAN.md

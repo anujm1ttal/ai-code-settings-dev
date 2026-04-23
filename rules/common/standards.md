@@ -39,6 +39,9 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
   - The workspace `Artifacts/` folder is the **Canonical Source of Truth**. 
   - The brain/shadow directory copy is for UI rendering purposes only.
   - If drift occurs, the workspace version wins.
+- **Memory Density**: Capture critical project facts as "Memory Anchors" in `Artifacts/MEMORY_ANCHORS.md`. 
+  - Max 10-15 points. Use high-density, low-prose bullet points.
+  - Graduation: New constraints identified during `/handoff` must be graduated here.
 - **Transient vs. Persistent**: 
   - **Persistent**: Core state (`TODO.md`, `PLAN.md`, `ARCH.md`) remains in `Artifacts/` root.
   - **Transient**: Scratchpads, temporary diagrams, and one-off analysis MUST be placed in `Artifacts/Temp/`.
