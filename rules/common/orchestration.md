@@ -41,6 +41,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `/sync` | concierge | Reconcile filesystem drift with plan | Validates `Artifacts/` vs source |
 | `/ingest` | concierge | Import manual CAD/BI work into AI context | Formalizes `Artifacts/LAYOUT_SPEC.md` |
 | `/handoff` | concierge | Clean session termination & brief creation | Writes to `Artifacts/history/` |
+| `/registry-audit`| auditor | Cross-reference integrity check for the OS registry | Validates links/enums |
 | `/council` | council | High-rigor multi-persona deliberation | Follows `COUNCIL_PROTOCOLS.md` |
 | `/grill` | strategist | Stress-test a plan for hidden risks | Active interview mode |
 | `/sweep` | strategist | Global tech-debt and redundancy scan | Registry-wide discovery |

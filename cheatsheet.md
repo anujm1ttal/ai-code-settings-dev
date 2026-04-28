@@ -24,6 +24,7 @@ Boot: /sync (drift scan) → work → Shutdown: /handoff (persist)
 | `/learn` | Capture project-specific lessons (Concierge) |
 | `/sweep` | Global tech-debt discovery & redundancy scan (Strategist) |
 | `/snapshot` | Factual codebase report for review (Auditor) |
+| `/registry-audit` | Cross-reference integrity check for the OS registry (Auditor) |
 | `/hooks` | **[Legacy]** View active path guards and auto-linters |
 | `systematic-debug` | 4-phase root-cause investigation process (Coder/Auditor) |
 | `dispatch` | Subagent orchestration and two-stage review (Coder) |

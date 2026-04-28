@@ -10,7 +10,11 @@ Invokes the **strategist** agent (or acts as an orchestrator) to coordinate a mu
 
 The strategist spawns a parallel team of agents to figure out the project from different aspects:
 
-1. **Phase 1 — Architectural Scan (Strategist)**: 
+1. **Phase 0 — Registry Integrity (Optional: `--registry`)**:
+   - Invokes `/registry-audit` to ensure the Agent OS infrastructure is sound before analyzing the local codebase.
+   - Checks for broken skill/command references and `PROJECT_TYPE` drift.
+
+2. **Phase 1 — Architectural Scan (Strategist)**: 
    - Analyzes overall architecture for deprecated dependencies, outdated patterns, and unused modules.
    - Ensures the codebase structure still aligns with `Artifacts/ARCH.md`.
 

@@ -46,6 +46,7 @@ Orchestration layer for Gemini sessions.
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
 | `/pack` | scribe | YouTube upload metadata and SEO |
 | `/sync` | concierge | Reconcile filesystem state with plan artifacts |
+| `/registry-audit` | auditor | Cross-reference integrity check for the OS registry |
 | `/ingest` | concierge | Register manual/external changes into project state |
 | `/handoff` | concierge | Clean session end — compress context, update state, cleanup |
 | `/clean` | concierge | Manually trigger project hygiene and cleanup |
