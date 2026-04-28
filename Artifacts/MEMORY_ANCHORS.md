@@ -1,19 +1,23 @@
-# Project Memory Anchors
+# Memory Anchors: [Project Name]
 
-High-density, project-wide constants and constraints. Read this first every session.
+**Cold Storage**: Critical project-wide constants, non-negotiable constraints, and system boundaries. 
+*Maintenance: Strategist owns this file. Graduation from LEARNINGS.md happens during /handoff.*
 
-## 🏗️ Architecture & Core Logic
-- [Constraint 1]
-- [Constraint 2]
+## 📐 Non-Negotiables
+- [Anchor 1]: e.g., "All sightline calculations must use a C-Value threshold of 60mm."
+- [Anchor 2]: e.g., "Database schema is read-only; use staging for all writes."
 
-## 🛠️ Environment & Tools
-- [Constraint 3]
-- [Constraint 4]
+## 🧱 Architectural Boundaries
+- [Boundary 1]: e.g., "RhinoCommon is the sole geometric library; no external DLLs."
+- [Boundary 2]: e.g., "Python 3.9 compatibility for all GH components."
 
-## 📏 Standards & Conventions
-- [Constraint 5]
-- [Constraint 6]
+## 🔢 Key Constants
+| Constant | Value | Source |
+|:---|:---|:---|
+| `MIN_TOLERANCE` | `0.001` | RhinoDoc Units |
+| `MAX_PAGE_COUNT` | `7` | powerbi-report skill |
 
-## 🛡️ Security & Privacy
-- [Constraint 7]
-- [Constraint 8]
+## 🛠 Active Toolchain
+- **Geometry**: Rhino 8 + Grasshopper
+- **Testing**: Pytest + Rhino.Inside
+- **Power BI**: PBIP format + Tabular Editor 3

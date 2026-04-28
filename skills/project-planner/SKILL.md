@@ -141,7 +141,7 @@ The `strategist` produces this file during `/blueprint`. It is the architectural
 
 - **# Project: [Name]**
 - **## Step 0**
-  - PROJECT_TYPE: [code / geometry / data / manuscript / hybrid]
+  - PROJECT_TYPE: [code / geometry / data / manuscript / youtube / pptx / pbi-report / hybrid]
   - VALUE_CHECK: [one sentence]
   - MINIMALISM: [smallest viable version]
   - RISKS: [three showstoppers]

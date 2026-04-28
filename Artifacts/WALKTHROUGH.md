@@ -1,54 +1,27 @@
-# Walkthrough: Agent OS Hardening (Superpowers × gstack)
+# Walkthrough: Matt Pocock Skills Integration
 
-We have completed the systematic integration of high-rigor patterns from `superpowers` (obra) and `gstack` (garrytan) into the Antigravity Agent OS. This update transforms the setup from a coordination layer into a self-verifying, high-rigor execution environment.
+I have systematically integrated high-rigor architectural and interaction patterns from Matt Pocock's skills into your "Agent OS."
 
-## 🏁 Hardening Checklist (All Items [x])
+## Changes Made
 
-| Item | Improvement | Impact |
-|:---|:---|:---|
-| 1 | **Verification Gate** | "Iron Law" (evidence-before-claims) enforced via new skill. |
-| 2 | **CSO Description Fixes** | Removed workflow summaries from 9 skills to prevent agent shortcutting. |
-| 3 | **Search Before Building** | Coder agent now mandatorily searches for runtime built-ins/best practices. |
-| 4 | **AI Effort Compression** | Strategist uses "Boil the Lake" metrics to prevent over-minimalism. |
-| 5 | **Subagent Templates** | Standardized `implementer-prompt.md` and `reviewer-prompt.md` in `implementation-dispatch`. |
-| 6 | **Skill Pressure Testing** | Auditor mandates RED-GREEN-REFACTOR evidence for all skill changes. |
-| 7 | **Slop Detection** | `/audit` now scans for empty catches, redundant awaits, and dead code. |
-| 8 | **Session Boot Protocol** | Concierge automatically recovers state, surfaces recent learnings, and checks for drift. |
-| 9 | **Hard-Gate Step 0** | Orchestration rules explicitly block implementation until Step 0 is complete/approved. |
-| 10 | **Skill Drift Validation** | Audit command now verifies registry integrity (GEMINI.md ↔ skills dir). |
+### 1. Architectural Hardening
+- **New Rule**: [architecture.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/architecture.md) defines **Deep vs. Shallow** modules and the **Deletion Test**.
+- **Standards Update**: [standards.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/standards.md) now references these principles and emphasizes "Locality over Extraction."
 
-## 🛡️ Key New Protocols
+### 2. Interactive "Grilling" & Triage
+- **New Commands**: Added `/grill` (stress-testing plans) and `/triage` (root-cause analysis) to [orchestration.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/orchestration.md).
+- **Task Lifecycle**: The `/blueprint` workflow now includes an optional **Grilling Phase** for complex projects to ensure shared understanding before implementation.
 
-### 1. The Verification Gate (`skills/verification-gate/`)
-Agents are now forbidden from claiming "Tests pass" or "Bug fixed" unless the command output is visible in the SAME message. This eliminates "hallucinated success."
+### 3. Domain Model Persistence
+- **New Skill**: [glossary-extraction](file:///c:/Users/44547/source/repos/ai-code-settings/skills/glossary-extraction/SKILL.md) automates the creation of a Domain Glossary in `Artifacts/GLOSSARY.md`, following DDD "Ubiquitous Language" principles.
 
-### 2. Two-Stage Review (`skills/implementation-dispatch/`)
-Subagent delegation now follows a strict sequence:
-- **Stage A (Spec Compliance)**: Did it do exactly what was asked? (No missing/extra items).
-- **Stage B (Quality)**: Does it follow standards? (No slop).
-Stage A MUST pass before Stage B is even considered.
+### 4. Development Rigor
+- **TDD Mode**: [systematic-debugging](file:///c:/Users/44547/source/repos/ai-code-settings/skills/systematic-debugging/SKILL.md) now enforces a **High-Rigor TDD Loop** (Red-Green-Refactor) for bug fixes and complex features.
 
-### 3. LLM Council (`commands/council.md`)
-The `/council` command allows the Concierge to trigger sequential deliberation between three personas: **The Skeptic**, **The Maintainer**, and **The Optimizer**. This forces the system to find its own blind spots before bothering the user.
+## Verification
 
-## 🛠 Files Created/Modified
+- **Command Routing**: Verified that `/grill` and `/triage` are correctly mapped to agents in the Fleet table.
+- **Skill Availability**: Ensured `glossary-extraction` is auto-activated for all major project types.
+- **Mental Models**: Architecture definitions are centralized and referenced in the global standards.
 
-### New Components
-- [SKILL.md](file:///c:/Users/44547/source/repos/ai-code-settings/skills/verification-gate/SKILL.md) — The "Iron Law" of verification.
-- [implementer-prompt.md](file:///c:/Users/44547/source/repos/ai-code-settings/skills/implementation-dispatch/implementer-prompt.md) — Standardized subagent instructions.
-- [reviewer-prompt.md](file:///c:/Users/44547/source/repos/ai-code-settings/skills/implementation-dispatch/reviewer-prompt.md) — Two-stage review protocol.
-
-### Hardened Agents
-- [coder.md](file:///c:/Users/44547/source/repos/ai-code-settings/agents/coder.md) — Added Search-Before-Building and Verification Gate.
-- [strategist.md](file:///c:/Users/44547/source/repos/ai-code-settings/agents/strategist.md) — Added Effort Compression (Lake vs. Ocean).
-- [auditor.md](file:///c:/Users/44547/source/repos/ai-code-settings/agents/auditor.md) — Added Pressure Testing mandate for skills.
-- [concierge.md](file:///c:/Users/44547/source/repos/ai-code-settings/agents/concierge.md) — Added Session Boot Protocol.
-
-## 🚀 Next Steps
-
-1. **Pressure Test**: Run `/audit` on a simple task to see the new slop-scan and registry consistency checks in action.
-2. **Dispatch Trial**: Use `/council` on your next major architectural decision to witness the sequential deliberation flow.
-3. **Iron Law Compliance**: Observe the coder now providing command output for every "complete" claim.
-
----
-*Status: HARDENING COMPLETE*
+Your Agent OS is now significantly more robust and better equipped to handle complex, domain-heavy projects with high technical leverage.

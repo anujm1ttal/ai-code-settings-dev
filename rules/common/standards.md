@@ -108,6 +108,12 @@ Use a 2-tag (mandatory) or 3-tag (optional) system on **EVERY** approval request
 
 **Priority**: `SAFE` < `REVERSIBLE` < `DESTRUCTIVE` < `IRREVERSIBLE` < `HIGH IMPACT`
 
+## Architecture Principles
+
+- **Deep Modules**: Prioritize high-leverage interfaces that hide complexity. (Refer to `rules/common/architecture.md`).
+- **Deletion Test**: Challenge every module's right to exist. If deleting it moves complexity instead of removing it, it's shallow.
+- **Locality over Extraction**: Don't extract functions just for testability if it breaks the locality of bugs and knowledge.
+
 ## Pre-Flight Checks
 
 - **File Content Verification**: Before reorganising, merging, or splitting files, verify they are non-empty (check byte size or line count). If a source file is empty, ask the user to populate it first — do not proceed with empty inputs.

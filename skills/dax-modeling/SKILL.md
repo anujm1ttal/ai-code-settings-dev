@@ -27,9 +27,10 @@ Load reference files ONLY when the following conditions are met:
 - **Directionality**: Unidirectional filters only (Dim → Fact) unless solving a specific M2M bridge with a documented rationale.
 - **Bridge Tables**: When M2M is unavoidable, use a dedicated bridge table with clear documentation of filter propagation behavior.
 - **Naming Convention**:
-  - Dimension tables: `Dim` prefix (`DimDate`, `DimSection`, `DimSeatType`).
+  - Dimension tables: `Dim` prefix (`DimDate`, `DimSection`).
   - Fact tables: `Fact` prefix (`FactTicketSales`, `FactSightlineResults`).
   - Bridge tables: `Bridge` prefix (`BridgeEventSection`).
+  - *Note: Standardize on CamelCase (no underscores). If working with a legacy model using underscores (e.g., `Dim_Date`), maintain the existing pattern but flag for the strategist during `/sweep`.*
 
 ### Date Table
 - Disable Auto Date/Time globally in Power BI options.

@@ -19,7 +19,18 @@ This skill enables headless testing of geometric logic and Grasshopper definitio
 - **Rhino 8** installed on the local machine.
 - `rhinoinside` Python package: `pip install rhinoinside`
 - `pytest` for test execution.
+- `pytest` for test execution.
 - System environment configured to find Rhino 8 (usually automatic with `rhinoinside.load(8)`).
+
+### 🐍 Dialect Awareness (CRITICAL)
+Note the version mismatch between your test environment and the code being tested:
+- **Host / Test Python (3.12+)**: Full support for `list[T]`, `T | None`, Pydantic, and loguru.
+- **Internal Rhino Python (~3.9)**: Code running inside Rhino or exported to GH components is restricted.
+  - Use `from typing import List, Optional`.
+  - No union pipe (`|`) syntax.
+  - Manual validation (no Pydantic).
+  - Use `print()` only (no loguru inside GH).
+*Test files should be written in 3.12, but source modules intended for GH must remain 3.9-compatible.*
 
 ### Project Layout
 ~~~
@@ -28,9 +39,10 @@ project/
 │   └── geometry_utils.py       # Core logic (no GH dependency)
 ├── tests/
 │   ├── conftest.py             # rhinoinside loaded once here
-│   ├── test_geometry.py        # Tests using RhinoCommon via rhinoinside
+│   ├── unit/                   # Fast Lane B tests (see rhino-unit-testing)
+│   ├── e2e/                    # Rigorous Lane A tests (marked @pytest.mark.rhino)
 │   └── test_data/              # Optional .3dm, .json fixtures
-├── pytest.ini
+├── pytest.ini                  # markers defined here
 └── requirements.txt
 ~~~
 
@@ -78,7 +90,12 @@ To test a `.gh` definition, use the `GH_DocumentIO` API to load, solve, and extr
 3. **Linter Gates**: All Rhino imports use `# noqa: E402` if they appear after `rhinoinside.load()`.
 4. **Float Accuracy**: Use `pytest.approx` for all floating point comparisons with geometry.
 5. **Thin Wrappers**: Separate core logic into pure Python modules under `src/`. GH components should only handle I/O.
-6. **1:1 Mapping**: Test files map 1:1 to source files: `src/utils.py` -> `tests/test_utils.py`.
+6. **1:1 Mapping**: Test files map 1:1 to source files: `src/utils.py` -> `tests/e2e/test_utils.py`.
+7. **Lane Separation**: Every E2E test file must be decorated with `@pytest.mark.rhino` to avoid being run during Lane B unit testing.
+
+## 🔗 Relationships
+- **Lane B**: Use `rhino-unit-testing` for geometry-agnostic logic.
+- **Foundations**: Depends on `cd-foundations` for tolerance standards.
 
 ## 🧪 Writing a Test File
 ~~~python

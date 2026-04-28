@@ -21,6 +21,7 @@ Orchestration layer for Gemini sessions.
 | coder | Implementation execution |
 | auditor | Quality gates, technical review |
 | scribe | Documentation, communication, code explanation |
+| council | High-rigor deliberation & consensus |
 | creative-director | Visual spec & composition planning |
 | concierge | Session orchestration, state management, intake |
 
@@ -30,6 +31,7 @@ Orchestration layer for Gemini sessions.
 |:---|:---|:---|
 | `/blueprint` | strategist | Project planning, phased roadmaps |
 | `/sweep` | strategist | Codebase discovery, tech-debt mapping, redundancy scans |
+| `/grill` | strategist | Stress-test a plan for hidden risks |
 | `typescript-mcp` | `strategist, auditor, coder` | MCP server standards, Zod, JSON-RPC, async boundaries |
 | `systematic-debugging` | `coder, auditor` | 4-phase root-cause investigation process |
 | `implementation-dispatch` | `coder` | Subagent orchestration and two-stage review workflow |
@@ -39,6 +41,7 @@ Orchestration layer for Gemini sessions.
 | `/snapshot` | auditor | Factual codebase snapshot for external review |
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
+| `glossary-extraction` | `concierge, scribe` | Extract ubiquitous language to Artifacts/GLOSSARY.md |
 | `/ideate` | strategist | YouTube video conceptualization |
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
 | `/pack` | scribe | YouTube upload metadata and SEO |
@@ -46,6 +49,8 @@ Orchestration layer for Gemini sessions.
 | `/ingest` | concierge | Register manual/external changes into project state |
 | `/handoff` | concierge | Clean session end — compress context, update state, cleanup |
 | `/clean` | concierge | Manually trigger project hygiene and cleanup |
+| `/council` | council | High-rigor deliberation & consensus |
+| `/triage` | coder | Bug investigation and fix planning |
 
 ## Concierge Operations
 

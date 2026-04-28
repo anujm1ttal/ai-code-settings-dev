@@ -27,15 +27,25 @@ Patching symptoms is a violation of current task standards. You must prove you u
 - **Pattern Matching**: Find a working example of the same logic in the codebase. Compare it against the failing code.
 - **Variable Isolation**: If multiple factors exist, isolate them. Change only ONE variable at a time using tests.
 
+## 🔗 Relationships
+- **Verification**: Depends on `verification-gate` for evidence standards.
+- **Automation**: Cross-ref `rhino-e2e-testing` for geometric reproduction.
+
 ### Phase 3: Hypothesis & Verification
 - State exactly what you believe is wrong.
 - Propose a fix that addresses the **root cause**, not the symptom.
 - Predict the outcome of the fix.
 
 ### Phase 4: Implementation & Defense-in-Depth
-- Implement the fix using Red-Green-Refactor.
+- Implement the fix using the **High-Rigor TDD Loop**.
 - **Defense**: Add validation or assertions to the crash site to prevent this class of bug from recurring silently.
 - **Broad Sweep**: Check for the same bug pattern in other files.
+
+## 🔄 High-Rigor TDD Loop
+Use this loop for all bug fixes and complex features:
+1. **RED**: Create a minimal, automated test that reproduces the bug (or defines the new feature). Run it and confirm it **FAILS** with the expected error.
+2. **GREEN**: Implement the **minimum code** necessary to make the test pass. Do not over-engineer. Run the test and confirm it **PASSES**.
+3. **REFACTOR**: Improve the code quality, remove duplication, and align with `coding-style.md` while ensuring the test stays **GREEN**.
 
 ## ⚖️ The 3-Fix Escalation Rule
 If you implement a fix and the test still fails **3 times in a row**, you must STOP.

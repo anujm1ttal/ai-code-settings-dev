@@ -109,6 +109,10 @@ verbosity_control: "TECHNICAL. Prioritize code blocks over prose. Use high-densi
 - **Package Management**: `uv` (replaces `pip`, `poetry`).
 - **Testing**: `pytest` (replaces `unittest`).
 - **Type Checking**: `pyright` in strict mode (replaces `mypy`).
-- **Logging**: `loguru` (replaces stdlib `logging`).
+- **Logging**: Use `loguru` for all application code. (Note: `loguru` is not available inside internal Rhino Python; use `print()` there).
+- **Dialect Boundary**: If writing code intended to run *inside* Rhino 8 (e.g., Grasshopper scripts, Rhino Python scripts), restrict syntax to **Python 3.9** standards:
+  - Use `from typing import List, Optional`.
+  - Avoid `|` union types; use `Union[T, U]`.
+  - Avoid `list[T]` lowercase generics.
 - **Validation**: `pydantic` v2 at system boundaries.
 - **Data Classes**: `dataclasses` with `frozen=True, slots=True` for internal value objects.

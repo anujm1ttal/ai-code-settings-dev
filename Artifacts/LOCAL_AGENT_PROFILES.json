@@ -1,29 +1,25 @@
 {
-  "profiles": {
+  "project_id": "[unique-id]",
+  "agent_fleet": {
     "strategist": {
-      "instructions": "agents/strategist.md",
-      "env": { "AGENT_ROLE": "strategist" },
-      "primary_paths": ["Artifacts/IMPLEMENTATION_PLAN.md", "Artifacts/TODO.md"]
+      "persona_focus": "ROI-driven architecture and phased roadmaps.",
+      "critical_skills": ["project-planner", "business-analyst"]
     },
     "coder": {
-      "instructions": "agents/coder.md",
-      "env": { "AGENT_ROLE": "coder" },
-      "primary_paths": ["src/", "tests/", "Artifacts/TODO.md"]
+      "persona_focus": "Immutable implementation and root-cause debugging.",
+      "critical_skills": ["python-patterns", "systematic-debugging"]
     },
     "auditor": {
-      "instructions": "agents/auditor.md",
-      "env": { "AGENT_ROLE": "auditor" },
-      "primary_paths": ["Artifacts/AUDIT_REPORT.md", "Artifacts/TODO.md"]
+      "persona_focus": "Zero-trust verification and domain compliance.",
+      "critical_skills": ["verification-gate"]
     },
-    "scribe": {
-      "instructions": "agents/scribe.md",
-      "env": { "AGENT_ROLE": "scribe" },
-      "primary_paths": ["docs/", "Artifacts/LEARNINGS.md"]
-    },
-    "concierge": {
-      "instructions": "agents/concierge.md",
-      "env": { "AGENT_ROLE": "concierge" },
-      "primary_paths": ["Artifacts/DECISION_LOG.md", "Artifacts/LEARNINGS.md"]
+    "council": {
+      "persona_focus": "Consensus synthesis and architectural stress-testing.",
+      "critical_skills": ["project-planner", "verification-gate"]
     }
+  },
+  "local_overrides": {
+    "coding_style": "default",
+    "naming_convention": "CamelCase"
   }
 }

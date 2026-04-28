@@ -9,11 +9,11 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 
 | Agent | Purpose | Owned Commands |
 |:---|:---|:---|
-| **strategist** | Architecture, ROI, phased roadmaps, tech-debt discovery | `/blueprint`, `/sweep` |
-| **coder** | Implementation & refactoring | — (executes Artifacts/TODO.md) |
+| **strategist** | Architecture, ROI, phased roadmaps, tech-debt discovery, plan stress-testing | `/blueprint`, `/sweep`, `/grill` |
+| **coder** | Implementation, refactoring, root-cause triage | `/triage` |
 | **auditor** | QA, exit reviews, validation, factual snapshots | `/audit`, `/snapshot` |
 | **scribe** | Documentation & knowledge management | `/docs`, `/explain` |
-| **council** | High-rigor deliberation & consensus | `/council` |
+| **council** | High-rigor deliberation & consensus | `/council`, `/grill` |
 | **creative-director** | Visual spec & composition planning | — (produces `Artifacts/LAYOUT_SPEC.md`) |
 | **concierge** | State sync, intake, session orchestration, hygiene | `/sync`, `/ingest`, `/handoff`, `/learn`, `/clean` |
 
@@ -23,40 +23,62 @@ The `strategist` classifies every project during Step 0. This determines active 
 
 | Type | Active Agents | Primary Skills |
 |:---|:---|:---|
-| `code` | All | `python-patterns`, `typescript-mcp`, `codebase-navigator` |
-| `geometry` | All | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns`, `codebase-navigator` |
-| `data` | All | `dax-modeling`, `codebase-navigator` |
-| `manuscript` | strategist, auditor, scribe, concierge | `manuscript-review`, `business-analyst` |
-| `youtube` | strategist, scribe, auditor, concierge | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention`, `banana-prompt` |
-| `pptx` | strategist, creative-director, coder, auditor, concierge | `powerpoint-patterns`, `visual-composition`, `python-patterns`, `banana-prompt` |
-| `pbi-report` | strategist, creative-director, coder, auditor, concierge | `powerbi-report`, `visual-composition`, `dax-modeling` |
-| `hybrid` | All | Per-phase skill assignment, `codebase-navigator` always available |
-| *(all types)* | coder, auditor, scribe | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` |
+| `code` | All | `python-patterns`, `typescript-mcp`, `codebase-navigator`, `glossary-extraction` |
+| `geometry` | All | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns`, `codebase-navigator`, `glossary-extraction` |
+| `data` | All | `dax-modeling`, `codebase-navigator`, `glossary-extraction` |
+| `manuscript` | strategist, auditor, scribe, concierge | `manuscript-review`, `business-analyst`, `glossary-extraction` |
+| `youtube` | strategist, scribe, auditor, concierge | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention`, `banana-prompt`, `glossary-extraction` |
+| `pptx` | strategist, creative-director, coder, auditor, concierge | `powerpoint-patterns`, `visual-composition`, `python-patterns`, `banana-prompt`, `glossary-extraction` |
+| `pbi-report` | strategist, creative-director, coder, auditor, concierge | `powerbi-report`, `visual-composition`, `dax-modeling`, `glossary-extraction` |
+| `hybrid` | All | Per-phase skill assignment, `codebase-navigator` always available, `glossary-extraction` |
+| *(all types)* | coder, auditor, scribe | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `glossary-extraction` |
 
+
+## Command Fleet (Operational Layer)
+
+| Command | Owner | Purpose | Context Boundary |
+|:---|:---|:---|:---|
+| `/blueprint` | strategist | Initialize or pivot the project roadmap | Writes to `IMPLEMENTATION_PLAN.md` |
+| `/audit` | auditor | Gate-based quality review | Writes to `AUDIT_REPORT.md` |
+| `/sync` | concierge | Reconcile filesystem drift with plan | Validates `Artifacts/` vs source |
+| `/ingest` | concierge | Import manual CAD/BI work into AI context | Formalizes `Artifacts/LAYOUT_SPEC.md` |
+| `/handoff` | concierge | Clean session termination & brief creation | Writes to `Artifacts/history/` |
+| `/council` | council | High-rigor multi-persona deliberation | Follows `COUNCIL_PROTOCOLS.md` |
+| `/grill` | strategist | Stress-test a plan for hidden risks | Active interview mode |
+| `/sweep` | strategist | Global tech-debt and redundancy scan | Registry-wide discovery |
+| `/snapshot` | auditor | Factual codebase dump for external review | Purely descriptive |
+| `/clean` | concierge | Purge `Artifacts/Temp/` and transient files | Maintenance mode |
+| `/learn` | concierge | Capture a persistent project lesson | Writes to `Artifacts/LEARNINGS.md` |
+| `/graduate` | scribe | Move project lessons to global OS settings | Writes to Global Registry |
+
+---
 
 ## Automatic Routing
 
 1. **Planning, scoping, "should we"** → **strategist** (`/blueprint`)
-2. **Codebase discovery, tech-debt mapping, redundancy scans** → **strategist** (`/sweep`)
-3. **Code implementation, refactoring, debugging** → **coder** (equip skills per table above)
-4. **Review, validation, "is this correct"** → **auditor** (`/audit`)
-5. **Factual codebase snapshot, compliance report** → **auditor** (`/snapshot`)
-6. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
-7. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
-7. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
-8. **Session start, "where was I"** → **concierge** (`/sync`)
-9. **Session end, context save** → **concierge** (`/handoff`)
-10. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
-| **concierge** (as orchestrator) or **strategist** (as synthesis chair). The "Conflict Resolution Engine" — forces multiple perspectives on a single decision.
-11. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
-12. **Ambiguous** → **concierge** asks a clarifying question before routing.
+2. **Plan stress-testing, "grill me", shared understanding** → **strategist** or **council** (`/grill`)
+3. **Codebase discovery, tech-debt mapping, redundancy scans** → **strategist** (`/sweep`)
+4. **Bug investigation, root-cause analysis, fix planning** → **coder** (`/triage`)
+5. **Code implementation, refactoring, debugging** → **coder** (equip skills per table above)
+6. **Review, validation, "is this correct"** → **auditor** (`/audit`)
+7. **Factual codebase snapshot, compliance report** → **auditor** (`/snapshot`)
+8. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
+9. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
+10. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
+11. **Session start, "where was I"** → **concierge** (`/sync`)
+12. **Session end, context save** → **concierge** (`/handoff`)
+13. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
+14. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
+15. **Domain definitions, ubiquitous language, glossary extraction** → **scribe** (`glossary-extraction`)
+16. **Ambiguous** → **concierge** asks a clarifying question before routing.
 
 ## Task Lifecycle
 
 ```
 /blueprint (strategist)
   → Requirements Interview (Step 1)
-  → Step 0 Challenge (Step 2)
+  → Grilling Phase (Step 2) [Optional/High-Complexity] → shared understanding via `/grill`
+  → Step 0 Challenge (Step 3)
   → Artifacts/TODO.md task assigned (Phase 1)
   → [pptx/pbi-report only] creative-director → Artifacts/LAYOUT_SPEC.md
   → /audit --pre (optional) → GO / NO-GO
@@ -136,6 +158,26 @@ The repository at `c:\Users\44547\source\repos\ai-code-settings` acts as the **G
 - **Graduation**: Recurring patterns identified in project-specific `LEARNINGS.md` should be graduated to the global registry using `/learn --global` during a project session, or `/graduate` when working inside the global repository.
 
 ## Parallel Execution
+
+To maximize throughput and rigor, the Agent OS utilizes parallel agent sessions for independent or high-stakes operations:
+
+### 1. Multi-Persona Audit (`/audit --team`)
+The `auditor` spawns parallel reviewers to audit the same code block:
+- **Compliance Reviewer**: Checks against `coding-style.md`.
+- **Domain Specialist**: Checks against specific skill (e.g., `rhino-e2e-testing`).
+- **Risk Reviewer**: Audits for security and edge cases.
+*Result: Aggregated into `Artifacts/AUDIT_REPORT.md`.*
+
+### 2. Independent Module Refactor
+The `coder` can spawn sub-agents to refactor non-dependent modules simultaneously:
+- **Sub-Agent A**: Refactors `src/geometry/`
+- **Sub-Agent B**: Refactors `src/data_processing/`
+*Restriction: Parallel writes to the same file are FORBIDDEN.*
+
+### 3. Council Deliberation (`/council`)
+The `council` agent orchestrates a parallel "debate" between the Strategist, Coder, and Auditor to resolve architectural conflict.
+
+---
 
 ## Session Discipline
 

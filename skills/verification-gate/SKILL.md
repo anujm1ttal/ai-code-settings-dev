@@ -77,8 +77,11 @@ If you catch yourself thinking:
 ## Agent Integration
 
 - **Coder**: Invoke before claiming any task implementation is ready for review
-- **Auditor**: Invoke before marking ANY `Artifacts/TODO.md` item `[x]`
-- **Both**: Provide the exact command output as evidence alongside the claim
+- **Audit Trail**: Every gate pass must be linkable to a specific test run or log file.
+
+## 🔗 Relationships
+- **Debugging**: Cross-ref `systematic-debugging` for root-cause mandate.
+- **Reporting**: Auditor uses this to verify `Artifacts/TODO.md` tasks.
 
 ## Key Patterns
 
