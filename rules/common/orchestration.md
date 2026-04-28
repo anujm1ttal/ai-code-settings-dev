@@ -7,31 +7,29 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 
 ## The Fleet
 
-| Agent | Purpose | Owned Commands |
+| Agent | Role | Capability Boundary |
 |:---|:---|:---|
-| **strategist** | Architecture, ROI, phased roadmaps, tech-debt discovery, plan stress-testing | `/blueprint`, `/sweep`, `/grill` |
-| **coder** | Implementation, refactoring, root-cause triage | `/triage` |
-| **auditor** | QA, exit reviews, validation, factual snapshots | `/audit`, `/snapshot` |
-| **scribe** | Documentation & knowledge management | `/docs`, `/explain` |
-| **council** | High-rigor deliberation & consensus | `/council`, `/grill` |
-| **creative-director** | Visual spec & composition planning | — (produces `Artifacts/LAYOUT_SPEC.md`) |
-| **concierge** | State sync, intake, session orchestration, hygiene | `/sync`, `/ingest`, `/handoff`, `/learn`, `/clean` |
+| **strategist** | Architecture, ROI, roadmaps | **Write**: `IMPLEMENTATION_PLAN.md`, `TODO.md` |
+| **coder** | Implementation, refactoring | **Write**: Source code, test files, `[-]` status |
+| **auditor** | QA, technical review | **Write**: `AUDIT_REPORT.md`, `Artifacts/TODO.md` (`[x]`) |
+| **scribe** | Documentation, teaching | **Write**: All Markdown docs in `Artifacts/` (exception: `README.md`) |
+| **council** | Synthesis, stress-testing | **Write**: `DECISION_LOG.md` |
+| **creative-director** | Visual spec, hierarchy | **Write**: `Artifacts/LAYOUT_SPEC.md` |
+| **concierge** | State, sync, intake | **Write**: `Artifacts/LEARNINGS.md`, `/clean` execution |
 
 ## Project Type Routing
 
 The `strategist` classifies every project during Step 0. This determines active agents and skills. Foundational skills (e.g., `cd-foundations`) are auto-activated based on project type.
 
-| Type | Active Agents | Primary Skills |
-|:---|:---|:---|
-| `code` | All | `python-patterns`, `typescript-mcp`, `codebase-navigator`, `glossary-extraction` |
-| `geometry` | All | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns`, `codebase-navigator`, `glossary-extraction` |
-| `data` | All | `dax-modeling`, `codebase-navigator`, `glossary-extraction` |
-| `manuscript` | strategist, auditor, scribe, concierge | `manuscript-review`, `business-analyst`, `glossary-extraction` |
-| `youtube` | strategist, scribe, auditor, concierge | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention`, `banana-prompt`, `glossary-extraction` |
-| `pptx` | strategist, creative-director, coder, auditor, concierge | `powerpoint-patterns`, `visual-composition`, `python-patterns`, `banana-prompt`, `glossary-extraction` |
-| `pbi-report` | strategist, creative-director, coder, auditor, concierge | `powerbi-report`, `visual-composition`, `dax-modeling`, `glossary-extraction` |
-| `hybrid` | All | Per-phase skill assignment, `codebase-navigator` always available, `glossary-extraction` |
-| *(all types)* | coder, auditor, scribe | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `glossary-extraction` |
+| Project Type | Core Agents (Auto) | Available (On Demand) | Inactive |
+|:---|:---|:---|:---|
+| `youtube` | strategist, scribe, concierge | auditor | creative-director, coder |
+| `pptx` | strategist, creative-director, concierge | coder, auditor | scribe |
+| `pbi-report` | strategist, creative-director, coder | auditor, concierge | scribe |
+| `geometry` | strategist, coder, auditor | concierge | scribe, creative-director |
+| `code` | strategist, coder, auditor | concierge, scribe | creative-director |
+| `manuscript`| strategist, scribe, auditor | concierge | coder, creative-director |
+| `hybrid` | concierge, strategist | All | — |
 
 
 ## Command Fleet (Operational Layer)
@@ -50,6 +48,19 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `/clean` | concierge | Purge `Artifacts/Temp/` and transient files | Maintenance mode |
 | `/learn` | concierge | Capture a persistent project lesson | Writes to `Artifacts/LEARNINGS.md` |
 | `/graduate` | scribe | Move project lessons to global OS settings | Writes to Global Registry |
+
+---
+
+## ⚡ The Micro-Task Protocol (MTP)
+For minor edits that meet all criteria:
+- **Scope**: ≤1 source file and ≤30 lines of code.
+- **Complexity**: No architectural change, no new dependencies.
+- **Rigor**: Still requires verification (tests or manual logs).
+
+**Procedure**:
+1. Skip the full `/blueprint` and Step 0 interview.
+2. Provide a one-line `VALUE_CHECK` (e.g., `VALUE_CHECK: Fix layout alignment in Header component to match spec`).
+3. Proceed directly to implementation and verification.
 
 ---
 
@@ -179,7 +190,25 @@ The `council` agent orchestrates a parallel "debate" between the Strategist, Cod
 
 ---
 
-## Session Discipline
+## Standard Taxonomies
+
+### 1. Status Hierarchy
+| Marker | Level | Authority | Meaning |
+|:---|:---|:---|:---|
+| `DONE` | Claim | Coder | Work finished, ready for audit. |
+| `PASS` | Result | Auditor | Audit gate cleared (Logic/Style). |
+| `[x]` | Final | Auditor | Task complete in `TODO.md`. **The ONLY terminal state.** |
+| `CLEAN` | Security | Auditor | Security sweep passed (No secrets/vulnerabilities). |
+| `RECONCILED`| Sync | Concierge | Filesystem matches artifact state. |
+
+### 2. Severity Scale
+- **CRITICAL**: Breaking change, security breach, or data loss risk.
+- **HIGH**: Feature-blocking bug, major architectural drift.
+- **MEDIUM**: Non-blocking bug, documentation staleness, minor style drift.
+- **LOW**: Optimization hint, suggestion, non-visible polish.
+- **INFO**: Factual observation, no action required.
+
+---
 
 - **Always `/handoff` before ending**: Any session with code changes, documentation updates, or design decisions MUST end with `/handoff`. This captures learnings, snapshots TODO state, and writes a brief for the next session. Exiting without `/handoff` breaks the feedback loop and wastes re-orientation time.
 - **Concierge prompt**: If the agent detects the user is wrapping up (e.g., "thanks", "that's it", "done for now") without a `/handoff`, the concierge should suggest it.

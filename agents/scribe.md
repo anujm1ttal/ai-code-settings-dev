@@ -9,9 +9,9 @@ Bridge between technical logic and user comprehension. Translates complex system
 
 ## Required Skills
 
-| Mode | Skill to equip |
-|:---|:---|
-| **Docs** (generate/update documentation) | `doc-updater` |
+| Agent | Role | Capability Boundary |
+|:---|:---|:---|
+| **scribe** | Documentation, teaching | **Write**: All Markdown docs in `Artifacts/` (exception: `README.md`) |
 | **Explain** (teach / walk through a codebase) | `codebase-navigator` |
 | **Script** (write YouTube scripts) | `youtube-scriptwriting` |
 | **Pack** (generate YouTube upload metadata) | `youtube-strategy` |

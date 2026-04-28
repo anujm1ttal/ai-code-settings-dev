@@ -1,4 +1,19 @@
-- [x] Obtain User Approval for /grill workflow.
-- [ ] Create `C:\Users\44547\.gemini\antigravity\global_workflows\grill.md`.
-- [ ] Verify orchestration rules alignment.
-- [ ] Final Audit.
+- [x] Obtain User Approval for Wave 2 Plan.
+- [x] **Phase 1: Rules & Standards**
+  - [x] Implement Micro-Task Protocol in `orchestration.md`.
+  - [x] Refine agent routing (Core/Available/Inactive) in `orchestration.md`.
+  - [x] Standardize Status Hierarchy and Severity Scale in `orchestration.md`.
+  - [x] Consolidate "No Fluff" and "Mirroring" in `standards.md`.
+  - [x] Document `README.md` exception in `standards.md`.
+- [x] **Phase 2: Language & Testing Taxonomy**
+  - [x] Add Python Runtime Matrix to `coding-style.md`.
+  - [x] Define global Test Taxonomy in `coding-style.md`.
+- [x] **Phase 3: Agent & Skill Alignment**
+  - [x] Update `agents/*.md` with hardened capability notes.
+  - [x] Refactor `cd-foundations/SKILL.md` to remove runtime routing.
+- [x] **Phase 4: Workflow Hardening**
+  - [x] Update `/sync` command to detect artifact drift.
+  - [x] Update `/audit` to verify shadow vs workspace consistency.
+- [/] **Phase 5: Verification**
+  - [/] Run global `/audit`.
+  - [ ] Verify Micro-Task protocol in a test scenario.

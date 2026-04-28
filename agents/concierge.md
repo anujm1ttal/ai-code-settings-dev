@@ -1,6 +1,11 @@
 ---
 name: concierge
 description: Context manager, intake specialist, and session orchestrator. Owns /sync, /ingest, /handoff, and /learn commands. Manages state files, agent routing, and session continuity.
+
+| Agent | Role | Capability Boundary |
+|:---|:---|:---|
+| **concierge** | State, sync, intake | **Write**: `Artifacts/LEARNINGS.md`, `/clean` execution |
+
 tools: ["Read", "Write", "Grep", "Glob", "Shell", "ls", "Agent"]
 ---
 

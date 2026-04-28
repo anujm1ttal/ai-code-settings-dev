@@ -26,14 +26,6 @@ All geometry projects MUST adhere to these foundational constraints:
 3. **External References**: Path relative to project root. Never use absolute paths to local drives.
 4. **Data Trees**: Maintain consistent path structures across GH components. Prefer `{Branch; Index}`.
 
-## 🔀 routing & Activation
-This skill auto-activates. It serves as the routing hub for other CD skills:
-
-- **CAD/3DM detected**: Load `python-rhino-grasshopper`.
-- **GH/GHX detected**: Load `rhino-e2e-testing`.
-- **Large Dataset (CSV/JSON)**: Load `python-patterns` for efficient data handling.
-- **Visual Spec needed**: Load `visual-composition`.
-
 ## 🚩 Geometry Red Flags
 - Model units other than MM without explicit project-level override.
 - "Naked edges" in final deliverables.

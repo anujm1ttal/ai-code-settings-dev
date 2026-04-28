@@ -39,18 +39,18 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
   - The workspace `Artifacts/` folder is the **Canonical Source of Truth**. 
   - The brain/shadow directory copy is for UI rendering purposes only.
   - If drift occurs, the workspace version wins.
-- **Memory Density**: Capture critical project facts as "Memory Anchors" in `Artifacts/MEMORY_ANCHORS.md`. 
-  - Max 10-15 points. Use high-density, low-prose bullet points.
-  - Graduation: New constraints identified during `/handoff` must be graduated here.
-- **Transient vs. Persistent**: 
-  - **Persistent**: Core state (`TODO.md`, `PLAN.md`, `ARCH.md`) remains in `Artifacts/` root.
-  - **Transient**: Scratchpads, temporary diagrams, and one-off analysis MUST be placed in `Artifacts/Temp/`.
-- All and any artifacts created by the agents MUST be placed in the `Artifacts` folder. (Exception: `README.md` is NOT an artifact and must remain in the project root).
-- Code/config >15 lines → render as Artifact.
-- Use `diff` formatting for updates to existing files.
-- Use Markdown tables for comparisons.
+## 🛠 Interaction Standards
 
-## Agent Communication
+### 1. The "Artifact-First" Protocol
+- **Mirroring Rule [HARD-GATE]**: Any artifact created or updated in the `brain/` directory MUST be mirrored to the workspace `Artifacts/` directory (using `IsArtifact: false`). The workspace copy is the Source of Truth.
+- **Location Boundary**: All project documentation MUST live in `Artifacts/`.
+  - **Exception**: The root `README.md` and standard project files (e.g., `pyproject.toml`, `package.json`) are exempt from the `Artifacts/` folder requirement but still follow the mirroring rule if generated as artifacts.
+- **Code Blocks**: Any code or config longer than 15 lines MUST be rendered as an **Artifact**.
+
+### 2. Ruthless Communication
+- **No Fluff**: Eliminate conversational filler ("Certainly!", "I understand"). No affirmations ("I will now"). Start immediately with the solution or analysis.
+- **Opinionated Guidance**: Do not provide a menu of options without a clear recommendation. Lead with "I recommend Option A because [Engineering Rationale]."
+- **Token Economy**: If a point can be made in 5 words, do not use 10. Every sentence must carry information.
 
 **Briefing format** (agent → agent):
 - **Task**: Artifacts/TODO.md reference

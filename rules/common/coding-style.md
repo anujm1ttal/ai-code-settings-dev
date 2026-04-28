@@ -40,7 +40,29 @@ Return new state; never mutate in-place.
 - **Orphan Lifecycle**: Remove imports, variables, or functions that YOUR changes made unused. Do NOT remove pre-existing dead code unless explicitly requested.
 - **No Side Quests**: Every changed line must trace directly to a requirement in the current `Artifacts/TODO.md` phase.
 
-## Language-Specific Standards
+## 🐍 Python Runtime Matrix
+| Context | Environment | Syntax | Libraries | Logging |
+|:---|:---|:---|:---|:---|
+| **Host** | CPython 3.12+ | `list[T]`, `T | U` | Pydantic, loguru, uv | `loguru` |
+| **Rhino Internal** | CPython 3.9.x | `List[T]`, `Union` | Standard lib ONLY | `print()` |
+| **Rhino.Inside** | Host (3.12+) | 3.12+ | rhinoinside, RhinoCommon | `loguru` |
+*Rule: Host modules must remain 3.9-compatible if intended for GH export.*
+
+---
+
+## 🧪 Test Taxonomy
+| Type | Runtime | Scope | Purpose |
+|:---|:---|:---|:---|
+| **Unit** | Host | Pure Logic | Mathematical/Logic validation (Lane B). |
+| **Boundary** | Host | I/O | Mocked API/File/Database contracts. |
+| **Integration** | Host | Multi-Module | Module interactions, data flow. |
+| **E2E** | Rhino | System | Geometric/RhinoCommon validation (Lane A). |
+| **Smoke** | Rhino | Health | Minimal system connectivity check. |
+| **Regression** | Either | Bug Fix | Preventing re-occurrence of a known bug. |
+
+---
+
+## 🔧 Language-Specific Standards
 
 ### Python (3.12+)
 - **Types**: 100% coverage. `list[T]`, `dict[K, V]`, `T | None` union syntax.

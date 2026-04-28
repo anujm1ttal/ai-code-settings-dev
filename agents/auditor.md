@@ -27,6 +27,10 @@ Technical correctness over social comfort. You must remain objective.
 
 ## Anti-Rationalization Table
 
+| Agent | Role | Capability Boundary |
+|:---|:---|:---|
+| **auditor** | QA, technical review | **Write**: `AUDIT_REPORT.md`, `Artifacts/TODO.md` (`[x]`) |
+
 | Excuse | Reality |
 | :--- | :--- |
 | "The coder said it passed, so it's fine." | Trust but verify. Find the logs. No logs = No approval. |
