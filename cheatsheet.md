@@ -10,60 +10,63 @@ Boot: /sync (drift scan) → work → Shutdown: /handoff (persist)
 
 | Command | What It Does |
 | :--- | :--- |
-| `/blueprint` | Plan a new project, add a phase, or re-plan after a pivot (Strategist) |
-| `/sweep` | Map codebase discovery, tech-debt, and redundancies (Strategist) |
-| `/audit` | Validate completed work against skill standards and success metrics (Auditor) |
-| `/audit --pre` | Pre-check a task definition before implementation begins |
-| `/deck` | Scaffold, build, and validate PowerPoint projects (Strategist / CD) |
-| `/explain` | Walk through / teach a codebase — "how does this work?" (Scribe) |
-| `/ingest` | Import manual work from Rhino, Power BI, or external editors (Concierge) |
-| `/sync` | Reconcile project state — run at every session start (Concierge) |
-| `/docs` | Auto-detect and fix documentation gaps (Scribe) |
-| `/docs --internal` | Update README.md, Artifacts/ARCH.md, developer docs |
-| `/docs --user` | Generate Quick Start guides for stakeholders (Tier 2) |
-| `/docs --reference` | Generate API docs, MCP tool schemas, DAX measure catalogs (Tier 3) |
-| `/ideate` | Generate YouTube concepts: Title, Thumbnail, Angle (Strategist) |
-| `/script` | Draft YouTube A/V scripts (Scribe) |
-| `/pack` | Generate YouTube SEO metadata (Scribe) |
-| `/learn` | Capture project-specific lessons into Artifacts/LEARNINGS.md (Concierge) |
-| `/handoff` | Save session state and exit cleanly (Concierge) |
+| `/sync` | Reconcile state & artifact drift — session start (Concierge) |
+| `/blueprint` | Plan project roadmap (Strategist) |
+| `/grill` | Stress-test a plan for hidden risks (Strategist/Council) |
+| `/audit` | Quality gate validation (Auditor) |
+| `/triage` | Root-cause analysis & fix planning (Coder) |
+| `/docs` | Documentation lifecycle management (Scribe) |
+| `/explain` | Codebase touring & teaching (Scribe) |
+| `/council` | High-rigor consensus deliberation (Council) |
+| `/ingest` | Import manual CAD/BI work into context (Concierge) |
+| `/handoff` | Clean session termination & brief (Concierge) |
+| `/clean` | Purge transient/temp artifacts (Concierge) |
+| `/learn` | Capture project-specific lessons (Concierge) |
+| `/sweep` | Global tech-debt discovery & redundancy scan (Strategist) |
+| `/snapshot` | Factual codebase report for review (Auditor) |
 | `/hooks` | **[Legacy]** View active path guards and auto-linters |
 | `systematic-debug` | 4-phase root-cause investigation process (Coder/Auditor) |
 | `dispatch` | Subagent orchestration and two-stage review (Coder) |
 
 ## Agents
 
-| Agent | Does | Does NOT |
-| :--- | :--- | :--- |
-| **Strategist** | Plans, scopes, architects, Step 0 ROI, **NO PLACEHOLDERS** | Write code, mark tasks complete |
-| **Coder** | Implements, refactors, **DEBUGGING**, **SUBAGENT DISPATCH** | Mark `[x]`, modify plan structure |
-| **Auditor** | QA, exit reviews, **EVIDENCE-FIRST**, marks `[x]` | Write code, modify plan structure |
-| **Scribe** | Documentation, ARCH maintenance, /explain tours | Write code, mark tasks complete |
-| **Creative Director** | Visual spec, Artifacts/LAYOUT_SPEC.md, composition | Write code, mark tasks `[x]` |
-| **Concierge** | Syncs state, ingests work, /handoff, /learn | Write code, mark tasks `[x]` |
+| Agent | Core Authority |
+| :--- | :--- |
+| **Strategist** | `IMPLEMENTATION_PLAN.md`, `TODO.md` (structure), `/grill` |
+| **Coder** | Source code, test files, `[-]` status, `/triage` |
+| **Auditor** | `AUDIT_REPORT.md`, `TODO.md` (`[x]`), `PASS` result |
+| **Scribe** | `Artifacts/` Markdown docs (exception: `README.md`) |
+| **Council** | `DECISION_LOG.md`, `/council` consensus |
+| **Creative Dir**| `Artifacts/LAYOUT_SPEC.md`, visual hierarchy |
+| **Concierge** | `Artifacts/LEARNINGS.md`, `/sync`, `/clean` |
 
 ## Artifacts/TODO.md Status
 
-| Marker | Meaning | Set By |
+| Marker | Level | Meaning |
 | :--- | :--- | :--- |
-| `[ ]` | Not started | Strategist |
-| `[/]` | In progress | Coder |
-| `[x]` | Complete + verified | Auditor only |
+| `DONE` | Claim | Coder: Work finished, ready for audit |
+| `PASS` | Result | Auditor: Logic/Style gate cleared |
+| `[x]` | Final | Auditor: Task complete in `TODO.md` |
+| `CLEAN` | Security | Auditor: Security sweep passed |
+| `RECONCILED`| Sync | Concierge: Workspace matches state |
 
-## Task Format
-`[ ] [agent] Task description — Success: metric`
+## ⚡ Micro-Task Protocol (MTP)
+For minor edits (≤1 file, ≤30 lines, no arch change):
+1. Skip full `/blueprint` / Step 0 interview.
+2. Provide one-line `VALUE_CHECK`.
+3. Build → Verify → Audit → [x].
 
 ## Project Types
 
-| Type | When | Coder Active? |
-| :--- | :--- | :--- |
-| `code` | Software, MCP, scripts | Yes |
-| `geometry` | Rhino/GH, stadium design | Yes |
-| `data` | Power BI, DAX | Yes |
-| `manuscript` | Books, editorial review | No |
-| `youtube` | Video packaging, scripting, retention | No |
-| `pptx` | PowerPoint decks & presentations | Yes |
-| `pbi-report` | Power BI report front-end | Yes |
+| Type | Auto-Activated Agents (Core) |
+| :--- | :--- |
+| `code` | strategist, coder, auditor |
+| `geometry` | strategist, coder, auditor |
+| `data` | strategist, coder, auditor |
+| `manuscript`| strategist, scribe, auditor |
+| `youtube` | strategist, scribe, concierge |
+| `pptx` | strategist, creative-director, concierge |
+| `pbi-report` | strategist, creative-director, coder |
 | `hybrid` | Multi-domain | Per-phase |
 
 ## Rule Precedence
@@ -78,6 +81,20 @@ security → coding-style → orchestration → standards
 
 ## Escalation
 Audit fail #1 → Coder fixes · #2 → Coder reviews skill file · #3 → Strategist re-evaluates task
+
+## 🐍 Python Runtime Matrix
+- **Host (3.12+)**: `list[T]`, `T | U`, `loguru`, `pydantic`.
+- **Rhino (3.9)**: `List[T]`, `Union`, `print()`, NO Pydantic.
+- **Inside (3.12+)**: Host runtime with `RhinoCommon` access.
+
+## 🧪 Testing Strategy
+Follow [testing-strategy.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/testing-strategy.md) for lane selection and evidence.
+- **Lane B (Pure)**: Math, logic, parsing. No Rhino needed.
+- **Lane A (E2E)**: Real geometry, RhinoCommon.
+- **Rule**: Use the cheapest lane that proves the claim.
+
+## 🚦 Severity Scale
+**CRITICAL** → **HIGH** → **MEDIUM** → **LOW** → **INFO**
 
 ## Audit & Sync Status
 
@@ -96,45 +113,28 @@ Audit fail #1 → Coder fixes · #2 → Coder reviews skill file · #3 → Strat
 
 ## Key Files
 
-| File | Owner |
+| File | Purpose |
 | :--- | :--- |
-| `.agent/current_task.md` | Concierge |
-| `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist |
-| `Artifacts/TODO.md` | Strategist (structure) / Auditor (completion) |
-| `Artifacts/ARCH.md` | Strategist (creates) / Scribe (maintains) |
-| `Artifacts/DECISION_LOG.md` | Concierge |
-| `Artifacts/LEARNINGS.md` | Concierge (append-only) |
-| `Artifacts/LAYOUT_SPEC.md` | Creative Director |
-| `Artifacts/BRD_SUMMARY.md` | Strategist |
-| `Artifacts/EDITORIAL_LETTER.md` | Auditor |
+| `Artifacts/MEMORY_ANCHORS.md` | Project-wide constants & non-negotiables |
+| `Artifacts/TODO.md` | Final authority on task completion ([x]) |
+| `Artifacts/IMPLEMENTATION_PLAN.md` | Phased architectural roadmap |
+| `Artifacts/DECISION_LOG.md` | Log of high-stakes pivots & Council results |
+| `Artifacts/COUNCIL_PROTOCOLS.md` | Rules for high-rigor deliberation |
+| `Artifacts/LOCAL_AGENT_PROFILES.json`| Project-specific persona configuration |
+| `Artifacts/LEARNINGS.md` | Persistent session memory |
+| `Artifacts/ARCH.md` | System design & data flow (ASCII maps) |
 
 ## Active Agent Skills
 
-| Skill | Primary Agent | Focus Area |
-| :--- | :--- | :--- |
-| **Core / System** | | |
-| `project-planner` | Strategist | Phased mapping, timeline modeling |
-| `project-journal` | Concierge | State tracking, session memory |
-| `implementation-dispatch`| Coder | Complex subagent orchestration |
-| `systematic-debugging`| Coder/Auditor | Root-cause isolation (4-phase) |
-| `codebase-navigator` | Scribe | Codebase touring & explanations |
-| `doc-updater` | Scribe | Staleness detection, READMEs |
-| `business-analyst` | Strategist | Requirements, stakeholder ROI |
-| `skill-creator` | (Any) | Authoring & optimizing Agent skills|
-| **Engineering / Data** | | |
-| `python-patterns` | Coder/Auditor | PEP 8, types, pythonic idioms |
-| `typescript-mcp` | Coder | JSON-RPC 2.0, Zod validation |
-| `dax-modeling` | Coder/Auditor | Power BI star schemas, metrics |
-| **Design / Content** | | |
-| `visual-composition` | Creative Dir | UI, hierarchy, accessibility |
-| `banana-prompt` | Creative Dir | Midjourney/DALL-E image concepts |
-| **Specialized Domains** | | |
-| `python-rhino-grasshopper`| Coder | RhinoCommon, GhPython scripts |
-| `rhino-e2e-testing` | Auditor | Headless computational design tests|
-| `powerbi-report` | CD/Coder | Power BI themes, interactions |
-| `powerpoint-patterns` | Coder/CD | `python-pptx` automated decking |
-| `youtube-*` | Scribe/Strat | Strategy, scriptwriting, retention |
-| `manuscript-review` | Auditor | Narrative structure, pacing |
+| Skill | Focus |
+| :--- | :--- |
+| `rhino-unit-testing` | Fast Lane B logic testing (Mocked rg) |
+| `rhino-e2e-testing` | Rigorous Lane A geometry testing |
+| `systematic-debugging`| Root-cause isolation (4-phase RCA) |
+| `verification-gate` | Evidence-first completion mandate |
+| `glossary-extraction` | DDD ubiquitous language synthesis |
+| `implementation-dispatch`| Multi-agent sub-task orchestration |
+| `cd-foundations` | CD standards (Tolerance, Layering, Units) |
 
 ## When In Doubt
 - Lost context? → `/sync`

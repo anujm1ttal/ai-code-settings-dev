@@ -50,15 +50,11 @@ Return new state; never mutate in-place.
 
 ---
 
-## 🧪 Test Taxonomy
-| Type | Runtime | Scope | Purpose |
-|:---|:---|:---|:---|
-| **Unit** | Host | Pure Logic | Mathematical/Logic validation (Lane B). |
-| **Boundary** | Host | I/O | Mocked API/File/Database contracts. |
-| **Integration** | Host | Multi-Module | Module interactions, data flow. |
-| **E2E** | Rhino | System | Geometric/RhinoCommon validation (Lane A). |
-| **Smoke** | Rhino | Health | Minimal system connectivity check. |
-| **Regression** | Either | Bug Fix | Preventing re-occurrence of a known bug. |
+## 🧪 Testing Strategy
+All verification must follow the [testing-strategy.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/testing-strategy.md) rule.
+- **Lane Selection**: Use the cheapest lane (Lane B/Pure) that proves the claim.
+- **Evidence**: Provide fresh test output or exit codes for every claim.
+- **TDD**: Write failing tests in the lowest valid lane before fixing bugs.
 
 ---
 
