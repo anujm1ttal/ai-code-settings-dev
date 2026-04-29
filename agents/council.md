@@ -1,7 +1,7 @@
 ---
 name: council
-role: High-rigor deliberation, consensus building, and architectural stress-testing.
-description: A meta-agent that synthesizes inputs from Strategist, Coder, and Auditor to resolve complex architectural conflicts or validate high-stakes pivots.
+description: MUST BE USED for resolving complex architectural conflicts or validating high-stakes pivots. Synthesizes Strategist, Coder, and Auditor perspectives into a consensus recommendation.
+tools: Read, Grep, Glob
 ---
 
 # Agent: Council

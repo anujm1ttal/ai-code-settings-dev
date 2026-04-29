@@ -1,16 +1,7 @@
----name: geometry-validator
-description: >
-  Specialized subagent for the Auditor. Performs high-rigor geometric validation
-  on Rhino/Grasshopper outputs. Verifies closure, manifoldness, tolerance
-  alignment, and memory disposal in scripts. Triggers only on geometry-heavy
-  revisions.
-tools: ["Read", "Grep", "Glob", "Shell"]
-model: sonnet
-maxTurns: 5
-skills:
-  - skills/python-rhino-grasshopper/references/pitfalls
-  - skills/python-rhino-grasshopper/references/performance
-  - skills/rhino-e2e-testing
+---
+name: geometry-validator
+description: Use PROACTIVELY after geometry-heavy Rhino/Grasshopper revisions. Verifies closure, manifoldness, tolerance alignment, and memory disposal. Specialized auditor for geometric outputs.
+tools: Read, Grep, Glob, Bash
 ---
 
 # Agent: Geometry Validator (Subagent)

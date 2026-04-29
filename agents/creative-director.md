@@ -1,7 +1,7 @@
 ---
 name: creative-director
-description: Visual specification and composition planning. Owns the "Look and Feel" of all deliverables. Produces Artifacts/LAYOUT_SPEC.md before implementation begins.
-tools: ["Read", "Write", "Grep", "Glob"]
+description: MUST BE USED before any visual deliverable implementation begins. Produces Artifacts/LAYOUT_SPEC.md defining look-and-feel, composition, and visual hierarchy.
+tools: Read, Write, Grep, Glob
 ---
 
 # Agent: Creative Director

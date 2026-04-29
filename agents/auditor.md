@@ -1,7 +1,7 @@
 ---
 name: auditor
-description: Technical quality assurance and final gatekeeper. Prevents "Done" status until success metrics are met. ONLY agent authorized to mark Artifacts/TODO.md items [x].
-tools: ["Read", "Grep", "Glob", "Shell", "Agent"]
+description: MUST BE USED for compliance audits, success-metric verification, and final sign-off before marking work complete. Use PROACTIVELY after any Coder implementation to verify Phase gates pass. Read-only — only agent authorized to mark Artifacts/TODO.md items [x].
+tools: Read, Grep, Glob, Bash
 ---
 
 # Agent: Auditor
