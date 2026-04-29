@@ -1,27 +1,25 @@
-# Walkthrough: Matt Pocock Skills Integration
+# Walkthrough: Git-Based Phase Workflow
 
-I have systematically integrated high-rigor architectural and interaction patterns from Matt Pocock's skills into your "Agent OS."
+The Git-based phase workflow is now integrated into the Agent OS. This ensures that implementation work is isolated on dedicated branches and merged to `main` only after full auditor acceptance.
 
 ## Changes Made
 
-### 1. Architectural Hardening
-- **New Rule**: [architecture.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/architecture.md) defines **Deep vs. Shallow** modules and the **Deletion Test**.
-- **Standards Update**: [standards.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/standards.md) now references these principles and emphasizes "Locality over Extraction."
+### 1. Orchestration Rules Updated
+Modified [orchestration.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/orchestration.md) to include:
+- A new **Git Phase Branching** section detailing isolation, naming conventions, and merge requirements.
+- Updated **Task Lifecycle** diagram showing Git branch initialization and merge points.
 
-### 2. Interactive "Grilling" & Triage
-- **New Commands**: Added `/grill` (stress-testing plans) and `/triage` (root-cause analysis) to [orchestration.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/orchestration.md).
-- **Task Lifecycle**: The `/blueprint` workflow now includes an optional **Grilling Phase** for complex projects to ensure shared understanding before implementation.
+### 2. /blueprint Command Updated
+Modified [blueprint.md](file:///c:/Users/44547/source/repos/ai-code-settings/commands/blueprint.md) to:
+- Add a mandatory **Git Init** step in the "New Project", "New Phase", and "Re-Plan" workflows.
+- This ensures the strategist prompts the user to create a branch immediately after Step 0 approval.
 
-### 3. Domain Model Persistence
-- **New Skill**: [glossary-extraction](file:///c:/Users/44547/source/repos/ai-code-settings/skills/glossary-extraction/SKILL.md) automates the creation of a Domain Glossary in `Artifacts/GLOSSARY.md`, following DDD "Ubiquitous Language" principles.
+### 3. /audit Command Updated
+Modified [audit.md](file:///c:/Users/44547/source/repos/ai-code-settings/commands/audit.md) to:
+- Add a **Phase Completion & Git Merge** section.
+- This instructs the auditor to provide merge and cleanup commands when the final task of a phase is completed.
 
-### 4. Development Rigor
-- **TDD Mode**: [systematic-debugging](file:///c:/Users/44547/source/repos/ai-code-settings/skills/systematic-debugging/SKILL.md) now enforces a **High-Rigor TDD Loop** (Red-Green-Refactor) for bug fixes and complex features.
+## Verification Results
 
-## Verification
-
-- **Command Routing**: Verified that `/grill` and `/triage` are correctly mapped to agents in the Fleet table.
-- **Skill Availability**: Ensured `glossary-extraction` is auto-activated for all major project types.
-- **Mental Models**: Architecture definitions are centralized and referenced in the global standards.
-
-Your Agent OS is now significantly more robust and better equipped to handle complex, domain-heavy projects with high technical leverage.
+- [x] Verified rule consistency via manual audit.
+- [x] Confirmed task lifecycle steps match the new workflow.

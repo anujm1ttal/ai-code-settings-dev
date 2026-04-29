@@ -108,6 +108,17 @@ Map all dependencies at the bottom of the report.
 - Run after coder finishes a task, or before coder begins (`--pre`).
 - Auditor is sole authority for `[x]` in `Artifacts/TODO.md` (see `orchestration.md`).
 
+## Phase Completion & Git Merge
+
+When the `auditor` marks the final task of a phase as `[x]`:
+
+1. **Verify Metrics**: Confirm all success metrics for the phase (defined in `IMPLEMENTATION_PLAN.md`) are verified.
+2. **Merge Trigger**: Explicitly instruct the user to merge the phase branch into `main`.
+   - Command: `git checkout main`, `git merge phase-[N]-[description]`.
+3. **Cleanup**: Instruct the user to delete the local and remote phase branch.
+   - Command: `git branch -d phase-[N]-[description]`.
+4. **Handoff**: The terminal state of a phase requires a `/handoff` to summarize achievements and prepare for the next phase.
+
 ## Skill Registry Consistency
 
 During `/audit` or `/sweep`, verify skill registry integrity:

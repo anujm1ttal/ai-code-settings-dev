@@ -92,16 +92,28 @@ For minor edits that meet all criteria:
   → Requirements Interview (Step 1)
   → Grilling Phase (Step 2) [Optional/High-Complexity] → shared understanding via `/grill`
   → Step 0 Challenge (Step 3)
+  → Git Phase Init: Create new branch `phase-[N]-[description]`
   → Artifacts/TODO.md task assigned (Phase 1)
   → [pptx/pbi-report only] creative-director → Artifacts/LAYOUT_SPEC.md
   → /audit --pre (optional) → GO / NO-GO
   → Implementation (coder) — marks [-]
   → /audit (auditor) — validates → PASS: marks [x] | FAIL: return to coder
+  → Git Phase Merge: Merge current branch to `main` and delete branch (if phase terminal)
   → /docs (scribe) → /sync (concierge) → /handoff (if ending)
 
 > [!IMPORTANT]
 > **Approval Discipline**: Every plan approval or execution request MUST follow the `Approval Label Rubric` defined in `standards.md`.
 ```
+
+## Git Phase Branching
+
+To ensure the stability of the `main` branch, all work must occur on isolated phase branches.
+
+1. **Isolation**: No implementation work may occur directly on `main`.
+2. **Branch Naming**: `phase-[N]-[description]` (e.g., `phase-2-seating-logic`).
+3. **Trigger**: The `strategist` prompts for branch creation immediately after Step 0 approval in `/blueprint`.
+4. **Merge Requirement**: A phase branch can only be merged to `main` after the `auditor` marks the final task of the phase as `[x]` and confirms all success metrics are met.
+5. **Cleanup**: Delete the phase branch immediately after a successful merge.
 
 <HARD-GATE>
 No agent may begin implementation, write code, scaffold projects, or take any implementation action until Step 0 is complete AND the user has approved the plan. This applies to EVERY project regardless of perceived simplicity. "Simple" projects are where unexamined assumptions cause the most wasted work.

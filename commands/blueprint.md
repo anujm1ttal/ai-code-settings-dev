@@ -21,20 +21,24 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 3. **Step 0 Challenge**: PROJECT_TYPE, VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS.
 4. **Phased Roadmap**: 3–4 phases with numeric success metrics.
 5. **Create files**: `Artifacts/IMPLEMENTATION_PLAN.md`, `Artifacts/TODO.md`, `Artifacts/ARCH.md`.
-6. **Handoff**: Identify first agent + task.
+6. **Git Init**: Create new branch `phase-1-[description]`.
+7. **Handoff**: Identify first agent + task.
 
 ## New Phase
 1. Run `/sync` via concierge to validate current state.
 2. Confirm prior phase success metrics met (auditor-verified).
 3. Step 0 for new phase only (VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS).
 4. Append to `Artifacts/IMPLEMENTATION_PLAN.md` and `Artifacts/TODO.md`. Update `Artifacts/ARCH.md` if needed.
+5. **Git Init**: Create new branch `phase-[N]-[description]`.
 
 ## Re-Plan
 1. Archive current `Artifacts/IMPLEMENTATION_PLAN.md` + `Artifacts/TODO.md` to `Artifacts/history/` with timestamp.
 2. Post-mortem in `Artifacts/DECISION_LOG.md`: original assumption → invalidating evidence → constraint changes.
 3. **Requirements Interview**: Re-verify boundaries if failure was due to requirement drift.
 4. Full Step 0 referencing what failed.
-5. Fresh files. Restart pipeline.
+5. Fresh files.
+6. **Git Init**: Create new branch `phase-[N]-replan`.
+7. Restart pipeline.
 
 ## Parallel Team Execution (`/blueprint --team`)
 Leverages Claude Agent Teams to independently challenge the architecture. If token context limits are hit, automatically fall back to standard execution.

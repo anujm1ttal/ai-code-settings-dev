@@ -6,7 +6,7 @@
   - [x] Consolidate "No Fluff" and "Mirroring" in `standards.md`.
   - [x] Document `README.md` exception in `standards.md`.
 - [x] **Phase 2: Language & Testing Taxonomy**
-  - [x] Add Python Runtime Matrix to `coding-style.md`.
+  - [x] Add Python Matrix to `coding-style.md`.
   - [x] Define global Test Taxonomy in `coding-style.md`.
 - [x] **Phase 3: Agent & Skill Alignment**
   - [x] Update `agents/*.md` with hardened capability notes.
@@ -14,6 +14,11 @@
 - [x] **Phase 4: Workflow Hardening**
   - [x] Update `/sync` command to detect artifact drift.
   - [x] Update `/audit` to verify shadow vs workspace consistency.
-- [/] **Phase 5: Verification**
-  - [/] Run global `/audit`.
-  - [ ] Verify Micro-Task protocol in a test scenario.
+- [x] **Phase 5: Verification**
+  - [x] Run global `/audit`.
+  - [x] Verify Micro-Task protocol in a test scenario.
+- [x] **Phase 6: Git Phase Workflow**
+  - [x] Update `rules/common/orchestration.md` with Git lifecycle.
+  - [x] Update `commands/blueprint.md` with branch creation.
+  - [x] Update `commands/audit.md` with merge logic.
+  - [x] Run final `/registry-audit`.
