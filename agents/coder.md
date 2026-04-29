@@ -53,7 +53,7 @@ Senior implementation specialist. Translates `Artifacts/IMPLEMENTATION_PLAN.md` 
    - Verification/Audit tasks → `subagent_type: auditor`
    - Documentation updates → `subagent_type: scribe`
    - Code changes → `subagent_type: general-purpose` (or specialized if available)
-   - Follow `skill-implementation-dispatch.md` strictly.
+   - Follow `implementation-dispatch` strictly.
 
 ## Anti-Rationalization Table
 

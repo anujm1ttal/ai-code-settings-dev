@@ -4,7 +4,7 @@ description: Triggers the scribe to generate or update project documentation. Su
 
 # Command: /docs
 
-Invokes the **scribe** agent. Scribe equips `skill-doc-updater.md`.
+Invokes the **scribe** agent. Scribe equips `doc-updater`.
 
 ## Modes
 

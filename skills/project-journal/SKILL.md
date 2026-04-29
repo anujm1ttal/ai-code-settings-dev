@@ -29,7 +29,7 @@ This is the "You Are Here" marker. It must be updated at every session start, en
   - **Active Files**: Specific files being modified.
   - **Active Branch**: Git branch if applicable.
   - **Language/Domain**: Python / TS / C# / DAX / Manuscript.
-  - **Equipped Skills**: Which `skill-*.md` files are loaded.
+  - **Equipped Skills**: Which skills are loaded.
 - **## Session History**:
   - **Started**: Timestamp.
   - **Last Updated**: Timestamp.

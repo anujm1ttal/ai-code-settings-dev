@@ -9,8 +9,8 @@ tools: ["Read", "Write", "Grep", "Glob", "Agent"]
 Lead Architect and Project Manager. Every task gets a quantifiable "Why" before a "How."
 
 ## Required Skills
-- `skill-business-analyst.md` — requirements, stakeholder mapping, ROI
-- `skill-project-planner.md` — phasing, dependencies, timelines
+- `business-analyst` — requirements, stakeholder mapping, ROI
+- `project-planner` — phasing, dependencies, timelines
 
 ## Requirements Interviewer (Step 1)
 
@@ -20,7 +20,7 @@ Before proceeding to Step 0 for a new project or ambiguous re-plan, the strategi
    - Specific user pain points or unvoiced goals.
    - Hidden dependencies (data sources, hardware, external approvals).
    - "Minimum Viable Win" (what makes the user happy if everything else fails).
-2. **Standard**: Use templates from `skill-business-analyst.md` and `skill-project-planner.md`.
+2. **Standard**: Use templates from `business-analyst` and `project-planner`.
 3. **Trigger**: Must complete interview before Step 0.
 
 ## Step 0 Challenge (Step 2)

@@ -26,8 +26,8 @@ Boot: /sync (drift scan) → work → Shutdown: /handoff (persist)
 | `/snapshot` | Factual codebase report for review (Auditor) |
 | `/registry-audit` | Cross-reference integrity check for the OS registry (Auditor) |
 | `/hooks` | **[Legacy]** View active path guards and auto-linters |
-| `systematic-debug` | 4-phase root-cause investigation process (Coder/Auditor) |
-| `dispatch` | Subagent orchestration and two-stage review (Coder) |
+| `systematic-debugging` | 4-phase root-cause investigation process (Coder/Auditor) |
+| `implementation-dispatch` | Subagent orchestration and two-stage review (Coder) |
 
 ## Agents
 

@@ -68,11 +68,11 @@ Equip the relevant skill file per `orchestration.md` Project Type Routing, then 
 - **Rhino/GH**: Tolerances, data trees, RhinoCommon → `python-rhino-grasshopper`, `rhino-e2e-testing`
 - **TypeScript/MCP**: Zod, JSON-RPC, async boundaries → `typescript-mcp`
 - **C#/GH Plugins**: RhinoCommon, IDisposable, NuGet → `csharp-grasshopper`
-- **DAX/Power BI**: Star Schema, VAR/RETURN, no Fact calculated columns → `skill-dax-modeling.md`
-- **Manuscript**: Structure, agency, market alignment → `skill-manuscript-review.md` (only when PROJECT_TYPE = `manuscript`)
-- **YouTube**: Hook strength, pacing, visual variety → `skill-youtube-retention.md` (only when PROJECT_TYPE = `youtube`)
-- **PowerPoint**: Slide builders, template workflow, composition → `skill-powerpoint-patterns.md`, `skill-visual-composition.md`
-- **Power BI Report**: Theme JSON, page layouts, visual selection → `skill-powerbi-report.md`, `skill-visual-composition.md`
+- **DAX/Power BI**: Star Schema, VAR/RETURN, no Fact calculated columns → `dax-modeling`
+- **Manuscript**: Structure, agency, market alignment → `manuscript-review` (only when PROJECT_TYPE = `manuscript`)
+- **YouTube**: Hook strength, pacing, visual variety → `youtube-retention` (only when PROJECT_TYPE = `youtube`)
+- **PowerPoint**: Slide builders, template workflow, composition → `powerpoint-patterns`, `visual-composition`
+- **Power BI Report**: Theme JSON, page layouts, visual selection → `powerbi-report`, `visual-composition`
 
 ## Plan Exit Review (The Gate)
 

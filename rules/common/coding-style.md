@@ -67,7 +67,7 @@ All verification must follow the [testing-strategy.md](file:///c:/Users/44547/so
 - **Logging**: `loguru` only. Never `print()`. Never stdlib `logging`.
 - **Async**: `asyncio.TaskGroup` (3.11+). Always set timeouts on network calls.
 - **Circular Imports**: Schema/model modules must NOT import from tool-registration or service modules. Use `from __future__ import annotations` and `TYPE_CHECKING` guards for cross-module type hints. Verify with `python -c "import module"` after restructuring.
-- **Full reference**: `skill-python-patterns.md`
+- **Full reference**: `python-patterns`
 
 ### Rhino Python (CPython ~3.9)
 Overrides for the constrained Rhino 8 runtime:
@@ -85,21 +85,21 @@ Overrides for the constrained Rhino 8 runtime:
 - **Validation**: Zod on all external inputs.
 - **Error Codes**: JSON-RPC standard codes for MCP tools.
 - **Logging**: `console.error` for debug. `stdout` reserved for JSON-RPC transport.
-- **Full reference**: `skill-typescript-mcp.md`
+- **Full reference**: `typescript-mcp`
 
 ### C#
 - **Target**: .NET 6+ / RhinoCommon SDK.
 - **Nullability**: `<Nullable>enable</Nullable>`.
 - **Disposal**: `IDisposable` on all classes holding geometry/unmanaged resources. `using` statements.
 - **Naming**: PascalCase public, `_camelCase` private.
-- **Full reference**: `skill-csharp-grasshopper.md`
+- **Full reference**: `python-rhino-grasshopper`
 
 ### DAX
 - **Readability**: `VAR` for all intermediates. No inline expressions.
 - **Safety**: `DIVIDE(n, d, 0)` — never raw `/`.
 - **Logic**: `SWITCH(TRUE(), ...)` over nested `IF`.
 - **Forbidden**: Calculated columns in Fact tables → offload to Power Query (M).
-- **Full reference**: `skill-dax-modeling.md`
+- **Full reference**: `dax-modeling`
 
 ## Domain Standards
 

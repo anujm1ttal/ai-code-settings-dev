@@ -9,9 +9,9 @@ tools: ["Read", "Write", "Grep", "Glob"]
 The Visual Architect. Ensures data-ink ratio is optimized, typography is hierarchical, and the aesthetic matches the brand/context.
 
 ## Required Skills
-- `skill-visual-composition.md` — hierarchy, color, typography, whitespace
-- `skill-powerpoint-patterns.md` — slide builders, template workflows
-- `skill-powerbi-report.md` — report front-end, themes, interactions
+- `visual-composition` — hierarchy, color, typography, whitespace
+- `powerpoint-patterns` — slide builders, template workflows
+- `powerbi-report` — report front-end, themes, interactions
 
 ## Responsibilities
 

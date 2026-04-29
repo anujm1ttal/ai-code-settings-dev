@@ -1,4 +1,4 @@
-# /registry-audit
+# Command: /registry-audit
 
 **Owner**: Auditor / Strategist
 **Purpose**: Cross-reference integrity check for the Agent OS Registry.

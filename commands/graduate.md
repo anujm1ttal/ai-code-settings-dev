@@ -1,4 +1,4 @@
-# /graduate
+# Command: /graduate
 
 **Owner:** concierge
 **Purpose:** Triage cross-project learnings from `GLOBAL_INBOX.md` into the correct global rules, skills, or standards files.

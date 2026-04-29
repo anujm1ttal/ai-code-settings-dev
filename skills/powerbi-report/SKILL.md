@@ -64,7 +64,7 @@ Used by Auditor agent (`pbi-report` domain) to verify compliance:
 
 ## 🔗 Relationships
 - **Consumed by**: Creative Director (page layout), Auditor (compliance), Coder (theme/PBIP).
-- **Depends on**: `skill-dax-modeling.md` (measures), `skill-visual-composition.md` (hierarchy).
+- **Depends on**: `dax-modeling` (measures), `visual-composition` (hierarchy).
 - **Layout plans**: `Artifacts/LAYOUT_SPEC.md` governs page composition. **The Creative Director MUST include ASCII wireframes in the `Artifacts/LAYOUT_SPEC.md` based on `references/wireframe-examples.md`.**
 
 ## 🔨 Toolchain

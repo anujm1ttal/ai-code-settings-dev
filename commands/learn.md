@@ -1,4 +1,4 @@
-# /learn
+# Command: /learn
 
 **Owner:** concierge
 **Purpose:** Capture a project-specific or global lesson into `Artifacts/LEARNINGS.md` or `GLOBAL_INBOX.md`.

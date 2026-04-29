@@ -25,7 +25,7 @@ Load reference files ONLY when the following conditions are met:
 To ensure type safety and high-rigor geometric validation, the following environment setup is required:\r
 \r
 - **IntelliSense**: Install `Rhino-stubs` in your virtual environment (`pip install Rhino-stubs`). This is mandatory for external editor development to prevent API hallucinations.\r
-- **Headless Testing**: Use `rhinoinside` for E2E geometric testing outside of the Rhino UI (see `skill-rhino-e2e-testing.md`).\r
+- **Headless Testing**: Use `rhinoinside` for E2E geometric testing outside of the Rhino UI (see `rhino-e2e-testing`).\r
 - **Version Control**: Never commit `.gh` or `.3dm` files to the main source tree; store them in `assets/` or use Git LFS.
 
 ## 🏗 The Computational Pipeline

@@ -1,4 +1,4 @@
-# Workflow: /grill
+# Command: /grill
 
 **Owner**: strategist / council
 **Purpose**: High-rigor architectural stress-testing of an implementation plan.

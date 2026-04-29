@@ -164,6 +164,6 @@ Used by Auditor agent to verify visual deliverables against this skill:
 
 ## 🔗 Relationships
 - **Consumed by**: Creative Director (composition planning), Auditor (compliance checks), Coder (implementation guidance).
-- **Complements**: `skill-powerpoint-patterns.md` (PowerPoint-specific), `skill-powerbi-report.md` (Power BI-specific).
+- **Complements**: `powerpoint-patterns` (PowerPoint-specific), `powerbi-report` (Power BI-specific).
 - **Style tokens**: `style_constants.py` is the single source of truth for colors, fonts, and sizes.
 - **Layout plans**: `Artifacts/LAYOUT_SPEC.md` is the per-deliverable application of these principles.

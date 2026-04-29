@@ -70,7 +70,7 @@ Also capture a learning when user says:
 
 | File | Action |
 |:---|:---|
-| `.agent/current_task.md` | Create + maintain (schema in `skill-project-journal.md`) |
+| `.agent/current_task.md` | Create + maintain (schema in `project-journal`) |
 | `Artifacts/DECISION_LOG.md` | Create on pivots, append-only |
 | `Artifacts/LEARNINGS.md` | Create on first `/learn`, append-only, prune at 50 |
 

@@ -4,7 +4,7 @@ description: PowerPoint deck lifecycle — scaffold projects, build slides, audi
 
 # Command: /deck
 
-Manages PowerPoint deck generation via `python-pptx`. All actions follow `skill-powerpoint-patterns.md` conventions.
+Manages PowerPoint deck generation via `python-pptx`. All actions follow `powerpoint-patterns` conventions.
 
 ## Actions
 
@@ -19,7 +19,7 @@ Manages PowerPoint deck generation via `python-pptx`. All actions follow `skill-
        ├── style_constants.py  # Colors, fonts, sizes
        └── main.py             # Generation script skeleton
 2. Copy default template to `templates/`.
-3. Generate `style_constants.py` with brand defaults from `skill-powerpoint-patterns.md`.
+3. Generate `style_constants.py` with brand defaults from `powerpoint-patterns`.
 4. Generate `main.py` skeleton with template validation, layout lookup, and save-to-output pattern.
 5. Run `/deck layouts` on the default template to populate placeholder mappings.
 
@@ -38,19 +38,16 @@ Defaults:
 - `--data`: none (script handles its own data).
 - `--output`: `output/<project_name>.pptx`.
 
-### `/deck audit [--file PATH] [--team]`
-**Agent**: Auditor (domain: `pptx`)
-
 Runs two-pass audit against source files and generated output. If `--team` is passed, spawn a `creative-director` teammate to perform Pass 2 (visual compliance) simultaneously while the lead `auditor` computes Pass 1. If token context limits are hit, fallback to standard execution.
 
-**Pass 1 — Source code** (per `skill-powerpoint-patterns.md`):
+**Pass 1 — Source code** (per `powerpoint-patterns`):
 - Raw EMU values instead of `Inches()` / `Pt()`.
 - Magic layout indices instead of name lookup.
 - Inline `RGBColor()` instead of `style_constants.py`.
 - Missing template validation.
 - Template overwrite risk.
 
-**Pass 2 — Visual compliance** (per `skill-visual-composition.md`):
+**Pass 2 — Visual compliance** (per `visual-composition`):
 - Content blocks per slide ≤5.
 - Font sizes above minimums.
 - Consistent alignment and spacing.
@@ -87,5 +84,5 @@ Report: pass/fail per check, standard severity format (CRITICAL / HIGH / MEDIUM)
 
 ## Integration
 - `/deck audit` follows the same severity format as `/audit`.
-- All script code follows `skill-python-patterns.md`.
-- Visual rules flow from `skill-visual-composition.md` → `Artifacts/LAYOUT_SPEC.md` → script.
+- All script code follows `python-patterns`.
+- Visual rules flow from `visual-composition` → `Artifacts/LAYOUT_SPEC.md` → script.

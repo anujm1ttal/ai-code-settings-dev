@@ -1,4 +1,4 @@
-# Workflow: /triage
+# Command: /triage
 
 **Owner**: coder
 **Purpose**: Systematic investigation and fix planning for bugs or test failures.

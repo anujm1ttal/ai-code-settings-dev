@@ -44,8 +44,8 @@ All scan rules are defined in `coding-style.md`. Domain-specific additions:
 - **C#/GH Plugins**: IDisposable, NuGet hygiene, `dotnet build` clean.
 - **Manuscript**: Structural integrity, character agency, pacing. Generates `Artifacts/EDITORIAL_LETTER.md`.
 - **Python (all)**: PEP 8 via `ruff`, `pyright` types, anti-pattern sweep, `frozen=True` dataclasses, Loguru enforcement.
-- **PowerPoint (pptx)**: Template-first, no raw EMUs, no inline colors, layout name lookup, composition compliance → `skill-powerpoint-patterns.md`, `skill-visual-composition.md`.
-- **Power BI Report (pbi-report)**: Theme JSON applied, ≤8 visuals/page, measures only, mobile layout required, no pie/3D/gauge → `skill-powerbi-report.md`, `skill-visual-composition.md`.
+- **PowerPoint (pptx)**: Template-first, no raw EMUs, no inline colors, layout name lookup, composition compliance → `powerpoint-patterns`, `visual-composition`.
+- **Power BI Report (pbi-report)**: Theme JSON applied, ≤8 visuals/page, measures only, mobile layout required, no pie/3D/gauge → `powerbi-report`, `visual-composition`.
 
 ### AI Code Quality (All Languages — Slop Detection)
 - **Empty catches**: `catch {}` around file ops or process management → require specific error handling
