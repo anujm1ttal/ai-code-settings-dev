@@ -29,7 +29,7 @@ Orchestration layer for Gemini sessions.
 
 | Command / Skill | Owner | Purpose |
 |:---|:---|:---|
-| `/blueprint` | strategist | Project planning, phased roadmaps |
+| `/blueprint` | strategist | ROI-driven project planning and high-rigor phased roadmaps |
 | `/sweep` | strategist | Codebase discovery, tech-debt mapping, redundancy scans |
 | `/grill` | strategist | Stress-test a plan for hidden risks |
 | `typescript-mcp` | `strategist, auditor, coder` | MCP server standards, Zod, JSON-RPC, async boundaries |
@@ -37,7 +37,7 @@ Orchestration layer for Gemini sessions.
 | `implementation-dispatch` | `coder` | Subagent orchestration and two-stage review workflow |
 | `visual-composition` | `creative-director, auditor` | Hierarchy, layout, brand governance, and accessibility |
 | `/deck` | strategist / creative-director | PowerPoint project scaffolding & validation |
-| `/audit` | auditor | Quality review, gate validation |
+| `/audit` | auditor | Quality review, gate validation (Logic, Style, and Hard Rules) |
 | `/snapshot` | auditor | Factual codebase snapshot for external review |
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
@@ -96,9 +96,16 @@ When creating or updating these files, you MUST use the absolute path of the wor
 - **Architecture**: `Artifacts/ARCH.md`, `Artifacts/IMPLEMENTATION_PLAN.md`
 - **Roadmap**: `Artifacts/TODO.md`, `Artifacts/DECISION_LOG.md`
 - **Context**: `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
-- **Protocols**: `Artifacts/COUNCIL_PROTOCOLS.md`
+- **Transient**: `Artifacts/Temp/` (Scratch scripts, diagrams, and temporary analysis)
+- **Briefs**: `Artifacts/HANDOFF_BRIEF.md`
 - **Learnings**: `Artifacts/LEARNINGS.md`
 - **History**: `Artifacts/history/` subdirectory for archived plans, task lists, and learnings
+
+> [!IMPORTANT]
+> **Interface-First Pattern**: For any data exchange or tool-building task, Phase 1 MUST define the "Contract" (JSON Schema/Outline) and obtain explicit user approval before implementation.
+
+> [!TIP]
+> **ROI Escalation**: Prioritize Tier 1 Metadata (Counts/Names) and Tier 2 Logic (Schemas/JSON) before escalating to Tier 3 Content (Full Source/Renders). Use the cheapest context that proves the claim.
 
 ## 🪞 Mirroring Rule
 
