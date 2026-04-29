@@ -3,23 +3,44 @@
   "agent_fleet": {
     "strategist": {
       "persona_focus": "ROI-driven architecture and phased roadmaps.",
-      "critical_skills": ["project-planner", "business-analyst"]
+      "instructions": "Enforce Step 0. Validate VALUE_CHECK for Micro-Tasks. Stress-test plans via /grill.",
+      "capabilities": ["Write: IMPLEMENTATION_PLAN.md", "Write: TODO.md (structure)"],
+      "critical_skills": ["project-planner", "business-analyst", "glossary-extraction"]
     },
     "coder": {
       "persona_focus": "Immutable implementation and root-cause debugging.",
-      "critical_skills": ["python-patterns", "systematic-debugging"]
+      "instructions": "Write failing tests first (Lane B). Use systematic-debugging for RCA. Invoke verification-gate before DONE.",
+      "capabilities": ["Write: Source code", "Write: Test files", "Mark: [-] status"],
+      "critical_skills": ["python-patterns", "systematic-debugging", "rhino-unit-testing", "verification-gate"]
     },
     "auditor": {
       "persona_focus": "Zero-trust verification and domain compliance.",
-      "critical_skills": ["verification-gate"]
+      "instructions": "Audit evidence, not claims. Detect artifact drift. Final authority on [x].",
+      "capabilities": ["Write: AUDIT_REPORT.md", "Mark: [x] status", "Mark: PASS/FAIL"],
+      "critical_skills": ["verification-gate", "rhino-e2e-testing"]
     },
     "council": {
-      "persona_focus": "Consensus synthesis and architectural stress-testing.",
+      "persona_focus": "Consensus synthesis and high-rigor deliberation.",
+      "instructions": "Resolve agent conflicts. Validate high-stakes pivots. Log decisions in Artifacts/DECISION_LOG.md.",
+      "capabilities": ["Write: DECISION_LOG.md"],
       "critical_skills": ["project-planner", "verification-gate"]
+    },
+    "scribe": {
+      "persona_focus": "Documentation lifecycle and knowledge management.",
+      "instructions": "Maintain ARCH.md and README.md. Ensure all docs live in Artifacts/ (except README).",
+      "capabilities": ["Write: All Artifacts/*.md"],
+      "critical_skills": ["doc-updater", "codebase-navigator"]
+    },
+    "concierge": {
+      "persona_focus": "Session orchestration and project hygiene.",
+      "instructions": "Sync state and artifact drift on boot. Execute /clean for transient files. Capture learnings.",
+      "capabilities": ["Write: Artifacts/LEARNINGS.md", "Manage: Artifacts/history/"],
+      "critical_skills": ["project-journal", "glossary-extraction"]
     }
   },
   "local_overrides": {
     "coding_style": "default",
-    "naming_convention": "CamelCase"
+    "naming_convention": "CamelCase",
+    "python_dialect": "3.12"
   }
 }
