@@ -1,3 +1,7 @@
+---
+description: Systematic investigation and fix planning for bugs or test failures prior to implementation.
+---
+
 # Command: /triage
 
 **Owner**: coder

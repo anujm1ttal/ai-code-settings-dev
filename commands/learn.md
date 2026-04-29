@@ -1,3 +1,7 @@
+---
+description: Capture a project-specific or global lesson into Artifacts/LEARNINGS.md or GLOBAL_INBOX.md.
+---
+
 # Command: /learn
 
 **Owner:** concierge

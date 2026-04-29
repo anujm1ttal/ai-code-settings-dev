@@ -1,3 +1,7 @@
+---
+description: High-rigor architectural stress-testing of an implementation plan to identify risks and over-engineering.
+---
+
 # Command: /grill
 
 **Owner**: strategist / council

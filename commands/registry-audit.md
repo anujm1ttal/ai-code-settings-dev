@@ -1,3 +1,7 @@
+---
+description: Cross-reference integrity check to ensure global registry consistency and documentation health.
+---
+
 # Command: /registry-audit
 
 **Owner**: Auditor / Strategist

@@ -1,3 +1,7 @@
+---
+description: Triage cross-project learnings from GLOBAL_INBOX.md into global rules, skills, or standards.
+---
+
 # Command: /graduate
 
 **Owner:** concierge
