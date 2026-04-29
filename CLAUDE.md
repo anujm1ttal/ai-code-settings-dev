@@ -69,6 +69,10 @@ Orchestration layer for Claude Code sessions.
 | `pptx` | `*.pptx`, `deck_*.py` | `powerpoint-patterns`, `visual-composition`, `python-patterns` |
 | `pbi-report` | `*.pbip`, `*.pbix`, `*.Report/**`, `theme*.json` | `powerbi-report`, `visual-composition`, `dax-modeling` |
 | `geometry` | `*.3dm`, `*.gh`, `*.ghx` | `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns` |
+| `code` | `package.json`, `pyproject.toml`, `src/**` | `codebase-navigator`, `systematic-debugging`, `python-patterns`, `typescript-mcp` |
+| `data` | `*.dax`, `*.sql`, `*.csv` | `dax-modeling`, `powerbi-report`, `python-patterns` |
+| `manuscript`| `*.docx`, `*.md`, `Artifacts/GLOSSARY.md` | `manuscript-review`, `glossary-extraction` |
+| `hybrid` | All applicable files | All applicable skills based on detected files |
 | *(all types)* | coder/auditor active | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.

@@ -29,6 +29,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `geometry` | strategist, coder, auditor | concierge | scribe, creative-director |
 | `code` | strategist, coder, auditor | concierge, scribe | creative-director |
 | `manuscript`| strategist, scribe, auditor | concierge | coder, creative-director |
+| `data` | strategist, coder, auditor | concierge | scribe, creative-director |
 | `hybrid` | concierge, strategist | All | — |
 
 
@@ -48,7 +49,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `/snapshot` | auditor | Factual codebase dump for external review | Purely descriptive |
 | `/clean` | concierge | Purge `Artifacts/Temp/` and transient files | Maintenance mode |
 | `/learn` | concierge | Capture a persistent project lesson | Writes to `Artifacts/LEARNINGS.md` |
-| `/graduate` | scribe | Move project lessons to global OS settings | Writes to Global Registry |
+| `/graduate` | concierge | Move project lessons to global OS settings | Writes to Global Registry |
 
 ---
 
