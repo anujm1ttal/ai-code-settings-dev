@@ -1,47 +1,62 @@
-# Agent OS Hardening - Wave 2: Operational Rigor
+# 🗺️ Phased Rigor Upgrades: Planning & Interaction
 
-Addressing 10 structural inconsistencies to move from a "documented" OS to a "performant" one.
+Enhance the Agent OS with high-rigor planning patterns derived from the ADD-02 Viewport Layout plan. This ensures all future projects prioritize token economy, interface stability, and explicit architectural invariants.
 
-## User Review Required
+---
 
-> [!IMPORTANT]
-> This plan introduces the **Micro-Task Protocol**, which significantly reduces ceremonial overhead for small edits (≤1 file, ≤30 lines).
+## Phase PR-A — Planning Skill Upgrade
 
-## Proposed Changes
+**Agent role:** Strategist (decision) → Scribe (document)
+**Prerequisites:** None.
 
-### 1. Orchestration & Interaction Standards
-#### [MODIFY] [orchestration.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/orchestration.md)
-- **Micro-Task Protocol**: Define the lightweight path for minor edits (Skip full Step 0, use one-line `VALUE_CHECK`).
-- **Refined Routing**: Update project types to distinguish between **Core** agents (auto-activated) and **Available** agents (on-demand).
-- **Status Hierarchy**: Standardize `DONE` (Claim), `PASS` (Audit), `[x]` (Complete), `CLEAN` (Security), `RECONCILED` (Sync).
-- **Severity Scale**: Unified `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `INFO`.
+### Scope
+Update `skills/project-planner/SKILL.md` to formalize the "Interface-First" and "ROI Escalation" patterns.
 
-#### [MODIFY] [standards.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/standards.md)
-- Consolidate "Artifact Mirroring" and "No Fluff" rules.
-- Explicitly document the `README.md` and `Artifacts/` exception logic.
+### Tasks
+1. **[MODIFY] [SKILL.md](file:///c:/Users/44547/.gemini/antigravity/skills/project-planner/SKILL.md)**:
+   - Add **"Interface-First Pattern"**: Mandate Phase 1 as a Schema/Contract definition for any data-heavy tool.
+   - Add **"ROI Escalation Pattern"**: Define the hierarchy of context (Metadata -> JSON -> Visuals).
+   - Add **"Hard Rules Template"**: Provide the structure for phase-level invariants.
 
-### 2. Language & Testing Taxonomy
-#### [MODIFY] [coding-style.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/coding-style.md)
-- **Python Runtime Matrix**: Define the 3 contexts (Host 3.12, Rhino 3.9, Rhino.Inside 3.12) and their library/syntax limits.
-- **Test Taxonomy**: Standardize `Unit`, `Boundary`, `Integration`, `E2E`, `Smoke`, `Regression`.
+---
 
-### 3. Agent & Skill Alignment
-#### [MODIFY] [agents/*.md](file:///c:/Users/44547/source/repos/ai-code-settings/agents/)
-- Hardening capability notes: Auditor write authority, Concierge cleanup ownership, etc.
+## Phase PR-B — Workflow Upgrade
 
-#### [MODIFY] [cd-foundations](file:///c:/Users/44547/source/repos/ai-code-settings/skills/cd-foundations/SKILL.md)
-- Strip runtime-routing bloat. Re-focus on always-on standards.
+**Agent role:** Strategist
+**Prerequisites:** PR-A complete.
 
-### 4. Workflow Hardening (Commands)
-#### [MODIFY] [/sync](file:///C:/Users/44547/.gemini/antigravity/commands/sync.md) & [/audit](file:///C:/Users/44547/.gemini/antigravity/commands/audit.md)
-- Implement **Artifact Drift** detection (Shadow vs. Workspace).
+### Scope
+Update `global_workflows/blueprint.md` to enforce the new ROI checks during Step 0.
+
+### Tasks
+1. **[MODIFY] [blueprint.md](file:///c:/Users/44547/.gemini/antigravity/global_workflows/blueprint.md)**:
+   - Update Step 0 Challenge to include **VALUE_ROI** (Token cost vs. Information gain).
+   - Update the `/blueprint` response template to include a **Hard Rules** summary for the first phase.
+
+---
+
+## Phase PR-C — Standards Upgrade
+
+**Agent role:** Auditor (gate) → Scribe (document)
+**Prerequisites:** PR-B complete.
+
+### Scope
+Update `rules/common/standards.md` to define "Decision Points" and formalize "Hard Rules" as a reporting standard.
+
+### Tasks
+1. **[MODIFY] [standards.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/standards.md)**:
+   - Add **"Decision Point Gating"**: Formalize the `[user-approval]` task type.
+   - Add **"The Negative Test Suite"**: Define why "Hard Rules" are used instead of just positive metrics.
+
+---
 
 ## Verification Plan
 
-### Automated Verification
-- Run `/audit` to check for circular references or broken links in the new taxonomy.
-- Verify that the Micro-Task protocol is correctly referenced in the `strategist` routing.
+### Automated Tests
+- No automated tests for markdown-only rule changes.
 
 ### Manual Verification
-- Visual inspection of the Python Runtime Matrix for clarity.
-- Verify that status hierarchy is applied in the updated `task.md` template.
+- **Strategist Simulation**: Run `/blueprint` for a hypothetical new tool (e.g., "Get Layer Statistics") and verify:
+  - Step 0 includes ROI check.
+  - Phase 1 is a Schema definition.
+  - The plan includes a "Hard Rules" block.

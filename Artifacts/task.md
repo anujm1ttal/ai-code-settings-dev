@@ -1,0 +1,10 @@
+- `[x]` **Phase PR-A — Planning Skill Upgrade**
+    - `[x]` Add "Interface-First Pattern" to `project-planner/SKILL.md`
+    - `[x]` Add "ROI Escalation Pattern" to `project-planner/SKILL.md`
+    - `[x]` Add "Hard Rules Template" to `project-planner/SKILL.md`
+- `[x]` **Phase PR-B — Workflow Upgrade**
+    - `[x]` Update Step 0 Challenge in `blueprint.md` (VALUE_ROI)
+    - `[x]` Update `/blueprint` response template in `blueprint.md`
+- `[x]` **Phase PR-C — Standards Upgrade**
+    - `[x]` Add "Decision Point Gating" to `standards.md`
+    - `[x]` Add "The Negative Test Suite" (Hard Rules) to `standards.md`

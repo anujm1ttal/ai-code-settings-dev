@@ -18,7 +18,7 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 ## New Project
 1. Analyze user's project idea.
 2. **Requirements Interview**: Ask 3–5 targeted questions to uncover hidden constraints and goals (see `strategist.md`).
-3. **Step 0 Challenge**: PROJECT_TYPE, VALUE_CHECK, MINIMALISM, RISKS.
+3. **Step 0 Challenge**: PROJECT_TYPE, VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS.
 4. **Phased Roadmap**: 3–4 phases with numeric success metrics.
 5. **Create files**: `Artifacts/IMPLEMENTATION_PLAN.md`, `Artifacts/TODO.md`, `Artifacts/ARCH.md`.
 6. **Handoff**: Identify first agent + task.
@@ -26,7 +26,7 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 ## New Phase
 1. Run `/sync` via concierge to validate current state.
 2. Confirm prior phase success metrics met (auditor-verified).
-3. Step 0 for new phase only (VALUE_CHECK, MINIMALISM, RISKS).
+3. Step 0 for new phase only (VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS).
 4. Append to `Artifacts/IMPLEMENTATION_PLAN.md` and `Artifacts/TODO.md`. Update `Artifacts/ARCH.md` if needed.
 
 ## Re-Plan
@@ -44,6 +44,7 @@ Leverages Claude Agent Teams to independently challenge the architecture. If tok
 
 ## Standards
 - **Success Metrics**: Numeric, verifiable. Forbidden: "Done", "Complete", "Working".
+- **Interface-First**: For data-heavy tasks, Phase 1 MUST define the interface contract (Schema/JSON/Outline).
 - **Minimalism**: If plan >4 phases, challenge — can phases merge?
 - **Task Granularity**: Atomic (single session). Assigned agent. If >8 files, decompose.
 - **Agent Assignment**: Per PROJECT_TYPE. If `manuscript`, coder is inactive.

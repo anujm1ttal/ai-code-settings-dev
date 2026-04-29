@@ -108,11 +108,20 @@ Use a 2-tag (mandatory) or 3-tag (optional) system on **EVERY** approval request
 
 **Priority**: `SAFE` < `REVERSIBLE` < `DESTRUCTIVE` < `IRREVERSIBLE` < `HIGH IMPACT`
 
-## Architecture Principles
-
-- **Deep Modules**: Prioritize high-leverage interfaces that hide complexity. (Refer to `rules/common/architecture.md`).
-- **Deletion Test**: Challenge every module's right to exist. If deleting it moves complexity instead of removing it, it's shallow.
 - **Locality over Extraction**: Don't extract functions just for testability if it breaks the locality of bugs and knowledge.
+
+## 🛡️ The Negative Test Suite (Hard Rules)
+
+To maintain architectural integrity, every project phase must define **Hard Rules** (Invariants).
+- **Definition**: A Hard Rule specifies what the system MUST NEVER do.
+- **Purpose**: While "Success Metrics" prove the positive goal, "Hard Rules" provide the `auditor` with explicit grounds for immediate rejection of a task.
+- **Standard**: Every phase in an implementation plan should have 2–3 Hard Rules.
+
+## 🛑 Decision Point Gating
+
+Critical architectural decisions (e.g., Schema changes, Plan pivots) require explicit user sign-off.
+- **Task Marker**: `[user-approval]` in `Artifacts/TODO.md`.
+- **Gate**: The `auditor` cannot mark a `[user-approval]` task as `[x]` until the user has provided an explicit approval label (e.g., `[APPROVED] · [SAFE]`).
 
 ## Pre-Flight Checks
 

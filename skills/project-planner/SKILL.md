@@ -19,6 +19,14 @@ verbosity_control: "STRICT. Focus on deliverables, dependencies, and metrics. No
 - If a phase can be split, it should be — unless the split introduces more coordination overhead than it saves.
 - The first phase must be completable in 1–3 working sessions. If it can't, the scope is too large.
 
+### ROI-Driven Context Escalation
+- **Rule**: Prioritize the lowest bandwidth representation that achieves the goal.
+- **Escalation Hierarchy**:
+    1. **Tier 1 (Metadata)**: Names, counts, types, summaries. (e.g., `list_dir`, `get_layer_counts`).
+    2. **Tier 2 (Logic)**: JSON payloads, schemas, relationship maps. (e.g., `get_viewport_layout_json`).
+    3. **Tier 3 (Full Content)**: Source code, screenshots, full renders. (e.g., `view_file`, `get_viewport_screenshot`).
+- **Constraint**: Only escalate to a higher Tier if the lower Tier confirms a high ROI for the deeper inspection.
+
 ### Dependency-Driven Sequencing
 - Tasks are ordered by dependencies, not by perceived importance.
 - A task with zero dependencies goes first, regardless of its "glamour."
@@ -45,6 +53,11 @@ Vague language is a source of bugs and drift. The following terms and patterns a
 - **Each phase must be independently valuable** — if the project is cancelled after Phase N, the work delivered so far is still usable.
 - **Phase boundaries are audit gates** — the `auditor` must verify all phase success metrics before the next phase begins.
 
+### The Interface-First Pattern
+- For any task involving data exchange, external APIs, or multi-agent handoffs, **Phase 1 (or Phase A) MUST be the Contract Definition**.
+- **Objective**: Agree on the "shape" of the data, the JSON schema, or the script outline before any implementation logic is written.
+- **Success Metric**: Explicit User approval of the contract/schema.
+
 ### Phase Template
 
 Every phase in `Artifacts/IMPLEMENTATION_PLAN.md` must contain:
@@ -57,6 +70,7 @@ Every phase in `Artifacts/IMPLEMENTATION_PLAN.md` must contain:
 - **Agent Assignment**: Which agent owns the first task. Which skills are equipped.
 - **Estimated Effort**: T-shirt size (S/M/L) + session count estimate.
 - **Risks**: Phase-specific risks beyond the project-level risks identified in Step 0.
+- **Hard Rules**: A list of "Negative Invariants" (what the phase must NEVER do). (e.g., "No silent fallbacks", "No dependencies outside of X").
 
 ### Phase Sequencing Patterns
 
@@ -143,14 +157,15 @@ The `strategist` produces this file during `/blueprint`. It is the architectural
 - **## Step 0**
   - PROJECT_TYPE: [code / geometry / data / manuscript / youtube / pptx / pbi-report / hybrid]
   - VALUE_CHECK: [one sentence]
+  - VALUE_ROI: [Escalation Tier strategy]
   - MINIMALISM: [smallest viable version]
   - RISKS: [three showstoppers]
 - **## Phase 1: [Title]**
   - Objective, Deliverables, Success Metrics, Dependencies, Agent Assignment, Estimated Effort, Risks.
 - **## Phase 2: [Title]**
   - (same structure)
-- **## Phase N: [Title]**
-  - (same structure)
+- **## Phase [N]: [Title]**
+  - Objective, Deliverables, Success Metrics, Hard Rules, Dependencies, Agent Assignment, Estimated Effort, Risks.
 - **## Dependency Map**
   - Visual or textual representation of phase and task dependencies.
 - **## Risk Register**
@@ -222,13 +237,17 @@ When initializing or updating a plan, the `strategist` must present the summary 
 
 ## 🎯 Step 0: Value Check
 - **Value**: [One-sentence rationale]
+- **ROI**: [Escalation Tier strategy — Metadata -> JSON -> Content]
 - **Minimalism**: [Smallest viable win]
 - **Risk**: [Primary showstopper]
 
 ## 🏗 Phased Roadmap
 1. **Phase 1**: [Title] → [Success Metric]
+    - **Hard Rules**: [Negative invariants]
 2. **Phase 2**: [Title] → [Success Metric]
+    - **Hard Rules**: [Negative invariants]
 3. **Phase 3**: [Title] → [Success Metric]
+    - **Hard Rules**: [Negative invariants]
 
 ## 🚦 Next Actions
 - [ ] [Agent] Task 1
