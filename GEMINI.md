@@ -9,9 +9,9 @@ Orchestration layer for Gemini sessions.
   - `coding-style.md` — implementation standards, language patterns, domain rules
   - `standards.md` — interaction, formatting, token economy
   - `security.md` — secrets, defenses, incident response
-- **Agents** (`agents/`): Role definitions + boundaries. Reference rules for detailed standards.
+- **Agents** (`agents/`): Role definitions + boundaries. Refer to `agents/agents.overview.md` (L1) for routing.
 - **Commands** (`commands/`): Slash-command procedures. Owned by specific agents.
-- **Skills** (`skills/*/SKILL.md`): Domain expertise. Loaded on demand per project type routing in `orchestration.md`.
+- **Skills** (`skills/`): Domain expertise. Refer to `skills/skills.overview.md` (L1) for a mapped registry.
 
 ## Agents
 
@@ -50,6 +50,7 @@ Orchestration layer for Gemini sessions.
 | `/ingest` | concierge | Register manual/external changes into project state |
 | `/handoff` | concierge | Clean session end — compress context, update state, cleanup |
 | `/clean` | concierge | Manually trigger project hygiene and cleanup |
+| `/graduate` | concierge | Move project lessons to global OS settings |
 | `/council` | council | High-rigor deliberation & consensus |
 | `/triage` | coder | Bug investigation and fix planning |
 
@@ -78,7 +79,7 @@ Orchestration layer for Gemini sessions.
 | `data` | `dax-modeling`, `powerbi-report`, `python-patterns` → strategist, coder, auditor, concierge |
 | `manuscript`| `manuscript-review`, `glossary-extraction` → strategist, scribe, auditor, concierge |
 | `hybrid` | All applicable skills based on detected files → concierge, strategist, All |
-| *(all types)* | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` available — equip on coder/auditor as needed |
+| *(all types)* | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate` available — equip on coder/auditor as needed |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.
 
@@ -102,7 +103,7 @@ When creating or updating these files, you MUST use the absolute path of the wor
 - **Context**: `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
 - **Transient**: `Artifacts/Temp/` (Scratch scripts, diagrams, and temporary analysis)
 - **Briefs**: `Artifacts/HANDOFF_BRIEF.md`
-- **Learnings**: `Artifacts/LEARNINGS.md`
+- **Learnings**: `Artifacts/learnings/` (Categorized knowledge registry)
 - **History**: `Artifacts/history/` subdirectory for archived plans, task lists, and learnings
 
 > [!IMPORTANT]
@@ -127,25 +128,20 @@ If drift occurs, the workspace version wins.
 
 ## Persistent Learnings
 
-Gemini accumulates project-specific knowledge in `Artifacts/LEARNINGS.md` at the project root.
+Gemini accumulates project-specific knowledge in the `Artifacts/learnings/` directory.
 
 **Lifecycle:**
-- **Read**: Concierge loads `Artifacts/LEARNINGS.md` during session boot (state recovery phase)
-- **Write**: Concierge appends new entries during `/handoff`
-- **Manual**: `/learn` command captures lessons mid-session
+- **Read**: Concierge loads `Artifacts/learnings/index.md` during session boot.
+- **Write**: Concierge appends new entries during `/handoff`.
+- **Manual**: `/learn` command captures lessons mid-session.
 
 **Boundaries:**
-- Max 50 active entries. When exceeded, oldest entries archive to `Artifacts/history/learnings_archive.md`.
+- Max 50 active entries per category. When exceeded, oldest entries archive to `Artifacts/history/`.
 - No task status (use `Artifacts/TODO.md`), no architecture decisions (use `Artifacts/DECISION_LOG.md`), no temporary context.
 
 **Entry format:**
-```
-### [YYYY-MM-DD] Category: Short title
-What happened and what to do differently.
-```
-
-**Categories:** `mistake`, `preference`, `gotcha`, `workflow`, `pattern`
+Refer to `Artifacts/learnings/index.md` for category-specific templates.
 
 | Command | Owner | Purpose |
 |:---|:---|:---|
-| `/learn` | concierge | Capture a lesson into Artifacts/LEARNINGS.md |
+| `/learn` | concierge | Capture a lesson into the learnings registry |

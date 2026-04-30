@@ -2,16 +2,16 @@
 
 Orchestration layer for Claude Code sessions.
 
-## Claude Code — Cheat Sheet
+## Architecture
 
 - **Rules** (`rules/common/`): Canonical standards. All agents reference these.
   - `orchestration.md` — routing, lifecycle, TODO authority, conflict resolution
   - `coding-style.md` — implementation standards, language patterns, domain rules
   - `standards.md` — interaction, formatting, token economy
   - `security.md` — secrets, defenses, incident response
-- **Agents** (`agents/`): Role definitions + boundaries. Reference rules for detailed standards.
+- **Agents** (`agents/`): Role definitions + boundaries. Refer to `agents/agents.overview.md` (L1) for routing.
 - **Commands** (`commands/`): Slash-command procedures. Owned by specific agents.
-- **Skills** (`skills/*/SKILL.md`): Domain expertise. Claude MUST read the relevant SKILL.md files automatically based on the Project Type Routing rules below.
+- **Skills** (`skills/`): Domain expertise. Refer to `skills/skills.overview.md` (L1) for a mapped registry.
 
 ## Agents
 
@@ -21,6 +21,7 @@ Orchestration layer for Claude Code sessions.
 | coder | Implementation execution |
 | auditor | Quality gates, technical review |
 | scribe | Documentation, communication, code explanation |
+| council | High-rigor deliberation & consensus |
 | creative-director | Visual spec & composition planning |
 | concierge | Session orchestration, state management, intake |
 
@@ -30,6 +31,7 @@ Orchestration layer for Claude Code sessions.
 |:---|:---|:---|
 | `/blueprint` | strategist | ROI-driven project planning and high-rigor phased roadmaps |
 | `/sweep` | strategist | Codebase discovery, tech-debt mapping, redundancy scans |
+| `/grill` | strategist | Stress-test a plan for hidden risks |
 | `typescript-mcp` | `strategist, auditor, coder` | MCP server standards, Zod, JSON-RPC, async boundaries |
 | `systematic-debugging` | `coder, auditor` | 4-phase root-cause investigation process |
 | `implementation-dispatch` | `coder` | Subagent orchestration and two-stage review workflow |
@@ -39,19 +41,23 @@ Orchestration layer for Claude Code sessions.
 | `/snapshot` | auditor | Factual codebase snapshot for external review |
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
+| `glossary-extraction` | `concierge, scribe` | Extract ubiquitous language to Artifacts/GLOSSARY.md |
 | `/ideate` | strategist | YouTube video conceptualization |
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
 | `/pack` | scribe | YouTube upload metadata and SEO |
 | `/sync` | concierge | Reconcile filesystem state with plan artifacts |
+| `/registry-audit` | auditor | Cross-reference integrity check for the OS registry |
 | `/ingest` | concierge | Register manual/external changes into project state |
 | `/handoff` | concierge | Clean session end — compress context, update state, cleanup |
 | `/clean` | concierge | Manually trigger project hygiene and cleanup |
-| `/graduate` | concierge | Triage global inbox entries into global settings |
+| `/graduate` | concierge | Move project lessons to global OS settings |
+| `/council` | council | High-rigor deliberation & consensus |
+| `/triage` | coder | Bug investigation and fix planning |
 
 ## Concierge Operations
 
 - **`/sync`** — Filesystem-driven. Scans for drift between files and TODO/state artifacts. Use when plan and reality may have diverged.
-- **`/ingest`** — User-driven. Registers work done outside Claude (manual edits, external contributions) into project state.
+- **`/ingest`** — User-driven. Registers work done outside AI IDE (manual edits, external contributions) into project state.
 - **`/handoff`** — Session boundary. Compresses context, scrubs TODO, captures decisions, writes next-session brief.
 
 ## Session Lifecycle
@@ -61,21 +67,22 @@ Orchestration layer for Claude Code sessions.
 
 ## Project Type Routing
 
-`orchestration.md` defines project type classification and skill loading. **Claude MUST instantly auto-detect the project type based on workspace files and read the corresponding skills before answering.**
+`orchestration.md` defines project type classification and skill loading.
 
-| Project Type | Auto-Detect Triggers | Skills to Read Immediately |
-|:---|:---|:---|
-| `youtube` | `Artifacts/VIDEO_PLAN.md`, `Artifacts/SCRIPT.md` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` |
-| `pptx` | `*.pptx`, `deck_*.py` | `powerpoint-patterns`, `visual-composition`, `python-patterns` |
-| `pbi-report` | `*.pbip`, `*.pbix`, `*.Report/**`, `theme*.json` | `powerbi-report`, `visual-composition`, `dax-modeling` |
-| `geometry` | `*.3dm`, `*.gh`, `*.ghx` | `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns` |
-| `code` | `package.json`, `pyproject.toml`, `src/**` | `codebase-navigator`, `systematic-debugging`, `python-patterns`, `typescript-mcp` |
-| `data` | `*.dax`, `*.sql`, `*.csv` | `dax-modeling`, `powerbi-report`, `python-patterns` |
-| `manuscript`| `*.docx`, `*.md`, `Artifacts/GLOSSARY.md` | `manuscript-review`, `glossary-extraction` |
-| `hybrid` | All applicable files | All applicable skills based on detected files |
-| *(all types)* | coder/auditor active | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch` |
+| Project Type | Skills Loaded |
+|:---|:---|
+| `youtube` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` → strategist, scribe, auditor, concierge |
+| `pptx` | `powerpoint-patterns`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
+| `pbi-report` | `powerbi-report`, `visual-composition`, `dax-modeling` → strategist, creative-director, coder, auditor, concierge |
+| `geometry` | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns` → strategist, coder, auditor, concierge |
+| `code` | `codebase-navigator`, `systematic-debugging`, `python-patterns`, `typescript-mcp` → strategist, coder, auditor, concierge |
+| `data` | `dax-modeling`, `powerbi-report`, `python-patterns` → strategist, coder, auditor, concierge |
+| `manuscript`| `manuscript-review`, `glossary-extraction` → strategist, scribe, auditor, concierge |
+| `hybrid` | All applicable skills based on detected files → concierge, strategist, All |
+| *(all types)* | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate` available — equip on coder/auditor as needed |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.
+
 
 ## YouTube Pipeline
 
@@ -87,7 +94,7 @@ Full routing logic lives in `orchestration.md`. Add new project types there.
 
 ## Project State Persistence
 
-All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository), never in the Claude shadow directory (`~/.claude/projects/`).
+All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository), never in the Gemini shadow directory (`~/.gemini/`).
 
 When creating or updating these files, you MUST use the absolute path of the workspace and place them in the `Artifacts/` folder.
 
@@ -96,7 +103,7 @@ When creating or updating these files, you MUST use the absolute path of the wor
 - **Context**: `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
 - **Transient**: `Artifacts/Temp/` (Scratch scripts, diagrams, and temporary analysis)
 - **Briefs**: `Artifacts/HANDOFF_BRIEF.md`
-- **Learnings**: `Artifacts/LEARNINGS.md`
+- **Learnings**: `Artifacts/learnings/` (Categorized knowledge registry)
 - **History**: `Artifacts/history/` subdirectory for archived plans, task lists, and learnings
 
 > [!IMPORTANT]
@@ -105,9 +112,12 @@ When creating or updating these files, you MUST use the absolute path of the wor
 > [!TIP]
 > **ROI Escalation**: Prioritize Tier 1 Metadata (Counts/Names) and Tier 2 Logic (Schemas/JSON) before escalating to Tier 3 Content (Full Source/Renders). Use the cheapest context that proves the claim.
 
-> [!NOTE]
-> **Transient State Exception**: Background command outputs managed by the platform (e.g., in `AppData/Local/Temp/claude`) are transient and managed by the tool binary. These are exempt from the `Artifacts/` persistence rule.
+## 🪞 Mirroring Rule
 
+If you create or update a system-level artifact in the brain directory (using `IsArtifact: true`), you **MUST** simultaneously write a mirrored copy to the workspace `Artifacts/` directory (using `IsArtifact: false`). 
+
+The workspace `Artifacts/` folder is the **Canonical Source of Truth**. The brain directory copy is for UI rendering purposes only. 
+If drift occurs, the workspace version wins.
 
 ## Error Handling
 
@@ -118,28 +128,23 @@ When creating or updating these files, you MUST use the absolute path of the wor
 
 ## Persistent Learnings
 
-Claude accumulates project-specific knowledge in `Artifacts/LEARNINGS.md` at the project root.
+Gemini accumulates project-specific knowledge in the `Artifacts/learnings/` directory.
 
 **Lifecycle:**
-- **Read**: Concierge loads `Artifacts/LEARNINGS.md` during session boot (state recovery phase)
-- **Write**: Concierge appends new entries during `/handoff`
-- **Manual**: `/learn` command captures lessons mid-session
+- **Read**: Concierge loads `Artifacts/learnings/index.md` during session boot.
+- **Write**: Concierge appends new entries during `/handoff`.
+- **Manual**: `/learn` command captures lessons mid-session.
 
 **Boundaries:**
-- Max 50 active entries. When exceeded, oldest entries archive to `Artifacts/history/learnings_archive.md`.
+- Max 50 active entries per category. When exceeded, oldest entries archive to `Artifacts/history/`.
 - No task status (use `Artifacts/TODO.md`), no architecture decisions (use `Artifacts/DECISION_LOG.md`), no temporary context.
 
 **Entry format:**
-```
-### [YYYY-MM-DD] Category: Short title
-What happened and what to do differently.
-```
-
-**Categories:** `mistake`, `preference`, `gotcha`, `workflow`, `pattern`
+Refer to `Artifacts/learnings/index.md` for category-specific templates.
 
 | Command | Owner | Purpose |
 |:---|:---|:---|
-| `/learn` | concierge | Capture a lesson into Artifacts/LEARNINGS.md |
+| `/learn` | concierge | Capture a lesson into the learnings registry |
 
 ## Hooks (Enforcement Layer)
 
@@ -154,4 +159,4 @@ Claude Code hooks provide **hard guardrails** that cannot be rationalized away.
 | `auto-lint.js` | `PostToolUse` | Reports lint violations after file edits (report-only, no auto-fix) |
 | `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
 
-**Design**: All hooks are fail-open — script errors exit 0. See `hooks/README.md` for setup and customization.
+**Design**: All hooks are fail-open — script errors exit 0. See `hooks/README.md` for setup and customization.

@@ -1,25 +1,38 @@
-# Walkthrough: Git-Based Phase Workflow
+# Walkthrough: Tier 1 & 2 Architectural Hardening
 
-The Git-based phase workflow is now integrated into the Agent OS. This ensures that implementation work is isolated on dedicated branches and merged to `main` only after full auditor acceptance.
+I have successfully hardened the Agent OS by incorporating efficiency and reliability patterns inspired by the KARIMO framework.
 
-## Changes Made
+## Key Accomplishments
 
-### 1. Orchestration Rules Updated
-Modified [orchestration.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/orchestration.md) to include:
-- A new **Git Phase Branching** section detailing isolation, naming conventions, and merge requirements.
-- Updated **Task Lifecycle** diagram showing Git branch initialization and merge points.
+### 1. Context Layering (L0/L1/L2)
+Implemented a tiered context loading system to minimize token consumption and context bloat.
+- **L1 Overviews**: Created `agents/agents.overview.md` and `skills/skills.overview.md` as low-bandwidth entry points for routing.
+- **L0 Abstracts**: Generated abstracts for all 8 agents and core skills (Implementation Dispatch, Verification Gate, Project Planner) to allow agents to verify "fit" before loading full definitions.
+- **L2 Definitions**: Preserved existing full definitions for deep execution.
 
-### 2. /blueprint Command Updated
-Modified [blueprint.md](file:///c:/Users/44547/source/repos/ai-code-settings/commands/blueprint.md) to:
-- Add a mandatory **Git Init** step in the "New Project", "New Phase", and "Re-Plan" workflows.
-- This ensures the strategist prompts the user to create a branch immediately after Step 0 approval.
+### 2. Knowledge Registry
+Transitioned from a flat `LEARNINGS.md` to a categorized, hierarchical structure.
+- **New Directory**: `Artifacts/learnings/` with categories for `patterns`, `anti-patterns`, `project-notes`, and `execution-rules`.
+- **Migration**: Successfully migrated all existing project learnings and verified the new structure.
+- **Protocol**: Formalized the Findings Protocol in `orchestration.md` to ensure knowledge continuity across session boundaries.
 
-### 3. /audit Command Updated
-Modified [audit.md](file:///c:/Users/44547/source/repos/ai-code-settings/commands/audit.md) to:
-- Add a **Phase Completion & Git Merge** section.
-- This instructs the auditor to provide merge and cleanup commands when the final task of a phase is completed.
+### 3. Token Economics & Safeguards
+Standardized the system's operational parameters to maximize ROI.
+- **Economics**: Created `rules/common/TOKEN-ECONOMICS.md` defining bootstrap costs, slicing thresholds (15+ tasks), and context pressure management triggers.
+- **Loop Detection**: Implemented semantic loop detection in the `implementation-dispatch` skill to prevent subagents from infinite correction cycles.
+- **Task Briefing**: Standardized the Task Brief format in `project-planner` to eliminate vague directives and improve implementation rigor.
 
 ## Verification Results
 
-- [x] Verified rule consistency via manual audit.
-- [x] Confirmed task lifecycle steps match the new workflow.
+- **Registry Audit**: Verified that all new L1/L0 artifacts are correctly linked and documented.
+- **Layering Integrity**: Confirmed that the new query flow (L1 -> L0 -> L2) is documented as mandatory in `orchestration.md`.
+- **System Hygiene**: Removed legacy `LEARNINGS.md` and synced all `Artifacts/` state files.
+
+## Next Steps
+
+- **Phase 11 (Future)**: Consider implementing automated loop detection tracking in `dispatch_history.json`.
+- **Phase 12 (Future)**: Expand abstracts to all remaining skills.
+
+---
+> [!TIP]
+> The system is now significantly more "token-efficient." Agents should start every session by reading the L1 Overviews to orient themselves before diving into specific files.

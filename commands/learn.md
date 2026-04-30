@@ -5,7 +5,7 @@ description: Capture a project-specific or global lesson into Artifacts/LEARNING
 # Command: /learn
 
 **Owner:** concierge
-**Purpose:** Capture a project-specific or global lesson into `Artifacts/LEARNINGS.md` or `GLOBAL_INBOX.md`.
+**Purpose:** Capture a project-specific or global lesson into the hierarchical knowledge registry in `Artifacts/learnings/` or `GLOBAL_INBOX.md`.
 
 ## Flags
 - `--global`: If specified, the lesson is written to the central `ai-code-settings` repository's `Artifacts/GLOBAL_INBOX.md` for later graduation instead of the local project's learnings.
@@ -18,9 +18,9 @@ description: Capture a project-specific or global lesson into Artifacts/LEARNING
 ## Procedure
 
 1. **Parse** the lesson from user input or recent context
-2. **Classify** into category: `mistake` | `preference` | `gotcha` | `workflow` | `pattern`
+2. **Classify** into category (subdirectory): `patterns` | `anti-patterns` | `project-notes` | `execution-rules`
 3. **Target Selection**:
-   - **Local (Default)**: Use `Artifacts/LEARNINGS.md` in the current project root.
+   - **Local (Default)**: Use the relevant subdirectory in `Artifacts/learnings/` (e.g., `Artifacts/learnings/patterns/`).
    - **Global (`--global`)**: Use `c:\Users\44547\source\repos\ai-code-settings\Artifacts\GLOBAL_INBOX.md`.
 4. **Check for duplicates** — grep target file for similar entries. If exists, update instead of append.
 5. **Append** to the target file using entry format:
@@ -28,8 +28,8 @@ description: Capture a project-specific or global lesson into Artifacts/LEARNING
    ### [YYYY-MM-DD] category: Short title
    Description of what to remember and why.
    ```
-6. **Prune check (Local only)** — if entry count > 50:
-   - Move oldest 10 entries to `Artifacts/history/learnings_archive.md`
+6. **Prune check (Local only)** — if category entry count > 50:
+   - Move oldest 10 entries to `Artifacts/history/`
    - Log pruning in session output
 7. **Confirm** to user what was captured and where (local vs. global inbox)
 
@@ -52,14 +52,18 @@ User: don't do that again, the API needs snake_case not camelCase
 ## Edge Cases
 - **No input provided**: Ask user what they want to remember.
 - **Duplicate detected**: Show existing entry, ask if user wants to update or skip.
-- **Artifacts/LEARNINGS.md doesn't exist**: Create it with a header.
+- **Artifacts/learnings/ doesn't exist**: Create the directory structure with an `index.md`.
 
-## Artifacts/LEARNINGS.md Template (created on first `/learn`)
+## Artifacts/learnings/ index.md Template
 ```markdown
-# Learnings
+# Learnings Index
 
 Project-specific knowledge accumulated across sessions.
-Categories: mistake, preference, gotcha, workflow, pattern
 
----
+| Category | Description |
+|:---|:---|
+| [Patterns](patterns/index.md) | Positive practices and success paths. |
+| [Anti-Patterns](anti-patterns/index.md) | Mistakes and gotchas. |
+| [Project Notes](project-notes/index.md) | Domain context and invariants. |
+| [Execution Rules](execution-rules/index.md) | Mandatory guidelines. |
 ```

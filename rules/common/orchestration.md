@@ -150,7 +150,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 | `Artifacts/ARCH.md` | Strategist | Scribe (formatting) | Long-term system architecture |
 | `Artifacts/COUNCIL_PROTOCOLS.md` | Strategist | Strategist | Deliberation rules for high-rigor decisions |
 | `Artifacts/DECISION_LOG.md` | Concierge | Concierge | Pivot tracking |
-| `Artifacts/LEARNINGS.md` | Concierge | Concierge | Knowledge capture |
+| `Artifacts/learnings/` | Concierge | Concierge | Categorized knowledge registry |
 | `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director | Visual specs |
 
 > [!NOTE]
@@ -232,3 +232,26 @@ The `council` agent orchestrates a parallel "debate" between the Strategist, Cod
 - **Context window >60%**: Concierge triggers `/handoff`. All agents yield.
 - **Security incident**: FREEZE → AUDIT → REMEDIATE → RESUME (see `security.md`).
 - **State file corruption**: Check `Artifacts/history/` → reconstruct from `Artifacts/.agent/current_task.md` + `Artifacts/DECISION_LOG.md` → `/sync`.
+
+## Safeguards & Efficiency
+
+### 1. Context Layering (L0/L1/L2)
+To minimize token consumption, agents MUST follow the tiered loading strategy:
+- **L1 (Overview)**: Query `agents/agents.overview.md` or `skills/skills.overview.md` first.
+- **L0 (Abstract)**: Read the `*.abstract.md` to confirm functional fit.
+- **L2 (Full Definition)**: Load the full agent/skill file ONLY when active work begins.
+
+### 2. Semantic Loop Detection
+If an agent performs the same action type on the same file/state 3 times without a state change (e.g., 3 failed lint fixes), it MUST:
+1. **FREEZE**: Stop implementation.
+2. **TRIAGE**: Analyze the loop cause.
+3. **ESCALATE**: Propose a plan pivot to the user or a different agent (Council).
+
+### 3. Findings Protocol (Phase Handoff)
+To ensure technical continuity across session boundaries:
+1. **Produce**: At the end of every task, the agent writes a brief `Artifacts/findings.md` documenting technical specifics (variable names, logic traps, API quirks).
+2. **Consume**: The next agent reads `findings.md` as part of their intake.
+3. **Graduate**: The Concierge promotes persistent findings to the `Artifacts/learnings/` registry during `/handoff`.
+
+### 4. Slicing & Economics
+Refer to `rules/common/TOKEN-ECONOMICS.md` for mandatory project slicing thresholds and context pressure management rules.

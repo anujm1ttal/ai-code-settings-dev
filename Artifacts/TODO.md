@@ -1,24 +1,16 @@
-- [x] Obtain User Approval for Wave 2 Plan.
-- [x] **Phase 1: Rules & Standards**
-  - [x] Implement Micro-Task Protocol in `orchestration.md`.
-  - [x] Refine agent routing (Core/Available/Inactive) in `orchestration.md`.
-  - [x] Standardize Status Hierarchy and Severity Scale in `orchestration.md`.
-  - [x] Consolidate "No Fluff" and "Mirroring" in `standards.md`.
-  - [x] Document `README.md` exception in `standards.md`.
-- [x] **Phase 2: Language & Testing Taxonomy**
-  - [x] Add Python Matrix to `coding-style.md`.
-  - [x] Define global Test Taxonomy in `coding-style.md`.
-- [x] **Phase 3: Agent & Skill Alignment**
-  - [x] Update `agents/*.md` with hardened capability notes.
-  - [x] Refactor `cd-foundations/SKILL.md` to remove runtime routing.
-- [x] **Phase 4: Workflow Hardening**
-  - [x] Update `/sync` command to detect artifact drift.
-  - [x] Update `/audit` to verify shadow vs workspace consistency.
-- [x] **Phase 5: Verification**
-  - [x] Run global `/audit`.
-  - [x] Verify Micro-Task protocol in a test scenario.
-- [x] **Phase 6: Git Phase Workflow**
-  - [x] Update `rules/common/orchestration.md` with Git lifecycle.
-  - [x] Update `commands/blueprint.md` with branch creation.
-  - [x] Update `commands/audit.md` with merge logic.
-  - [x] Run final `/registry-audit`.
+- [x] **Phase 7: Context Layering (Tier 1)**
+  - [x] [strategist] Create `agents/agents.overview.md` (L1) — Success: File exists with all 8 agents
+  - [x] [strategist] Create `skills/skills.overview.md` (L1) — Success: File exists with 25 skills mapped
+  - [x] [coder] Generate abstracts (L0) for core agents (strategist, coder, auditor, concierge)
+  - [x] [coder] Generate abstracts (L0) for high-use skills (implementation-dispatch, verification-gate, project-planner)
+- [x] **Phase 8: Knowledge & Economics (Tier 1 & 2)**
+  - [x] [strategist] Initialize `Artifacts/learnings/` directory structure
+  - [x] [coder] Migrate current `LEARNINGS.md` content to new structure
+  - [x] [strategist] Create `rules/common/TOKEN-ECONOMICS.md`
+  - [x] [coder] Update `orchestration.md` with Findings Protocol and Loop Detection rules
+- [x] **Phase 9: Logic & Templates (Tier 2)**
+  - [x] [coder] Implement loop detection in `implementation-dispatch/SKILL.md`
+  - [x] [coder] Standardize Task Brief format in `implementation_plan.md` template
+- [x] **Phase 10: Verification**
+  - [x] [auditor] Run `/registry-audit` to verify layering
+  - [x] [auditor] Verify loop detection logic in a test case

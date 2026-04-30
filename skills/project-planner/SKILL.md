@@ -103,6 +103,21 @@ Every item in `Artifacts/TODO.md` must be:
 - **Scoped**: Touches 8 or fewer source code files. If more, decompose further.
 - **Sequenced**: Ordered by dependency. No task appears before its prerequisites.
 
+### Task Briefing Patterns
+For high-rigor or large-scale roadmaps, every atomic task should be expanded into a **Task Brief** in the `IMPLEMENTATION_PLAN.md` or as a sub-document.
+
+**Template**:
+- **Component**: [Module/File path]
+- **Files Affected**: [List of 1-8 files]
+- **Pre-requisites**: [Reference to prior tasks]
+- **Logic Outline**: [2-3 bullet high-level logic or API signature]
+- **Success Criteria**: [Specific, verifiable outcome]
+
+**Briefing Rules**:
+- **NO Vague Directives**: Never say "Implement logic." Say "Implement the intersection algorithm using Rhino.Geometry.Intersect."
+- **Explicit Boundaries**: Clearly define which files the task is FORBIDDEN from touching.
+- **Verification Mandate**: Every brief must name the command required for verification.
+
 ### Task Decomposition Checklist
 When breaking a phase into tasks, verify:
 - [ ] Can each task be completed without waiting on another in-progress task?

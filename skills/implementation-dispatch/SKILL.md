@@ -5,7 +5,7 @@ tags: [subagent, delegation, orchestration, parallel, task-execution, context-ma
 auto_activate: false
 argument-hint: "[--dispatch <agent_type> | --status]"
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
 
@@ -72,6 +72,28 @@ For critical tasks flagged in `Artifacts/COUNCIL_PROTOCOLS.md`, swap Stage A/B f
 - Merge the changes only after review PASS.
 - Update `Artifacts/TODO.md` to `[-]` (if verifying) or wait for the `auditor` to mark `[x]`.
 - Invoke `verification-gate` before claiming completion.
+- Update subagent fingerprint history in `Artifacts/.agent/dispatch_history.json`.
+
+## 🔄 Loop Detection Protocol
+
+To prevent subagents from getting stuck in infinite correction loops:
+
+### 1. Fingerprinting
+The dispatcher (main agent) MUST track the **action fingerprint** of each subagent dispatch:
+- **Fingerprint** = `[Target File] + [Tool Used] + [Error Message / Goal]`
+- Store history in `Artifacts/.agent/dispatch_history.json` (ephemeral).
+
+### 2. Detection
+A **Loop** is detected if the SAME fingerprint is generated **3 times** for the same task.
+
+### 3. Resolution
+Once a loop is detected, the dispatcher MUST:
+1. **FREEZE**: Terminate the subagent thread.
+2. **TRIAGE**: Analyze the logs. Is the tool failing? Is the file path wrong? Is the model not capable enough?
+3. **ESCALATE**: 
+   - If a minor fix (path/param): Re-dispatch with corrected context.
+   - If a logic failure: Escalate to **Council** or the user for a plan pivot.
+   - If a model limitation: Re-dispatch using a more capable model (Opus).
 
 ## 🚫 Anti-Rationalization Table
 
