@@ -8,3 +8,11 @@
 - `[x]` **Phase PR-C — Standards Upgrade**
     - `[x]` Add "Decision Point Gating" to `standards.md`
     - `[x]` Add "The Negative Test Suite" (Hard Rules) to `standards.md`
+- `[x]` **Phase 11 — Tiered Handoff**
+    - `[x]` [coder] Refactor `handoff.md` with tiered logic
+    - `[x]` [coder] Add flag support and execution gating
+    - `[x]` [auditor] Verify Tier 1 speed and Tier 3 pruning
+- `[x]` **Phase 12 — Scratch Redirection**
+    - `[x]` [strategist] Update `orchestration.md` with Scratch Strategy
+    - `[x]` [coder] Update `GEMINI.md` and `CLAUDE.md` with redirection rules
+    - `[x]` [auditor] Verify scratch file placement in `Artifacts/Temp/`

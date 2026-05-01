@@ -41,7 +41,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `/audit` | auditor | Gate-based quality review | Writes to `AUDIT_REPORT.md` |
 | `/sync` | concierge | Reconcile filesystem drift with plan | Validates `Artifacts/` vs source |
 | `/ingest` | concierge | Import manual CAD/BI work into AI context | Formalizes `Artifacts/LAYOUT_SPEC.md` |
-| `/handoff` | concierge | Clean session termination & brief creation | Writes to `Artifacts/history/` |
+| `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation | Writes to `Artifacts/history/` |
 | `/registry-audit`| auditor | Cross-reference integrity check for the OS registry | Validates links/enums |
 | `/council` | council | High-rigor multi-persona deliberation | Follows `COUNCIL_PROTOCOLS.md` |
 | `/grill` | strategist | Stress-test a plan for hidden risks | Active interview mode |
@@ -79,7 +79,7 @@ For minor edits that meet all criteria:
 9. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
 10. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
 11. **Session start, "where was I"** → **concierge** (`/sync`)
-12. **Session end, context save** → **concierge** (`/handoff`)
+12. **Session end, context save** → **concierge** (`/handoff` [--lite|--phase])
 13. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
 14. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
 15. **Domain definitions, ubiquitous language, glossary extraction** → **scribe** (`glossary-extraction`)
@@ -155,6 +155,12 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 
 > [!NOTE]
 > **Transient State Exception**: Platform-level logs for background commands (e.g., in system Temp directories) are managed by the host binary and are inherently transient. They are exempt from the `Artifacts/` persistence requirement.
+
+### 🧪 Scratch Strategy [HARD-GATE]
+
+To ensure project portability and auditability, agents MUST NOT use the system default shadow `scratch/` directory. 
+- **Mandatory Path**: All one-off scripts, temporary data, and transient analysis files MUST be stored in `Artifacts/Temp/`.
+- **Enforcement**: Any agent writing to a shadow directory during execution is in violation of the Persistence Hard-Gate.
 
 
 ## Artifact Separation: Plan vs. TODO

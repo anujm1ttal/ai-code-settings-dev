@@ -14,3 +14,11 @@
 - [x] **Phase 10: Verification**
   - [x] [auditor] Run `/registry-audit` to verify layering
   - [x] [auditor] Verify loop detection logic in a test case
+- [x] **Phase 11: Tiered Handoff (Optimization)**
+  - [x] [coder] Refactor `commands/handoff.md` to support `--lite`, `--session` (default), and `--phase` flags.
+  - [x] [coder] Implement conditional logic for Plan Pruning and Memory Graduation.
+  - [x] [auditor] Verify speed improvements and correct flag gating.
+- [x] **Phase 12: Scratch Redirection (Hard-Gate)**
+  - [x] [strategist] Update `orchestration.md` with Scratch Strategy.
+  - [x] [coder] Update `GEMINI.md` and `CLAUDE.md` with redirection rules.
+  - [x] [auditor] Verify scratch file placement in `Artifacts/Temp/`.

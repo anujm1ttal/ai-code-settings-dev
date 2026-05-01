@@ -38,12 +38,29 @@ This plan incorporates advanced orchestration and efficiency patterns inspired b
 #### [MODIFY] [implementation_plan.md template]
 - Standardize the **Task Brief** format for independent execution units.
 
+### Phase 4: Optimization & Efficiency (Tier 2)
+
+#### [MODIFY] [handoff.md](file:///c:/Users/44547/source/repos/ai-code-settings/commands/handoff.md)
+- Implement 3-tier system: `--lite` (Checkpoint), Default (Session), and `--phase` (Phase-Gate).
+- Define conditional execution for "heavy" steps (Learning Capture, Plan Pruning, Memory Graduation).
+- Update Hygiene Phase logic to differentiate between "purge" and "flag" for temp files.
+
+### Phase 5: Scratch Redirection (Hard-Gate)
+
+#### [MODIFY] [orchestration.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/orchestration.md)
+- Define the **Scratch Strategy [HARD-GATE]**.
+- Explicitly forbid the use of shadow `scratch/` directories.
+- Bind `Artifacts/Temp/` as the mandatory transient path.
+
+#### [MODIFY] [GEMINI.md](file:///c:/Users/44547/source/repos/ai-code-settings/GEMINI.md) / [CLAUDE.md](file:///c:/Users/44547/source/repos/ai-code-settings/CLAUDE.md)
+- Update persistence requirements to enforce the scratch redirect.
+
 ## Verification Plan
 
 ### Automated Tests
-- `registry-audit` to verify L1/L0 link integrity.
-- `audit` on `implementation-dispatch` to verify loop detection logic.
+- `/audit` on modified rules to ensure "Scratch Strategy" is present and correctly tagged.
 
 ### Manual Verification
-- Verify `Artifacts/learnings/` structure is correctly initialized.
-- Verify agent can successfully navigate from L1 -> L0 -> L2 in a sample task.
+- Execute a scratch script write and verify it lands in `Artifacts/Temp/`.
+- Dry-run `/handoff --lite` to verify speed and reduced file interaction.
+- Dry-run `/handoff --phase` to verify plan pruning and archiving.

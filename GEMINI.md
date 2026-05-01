@@ -48,7 +48,7 @@ Orchestration layer for Gemini sessions.
 | `/sync` | concierge | Reconcile filesystem state with plan artifacts |
 | `/registry-audit` | auditor | Cross-reference integrity check for the OS registry |
 | `/ingest` | concierge | Register manual/external changes into project state |
-| `/handoff` | concierge | Clean session end — compress context, update state, cleanup |
+| `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation |
 | `/clean` | concierge | Manually trigger project hygiene and cleanup |
 | `/graduate` | concierge | Move project lessons to global OS settings |
 | `/council` | council | High-rigor deliberation & consensus |
@@ -58,7 +58,7 @@ Orchestration layer for Gemini sessions.
 
 - **`/sync`** — Filesystem-driven. Scans for drift between files and TODO/state artifacts. Use when plan and reality may have diverged.
 - **`/ingest`** — User-driven. Registers work done outside AI IDE (manual edits, external contributions) into project state.
-- **`/handoff`** — Session boundary. Compresses context, scrubs TODO, captures decisions, writes next-session brief.
+- **`/handoff`** — Session boundary. Supports `--lite` (Checkpoint) and `--phase` (Milestone). Compresses context, scrubs TODO, captures decisions, writes brief.
 
 ## Session Lifecycle
 
@@ -101,7 +101,7 @@ When creating or updating these files, you MUST use the absolute path of the wor
 - **Architecture**: `Artifacts/ARCH.md`, `Artifacts/IMPLEMENTATION_PLAN.md`
 - **Roadmap**: `Artifacts/TODO.md`, `Artifacts/DECISION_LOG.md`
 - **Context**: `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
-- **Transient**: `Artifacts/Temp/` (Scratch scripts, diagrams, and temporary analysis)
+- **Transient**: `Artifacts/Temp/` (MANDATORY for all scratch scripts, diagrams, and temporary analysis. Shadow `scratch/` is FORBIDDEN.)
 - **Briefs**: `Artifacts/HANDOFF_BRIEF.md`
 - **Learnings**: `Artifacts/learnings/` (Categorized knowledge registry)
 - **History**: `Artifacts/history/` subdirectory for archived plans, task lists, and learnings
