@@ -1,5 +1,6 @@
 ---
 description: Systematic investigation and fix planning for bugs or test failures prior to implementation.
+argument-hint: "<bug-description>"
 ---
 
 # Command: /triage

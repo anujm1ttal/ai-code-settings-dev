@@ -1,5 +1,6 @@
 ---
 description: Triggers the scribe to generate or update project documentation. Supports tier selection and gates auditor completion checks.
+argument-hint: "[--internal|--user|--reference|--all|--team] [filename]"
 ---
 
 # Command: /docs

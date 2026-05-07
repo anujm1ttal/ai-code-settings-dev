@@ -1,5 +1,6 @@
 ---
 description: Triggers the concierge to execute a clean session end. Compresses context, snapshots state, and prepares a brief for the next session.
+argument-hint: "[--lite|--phase]"
 ---
 
 # Command: /handoff
@@ -11,12 +12,31 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
 | Tier | Flag | Purpose | Sequence Steps |
 | :--- | :--- | :--- | :--- |
 | **L1: Checkpoint** | `--lite` | Mid-task pause. | 3, 4, 6, 7 (Flag only) |
-| **L2: Session** | *(Default)* | End of session. | 1, 2, 3, 4, 6, 7 (Purge Temp) |
-| **L3: Phase-Gate**| `--phase` | Phase completion. | 1, 2, 3, 4, 5, 6, 7, 8, 9 |
+| **L2: Session** | *(Default)* | End of session. | 1, 1.5, 1.7, 2, 3, 4, 6, 7 (Purge Temp) |
+| **L3: Phase-Gate**| `--phase` | Phase completion. | 1, 1.5, 1.7, 2, 3, 4, 5, 6, 7, 8, 9 |
 
 ## Execution Sequence
 
 1. **Learnings Capture**: Scan session for mistakes/preferences/gotchas. Propose `/learn` candidates to user. Append local entries to `Artifacts/learnings/` structure.
+1.5. **Hot-Cache Refresh** (L2/L3 only): Update `Artifacts/learnings/HOT.md`:
+   - Refresh `Last Referenced` dates for entries used this session.
+   - Promote any learning referenced 3+ times across sessions but not yet in HOT.md.
+   - If entry count exceeds 30, demote the oldest by `Last Referenced` date back to category index.
+1.7. **Task Mining** (L2/L3 only): Scan the session conversation for uncommitted action items.
+   Look for phrases indicating future work:
+   - "need to", "should", "TODO", "next we'll", "I'll", "let's", "we could"
+   - Unresolved questions marked with "?" that imply investigation tasks
+   - User requests that were acknowledged but not completed this session
+   
+   Present candidates:
+   ```
+   ## Possible Uncommitted Tasks
+   1. "[quoted phrase from conversation]"
+      → Proposed: [ ] [agent] Task description — depends: X
+   2. "[quoted phrase]"
+      → Proposed: [ ] [agent] Task description — depends: Y
+   ```
+   User confirms which to add to `Artifacts/TODO.md`. Never auto-add.
 2. **Session Summary**: Tasks worked on, agents active, decisions/pivots made.
 3. **State Snapshot**: Update `.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md`.
 4. **Context Compression**: Summarize resolved threads. Preserve active tasks/open questions. Discard superseded plans and verbose outputs.

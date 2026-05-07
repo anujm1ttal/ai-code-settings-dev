@@ -1,5 +1,6 @@
 ---
 description: Cross-reference integrity check to ensure global registry consistency and documentation health.
+argument-hint: ""
 ---
 
 # Command: /registry-audit

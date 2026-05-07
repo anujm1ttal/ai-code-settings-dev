@@ -1,5 +1,6 @@
 ---
 description: Formalizes manual output from Rhino/GH, Power BI, or external editors for AI analysis. Owned by the concierge. Bridges user-design and AI-logic.
+argument-hint: "<source-file-or-type>"
 ---
 
 # Command: /ingest

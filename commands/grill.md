@@ -1,5 +1,6 @@
 ---
 description: High-rigor architectural stress-testing of an implementation plan to identify risks and over-engineering.
+argument-hint: "[plan-section]"
 ---
 
 # Command: /grill

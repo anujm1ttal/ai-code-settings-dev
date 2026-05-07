@@ -1,5 +1,6 @@
 ---
 description: Codebase-wide discovery for tech debt, redundancy, deprecations, and missing docs. Orchestrated by the strategist.
+argument-hint: "[--registry] [scope]"
 ---
 
 # Command: /sweep

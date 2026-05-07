@@ -1,5 +1,6 @@
 ---
 description: Manually triggers the Hygiene Phase to clean up transient artifacts and stray files.
+argument-hint: ""
 ---
 
 # Command: /clean

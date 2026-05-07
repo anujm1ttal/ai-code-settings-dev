@@ -1,5 +1,6 @@
 ---
 description: Capture a project-specific or global lesson into Artifacts/LEARNINGS.md or GLOBAL_INBOX.md.
+argument-hint: "[--global] <lesson>"
 ---
 
 # Command: /learn

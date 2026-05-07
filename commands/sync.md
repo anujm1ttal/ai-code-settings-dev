@@ -1,5 +1,6 @@
 ---
 description: Reconciles manual user progress with the AI's project state. Owned by the concierge. Scans for drift, validates state files, and proposes Artifacts/TODO.md updates.
+argument-hint: ""
 ---
 
 # Command: /sync
@@ -8,7 +9,7 @@ Owned by the **concierge**. The "Truth Engine" — reconciles manual work with t
 
 ## Execution Sequence
 
-1. **Learnings Load**: Read `Artifacts/LEARNINGS.md` to surface relevant project-specific knowledge.
+1. **Learnings Load**: Read `Artifacts/learnings/HOT.md` first for fast-access context. Fall back to category indexes in `Artifacts/learnings/` for deeper lookup only when HOT.md doesn't cover the need.
 2. **Inventory Delta**: `git status --short`, `git diff --name-only HEAD~1`, recent file modifications.
 3. **Domain Recon**: Rhino/GH (`.gh`, `.py` in CAD dirs) | Power BI (`.dax`, `.sql`) | MCP/Dev (`src/`, `package.json`, configs) | C# (`.cs`, `.csproj`, NuGet) | Docs (stale README, ARCH).
 4. **State File Validation**: `Artifacts/TODO.md` ↔ `Artifacts/IMPLEMENTATION_PLAN.md` sync. `.agent/current_task.md` freshness. `Artifacts/DECISION_LOG.md` unresolved entries.

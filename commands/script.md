@@ -1,5 +1,6 @@
 ---
 description: Triggers the scribe to write or expand a YouTube script based on an approved video plan.
+argument-hint: ""
 ---
 
 # Command: /script

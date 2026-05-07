@@ -126,7 +126,58 @@ When breaking a phase into tasks, verify:
 - [ ] Are file paths or module names specified where relevant?
 - [ ] Is the success condition unambiguous?
 
-### Task Types
+### Dependency-Level Notation (Optional)
+
+For phases with 5+ tasks, group by dependency level to surface parallelism and identify the critical path. This complements the existing dependency mapping notation (`→`, `~>`, `⇒`).
+
+**Format:**
+```markdown
+## Phase N: [Title]
+
+### Level 1 (No dependencies — start immediately)
+- [ ] [coder] Task A — Success: metric — depends: none
+- [ ] [coder] Task B — Success: metric — depends: none
+
+### Level 2 (Depends on Level 1)
+- [ ] [coder] Task C — Success: metric — depends: A
+- [ ] [auditor] Task D — Success: metric — depends: A, B
+
+### Level 3 (Depends on Level 2)
+- [ ] [auditor] Task E — Success: metric — depends: C, D
+
+### Critical Path: A → C → E
+```
+
+**When to use:**
+- Phase has 5+ tasks with non-obvious dependency ordering
+- Parallel execution by sub-agents (`implementation-dispatch`) is planned
+- The strategist wants to make the critical path visible
+
+**When NOT to use:**
+- Phase has < 5 tasks (flat list is sufficient)
+- All tasks are strictly sequential (phases already handle this)
+- The dependency chain is linear (Level notation adds no value)
+
+### Command vs. Knowledge Skill Separation
+
+When creating new commands and skills, enforce a clean separation:
+
+| Type | `user-invocable` | Contains | Example |
+|:---|:---|:---|:---|
+| **Command** | `true` (default) | Numbered workflow steps. User triggers it. | `/audit`, `/handoff` |
+| **Knowledge Skill** | `false` | Domain reference material. Agent loads it when executing commands. | `python-patterns`, `visual-composition` |
+
+**Rules:**
+- A command should define **how to run** a workflow. It should not embed domain-specific reference tables or glossaries.
+- A knowledge skill should define **what to know**. It should not include numbered workflow steps.
+- If a single file contains both, consider splitting:
+  - Workflow → command in `commands/`
+  - Domain reference → skill with `user-invocable: false` in `skills/`
+- Multiple commands can reference the same knowledge skill. This is the primary benefit of separation.
+
+**Exception:** Small skills where splitting would create more interface than it removes complexity (fails the Deletion Test) should remain as one file.
+
+### Task Briefing Patterns
 
 | Type | Agent | Description | Example |
 | :--- | :--- | :--- | :--- |

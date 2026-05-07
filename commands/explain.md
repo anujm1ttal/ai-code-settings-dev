@@ -1,5 +1,6 @@
 ---
 description: Triggers the scribe to explain or teach a codebase. Supports depth selection and targeted Q&A. Invokes codebase-navigator skill.
+argument-hint: "[--flow|--why|--find] [topic]"
 ---
 
 # Command: /explain

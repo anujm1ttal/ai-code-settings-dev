@@ -1,5 +1,6 @@
 ---
 description: Generates a structured, exhaustive, and purely factual Markdown report of the codebase for external review or auditing.
+argument-hint: "[scope]"
 ---
 
 # Command: /snapshot

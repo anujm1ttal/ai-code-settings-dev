@@ -1,5 +1,6 @@
 ---
 description: Technical review for code quality, domain compliance, and plan gate validation. Invokes the auditor. Supports --pre mode for plan review before implementation.
+argument-hint: "[--pre|--team] [component]"
 ---
 
 # Command: /audit

@@ -1,5 +1,6 @@
 ---
 description: Launches a high-rigor multi-persona deliberation session. Owned by the concierge. Optimized for sequential local model processing.
+argument-hint: "<topic>"
 ---
 
 # Command: /council
