@@ -83,7 +83,7 @@ Orchestration layer for Gemini sessions.
 | `pptx` | `pptx`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
 | `pbi-report` | `powerbi-report`, `visual-composition`, `dax-modeling` → strategist, creative-director, coder, auditor, concierge |
 | `geometry` | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `rhino-unit-testing`, `python-patterns` → strategist, coder, auditor, concierge |
-| `code` | `codebase-navigator`, `systematic-debugging`, `python-patterns`, `typescript-mcp` → strategist, coder, auditor, concierge |
+| `code` | `codebase-navigator`, `systematic-debugging`, `python-patterns`, `python-mcp`, `typescript-mcp` → strategist, coder, auditor, concierge |
 | `data` | `dax-modeling`, `powerbi-report`, `python-patterns` → strategist, coder, auditor, concierge |
 | `manuscript`| `manuscript-review`, `glossary-extraction` → strategist, scribe, auditor, concierge |
 | `hybrid` | All applicable skills based on detected files → concierge, strategist, All |

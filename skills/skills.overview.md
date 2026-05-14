@@ -17,6 +17,7 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 | Skill | Purpose |
 |:---|:---|
 | `python-patterns` | PEP 8, types, and Python 3.12+ best practices. |
+| `python-mcp` | Strategic building of Python MCP servers using FastMCP. |
 | `typescript-mcp` | MCP server standards, Zod, and JSON-RPC. |
 | `doc-updater` | Generating and auditing project documentation. |
 

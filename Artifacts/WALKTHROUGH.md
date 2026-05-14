@@ -1,38 +1,51 @@
-# Walkthrough: Anthropic Skill Hardening (Phase 1)
+# Walkthrough: Agent OS Hardening (Anthropic Patterns Adoption)
 
-Phase 1 focused on "Quick Wins" to harden the Agent OS architectural integrity by adopting Anthropic's high-rigor patterns for skill descriptions, auditor mindset, and registry consolidation.
+Successfully implemented all 8 planned actions to align the Agent OS with high-rigor patterns from Anthropic's official skills repository.
 
-## Changes Made
+## 🛠 Changes Made
 
-### 1. Skill Description Expansion (Action 1)
-All 18 skills in the registry have been updated with comprehensive frontmatter descriptions (≥40 words). These descriptions now include:
-- Clear **Context** ("Use this skill whenever...")
-- Specific **Triggers** ("Trigger when...")
-- Explicit **Boundaries** ("Do NOT use for...")
+### 1. Skill Registry & Metadata
+- **Expanded Descriptions**: All 18 core skills now have verbose, trigger-rich descriptions (≥40 words) in their frontmatter.
+- **Consolidation**: Merged `powerpoint-patterns` into `pptx` and deleted the redundant directory.
+- **New Skills**: Formally integrated `docx` and `xlsx` skills into the registry.
 
-This ensures more reliable semantic routing and prevents the LLM from misinterpreting the purpose of any specific skill.
+### 2. Progressive Disclosure (L3 References)
+Refactored heavy skills to use a tiered loading architecture:
+- `python-rhino-grasshopper` -> `references/api-lookups.md`
+- `typescript-mcp` -> `references/json-rpc.md`, `references/async-patterns.md`, etc.
+- `dax-modeling` -> `references/dax-patterns.md`, `references/validation.md`
+- `pptx` -> `references/design-standards.md`, `references/markitdown-patterns.md`
 
-### 2. Adversarial Auditor Mindset (Action 3)
-The `agents/auditor.md` definition has been hardened with an "Assume Bugs Exist" framing.
-- **Adversarial Mindset**: The auditor now assumes every implementation contains a bug and must hunt for it.
-- **Visual QA Rule**: Mandatory dispatch of a `visual-auditor` subagent for all UI/layout tasks.
-- **Red Flags**: Added "Visual Slop" to the list of non-negotiable rejection criteria.
+### 3. Visual & Creative Hardening
+- **Anti-Slop Deny List**: Added explicit rejection criteria to `visual-composition` (banned fonts, layouts, and patterns).
+- **Design Tokens**: Added 10 premium color palettes and 4 typography pairings.
+- **Banana Prompting**: Integrated optimized image prompting patterns.
 
-### 3. Registry Consolidation (Action 8)
-Merged the legacy `powerpoint-patterns` skill into the canonical `pptx` skill.
-- **Migration**: Created `skills/pptx/references/python-pptx-patterns.md` containing the `python-pptx` implementation patterns.
-- **Cleanup**: Deleted the `skills/powerpoint-patterns/` directory.
-- **Registry Alignment**: Updated `skills.overview.md`, `GEMINI.md`, and `CLAUDE.md` to point to the new structure and include the adopted `docx` and `xlsx` skills.
+### 4. Routing & Decision Logic
+Added ASCII decision trees to routing-heavy skills:
+- `systematic-debugging`: Investigation strategy routing.
+- `rhino-e2e-testing`: Testing lane selection.
+- `verification-gate`: Evidence selection logic.
 
-## Verification Results
+### 5. Auditor Agent Hardening
+- **Adversarial Mindset**: Added "Assume Bugs Exist" section to `auditor.md`.
+- **Clean-Room Review**: Implemented `## Clean-Room Document Review` protocol for plan verification.
+- **Reader-Testing**: Added `--reader-test` flag to the `/audit` command.
 
-- [x] All 18 skill files verified for frontmatter compliance.
-- [x] `agents/auditor.md` verified for adversarial framing.
-- [x] Registry files (`GEMINI.md`, `CLAUDE.md`, `skills.overview.md`) verified for zero references to the deleted `powerpoint-patterns` skill.
-- [x] Deletion of `powerpoint-patterns` confirmed via filesystem check.
+### 6. Automation Scripts
+Bundled reusable CLI scripts with `--help` interfaces:
+- `verification-gate/scripts/evidence_checker.py`
+- `rhino-e2e-testing/scripts/run_headless.py`
+- Mandated `--help` check protocol in SKILL.md files.
 
-## Next Steps
+## 🧪 Verification Results
 
-Phase 2 will focus on **Progressive Disclosure & L3 References**, specifically:
-- Action 2: Multi-tier reference loading for `python-rhino-grasshopper`, `typescript-mcp`, and `dax-modeling`.
-- Action 5: Deepening opportunities in the `pptx` skill.
+- **Registry Audit**: Verified zero drift in `GEMINI.md`, `orchestration.md`, and `skills.overview.md`.
+- **Description Lengths**: Confirmed all core skills meet the ≥40-word threshold.
+- **Path Integrity**: Verified all `powerpoint-patterns` references are removed.
+- **Git State**: All changes committed to the repository.
+
+## 🚀 Next Steps
+- Use `/audit --reader-test` on the next major implementation plan.
+- Leverage the new `scripts/evidence_checker.py` for automated phase gates.
+- Strictly enforce the `Anti-Slop Deny List` during visual deliverables.
