@@ -108,7 +108,7 @@ When creating or updating these files, you MUST use the absolute path of the wor
 
 - **Architecture**: `Artifacts/ARCH.md`, `Artifacts/IMPLEMENTATION_PLAN.md`
 - **Roadmap**: `Artifacts/TODO.md`, `Artifacts/DECISION_LOG.md`
-- **Context**: `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
+- **Context**: `Artifacts/MEMORY_ANCHORS.md`, `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
 - **Transient**: `Artifacts/Temp/` (MANDATORY for all scratch scripts, diagrams, and temporary analysis. Shadow `scratch/` is FORBIDDEN.)
 - **Briefs**: `Artifacts/HANDOFF_BRIEF.md`
 - **Learnings**: `Artifacts/learnings/` (Categorized knowledge registry)

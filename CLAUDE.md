@@ -42,6 +42,13 @@ Orchestration layer for Claude Code sessions.
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
 | `glossary-extraction` | `concierge, scribe` | Extract ubiquitous language to Artifacts/GLOSSARY.md |
+| `project-planner` | strategist | Phased roadmaps, dependencies, and task decomposition |
+| `project-journal` | concierge | Session history, decision logs, and memory anchors |
+| `skill-creator` | `concierge, strategist` | Designing and optimizing new skill modules |
+| `doc-updater` | `scribe, auditor` | Automated documentation updates and staleness audits |
+| `business-analyst` | strategist | Requirement elicitation, stakeholder mapping, and ROI validation |
+| `banana-prompt` | creative-director | Optimized AI image prompts for thumbnails and decks |
+| `rhino-unit-testing` | `coder, auditor` | Lane B (Pure Python) testing for geometry-agnostic logic |
 | `/ideate` | strategist | YouTube video conceptualization |
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
 | `/pack` | scribe | YouTube upload metadata and SEO |
@@ -53,6 +60,7 @@ Orchestration layer for Claude Code sessions.
 | `/graduate` | concierge | Move project lessons to global OS settings |
 | `/council` | council | High-rigor deliberation & consensus |
 | `/triage` | coder | Bug investigation and fix planning |
+| `/learn` | concierge | Capture a lesson into the learnings registry |
 
 ## Concierge Operations
 
@@ -74,12 +82,12 @@ Orchestration layer for Claude Code sessions.
 | `youtube` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` → strategist, scribe, auditor, concierge |
 | `pptx` | `powerpoint-patterns`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
 | `pbi-report` | `powerbi-report`, `visual-composition`, `dax-modeling` → strategist, creative-director, coder, auditor, concierge |
-| `geometry` | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns` → strategist, coder, auditor, concierge |
+| `geometry` | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `rhino-unit-testing`, `python-patterns` → strategist, coder, auditor, concierge |
 | `code` | `codebase-navigator`, `systematic-debugging`, `python-patterns`, `typescript-mcp` → strategist, coder, auditor, concierge |
 | `data` | `dax-modeling`, `powerbi-report`, `python-patterns` → strategist, coder, auditor, concierge |
 | `manuscript`| `manuscript-review`, `glossary-extraction` → strategist, scribe, auditor, concierge |
 | `hybrid` | All applicable skills based on detected files → concierge, strategist, All |
-| *(all types)* | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate` available — equip on coder/auditor as needed |
+| *(all types)* | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate`, `project-planner`, `project-journal`, `doc-updater` available — equip on coder/auditor as needed |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.
 
@@ -94,13 +102,13 @@ Full routing logic lives in `orchestration.md`. Add new project types there.
 
 ## Project State Persistence
 
-All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository), never in the Gemini shadow directory (`~/.gemini/`).
+All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository), never in the Claude Code shadow directory (`~/.claude/`).
 
 When creating or updating these files, you MUST use the absolute path of the workspace and place them in the `Artifacts/` folder.
 
 - **Architecture**: `Artifacts/ARCH.md`, `Artifacts/IMPLEMENTATION_PLAN.md`
 - **Roadmap**: `Artifacts/TODO.md`, `Artifacts/DECISION_LOG.md`
-- **Context**: `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
+- **Context**: `Artifacts/MEMORY_ANCHORS.md`, `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
 - **Transient**: `Artifacts/Temp/` (MANDATORY for all scratch scripts, diagrams, and temporary analysis. Shadow `scratch/` is FORBIDDEN.)
 - **Briefs**: `Artifacts/HANDOFF_BRIEF.md`
 - **Learnings**: `Artifacts/learnings/` (Categorized knowledge registry)
@@ -128,7 +136,7 @@ If drift occurs, the workspace version wins.
 
 ## Persistent Learnings
 
-Gemini accumulates project-specific knowledge in the `Artifacts/learnings/` directory.
+Claude Code accumulates project-specific knowledge in the `Artifacts/learnings/` directory.
 
 **Lifecycle:**
 - **Read**: Concierge loads `Artifacts/learnings/index.md` during session boot.

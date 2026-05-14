@@ -150,6 +150,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 | `Artifacts/ARCH.md` | Strategist | Scribe (formatting) | Long-term system architecture |
 | `Artifacts/COUNCIL_PROTOCOLS.md` | Strategist | Strategist | Deliberation rules for high-rigor decisions |
 | `Artifacts/DECISION_LOG.md` | Council | Council | Pivot tracking & high-stakes resolutions |
+| `Artifacts/HANDOFF_BRIEF.md` | Concierge | Concierge | Session transition & next steps |
 | `Artifacts/learnings/` | Concierge | Concierge | Categorized knowledge registry |
 | `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director | Visual specs |
 
