@@ -42,6 +42,13 @@ Orchestration layer for Gemini sessions.
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
 | `glossary-extraction` | `concierge, scribe` | Extract ubiquitous language to Artifacts/GLOSSARY.md |
+| `project-planner` | strategist | Phased roadmaps, dependencies, and task decomposition |
+| `project-journal` | concierge | Session history, decision logs, and memory anchors |
+| `skill-creator` | `concierge, strategist` | Designing and optimizing new skill modules |
+| `doc-updater` | `scribe, auditor` | Automated documentation updates and staleness audits |
+| `business-analyst` | strategist | Requirement elicitation, stakeholder mapping, and ROI validation |
+| `banana-prompt` | creative-director | Optimized AI image prompts for thumbnails and decks |
+| `rhino-unit-testing` | `coder, auditor` | Lane B (Pure Python) testing for geometry-agnostic logic |
 | `/ideate` | strategist | YouTube video conceptualization |
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
 | `/pack` | scribe | YouTube upload metadata and SEO |
@@ -53,6 +60,7 @@ Orchestration layer for Gemini sessions.
 | `/graduate` | concierge | Move project lessons to global OS settings |
 | `/council` | council | High-rigor deliberation & consensus |
 | `/triage` | coder | Bug investigation and fix planning |
+| `/learn` | concierge | Capture a lesson into the learnings registry |
 
 ## Concierge Operations
 
@@ -74,12 +82,12 @@ Orchestration layer for Gemini sessions.
 | `youtube` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` → strategist, scribe, auditor, concierge |
 | `pptx` | `powerpoint-patterns`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
 | `pbi-report` | `powerbi-report`, `visual-composition`, `dax-modeling` → strategist, creative-director, coder, auditor, concierge |
-| `geometry` | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `python-patterns` → strategist, coder, auditor, concierge |
+| `geometry` | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `rhino-unit-testing`, `python-patterns` → strategist, coder, auditor, concierge |
 | `code` | `codebase-navigator`, `systematic-debugging`, `python-patterns`, `typescript-mcp` → strategist, coder, auditor, concierge |
 | `data` | `dax-modeling`, `powerbi-report`, `python-patterns` → strategist, coder, auditor, concierge |
 | `manuscript`| `manuscript-review`, `glossary-extraction` → strategist, scribe, auditor, concierge |
 | `hybrid` | All applicable skills based on detected files → concierge, strategist, All |
-| *(all types)* | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate` available — equip on coder/auditor as needed |
+| *(all types)* | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate`, `project-planner`, `project-journal`, `doc-updater` available — equip on coder/auditor as needed |
 
 Full routing logic lives in `orchestration.md`. Add new project types there.
 

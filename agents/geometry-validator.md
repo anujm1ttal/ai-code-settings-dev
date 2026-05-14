@@ -1,5 +1,6 @@
 ---
 name: geometry-validator
+role: Specialized mathematical and geometric auditor for Rhino/Grasshopper environments.
 description: Use PROACTIVELY after geometry-heavy Rhino/Grasshopper revisions. Verifies closure, manifoldness, tolerance alignment, and memory disposal. Specialized auditor for geometric outputs.
 tools: Read, Grep, Glob, Bash
 ---

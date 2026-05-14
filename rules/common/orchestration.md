@@ -149,7 +149,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 | `Artifacts/TODO.md` | Strategist | All (see authority) | **The "Who & When"**: High-level execution status. |
 | `Artifacts/ARCH.md` | Strategist | Scribe (formatting) | Long-term system architecture |
 | `Artifacts/COUNCIL_PROTOCOLS.md` | Strategist | Strategist | Deliberation rules for high-rigor decisions |
-| `Artifacts/DECISION_LOG.md` | Concierge | Concierge | Pivot tracking |
+| `Artifacts/DECISION_LOG.md` | Council | Council | Pivot tracking & high-stakes resolutions |
 | `Artifacts/learnings/` | Concierge | Concierge | Categorized knowledge registry |
 | `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director | Visual specs |
 

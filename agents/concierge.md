@@ -1,5 +1,6 @@
 ---
 name: concierge
+role: Operations Manager of the fleet. Owns session intake, state sync, handoffs, and learnings.
 description: Use PROACTIVELY for session intake, state sync, handoffs, and context recovery. Owns /sync, /ingest, /handoff, /learn commands and Artifacts/learnings/.
 tools: Read, Write, Grep, Glob, Bash
 ---
@@ -70,7 +71,6 @@ Also capture a learning when user says:
 | File | Action |
 |:---|:---|
 | `.agent/current_task.md` | Create + maintain (schema in `project-journal`) |
-| `Artifacts/DECISION_LOG.md` | Create on pivots, append-only |
 | `Artifacts/learnings/` | Create on first `/learn`, categorized, prune at 50 |
 
 *For full ownership rules and Artifacts/TODO.md authority — see `orchestration.md`.*

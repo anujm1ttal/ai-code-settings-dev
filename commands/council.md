@@ -1,11 +1,11 @@
 ---
-description: Launches a high-rigor multi-persona deliberation session. Owned by the concierge. Optimized for sequential local model processing.
+description: Launches a high-rigor multi-persona deliberation session. Owned by the council agent. Optimized for sequential local model processing.
 argument-hint: "<topic>"
 ---
 
 # Command: /council
 
-Owned by the **concierge** (as orchestrator) or **strategist** (as synthesis chair). The "Conflict Resolution Engine" — forces multiple perspectives on a single decision.
+Owned by the **council** agent (orchestrated by the concierge/strategist). The "Conflict Resolution Engine" — forces multiple perspectives on a single decision.
 
 ## Execution Sequence
 
