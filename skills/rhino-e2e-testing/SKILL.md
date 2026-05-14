@@ -1,6 +1,6 @@
 ---
 name: rhino-e2e-testing
-description: Headless E2E testing for Rhino 8 and Grasshopper using pytest and rhinoinside.
+description: Use this skill whenever you are performing rigorous, headless end-to-end testing of RhinoCommon geometry, Grasshopper definitions, or plugin state using Rhino.Inside and pytest. It implements the "Lane A protocol" for verifying geometric invariants like manifoldness, intersections, and tolerance-aware comparisons. Trigger when you are fixing a geometric bug, adding a new Grasshopper component, or verifying a complex Brep operation. Do NOT use for geometry-agnostic logic that can be tested in pure Python (Lane B); use rhino-unit-testing instead.
 tags: ["rhino", "grasshopper", "testing", "pytest", "rhinoinside", "e2e"]
 auto_activate: false
 argument-hint: "[--run-tests|--setup-reproduction]"
@@ -13,7 +13,25 @@ metadata:
 
 ## 🏗 Setup & Environment
 
-This skill enables headless testing of geometric logic and Grasshopper definitions using **Rhino.Inside** and **pytest**.
+## 🗺 Testing Lane Decision Tree
+
+```text
+DOES THE TEST REQUIRE GEOMETRIC INVARIANTS?
+(Manifoldness, Brep.Split, Mesh.Intersection, GH.Canvas)
+│
+├── [NO] ───────────────────> USE LANE B (rhino-unit-testing)
+│                             Fast, pure Python, no Rhino runtime.
+│
+├── [YES]
+│    │
+│    ├── TYPE: Core Logic / Algorithms
+│    │   └── [ACTION]: USE LANE A-HEADLESS (pytest + rhinoinside).
+│    │                 Best for CI/CD and rapid iteration.
+│    │
+│    └── TYPE: UI / Canvas / Plugin Interaction
+│        └── [ACTION]: USE LANE A-FULL (Manual in Rhino UI).
+│                      Use when headless mode cannot load specialized plugins.
+```
 
 ### Prerequisites
 - **Rhino 8** installed on the local machine.
@@ -114,6 +132,14 @@ class TestMyFunction:
 ~~~
 
 ## 💻 Running Tests
+
+Use the standardized runner script. Run with `--help` for options. **Do NOT read the source code.**
+
+```bash
+python scripts/run_headless.py tests/e2e --cov=src
+```
+
+Standard `pytest` commands are also available:
 - `pytest` : Basic run.
 - `pytest --cov=src --cov-report=term-missing` : Run with coverage.
 - `pytest -s` : Show print output.

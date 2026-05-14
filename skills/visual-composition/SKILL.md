@@ -1,6 +1,6 @@
 ---
 name: visual-composition
-description: Cross-medium visual design principles — hierarchy, layout systems, density control, accessibility, and brand governance. Reference for Creative Director, Auditor, and Coder agents.
+description: Use this skill whenever you are planning or reviewing visual layouts, hierarchy, and brand governance across any medium (slides, reports, dashboards). It enforces "Hierarchy First" design, scannability, and accessibility standards (contrast, font size). Trigger when the creative-director is drafting a LAYOUT_SPEC.md or when an auditor is performing a visual quality check. Do NOT use for technical implementation details like python-pptx code or Power BI theme JSON; refer to specialized document skills for those implementations.
 tags: ["design", "layout", "accessibility", "visual-design", "composition", "standards"]
 auto_activate: false
 argument-hint: "<design requirement or layout constraint>"
@@ -135,17 +135,42 @@ verbosity_control: "STRICT. Bullet-driven rules. No subjective language — ever
 - Choose 3–5 patterns per deliverable. Document in `Artifacts/LAYOUT_SPEC.md`.
 - Deviations from established patterns require justification.
 
-## 🚫 Anti-Patterns (Explicit Deny List)
-- No pages without a clear focal point.
-- No free-floating elements unaligned to the grid.
-- No more than 2 font families per deliverable.
-- No ad hoc colors outside `style_constants.py`.
-- No decoration-only visuals (clip art, stock icons with no informational role).
-- No centered-everything layouts — centering is a choice, not a default.
-- No color as the sole differentiator for meaning.
-- No text below 10pt in any context.
-- No symmetry forced where asymmetry would improve hierarchy.
-- No vague spec language ("make it clean", "make it pop", "use good design").
+## 🚫 Anti-Slop Deny List (Explicit Rejection Criteria)
+
+The `auditor` will REJECT any deliverable containing these low-effort "slop" patterns:
+
+- **Banned Fonts (Display/Heading)**: Inter, Roboto, Arial, Segoe UI, or any browser/OS default. These signal "unstyled." Use the [Typography Pairings](#typography-pairings) below.
+- **Banned Layouts**: 
+  - Centered everything (titles, body, images all center-aligned).
+  - Uniform rounded corners (every box having the same 8px radius).
+  - Purple/Blue gradients on plain white backgrounds.
+- **Banned Patterns**: 
+  - Accent lines under titles (the hallmark of AI-generated content).
+  - Cookie-cutter card grids (3 cards in a row with icons, no visual variety).
+  - Generic hero sections with centered large text and no focal point.
+- **Banned Spacing**: Random gaps, elements nearly touching (< 0.2in), inconsistent margins.
+
+## 🌈 Concrete Palette Options
+
+Use these named palettes to ensure a professional, designed feel. Reference them by name in `Artifacts/LAYOUT_SPEC.md`.
+
+| Theme | Primary | Secondary | Accent |
+|:---|:---|:---|:---|
+| **Midnight Executive** | `1E2761` (navy) | `CADCFC` (ice blue) | `FFFFFF` (white) |
+| **Forest & Moss** | `2C5F2D` (forest) | `97BC62` (moss) | `F5F5F5` (cream) |
+| **Coral Energy** | `F96167` (coral) | `F9E795` (gold) | `2F3C7E` (navy) |
+| **Warm Terracotta** | `B85042` (terracotta) | `E7E8D1` (sand) | `A7BEAE` (sage) |
+| **Ocean Gradient** | `065A82` (deep blue) | `1C7293` (teal) | `21295C` (midnight) |
+| **Charcoal Minimal** | `36454F` (charcoal) | `F2F2F2` (off-white) | `212121` (black) |
+
+## 🔤 Typography Pairings
+
+| Type | Header Font | Body Font | Rationale |
+|:---|:---|:---|:---|
+| **Editorial** | Georgia | Calibri | High contrast, professional, trustworthy. |
+| **Tech/Clean** | Impact | Arial | Bold, aggressive, efficient. |
+| **Modern Serif** | Palatino | Garamond | Elegant, high-end, sophisticated. |
+| **Monospace** | Consolas | Calibri | Technical, analytical, precise. |
 
 ## 🔍 Audit Checklist
 Used by Auditor agent to verify visual deliverables against this skill:
@@ -164,6 +189,6 @@ Used by Auditor agent to verify visual deliverables against this skill:
 
 ## 🔗 Relationships
 - **Consumed by**: Creative Director (composition planning), Auditor (compliance checks), Coder (implementation guidance).
-- **Complements**: `powerpoint-patterns` (PowerPoint-specific), `powerbi-report` (Power BI-specific).
+- **Complements**: `pptx` (PowerPoint-specific), `powerbi-report` (Power BI-specific).
 - **Style tokens**: `style_constants.py` is the single source of truth for colors, fonts, and sizes.
 - **Layout plans**: `Artifacts/LAYOUT_SPEC.md` is the per-deliverable application of these principles.

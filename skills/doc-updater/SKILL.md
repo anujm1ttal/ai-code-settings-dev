@@ -1,6 +1,6 @@
 ---
 name: doc-updater
-description: Use when generating, updating, or auditing project documentation for staleness or formatting.
+description: Use this skill whenever you are generating, updating, or auditing project documentation for staleness, formatting, or technical accuracy. It defines the standards for READMEs, architecture docs (Artifacts/ARCH.md), and stakeholder-facing guides. Trigger when source code changes require documentation updates, when a new module is added, or when the scribe is performing a /docs audit. Do NOT use for brainstorming or initial research notes unless they are being formalized into the project's permanent documentation library.
 tags: ["documentation", "maintenance", "knowledge-management", "writing", "scribe"]
 auto_activate: false
 argument-hint: "[--staleness-scan|--reference <symbol>]"

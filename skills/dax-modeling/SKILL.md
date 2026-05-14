@@ -1,6 +1,6 @@
 ---
 name: dax-modeling
-description: Power BI data modeling, DAX authoring, and performance optimization. Star Schema enforcement and measure validation for the coder and auditor agents.
+description: Use this skill whenever you are designing data models, authoring DAX measures, or optimizing performance in Power BI. It enforces a "Star Schema" architecture, mandatory VAR/RETURN patterns, and strict division safety (DIVIDE). Trigger when creating a new metric, fixing a circular dependency, or optimizing a slow report page. Do NOT use for front-end visual styling (theme JSON); use powerbi-report for visual layout and formatting tasks.
 tags: ["dax", "power-bi", "data-modeling", "star-schema", "analytics", "business-intelligence"]
 auto_activate: false
 argument-hint: "<DAX measure requirement or modeling question>"
@@ -16,8 +16,10 @@ Load reference files ONLY when the following conditions are met:
 
 | File | Load When |
 |:---|:---|
+| `references/dax-patterns.md` | Before authoring or refactoring ANY DAX measure |
 | `references/measure-catalog.md` | When viewing existing measures or documenting new ones |
 | `references/optimization.md` | When performance issues are reported or object count > 1M rows |
+| `references/validation.md` | Before final audit and sign-off on model changes |
 
 
 ## 📊 Modeling Standards
@@ -46,99 +48,13 @@ Load reference files ONLY when the following conditions are met:
 - **Hidden columns**: Hide all foreign key columns from the report view. Users should never interact with raw keys.
 
 ## 🖋 DAX Patterns
-
-### Readability
-- **VAR/RETURN**: Mandatory for all measures. No inline expressions.
-- **Indentation**: Align `VAR` and `RETURN` at the same level. Indent function arguments.
-- **Line breaks**: One condition per line in `SWITCH(TRUE())` and `FILTER` expressions.
-
-### Safety
-- **Division**: `DIVIDE(numerator, denominator, 0)` — never raw `/` operator.
-- **Blank handling**: Use `IF(ISBLANK(value), fallback, value)` at measure entry points.
-- **Empty tables**: Guard `CALCULATE` with `HASONEVALUE()` or `ISFILTERED()` when the measure depends on specific filter context.
-
-### Logic
-- **Branching**: `SWITCH(TRUE(), condition1, result1, condition2, result2, default)` over nested `IF`.
-- **Context Transition**: Use `CALCULATE()` explicitly for row-to-filter context transition. Never rely on implicit behavior.
-- **Time Intelligence**: Use standard DAX time intelligence functions (`SAMEPERIODLASTYEAR`, `DATESINPERIOD`) with the dedicated `DimDate` table. Never roll custom date logic unless the standard functions don't cover the use case.
-
-### Common Measure Patterns
-
-#### Base Measures
-Every Fact table should have a set of foundational measures before building complex analytics:
-- `Total [Metric]` — Simple aggregation (`SUM`, `COUNT`, `DISTINCTCOUNT`).
-- `Avg [Metric]` — `AVERAGE` or `DIVIDE(SUM, COUNT)` with safety.
-- `[Metric] YoY %` — Year-over-year using `SAMEPERIODLASTYEAR`.
-
-#### Stadium-Specific Patterns
-- **Seat Utilization**: `DIVIDE(SUM(FactTicketSales[SeatsSold]), SUM(DimSection[TotalCapacity]), 0)`.
-- **Sightline Compliance**: `DIVIDE(COUNTROWS(FILTER(FactSightlines, FactSightlines[CValue] >= [MinCValue])), COUNTROWS(FactSightlines), 0)`.
-- **Revenue per Seat**: `DIVIDE(SUM(FactTicketSales[Revenue]), DISTINCTCOUNT(FactTicketSales[SeatID]), 0)`.
+Consult [dax-patterns.md](references/dax-patterns.md) for mandatory VAR/RETURN, safety, and time intelligence standards.
 
 ## 🏎 Optimization
-
-### Calculated Columns
-- **Strictly forbidden in Fact tables**. Offload all calculated columns to Power Query (M).
-- Acceptable in Dimension tables only for:
-  - Binning / bucketing that Power Query cannot handle dynamically.
-  - Concatenated display labels.
-- If you think you need a calculated column in a Fact table, it should be a measure instead.
-
-### Iterators
-- Minimize use of `SUMX`, `AVERAGEX`, `FILTER`, and `ADDCOLUMNS` over large Fact tables.
-- If an iterator is required:
-  - Filter the table down to the smallest possible subset first.
-  - Use `KEEPFILTERS` to prevent unintended context override.
-  - Document the expected row count and performance impact.
-- Prefer `CALCULATE` + `FILTER` over `CALCULATETABLE` when only a scalar result is needed.
-
-### Storage Mode
-- Use Import mode for Fact tables (performance).
-- Consider DirectQuery for real-time Dimension tables only when freshness requirements justify the latency trade-off.
-- Dual mode for bridge tables in composite models.
-
-### Model Size
-- Remove unused columns from the model. Every column consumes memory.
-- Reduce cardinality where possible (round timestamps to the hour, bucket continuous values).
-- Disable Auto Date/Time (repeated — this alone can halve model size).
+Consult [optimization.md](references/optimization.md) for iterator safety, model size reduction, and storage mode selection.
 
 ## 🧪 Validation & Testing
-
-### Measure Validation
-Before the `auditor` approves a DAX measure:
-- [ ] Uses `VAR/RETURN` pattern.
-- [ ] Uses `DIVIDE()` for all division (no raw `/`).
-- [ ] Uses `SWITCH(TRUE())` over nested `IF` (when applicable).
-- [ ] Handles `BLANK()` and empty filter context gracefully.
-- [ ] No calculated columns in Fact tables.
-- [ ] Time intelligence uses `DimDate`, not Auto Date/Time.
-- [ ] Context transition via `CALCULATE()` is explicit, not implicit.
-
-### Model Validation
-Before the `auditor` approves a model change:
-- [ ] Star Schema integrity maintained (1:Many, Dim → Fact).
-- [ ] No Fact-to-Fact relationships.
-- [ ] No circular dependencies.
-- [ ] All foreign key columns hidden from report view.
-- [ ] Sort-by columns defined for non-alphabetical fields.
-- [ ] Unused columns removed.
-- [ ] `DimDate` marked as Date Table.
-
-### Performance Validation
-- [ ] No iterators (`SUMX`, `FILTER`) on Fact tables with >1M rows without documented justification.
-- [ ] No calculated columns in Fact tables.
-- [ ] Model refresh time is within the project's success metric threshold.
-- [ ] DAX Studio `Server Timings` show no single query exceeding the latency target.
-
-### Testing Approach
-Since Power BI doesn't support automated unit tests natively:
-- **Manual Verification Matrix**: For each measure, define a set of known-input → expected-output pairs.
-- **Cross-Validation**: Compare measure results against source data queries (SQL) for at least 3 representative scenarios.
-- **Edge Cases**: Test measures with:
-  - Empty filter context (no selections).
-  - Single-row filter context.
-  - Date ranges that span year boundaries.
-  - Sections with zero capacity or zero sales (division safety).
+Consult [validation.md](references/validation.md) for the auditor checklist and manual verification protocols.
 
 ## 📋 Documentation Standards
 

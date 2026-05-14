@@ -1,6 +1,6 @@
 ---
 name: youtube-scriptwriting
-description: Rules for YouTube A/V script formatting, active voice, and writing for the spoken word.
+description: Use this skill whenever you are writing or expanding a YouTube script from an outline. It enforces Audio/Visual (A/V) formatting standards, active voice, and conversational tone designed for the spoken word. Trigger when the scribe is executing the /script command or when a user asks to "write a script for X." Do NOT use for script auditing (retention checks); use youtube-retention for that review phase.
 tags: [youtube, scriptwriting, storytelling, creative-writing, production]
 auto_activate: false
 argument-hint: "<outline or video topic>"

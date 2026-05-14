@@ -24,7 +24,9 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 | Skill | Purpose |
 |:---|:---|
 | `visual-composition` | Cross-medium design principles and brand governance. |
-| `powerpoint-patterns` | Automated slide building using `python-pptx`. |
+| `pptx` | Canonical PowerPoint creation, editing, and analysis. |
+| `docx` | Professional Microsoft Word document generation. |
+| `xlsx` | Financial modeling and Excel automation standards. |
 | `powerbi-report` | Front-end patterns for Power BI reports. |
 
 ## Domain: Geometry (Rhino/GH)

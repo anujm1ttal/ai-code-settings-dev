@@ -1,6 +1,6 @@
 ---
 name: verification-gate
-description: Use when about to claim work is complete, fixed, or passing — before committing, creating PRs, or marking tasks done. Evidence before assertions, always.
+description: "Use this skill whenever you are about to claim work is complete, fixed, or passing — before committing changes, creating pull requests, or marking tasks as done in the TODO list. It enforces the 'Iron Law': Evidence before assertions, always. Trigger when you have finished an implementation, a bug fix, or a refactor. Use whenever you are reporting status to the user. Do NOT use this skill for brainstorming or initial research where no concrete claim of completion is being made."
 tags: [verification, completion, evidence, quality-gate]
 auto_activate: false
 metadata:
@@ -19,6 +19,29 @@ If you haven't run the verification command in THIS message, you cannot claim it
 Claiming work is complete without verification is dishonesty, not efficiency.
 
 **Violating the letter of this rule is violating the spirit of this rule.**
+
+## 🗺 Evidence Selection Decision Tree
+
+```text
+WHAT ARE YOU CLAIMING?
+│
+├── [COMPLETION] ───────────> Use line-by-line REQUIREMENTS CHECKLIST.
+│                             Must map to Artifacts/TODO.md.
+│
+├── [CORRECTNESS]
+│    │
+│    ├── TYPE: Pure Logic / Math
+│    │   └── [ACTION]: Provide FRESH TEST OUTPUT (Lane B).
+│    │
+│    ├── TYPE: UI / Layout / Visual
+│    │   └── [ACTION]: Provide SCREENSHOT/RECORDING + SUBAGENT AUDIT.
+│    │
+│    └── TYPE: System State / Side Effects
+│        └── [ACTION]: Provide FILESYSTEM DIFF or DB SNAPSHOT.
+│
+└── [BUG FIX] ──────────────> Provide RED-GREEN CYCLE logs.
+                              Prove failure, then prove pass.
+```
 
 ## The Gate Function
 
@@ -78,6 +101,18 @@ If you catch yourself thinking:
 
 - **Coder**: Invoke before claiming any task implementation is ready for review
 - **Audit Trail**: Every gate pass must be linkable to a specific test run or log file.
+
+## 🛠 Automation Scripts
+
+Use these scripts for standardized verification. Run with `--help` for full usage details. **Do NOT read the source code unless specifically debugging the script.**
+
+| Script | Purpose |
+|:---|:---|
+| `scripts/evidence_checker.py` | Verify existence of files or search for patterns |
+
+```bash
+python scripts/evidence_checker.py path/to/evidence --pattern "All tests passed"
+```
 
 ## 🔗 Relationships
 - **Debugging**: Cross-ref `systematic-debugging` for root-cause mandate.

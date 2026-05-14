@@ -35,6 +35,14 @@ Leverages Claude Agent Teams to perform a significantly faster and deeper code r
    - **Risk Reviewer**: Audits for security, edge cases, and math correctness.
 2. The lead `auditor` waits for teammates to finish and aggregates findings into `Artifacts/AUDIT_REPORT.md` and appends to `Artifacts/TODO.md`.
 
+### `/audit --reader-test`: Clean-Room Verification
+Protocol for validating that documentation is self-contained and ambiguity-free.
+1. Read target document (Plan, Spec, or Arch doc).
+2. Spawn a `scribe` subagent with `subagent_type: auditor`.
+3. Provide ONLY the target document as context.
+4. Collect questions and ambiguities identified by the "fresh" agent.
+5. Report findings as gaps in `Artifacts/AUDIT_REPORT.md`.
+
 ## Domain Scans
 
 All scan rules are defined in `coding-style.md`. Domain-specific additions:
@@ -45,7 +53,7 @@ All scan rules are defined in `coding-style.md`. Domain-specific additions:
 - **C#/GH Plugins**: IDisposable, NuGet hygiene, `dotnet build` clean.
 - **Manuscript**: Structural integrity, character agency, pacing. Generates `Artifacts/EDITORIAL_LETTER.md`.
 - **Python (all)**: PEP 8 via `ruff`, `pyright` types, anti-pattern sweep, `frozen=True` dataclasses, Loguru enforcement.
-- **PowerPoint (pptx)**: Template-first, no raw EMUs, no inline colors, layout name lookup, composition compliance → `powerpoint-patterns`, `visual-composition`.
+- **PowerPoint (pptx)**: Template-first, no raw EMUs, no inline colors, layout name lookup, composition compliance → `pptx`, `visual-composition`.
 - **Power BI Report (pbi-report)**: Theme JSON applied, ≤8 visuals/page, measures only, mobile layout required, no pie/3D/gauge → `powerbi-report`, `visual-composition`.
 
 ### AI Code Quality (All Languages — Slop Detection)

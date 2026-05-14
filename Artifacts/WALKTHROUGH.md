@@ -1,38 +1,38 @@
-# Walkthrough: Tier 1 & 2 Architectural Hardening
+# Walkthrough: Anthropic Skill Hardening (Phase 1)
 
-I have successfully hardened the Agent OS by incorporating efficiency and reliability patterns inspired by the KARIMO framework.
+Phase 1 focused on "Quick Wins" to harden the Agent OS architectural integrity by adopting Anthropic's high-rigor patterns for skill descriptions, auditor mindset, and registry consolidation.
 
-## Key Accomplishments
+## Changes Made
 
-### 1. Context Layering (L0/L1/L2)
-Implemented a tiered context loading system to minimize token consumption and context bloat.
-- **L1 Overviews**: Created `agents/agents.overview.md` and `skills/skills.overview.md` as low-bandwidth entry points for routing.
-- **L0 Abstracts**: Generated abstracts for all 8 agents and core skills (Implementation Dispatch, Verification Gate, Project Planner) to allow agents to verify "fit" before loading full definitions.
-- **L2 Definitions**: Preserved existing full definitions for deep execution.
+### 1. Skill Description Expansion (Action 1)
+All 18 skills in the registry have been updated with comprehensive frontmatter descriptions (≥40 words). These descriptions now include:
+- Clear **Context** ("Use this skill whenever...")
+- Specific **Triggers** ("Trigger when...")
+- Explicit **Boundaries** ("Do NOT use for...")
 
-### 2. Knowledge Registry
-Transitioned from a flat `LEARNINGS.md` to a categorized, hierarchical structure.
-- **New Directory**: `Artifacts/learnings/` with categories for `patterns`, `anti-patterns`, `project-notes`, and `execution-rules`.
-- **Migration**: Successfully migrated all existing project learnings and verified the new structure.
-- **Protocol**: Formalized the Findings Protocol in `orchestration.md` to ensure knowledge continuity across session boundaries.
+This ensures more reliable semantic routing and prevents the LLM from misinterpreting the purpose of any specific skill.
 
-### 3. Token Economics & Safeguards
-Standardized the system's operational parameters to maximize ROI.
-- **Economics**: Created `rules/common/TOKEN-ECONOMICS.md` defining bootstrap costs, slicing thresholds (15+ tasks), and context pressure management triggers.
-- **Loop Detection**: Implemented semantic loop detection in the `implementation-dispatch` skill to prevent subagents from infinite correction cycles.
-- **Task Briefing**: Standardized the Task Brief format in `project-planner` to eliminate vague directives and improve implementation rigor.
+### 2. Adversarial Auditor Mindset (Action 3)
+The `agents/auditor.md` definition has been hardened with an "Assume Bugs Exist" framing.
+- **Adversarial Mindset**: The auditor now assumes every implementation contains a bug and must hunt for it.
+- **Visual QA Rule**: Mandatory dispatch of a `visual-auditor` subagent for all UI/layout tasks.
+- **Red Flags**: Added "Visual Slop" to the list of non-negotiable rejection criteria.
+
+### 3. Registry Consolidation (Action 8)
+Merged the legacy `powerpoint-patterns` skill into the canonical `pptx` skill.
+- **Migration**: Created `skills/pptx/references/python-pptx-patterns.md` containing the `python-pptx` implementation patterns.
+- **Cleanup**: Deleted the `skills/powerpoint-patterns/` directory.
+- **Registry Alignment**: Updated `skills.overview.md`, `GEMINI.md`, and `CLAUDE.md` to point to the new structure and include the adopted `docx` and `xlsx` skills.
 
 ## Verification Results
 
-- **Registry Audit**: Verified that all new L1/L0 artifacts are correctly linked and documented.
-- **Layering Integrity**: Confirmed that the new query flow (L1 -> L0 -> L2) is documented as mandatory in `orchestration.md`.
-- **System Hygiene**: Removed legacy `LEARNINGS.md` and synced all `Artifacts/` state files.
+- [x] All 18 skill files verified for frontmatter compliance.
+- [x] `agents/auditor.md` verified for adversarial framing.
+- [x] Registry files (`GEMINI.md`, `CLAUDE.md`, `skills.overview.md`) verified for zero references to the deleted `powerpoint-patterns` skill.
+- [x] Deletion of `powerpoint-patterns` confirmed via filesystem check.
 
 ## Next Steps
 
-- **Phase 11 (Future)**: Consider implementing automated loop detection tracking in `dispatch_history.json`.
-- **Phase 12 (Future)**: Expand abstracts to all remaining skills.
-
----
-> [!TIP]
-> The system is now significantly more "token-efficient." Agents should start every session by reading the L1 Overviews to orient themselves before diving into specific files.
+Phase 2 will focus on **Progressive Disclosure & L3 References**, specifically:
+- Action 2: Multi-tier reference loading for `python-rhino-grasshopper`, `typescript-mcp`, and `dax-modeling`.
+- Action 5: Deepening opportunities in the `pptx` skill.

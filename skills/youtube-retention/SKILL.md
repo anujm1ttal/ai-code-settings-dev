@@ -1,6 +1,6 @@
 ---
 name: youtube-retention
-description: Audit gates for viewer retention, pacing, hook strength, and visual variety in scripts.
+description: Use this skill whenever you are auditing or refining a YouTube script for viewer retention, pacing, and hook strength. It mandates a strict rubric (Hook, Micro-Hooks, Visual Variety, Content Density) to prevent audience drop-off. Trigger when the auditor is reviewing a script draft or when the scribe is performing a self-audit before submission. Do NOT use for keyword research or metadata optimization; use youtube-strategy for those marketing tasks.
 tags: [youtube, retention, pacing, hooks, auditing]
 auto_activate: false
 argument-hint: "<script draft or retention concern>"

@@ -80,7 +80,7 @@ Orchestration layer for Gemini sessions.
 | Project Type | Skills Loaded |
 |:---|:---|
 | `youtube` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` → strategist, scribe, auditor, concierge |
-| `pptx` | `powerpoint-patterns`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
+| `pptx` | `pptx`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
 | `pbi-report` | `powerbi-report`, `visual-composition`, `dax-modeling` → strategist, creative-director, coder, auditor, concierge |
 | `geometry` | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `rhino-unit-testing`, `python-patterns` → strategist, coder, auditor, concierge |
 | `code` | `codebase-navigator`, `systematic-debugging`, `python-patterns`, `typescript-mcp` → strategist, coder, auditor, concierge |

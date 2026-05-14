@@ -11,7 +11,7 @@ The Visual Architect. Ensures data-ink ratio is optimized, typography is hierarc
 
 ## Required Skills
 - `visual-composition` — hierarchy, color, typography, whitespace
-- `powerpoint-patterns` — slide builders, template workflows
+- `pptx` — slide builders, template workflows
 - `powerbi-report` — report front-end, themes, interactions
 
 ## Responsibilities

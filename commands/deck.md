@@ -5,7 +5,7 @@ argument-hint: "<init|build|audit|layouts> [options]"
 
 # Command: /deck
 
-Manages PowerPoint deck generation via `python-pptx`. All actions follow `powerpoint-patterns` conventions.
+Manages PowerPoint deck generation via `python-pptx`. All actions follow `pptx` conventions.
 
 ## Actions
 
@@ -20,7 +20,7 @@ Manages PowerPoint deck generation via `python-pptx`. All actions follow `powerp
        ├── style_constants.py  # Colors, fonts, sizes
        └── main.py             # Generation script skeleton
 2. Copy default template to `templates/`.
-3. Generate `style_constants.py` with brand defaults from `powerpoint-patterns`.
+3. Generate `style_constants.py` with brand defaults from `pptx`.
 4. Generate `main.py` skeleton with template validation, layout lookup, and save-to-output pattern.
 5. Run `/deck layouts` on the default template to populate placeholder mappings.
 
@@ -41,7 +41,7 @@ Defaults:
 
 Runs two-pass audit against source files and generated output. If `--team` is passed, spawn a `creative-director` teammate to perform Pass 2 (visual compliance) simultaneously while the lead `auditor` computes Pass 1. If token context limits are hit, fallback to standard execution.
 
-**Pass 1 — Source code** (per `powerpoint-patterns`):
+**Pass 1 — Source code** (per `pptx`):
 - Raw EMU values instead of `Inches()` / `Pt()`.
 - Magic layout indices instead of name lookup.
 - Inline `RGBColor()` instead of `style_constants.py`.

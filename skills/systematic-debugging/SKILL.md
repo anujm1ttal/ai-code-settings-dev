@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Use when investigating bugs, test failures, or inconsistent behavior — before proposing any fix.
+description: Use this skill whenever investigating bugs, test failures, inconsistent behavior, or performance bottlenecks. It mandates a rigorous 4-phase process (Data Gathering, Root Cause, Hypothesis, Implementation) before any fix is proposed. Trigger when a user reports an error, a command fails with a traceback, or when tests are failing. Do NOT use for general feature implementation or architectural planning unless a specific failure is being triaged.
 tags: [debugging, troubleshooting, root-cause, testing, verification]
 auto_activate: false
 argument-hint: "<error message or failing test description>"
@@ -14,6 +14,28 @@ metadata:
 ## 🔍 The Iron Law
 **NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST.**
 Patching symptoms is a violation of current task standards. You must prove you understand *why* a failure happens before proposing a solution.
+
+## 🗺 Investigation Strategy Decision Tree
+
+```text
+IS THIS A FAILURE?
+│
+├── [NO] ───────────────────> STOP. Use feature implementation skills.
+│
+├── [YES]
+│    │
+│    ├── TYPE: Crash / Exception
+│    │   └── [ACTION]: Gather full stack trace + state snapshot. Phase 1.
+│    │
+│    ├── TYPE: Logical Incorrectness (Math/Geometry)
+│    │   └── [ACTION]: Isolate pure logic in Lane B. Compare against manual matrix.
+│    │
+│    ├── TYPE: Performance Bottleneck
+│    │   └── [ACTION]: Profile with timing decorators. Identify the "Hot Path."
+│    │
+│    └── TYPE: Heuristic/Aesthetic "Feels Wrong"
+│        └── [ACTION]: Compare against LAYOUT_SPEC.md or domain standards.
+```
 
 ## 🛠 The 4-Phase Process
 

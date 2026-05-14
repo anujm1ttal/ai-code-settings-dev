@@ -1,6 +1,6 @@
 ---
 name: banana-prompt
-description: Use when the user needs AI image prompts for Midjourney, Gemini, or DALL-E.
+description: Use this skill whenever the user needs high-quality AI image prompts for Midjourney, Gemini, DALL-E, or other image generation models. It specializes in converting vague visual concepts into precise, structured prompts that include lighting, camera settings, art styles, and technical parameters. Trigger when the creative-director is planning a deck, when thumbnails are being designed, or when a user asks "Give me an image of X." Do NOT use for basic text generation or general chat without a visual production requirement.
 tags: [image-generation, prompts, midjourney, dall-e, creative-director]
 auto_activate: false
 argument-hint: "<intent description or domain mode>"

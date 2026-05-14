@@ -1,6 +1,6 @@
 ---
 name: python-rhino-grasshopper
-description: "Expert in RhinoCommon API, GhPython, and computational design scripting for Rhino 8. Mandates the use of 'Rhino.Geometry' and high-rigor patterns. Use this skill for geometry creation, panelization, structural logic, and Grasshopper data tree management."
+description: "Expert in RhinoCommon API, GhPython, and computational design scripting for Rhino 8. Mandates the use of 'Rhino.Geometry', high-rigor patterns, and strict CPython 3.9 compliance. Use this skill whenever writing, refactoring, or reviewing Python code that interacts with the Rhino runtime or Grasshopper SDK. Trigger when the user mentions 'Rhino', 'Grasshopper', 'geometry', or 'brep'. Use whenever implementing structural logic or data tree management. Do NOT use for pure Python math or logic that doesn't depend on Rhino (use rhino-unit-testing instead)."
 tags: [rhino, grasshopper, rhinocommon, ghpython, geometry, computational-design, architecture]
 auto_activate: false
 argument-hint: "[stadium|facade|landscape|furniture|general] <geometric goal>"
@@ -16,6 +16,7 @@ Load reference files ONLY when the following conditions are met:
 
 | File | Load When |
 |:---|:---|
+| `references/api-lookups.md` | Before using any `Rhino.Geometry` or `Grasshopper` member |
 | `references/pitfalls.md` | Mandatory before EVERY task — avoids hallucinations and traps |
 | `references/architecture.md` | New project setup or questions about structural alignment |
 | `references/performance.md` | Object count > 1,000 or performance is a project focus |
@@ -72,11 +73,7 @@ Run the Review Checklist (see below) and delegate to the **geometry-validator** 
 
 ## 📖 API Reference Lookups (MANDATORY)
 
-> [!CAUTION]
-> LLMs frequently hallucinate properties (e.g., `.BoundingBox` vs `.GetBoundingBox()`). You MUST use the **absolute path** to the resources directory in your `grep_search`.
-
-- **Resource Directory**: `skills/python-rhino-grasshopper/resources/` (Resolve to absolute path)
-- **Files**: `RhinoCommon.xml`, `Grasshopper.xml`, `GH_IO.XML`
+Consult [api-lookups.md](references/api-lookups.md) for the mandatory lookup protocol and the Hallucination Deny List. You are FORBIDDEN from guessing API signatures.
 
 ---
 
@@ -91,6 +88,3 @@ Run the Review Checklist (see below) and delegate to the **geometry-validator** 
 - [ ] `Parallel.ForEach` considered for performance?
 - [ ] Constants defined in `config.py`?
 - [ ] `pytest.approx` used for all geometric assertions?
-
-## 🚫 Hallucination Guard
-If you are unsure of a property, consult `references/pitfalls.md` for the **Hallucination Deny List**.

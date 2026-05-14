@@ -1,6 +1,6 @@
 ---
 name: powerbi-report
-description: Power BI front-end patterns — theme JSON, visual selection, page layout, formatting, interactions, mobile, performance, and conditional formatting. Reference for Creative Director, Auditor, and Coder agents.
+description: Use this skill whenever you are designing, building, or auditing Power BI report front-ends, including page layouts, visual selection, and theme JSON files. It mandates a theme-driven approach, mobile-first design, and strict performance limits (max 8 visuals per page). Trigger when the creative-director is drafting a LAYOUT_SPEC.md, when a coder is modifying a .pbip file, or when an auditor is performing a performance check. Do NOT use for backend data modeling or DAX calculations unless they directly impact visual rendering; use dax-modeling for those tasks.
 tags: ["powerbi", "visualization", "dashboard", "reporting", "metrics"]
 auto_activate: false
 argument-hint: "<page layout requirement or visual type selection>"

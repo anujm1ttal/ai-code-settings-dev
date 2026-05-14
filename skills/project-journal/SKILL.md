@@ -1,6 +1,6 @@
 ---
 name: project-journal
-description: Use when maintaining session history, decision logs, or project memory across sessions.
+description: Use this skill whenever you are maintaining session history, decision logs, or project memory across sessions. It is the primary tool for the concierge agent to manage context debt and ensure seamless handoffs. Trigger this skill at session start (via /sync) to recover state and at session end (via /handoff) to capture progress, decisions, and blockers. Do NOT use for routine task status tracking (that belongs in Artifacts/TODO.md) or technical design (that belongs in Artifacts/IMPLEMENTATION_PLAN.md).
 tags: ["context", "memory", "management", "workflow", "state", "handoff", "concierge"]
 auto_activate: false
 argument-hint: "[--sync|--handoff|--ingest]"

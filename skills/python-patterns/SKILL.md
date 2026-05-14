@@ -1,6 +1,6 @@
 ---
 name: python-patterns
-description: Pythonic idioms, PEP 8, type hints, and best practices for Python 3.12+. Reference for the coder and auditor agents.
+description: Use this skill whenever you are writing, refactoring, or reviewing Python 3.12+ code. It mandates Pythonic idioms (PEP 8), strict type hinting, loguru for logging, and immutability by default. Trigger when you are starting a new Python project, fixing a linting error from ruff, or adding a pydantic model for validation. Do NOT use for Rhino-internal scripts which must follow Python 3.12 syntax but limited libraries; refer to python-rhino-grasshopper for specialized Rhino runtime constraints.
 tags: ["python", "development", "standards", "backend", "coding-style"]
 auto_activate: false
 argument-hint: "<Python logic requirement or code style question>"

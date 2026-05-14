@@ -1,6 +1,6 @@
 ---
 name: project-planner
-description: Use when planning phased roadmaps, mapping dependencies, estimating timelines, or decomposing tasks.
+description: Use this skill when initializing new projects, appending phases to an existing roadmap, mapping dependencies between tasks, or decomposing high-level goals into actionable TODO items. It enforces "Minimalism First" planning and ROI-driven prioritization. Trigger when the user asks "How should we build X?" or "What's next?", or when a complex task needs to be broken down. Do NOT use for one-off minor edits that fall under the Micro-Task Protocol.
 tags: ["planning", "project-management", "phasing", "estimation", "strategist", "roadmap"]
 auto_activate: false
 argument-hint: "<vague project idea or roadmap requirement>"

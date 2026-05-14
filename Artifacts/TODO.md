@@ -1,24 +1,72 @@
-- [x] **Phase 7: Context Layering (Tier 1)**
-  - [x] [strategist] Create `agents/agents.overview.md` (L1) — Success: File exists with all 8 agents
-  - [x] [strategist] Create `skills/skills.overview.md` (L1) — Success: File exists with 25 skills mapped
-  - [x] [coder] Generate abstracts (L0) for core agents (strategist, coder, auditor, concierge)
-  - [x] [coder] Generate abstracts (L0) for high-use skills (implementation-dispatch, verification-gate, project-planner)
-- [x] **Phase 8: Knowledge & Economics (Tier 1 & 2)**
-  - [x] [strategist] Initialize `Artifacts/learnings/` directory structure
-  - [x] [coder] Migrate current `LEARNINGS.md` content to new structure
-  - [x] [strategist] Create `rules/common/TOKEN-ECONOMICS.md`
-  - [x] [coder] Update `orchestration.md` with Findings Protocol and Loop Detection rules
-- [x] **Phase 9: Logic & Templates (Tier 2)**
-  - [x] [coder] Implement loop detection in `implementation-dispatch/SKILL.md`
-  - [x] [coder] Standardize Task Brief format in `implementation_plan.md` template
-- [x] **Phase 10: Verification**
-  - [x] [auditor] Run `/registry-audit` to verify layering
-  - [x] [auditor] Verify loop detection logic in a test case
-- [x] **Phase 11: Tiered Handoff (Optimization)**
-  - [x] [coder] Refactor `commands/handoff.md` to support `--lite`, `--session` (default), and `--phase` flags.
-  - [x] [coder] Implement conditional logic for Plan Pruning and Memory Graduation.
-  - [x] [auditor] Verify speed improvements and correct flag gating.
-- [x] **Phase 12: Scratch Redirection (Hard-Gate)**
-  - [x] [strategist] Update `orchestration.md` with Scratch Strategy.
-  - [x] [coder] Update `GEMINI.md` and `CLAUDE.md` with redirection rules.
-  - [x] [auditor] Verify scratch file placement in `Artifacts/Temp/`.
+# TODO: Anthropic Patterns Adoption
+
+## Phase 1 — Quick Wins
+
+- [/] [coder] **Action 1**: Expand skill descriptions with trigger keywords — Success: all 18 skills have ≥40-word descriptions
+  - [/] `systematic-debugging`
+  - [/] `verification-gate`
+  - [/] `implementation-dispatch`
+  - [/] `project-planner`
+  - [/] `project-journal`
+  - [/] `doc-updater`
+  - [/] `banana-prompt`
+  - [/] `typescript-mcp`
+- [x] [coder] **Action 1**: Expand skill descriptions with trigger keywords — Success: all 18 skills have ≥40-word descriptions
+  - [x] `systematic-debugging`
+  - [x] `verification-gate`
+  - [x] `implementation-dispatch`
+  - [x] `project-planner`
+  - [x] `project-journal`
+  - [x] `doc-updater`
+  - [x] `banana-prompt`
+  - [x] `typescript-mcp`
+  - [x] `python-patterns`
+  - [x] `rhino-unit-testing`
+  - [x] `rhino-e2e-testing`
+  - [x] `cd-foundations`
+  - [x] `powerbi-report`
+  - [x] `visual-composition`
+  - [x] `youtube-retention`
+  - [x] `youtube-scriptwriting`
+  - [x] `youtube-strategy`
+  - [x] `dax-modeling`
+- [x] [coder] **Action 3**: Add "Assume Bugs Exist" framing to auditor — Success: `agents/auditor.md` contains adversarial QA section + subagent visual QA rule
+- [x] [coder] **Action 8**: Merge `powerpoint-patterns` into `pptx`, then delete — Success: zero references to `powerpoint-patterns` across all registry files
+  - [x] Create `skills/pptx/references/python-pptx-patterns.md` with migrated content
+  - [x] Add pointer in `skills/pptx/SKILL.md` to reference file
+  - [x] Delete `skills/powerpoint-patterns/` directory
+  - [x] Update `skills/skills.overview.md` — remove old row, add `pptx`, `docx`, `xlsx`
+  - [x] Update `GEMINI.md` — remove `powerpoint-patterns`, add document skills to routing
+  - [x] Update `CLAUDE.md` — same changes as GEMINI.md
+
+## Phase 2 — Structural Improvements
+
+- [x] [coder] **Action 2**: Adopt progressive disclosure (L3 `references/`) — Success: heavy skills have SKILL.md <500 lines with reference files split out
+  - [x] `python-rhino-grasshopper` → split API reference
+  - [x] `typescript-mcp` → split Zod patterns
+  - [x] `dax-modeling` → split DAX function reference
+- [x] [coder] **Action 5**: Ship anti-slop patterns in `visual-composition` — Success: skill contains banned fonts, banned layouts, concrete palettes, typography pairings
+  - [x] Add `## Anti-Slop Deny List` section
+  - [x] Add `## Concrete Palette Options` section (5-10 named palettes)
+  - [x] Add `## Typography Pairings` section (5+ pairings)
+- [x] [coder] **Action 6**: Add decision trees to routing-heavy skills — Success: 3 skills have ASCII decision trees with no dead ends
+  - [x] `systematic-debugging` — bug type routing tree
+  - [x] `rhino-e2e-testing` — test lane selection tree
+  - [x] `verification-gate` — evidence type routing tree
+
+## Phase 3 — Advanced Patterns
+
+- [x] [coder] **Action 4**: Bundle reusable scripts with `--help` interfaces — Success: ≥3 skills have `scripts/` directories with `--help`-documented tools
+  - [x] `verification-gate/scripts/evidence_checker.py`
+  - [x] `rhino-e2e-testing/scripts/run_headless.py`
+  - [x] Inventory existing `pptx/scripts/` for `--help` compliance
+- [x] [coder] **Action 7**: Reader-testing pattern for plan/doc verification — Success: auditor.md has clean-room review section, `/audit --reader-test` flag documented
+  - [x] Add `## Clean-Room Document Review` section to `agents/auditor.md`
+  - [x] Add `--reader-test` flag to `commands/audit.md`
+
+## Post-Implementation
+
+- [x] [auditor] Run `/registry-audit` to verify zero drift
+- [x] [auditor] Verify all SKILL.md description lengths ≥40 words
+- [x] [auditor] Verify zero references to `powerpoint-patterns` in registry
+- [x] [coder] Git commit with message: "feat: adopt Anthropic skill patterns — descriptions, L3, anti-slop, decision trees, auditor hardening"
