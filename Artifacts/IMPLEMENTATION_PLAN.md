@@ -1,51 +1,56 @@
-# [Goal Description]
-Establish a new high-rigor `python-mcp` skill to standardize the creation and maintenance of MCP servers in Python. This skill will bridge the gap between strategic design (discovery/planning) and tactical implementation (FastMCP/Pydantic).
+# Global Skill Audit Plan
+
+Audit all skills in `skills/` against the `skill-creator` standards to ensure architectural integrity, optimal triggering, and high-quality instructions.
 
 ## User Review Required
 
 > [!IMPORTANT]
-> The new skill will mandate **Pydantic v2** and **FastMCP** as the default stack for Python MCP development to ensure maximum type safety and schema generation quality.
+> This is a broad sweep. I will prioritize identifying "shallow" or "bloated" skills that violate the 500-line soft cap or lack clear trigger descriptions.
+
+## Open Questions
+
+- Should I prioritize any specific category of skills (e.g., Rhino/Grasshopper vs. MCP)?
+- Do you want me to automatically fix minor issues (like missing frontmatter) or just report them?
 
 ## Proposed Changes
 
-### Domain: Specialized
+### Phase 1: Structural Inventory
 
-#### [NEW] [SKILL.md](file:///c:/Users/44547/source/repos/ai-code-settings/skills/python-mcp/SKILL.md)
-Creation of the primary skill definition.
-- **Strategic Layer**: Adopt the "Phase 1: Discovery" and "Phase 2: Planning" workflow from `mcp-builder`.
-- **Implementation Layer**: Standardize FastMCP setup, tool registration, and Pydantic v2 input modeling.
-- **Verification Layer**: Mandate `--help` CLI checks and unit testing for tool logic.
+I will scan all skill directories to verify the presence of `SKILL.md`, YAML frontmatter, and basic directory structure (`scripts/`, `references/`).
 
-#### [NEW] [fastmcp-patterns.md](file:///c:/Users/44547/source/repos/ai-code-settings/skills/python-mcp/references/fastmcp-patterns.md)
-Deep-load reference for technical implementation details.
-- Standard imports and server initialization.
-- Pydantic model configuration (`model_config`).
-- Error handling utilities.
-- Response formatting (Markdown vs. JSON).
+#### [NEW] [SKILL_AUDIT_REPORT.md](file:///c:/Users/44547/source/repos/ai-code-settings/Artifacts/SKILL_AUDIT_REPORT.md)
+Initial findings and status of all skills.
 
-#### [NEW] [planning-checklist.md](file:///c:/Users/44547/source/repos/ai-code-settings/skills/python-mcp/references/planning-checklist.md)
-Deep-load reference for the strategic design phase.
-- API mapping and tool selection criteria.
-- Naming conventions (`{service}_mcp`).
+### Phase 2: Instruction Quality & Bloat Check
 
-### Core Registry
+I will analyze each `SKILL.md` for:
+- Line count (>500 lines requires splitting).
+- Tone (Imperative, explains the "why").
+- Progressive Disclosure (Proper use of `references/` for large docs).
+- Example patterns.
 
-#### [MODIFY] [skills.overview.md](file:///c:/Users/44547/source/repos/ai-code-settings/skills/skills.overview.md)
-Add `python-mcp` to the "Domain: Development" section.
+### Phase 3: Triggering Description Optimization
 
-#### [MODIFY] [orchestration.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/orchestration.md)
-Add `python-mcp` to the `code` and `hybrid` project types.
+I will review the `description` in frontmatter for:
+- "Pushiness" (explicitly stating when to use).
+- Clarity (what it enables Claude to do).
 
-#### [MODIFY] [GEMINI.md](file:///c:/Users/44547/source/repos/ai-code-settings/GEMINI.md)
-Update the skills list to include the new skill.
+### Phase 4: Remediation
 
----
+I will implement the recommendations from the audit report.
+
+#### [MODIFY] [SKILL.md](file:///c:/Users/44547/source/repos/ai-code-settings/skills/docx/SKILL.md)
+Splitting extensive docx-js API guide out of the main instructions.
+
+#### [NEW] [api-guide.md](file:///c:/Users/44547/source/repos/ai-code-settings/skills/docx/references/api-guide.md)
+Extracted docx-js API reference.
+- Clarity (what it enables Claude to do).
 
 ## Verification Plan
 
-### Automated Tests
-- Run a `registry-audit` to ensure the new skill is correctly wired.
-- Validate that the new `SKILL.md` passes the frontmatter and word-count checks (≥40 words).
+### Automated Checks
+- Script to count lines in all `SKILL.md` files.
+- Regex check for YAML frontmatter presence.
 
 ### Manual Verification
-- None required for skill creation itself, but the auditor will verify the "Right to Exist" and "Architectural Alignment" of the new files.
+- Qualitative review of instruction clarity.
