@@ -50,7 +50,7 @@ PLUGIN_REGISTRY: dict[str, dict] = {
     },
     "pbi-core": {
         "category": "pbi-report",
-        "skills": [],
+        "skills": ["powerbi-report"],
         "project_types": ["pbi-report", "data"],
     },
     "code-mcp-tools": {
