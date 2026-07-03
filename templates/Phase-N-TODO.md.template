@@ -1,0 +1,20 @@
+# Phase N: [Phase Title] Tasks
+
+## Overview
+
+[Link to Phase-N-Plan.md and brief description of phase scope and objectives]
+
+See `Artifacts/Plans/Phase-N-Plan.md` for detailed technical design.
+
+## Tasks
+
+- [ ] [agent] Task 1 description — Success: metric
+- [ ] [agent] Task 2 description — Success: metric
+- [ ] [agent] Task 3 description — Success: metric
+
+## Status
+
+- [ ] Strategist approval (Step 0 passed)
+- [ ] Git branch created
+- [ ] Implementation complete
+- [ ] Auditor verification complete
