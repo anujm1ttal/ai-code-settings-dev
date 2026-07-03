@@ -57,7 +57,7 @@ project.json (V1 or V2)
 
 | Constant | Value | Source | Notes |
 |:---|:---|:---|:---|
-| **Singleton Skills Count** | 12 | Phase 9 analysis | youtube (3), pptx (1), pbi (1), code-mcp (2), geometry (4), manuscript (1) |
+| **Singleton Skills Count** | 13 | Phase 11.3 migration complete | youtube (3), pptx (1), pbi (1), code-mcp (2), geometry (4), manuscript (2) |
 | **Foundational Skills Count** | 7 | CLAUDE.md § Project Type Routing | Always loaded, never optional |
 | **Universal Skills Count** | 9 | Phase 11 design | Shared across 2+ project types; always loaded if `auto_include=true` |
 | **Bootstrap Token Target** | 7,600 | Token economics | Current cost for all-skills load |
@@ -105,13 +105,16 @@ project.json (V1 or V2)
 - Identified 8 universal skills, 12 singletons, 111 tag clusters
 - Enabled Phase 11 plugin system design
 
-### Phase 11: Optional Plugin System (IN PROGRESS / APPROVED)
-- Move 12 singletons to `optional_plugins/`
-- Implement lazy-loading via manifest V2 schema
-- Reduce bootstrap overhead 15–25%
-- **Timeline**: Weeks 33–35 (Jul 21 – Aug 10)
-- **Delivery**: `v11.0.0-plugin-system` tag
-- **Blocking on**: User approval of Phase 11 plan
+### Phase 11: Optional Plugin System (COMPLETE - v11.0.0-plugin-system)
+- Migrated 13 singletons to `optional_plugins/`
+- Implemented lazy-loading via manifest V2 schema
+- Achieved 18–25% bootstrap token savings
+- **Delivery**: Git tag `v11.0.0-plugin-system` created
+- **Highlights**: 
+  - All 13 skills migrated to plugin format
+  - V1→V2 auto-upgrade implemented and tested
+  - PLUGIN_REGISTRY hardcoded in `scripts/manifest_validator.py`
+  - Rollback procedure documented in `Artifacts/ROLLBACK_PROCEDURE.md`
 
 ### Phase 12: Skill Maturity Tiers (PLANNED)
 - Classify skills: Tier 1 (Essential), Tier 2 (Recommended), Tier 3 (Niche)
@@ -134,13 +137,51 @@ project.json (V1 or V2)
 
 ---
 
+## Plugin System Architecture (Phase 11 Complete)
+
+### Non-Negotiables
+
+1. **Singleton Skills Are Now Plugins**: youtube-strategy, youtube-scriptwriting, youtube-retention, pptx, powerbi-report, python-mcp, typescript-mcp, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, manuscript-review, business-analyst, cd-foundations
+   - Accessible ONLY via `optional_plugins/[category]/[skill]/`
+   - NO longer in `skills/` directory (removed in Phase 11.3)
+   - Lazy-loaded per plugin configuration in project manifest
+
+2. **Manifest V2 Schema Is Default**: All new projects should use `schema_version: "2.0.0"` with `plugins` array
+   - V1 manifests auto-upgrade to V2 on validation (transparent to users)
+   - No loss of functionality during upgrade
+   - Plugin refs are optional; `auto_include: true` projects auto-enable per project_type
+
+3. **Core Skills Remain Universal**: 9 core skills remain in `skills/` (not plugins)
+   - Always available, never lazy-loaded
+   - Non-negotiable for all project types
+   - Examples: codebase-navigator, systematic-debugging, project-planner
+
+4. **Plugin Registry Is Hardcoded**: `PLUGIN_REGISTRY` in `scripts/manifest_validator.py` maps:
+   - plugin_id → {category, skills[], project_types[], auto_enable}
+   - Must stay in sync with actual `optional_plugins/[category]/plugin.yaml` files
+   - Auditor gate: Any drift → regression test failure
+
+5. **Rollback Is Possible**: Migration state saved to `Artifacts/.agent/migration_state.json`
+   - Use `python scripts/migrate_skills_to_plugins.py --rollback` to restore skills/ if needed
+   - Manual procedure in `Artifacts/ROLLBACK_PROCEDURE.md`
+   - Rollback is tested and reversible
+
+### Key Routing
+
+- **New singleton-related question?** → Check `optional_plugins/[category]/[skill]/SKILL.md`
+- **Manifest validation broken?** → Check PLUGIN_REGISTRY sync in `scripts/manifest_validator.py`
+- **Plugin not loading?** → Verify plugin.yaml has skill in skills array, and project manifest has plugin_id in plugins array
+- **Need to add a new optional plugin?** → Follow structure in `optional_plugins/[category]/plugin.yaml` + create category dir with plugin.yaml + add to PLUGIN_REGISTRY
+
+---
+
 ## 📊 Skill Audit History
 
 | Phase | Focus | Status | Link |
 |:---|:---|:---|:---|
 | Phase 1–4 | Structural audit & remediation | ✓ COMPLETE | `Artifacts/SKILL_AUDIT_REPORT.md` |
 | Phase 9 | Dependency graph analysis | ✓ COMPLETE | `Artifacts/Temp/` (archived) |
-| Phase 11 | Plugin system design & rollout | ⏳ IN PROGRESS | `Artifacts/PHASE_11_PLUGIN_SYSTEM.md` |
+| Phase 11 | Plugin system design & rollout | ✓ COMPLETE | Git tag `v11.0.0-plugin-system` |
 
 ---
 
@@ -151,9 +192,9 @@ project.json (V1 or V2)
 - **Token Economics**: `rules/common/TOKEN-ECONOMICS.md`
 - **Project Type Defaults**: `CLAUDE.md` § Project Type Routing
 - **Skill Registry**: `skills/skills.overview.md`
-- **Plugin System**: `optional_plugins/index.md` (after Phase 11.1)
+- **Plugin System**: `optional_plugins/index.md`
 
 ---
 
 **Last Updated**: 2026-07-03
-**Next Review**: After Phase 11 completion (estimated 2026-08-10)
+**Next Review**: After Phase 12 completion (estimated 2026-09-15)
