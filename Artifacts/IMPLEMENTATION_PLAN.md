@@ -54,3 +54,48 @@ Extracted docx-js API reference.
 
 ### Manual Verification
 - Qualitative review of instruction clarity.
+
+---
+
+# Phase 12: Standardize Artifacts Workflow
+
+**Objective**: Formalize per-project Artifacts directory structure to reduce cognitive load and establish consistent patterns across all projects.
+
+**Current state**: Projects have ad-hoc Artifacts layouts. This phase standardizes:
+- Root level: high-level files (IMPLEMENTATION_PLAN.md, TODO.md, ARCH.md, MEMORY_ANCHORS.md, learnings/)
+- Plans/: detailed phase plans and todos (created at phase start)
+- Reports/: phase completion reports (created at phase end)
+- History/: archived decisions, old plans, and ad-hoc artifacts
+
+## Phase 12.1: Update Global Rules
+
+- [coder] Update `CLAUDE.md` Artifacts section
+  - Document new directory structure (Plans/, Reports/, History/)
+  - Clarify what stays at root (IMPLEMENTATION_PLAN.md, TODO.md, ARCH.md, MEMORY_ANCHORS.md, learnings/)
+  - Define lifecycle: when Plans → History, when Reports created
+
+- [coder] Update `orchestration.md` persistence table
+  - Add Plans/Phase-N-Plan.md and Plans/Phase-N-TODO.md rows
+  - Add Reports/Phase-N-Report.md row
+  - Clarify History/ as archive destination
+  - Maintain learnings/ and MEMORY_ANCHORS.md at root (never archived)
+
+- [coder] Create template files
+  - `templates/Phase-N-Plan.md.template` (sections: Objectives, Technical Approach, File Changes, Dependencies, Success Metrics)
+  - `templates/Phase-N-TODO.md.template` (format matching root TODO.md but phase-scoped)
+
+## Phase 12.2: Update Documentation
+
+- [scribe] Update `cheatsheet.md` Artifacts navigation section
+  - Add visual tree showing new structure
+  - Add lifecycle explanation (Plans → Reports → History)
+
+- [scribe] Update `README.md` Artifacts references
+  - Link to Plans/, Reports/, History/ in developer section
+
+## Success Metrics
+
+- ✓ New Artifacts structure documented in CLAUDE.md (persistence table)
+- ✓ Templates created and ready for projects to use
+- ✓ cheatsheet.md reflects new structure
+- ✓ No breaking changes to existing projects (backward compatible)
