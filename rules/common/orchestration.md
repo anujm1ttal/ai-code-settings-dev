@@ -221,7 +221,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 
 | File | Owner (Create) | Owner (Maintain) | Purpose |
 |:---|:---|:---|:---|
-| `Artifacts/MEMORY_ANCHORS.md` | Strategist | Strategist | **Cold Storage**: Project-wide constants, constraints, and non-negotiables. |
+| `Artifacts/MEMORY_ANCHORS.md` | Strategist | Strategist | **Cold Storage**: Project-wide constants, constraints, and non-negotiables. (Persistent — never archived) |
 | `Artifacts/Temp/` | All | Concierge (Cleanup) | **Transient Storage**: One-off diagrams, scratch scripts, and temporary analysis. |
 | `.agent/current_task.md` | Concierge | Concierge | Session focus |
 | `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
@@ -231,8 +231,17 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 | `Artifacts/COUNCIL_PROTOCOLS.md` | Strategist | Strategist | Deliberation rules for high-rigor decisions |
 | `Artifacts/DECISION_LOG.md` | Council | Council | Pivot tracking & high-stakes resolutions |
 | `Artifacts/HANDOFF_BRIEF.md` | Concierge | Concierge | Session transition & next steps |
-| `Artifacts/learnings/` | Concierge | Concierge | Categorized knowledge registry |
+| `Artifacts/learnings/` | Concierge | Concierge | Categorized knowledge registry (Persistent — never archived) |
 | `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director | Visual specs |
+| `Artifacts/Plans/Phase-N-Plan.md` | Strategist | Strategist | **The "How & Why"**: Detailed phase technical design. |
+| `Artifacts/Plans/Phase-N-TODO.md` | Strategist | Coder/Auditor | Phase-level task tracking and status. |
+| `Artifacts/Reports/Phase-N-Report.md` | Auditor | Auditor | Phase completion summary and metrics. |
+
+**Phase Lifecycle**:
+- Plans/ and Reports/ files are created at phase start and end respectively
+- After a phase is completed, its Plans/ and Reports/ files MUST be moved to History/
+- `learnings/` and `MEMORY_ANCHORS.md` are permanent fixtures and are never archived
+- All other artifacts follow the Archive policy once their active period ends
 
 > [!NOTE]
 > **Transient State Exception**: Platform-level logs for background commands (e.g., in system Temp directories) are managed by the host binary and are inherently transient. They are exempt from the `Artifacts/` persistence requirement.
