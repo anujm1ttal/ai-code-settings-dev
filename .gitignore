@@ -1,2 +1,21 @@
-# State files are now versioned as the Canonical Source of Truth
-# history/
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Transient artifact directories
+Artifacts/.agent/
+Artifacts/Temp/
+
+# Node and build artifacts
+node_modules/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
