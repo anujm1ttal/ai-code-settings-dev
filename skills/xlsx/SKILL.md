@@ -6,6 +6,17 @@ license: Proprietary. LICENSE.txt has complete terms
 
 # XLSX creation, editing, and analysis
 
+## Evaluation Test Cases
+
+This skill has formal evaluation test cases for quality assurance. See `evals.json` for:
+- Creating financial models with dynamic formulas
+- Cleaning messy data and removing duplicates
+- Adding calculated columns with proper formula syntax
+
+These cases define success metrics and verify formula accuracy and formatting.
+
+---
+
 ## Deep-Load Protocol
 Load reference files ONLY when the following conditions are met:
 

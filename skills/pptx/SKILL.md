@@ -6,6 +6,17 @@ license: Proprietary. LICENSE.txt has complete terms
 
 # PPTX Skill
 
+## Evaluation Test Cases
+
+This skill has formal evaluation test cases for quality assurance. See `evals.json` for:
+- Creating professional pitch decks from scratch
+- Editing existing presentations with new data
+- Content extraction and visual auditing
+
+These cases define success metrics and are used to verify the skill's output quality.
+
+---
+
 ## Deep-Load Protocol
 
 Load reference files ONLY when the following conditions are met:

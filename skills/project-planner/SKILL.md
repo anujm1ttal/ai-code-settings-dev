@@ -58,6 +58,20 @@ Vague language is a source of bugs and drift. The following terms and patterns a
 - **Objective**: Agree on the "shape" of the data, the JSON schema, or the script outline before any implementation logic is written.
 - **Success Metric**: Explicit User approval of the contract/schema.
 
+### Roadmap Template
+
+Use the bundled `assets/roadmap-template.md` as a starting point for new projects. It includes sections for:
+- Project overview and objectives
+- Multi-phase planning with goals and deliverables
+- Critical path visualization
+- Risk assessment and mitigation
+- Budget tracking and decisions
+- Change log
+
+Copy and customize the template to match your project scope.
+
+---
+
 ### Phase Template
 
 Every phase in `Artifacts/IMPLEMENTATION_PLAN.md` must contain:

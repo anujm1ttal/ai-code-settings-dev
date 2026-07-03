@@ -1,0 +1,81 @@
+{
+  "skill_name": "python-mcp",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "create-fastmcp-server",
+      "prompt": "Build a Python MCP server using FastMCP that exposes 3 tools for weather data: (1) get_current_weather(city: str) -> returns temperature, condition, humidity; (2) get_forecast(city: str, days: int=5) -> returns 5-day forecast; (3) get_uv_index(latitude: float, longitude: float) -> returns UV index and recommended sun protection. Use Pydantic v2 for all input validation with clear descriptions and constraints. The server should start on port 8000 and accept JSON-RPC 2.0 requests. Include proper error handling for invalid inputs and missing data.",
+      "expected_output": "A complete MCP server implementation with 3 tools, proper schema validation, and working JSON-RPC endpoint",
+      "assertions": [
+        {
+          "name": "server_starts",
+          "description": "Server runs without errors on python main.py or equivalent, listens on specified port"
+        },
+        {
+          "name": "three_tools_registered",
+          "description": "All 3 tools are registered and appear in server schema"
+        },
+        {
+          "name": "pydantic_validation",
+          "description": "All tools use Pydantic v2 BaseModel for input validation"
+        },
+        {
+          "name": "schema_complete",
+          "description": "All input parameters have descriptions, types, and constraints defined"
+        },
+        {
+          "name": "json_rpc_compliant",
+          "description": "Server responds to JSON-RPC 2.0 requests with proper format and error codes"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "add-tool-to-existing",
+      "prompt": "You have an existing Python MCP server called 'github-tools' that has tools for: create_repository, delete_repository, list_branches. Add a new tool: (1) merge_pull_request(repo: str, pr_number: int, merge_method: str='squash') that merges a PR using the specified method (squash, rebase, or merge commit). The tool should return merge status, commit hash, and any conflicts detected. Ensure the new tool follows the same patterns as existing tools, uses Pydantic v2 validation, and integrates with the GitHub API client.",
+      "expected_output": "Updated MCP server with new merge_pull_request tool integrated and working",
+      "assertions": [
+        {
+          "name": "tool_registered",
+          "description": "merge_pull_request tool appears in server schema"
+        },
+        {
+          "name": "parameters_validated",
+          "description": "Input parameters use Pydantic v2 with proper types and descriptions"
+        },
+        {
+          "name": "consistent_patterns",
+          "description": "New tool follows same error handling and response format as existing tools"
+        },
+        {
+          "name": "api_integration",
+          "description": "Tool correctly calls GitHub API with proper authentication"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "eval_name": "debug-schema-issue",
+      "prompt": "A Python MCP server is failing with: 'Field validation error: city must be non-empty string'. The tool is defined as: get_weather(city: str). The client is sending: {\"jsonrpc\": \"2.0\", \"method\": \"get_weather\", \"params\": {\"city\": \"\"}, \"id\": 1}. Diagnose the issue: Is the schema validation correct? Is the error message clear? Should empty strings be rejected? Fix the schema to properly validate city input and provide a better error message. Also add min_length constraint and ensure the error response follows JSON-RPC 2.0 error format.",
+      "expected_output": "Fixed schema with proper validation, clear error messages, and JSON-RPC 2.0 compliant error responses",
+      "assertions": [
+        {
+          "name": "schema_validation_correct",
+          "description": "Schema properly rejects empty strings and validates non-empty cities"
+        },
+        {
+          "name": "error_message_clear",
+          "description": "Error messages explain why validation failed and what's required"
+        },
+        {
+          "name": "json_rpc_errors",
+          "description": "Error responses follow JSON-RPC 2.0 format with proper error codes and messages"
+        },
+        {
+          "name": "constraints_enforced",
+          "description": "min_length and other constraints are properly applied via Pydantic"
+        }
+      ]
+    }
+  ]
+}

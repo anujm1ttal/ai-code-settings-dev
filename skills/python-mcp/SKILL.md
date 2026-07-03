@@ -11,6 +11,17 @@ metadata:
 
 Strategic and tactical standards for building high-rigor Model Context Protocol (MCP) servers in Python.
 
+## Evaluation Test Cases
+
+This skill has formal evaluation test cases for quality assurance. See `evals.json` for:
+- Building complete FastMCP servers with Pydantic v2 validation
+- Adding new tools to existing servers
+- Debugging and fixing JSON-RPC schema issues
+
+These cases verify proper FastMCP patterns, schema validation, and error handling.
+
+---
+
 ## 🧠 Core Strategy
 
 Building an MCP server is a two-phase process. Do not skip Phase 1.
