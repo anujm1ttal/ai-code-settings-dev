@@ -53,6 +53,7 @@ Orchestration layer for Claude Code sessions.
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
 | `/pack` | scribe | YouTube upload metadata and SEO |
 | `/sync` | concierge | Reconcile filesystem state with plan artifacts |
+| `/manifest` | concierge | Validate and visualize project.json skill manifest |
 | `/registry-audit` | auditor | Cross-reference integrity check for the OS registry |
 | `/ingest` | concierge | Register manual/external changes into project state |
 | `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation |

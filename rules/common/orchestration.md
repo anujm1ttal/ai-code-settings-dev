@@ -85,6 +85,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `/blueprint` | strategist | Initialize or pivot the project roadmap | Writes to `IMPLEMENTATION_PLAN.md` |
 | `/audit` | auditor | Gate-based quality review | Writes to `AUDIT_REPORT.md` |
 | `/sync` | concierge | Reconcile filesystem drift with plan | Validates `Artifacts/` vs source |
+| `/manifest` | concierge | Validate and visualize project.json skill manifest | Analyzes active skills, detects unused declarations, suggests optimizations |
 | `/ingest` | concierge | Import manual CAD/BI work into AI context | Formalizes `Artifacts/LAYOUT_SPEC.md` |
 | `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation | Writes to `Artifacts/history/` |
 | `/registry-audit`| auditor | Cross-reference integrity check for the OS registry | Validates links/enums |
@@ -123,12 +124,13 @@ For minor edits that meet all criteria:
 8. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
 9. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
 10. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
-11. **Session start, "where was I"** → **concierge** (`/sync`)
-12. **Session end, context save** → **concierge** (`/handoff` [--lite|--phase])
-13. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
-14. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
-15. **Domain definitions, ubiquitous language, glossary extraction** → **scribe** (`glossary-extraction`)
-16. **Ambiguous** → **concierge** asks a clarifying question before routing.
+11. **Session start, "where was I"** → **concierge** (`/sync` with manifest validation)
+12. **Check/validate manifest, optimize skills** → **concierge** (`/manifest`)
+13. **Session end, context save** → **concierge** (`/handoff` [--lite|--phase])
+14. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
+15. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
+16. **Domain definitions, ubiquitous language, glossary extraction** → **scribe** (`glossary-extraction`)
+17. **Ambiguous** → **concierge** asks a clarifying question before routing.
 
 ## Task Lifecycle
 
