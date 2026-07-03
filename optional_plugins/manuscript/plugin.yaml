@@ -6,6 +6,9 @@ description: Manuscript and academic writing support. Provides manuscript review
 project_types:
 - manuscript
 skills:
+- name: business-analyst
+  version: 1.0.1
+  load_policy: auto
 - name: manuscript-review
   version: 1.0.1
   load_policy: auto

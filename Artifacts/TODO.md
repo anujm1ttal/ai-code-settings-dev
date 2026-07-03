@@ -27,21 +27,23 @@
 
 ## Phase 11.1: Plugin Infrastructure
 
-- [-] [coder] Create `optional_plugins/` directory structure — Success: All category dirs exist with correct hierarchy
-- [-] [coder] Write `optional_plugins/plugin_manifest_schema.json` — Success: Schema passes validation against 12 sample YAML files
-- [-] [coder] Write `optional_plugins/index.md` (L0 registry overview) — Success: Readable registry index with skill counts
-- [-] [coder] Update `scripts/manifest_validator.py` to support V2 schema — Success: Validator accepts both V1 and V2 manifests
-- [-] [coder] Write `optional_plugins/README.md` (migration guide) — Success: Clear walkthrough for developers
+- [x] [coder] Create `optional_plugins/` directory structure — Success: All category dirs exist with correct hierarchy
+- [x] [coder] Write `optional_plugins/plugin_manifest_schema.json` — Success: Schema passes validation against 12 sample YAML files
+- [x] [coder] Write `optional_plugins/index.md` (L0 registry overview) — Success: Readable registry index with skill counts
+- [x] [coder] Update `scripts/manifest_validator.py` to support V2 schema — Success: Validator accepts both V1 and V2 manifests
+- [x] [coder] Write `optional_plugins/README.md` (migration guide) — Success: Clear walkthrough for developers
 - [x] [auditor] Validate schema consistency, JSON/YAML syntax, Python code — Success: [AUDIT-PASS] Phase 11.1 complete
 
 ## Phase 11.2: Copy & Validate Singletons
 
-- [ ] [coder] Copy 12 singleton skills to `optional_plugins/[category]/[skill]/` — Success: All 12 skills copied, diff against originals is zero
-- [ ] [coder] Create `plugin.yaml` for each of 6 categories — Success: All category manifests written and formatted
-- [ ] [coder] Create `METADATA.yaml` for each of 12 skills — Success: All skill metadata files complete with required fields
-- [ ] [coder] Update 9 project templates with `plugins` key — Success: All `templates/project-*.json` use V2 schema structure
-- [ ] [auditor] Validate all YAML syntax and schema compliance — Success: `/audit PASS` for all 18 YAML files
-- [ ] [auditor] Spot-check 3 representative skills (youtube-strategy, python-rhino-grasshopper, manuscript-review) — Success: Auditor report noting no structural drift
+- [x] [coder] Copy 12 singleton skills to `optional_plugins/[category]/[skill]/` — Success: All 12 skills copied, diff against originals is zero
+- [x] [coder] Create `plugin.yaml` for each of 6 categories — Success: All category manifests written and formatted
+- [x] [coder] Create `METADATA.yaml` for each of 12 skills — Success: All skill metadata files complete with required fields
+- [x] [coder] Update 9 project templates with `plugins` key — Success: All `templates/project-*.json` use V2 schema structure
+- [x] [auditor] Validate all YAML syntax and schema compliance — Success: `/audit PASS` for all 18 YAML files
+- [x] [auditor] Spot-check 3 representative skills (youtube-strategy, python-rhino-grasshopper, manuscript-review) — Success: Auditor report noting no structural drift
+- [x] [coder] Fix PLUGIN_REGISTRY sync: Add `powerbi-report` to `pbi-core.skills` in `scripts/manifest_validator.py` line 53 — Success: manifest_validator.py --list-plugins correctly lists powerby-report; all 30 tests PASS
+- [x] [auditor] Re-verify Phase 11.2 gates after fix (commit caab6d7) — Success: [AUDIT-PASS] · [ZERO-ISSUES]
 
 ## Phase 11.3: Deactivation & Rollback Safety
 
@@ -60,3 +62,44 @@
 - [ ] Token savings validated: 15%+ reduction for bootstrap on 3 project types
 - [ ] Rollback tested and functional
 - [ ] No regressions in `/sync`, `/manifest`, `/audit` workflows
+
+---
+
+## Phase 11.3 Remediation (Blocking Issues)
+
+> [!CRITICAL]
+> These tasks MUST be completed before running migration --apply
+
+- [x] [coder] Resolve Issue 1: Add business-analyst to optional_plugins and PLUGIN_REGISTRY
+  - Decide on plugin category (new plugin or existing)
+  - Copy skill files to optional_plugins/[category]/business-analyst/
+  - Update PLUGIN_REGISTRY in manifest_validator.py
+  - Verify with `--list-plugins`
+  - Success: python -c "from scripts.manifest_validator import PLUGIN_REGISTRY; assert 'business-analyst' in [s for p in PLUGIN_REGISTRY.values() for s in p.get('skills', [])]"
+
+- [x] [coder] Resolve Issue 2: Add cd-foundations to SINGLETON_SKILLS in migration script
+  - Edit line 39 of scripts/migrate_skills_to_plugins.py
+  - Add "cd-foundations" to the list (alphabetically sorted)
+  - Run --dry-run to verify all 12 skills are ready for migration
+  - Success: `--dry-run` output shows "13 to remove" and no "missing from plugins"
+
+- [x] [auditor] Re-verify Phase 11.3 Gate 4 after fixes — Success: All 13 SINGLETON_SKILLS verified in plugins
+  - Run pytest to confirm 46/46 still passing
+  - Verify PLUGIN_REGISTRY now has all 13 skills
+  - Re-run Gate 4 spot-check for Migration Script Integration
+  - Success: All 13 SINGLETON_SKILLS can be verified in plugins
+
+- [ ] [coder] After auditor approval: Execute migration --apply
+  - Ensure all uncommitted changes are committed
+  - Run `python scripts/migrate_skills_to_plugins.py --apply`
+  - Verify 13 skills removed from skills/
+  - Confirm skills/skills.overview.md updated
+  - Success: skills/ directory reduced from ~30 to ~17 skills
+
+- [ ] [auditor] Final verification post-migration
+  - Verify no skills in both locations (skills/ AND optional_plugins/)
+  - Test /manifest command on V1 and V2 projects
+  - Test /sync with upgraded manifests
+  - Test /audit with plugins
+  - Success: No regressions in concierge workflows
+
