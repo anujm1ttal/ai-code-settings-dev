@@ -1,0 +1,19 @@
+skill_id: youtube-retention
+name: youtube-retention
+description: Use this skill whenever you are auditing or refining a YouTube script
+  for viewer retention, pacing, and hook strength. It mandates a strict rubric (Hook,
+  Micro-Hooks, Visual Variety, Content Density) to prevent audience drop-off. Trigger
+  when the auditor is reviewing a script draft or when the scribe is performing a
+  self-audit before submission. Do NOT use for keyword research or metadata optimization;
+  use youtube-strategy for those marketing tasks.
+version: 1.0.1
+tags:
+- youtube
+- retention
+- pacing
+- hooks
+- auditing
+auto_activate: false
+compatibility:
+  min_os_version: 2.5.0
+  max_os_version: null

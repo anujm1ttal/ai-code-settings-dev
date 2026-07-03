@@ -4,5 +4,7 @@
   "auto_include": true,
   "active_skills": [],
   "disabled_skills": [],
-  "metadata": {}
+  "metadata": {},
+  "schema_version": "2.0.0",
+  "plugins": []
 }

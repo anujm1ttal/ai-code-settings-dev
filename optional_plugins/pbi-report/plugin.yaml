@@ -1,24 +1,27 @@
 plugin_id: pbi-core
 category: pbi-report
-version: "1.0.0"
-description: "Power BI report development and modeling. Provides visual composition, DAX design, and performance optimization for BI projects."
+version: 1.0.0
+description: Power BI report development and modeling. Provides visual composition,
+  DAX design, and performance optimization for BI projects.
 project_types:
-  - pbi-report
-  - data
-# v1.0 placeholder: skills will be populated during Phase 11.2 (Copy & Validate)
-skills: []
+- pbi-report
+- data
+skills:
+- name: powerbi-report
+  version: 1.1.0
+  load_policy: auto
 compatibility:
-  min_os_version: "2.5.0"
+  min_os_version: 2.5.0
   max_os_version: null
   min_model_version: null
   max_model_version: null
 auto_enable: true
 keywords:
-  - powerbi
-  - dashboards
-  - reporting
-  - dax
-  - bi
-  - data-modeling
+- powerbi
+- dashboards
+- reporting
+- dax
+- bi
+- data-modeling
 dependencies: []
 conflicts: []

@@ -32,7 +32,7 @@
 - [-] [coder] Write `optional_plugins/index.md` (L0 registry overview) — Success: Readable registry index with skill counts
 - [-] [coder] Update `scripts/manifest_validator.py` to support V2 schema — Success: Validator accepts both V1 and V2 manifests
 - [-] [coder] Write `optional_plugins/README.md` (migration guide) — Success: Clear walkthrough for developers
-- [x] [auditor] Validate schema consistency, JSON/YAML syntax, Python code -- [AUDIT-CONDITIONAL] See Artifacts/AUDIT_REPORT.md for 1 MEDIUM issue (pbi-report schema) and 1 LOW issue (pytest not installed)
+- [x] [auditor] Validate schema consistency, JSON/YAML syntax, Python code — Success: [AUDIT-PASS] Phase 11.1 complete
 
 ## Phase 11.2: Copy & Validate Singletons
 

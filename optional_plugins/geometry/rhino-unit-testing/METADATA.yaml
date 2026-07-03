@@ -1,0 +1,21 @@
+skill_id: rhino-unit-testing
+name: rhino-unit-testing
+description: "Use this skill whenever you are testing geometry-agnostic logic (math,\
+  \ data parsing, sorting, metadata transforms) that does not require the Rhino runtime.\
+  \ It implements the \"Lane B protocol\" \u2014 pure Python testing using pytest\
+  \ for high-speed verification. Trigger when you are adding unit tests for a new\
+  \ calculation module or a domain service. Do NOT use for testing actual RhinoCommon\
+  \ geometry creation, intersections, or Brep validity; use rhino-e2e-testing for\
+  \ those scenarios."
+version: 1.0.0
+tags:
+- rhino
+- testing
+- pytest
+- unit-testing
+- mocking
+- lane-b
+auto_activate: false
+compatibility:
+  min_os_version: 2.5.0
+  max_os_version: null

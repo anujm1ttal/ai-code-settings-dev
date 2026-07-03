@@ -1,36 +1,37 @@
 plugin_id: geometry-rhino
 category: geometry
-version: "1.0.0"
-description: "Rhinoceros/Grasshopper geometry modeling and computation. Provides RhinoCommon APIs, E2E testing, and manifoldness verification."
+version: 1.0.0
+description: Rhinoceros/Grasshopper geometry modeling and computation. Provides RhinoCommon
+  APIs, E2E testing, and manifoldness verification.
 project_types:
-  - geometry
+- geometry
 skills:
-  - name: cd-foundations
-    version: "1.0.0"
-    load_policy: auto
-  - name: python-rhino-grasshopper
-    version: "1.3.0"
-    load_policy: auto
-  - name: rhino-e2e-testing
-    version: "1.0.0"
-    load_policy: auto
-  - name: rhino-unit-testing
-    version: "1.1.0"
-    load_policy: auto
+- name: cd-foundations
+  version: 1.0.0
+  load_policy: auto
+- name: python-rhino-grasshopper
+  version: 1.0.1
+  load_policy: auto
+- name: rhino-e2e-testing
+  version: 1.0.1
+  load_policy: auto
+- name: rhino-unit-testing
+  version: 1.0.0
+  load_policy: auto
 compatibility:
-  min_os_version: "2.5.0"
+  min_os_version: 2.5.0
   max_os_version: null
   min_model_version: null
   max_model_version: null
 auto_enable: true
 keywords:
-  - geometry
-  - rhino
-  - grasshopper
-  - cad
-  - 3d-modeling
-  - brep
-  - manifoldness
-  - testing
+- geometry
+- rhino
+- grasshopper
+- cad
+- 3d-modeling
+- brep
+- manifoldness
+- testing
 dependencies: []
 conflicts: []

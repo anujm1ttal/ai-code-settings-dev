@@ -1,0 +1,73 @@
+{
+  "skill_name": "pptx",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "create-pitch-deck",
+      "prompt": "Create a 5-slide pitch deck for a SaaS product called 'CloudSync' that syncs files across 10+ cloud services. Include: title slide with tagline, problem slide, solution slide, feature comparison table, and call-to-action. Use professional colors (deep blue and white). Make it visually engaging with minimal text.",
+      "expected_output": "A .pptx file with 5 slides, proper formatting, readable text, and professional design",
+      "assertions": [
+        {
+          "name": "correct_slide_count",
+          "description": "Output file contains exactly 5 slides"
+        },
+        {
+          "name": "no_placeholder_text",
+          "description": "No leftover placeholder text like 'XXX', 'Lorem Ipsum', or template defaults"
+        },
+        {
+          "name": "design_consistency",
+          "description": "All slides use consistent color scheme and typography"
+        },
+        {
+          "name": "content_accuracy",
+          "description": "All required slides present: title, problem, solution, features, CTA"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "eval_name": "edit-existing-deck",
+      "prompt": "You have a presentation called 'Q4_Report.pptx' with 10 slides. Update slides 3-5 to include new financial data: Revenue $2.5M, Growth 45%, Profit Margin 28%. Add a chart comparing Q3 vs Q4 performance. Keep the existing design and layout.",
+      "expected_output": "Updated .pptx file with modified slides 3-5, new chart, and preserved design",
+      "assertions": [
+        {
+          "name": "slide_count_preserved",
+          "description": "Output still has 10 slides after edits"
+        },
+        {
+          "name": "new_data_present",
+          "description": "All new financial figures appear in the edited slides"
+        },
+        {
+          "name": "chart_added",
+          "description": "Comparison chart between Q3 and Q4 is visible and readable"
+        },
+        {
+          "name": "design_maintained",
+          "description": "Original design elements and formatting style preserved"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "eval_name": "extract-content-audit",
+      "prompt": "Extract all text content from the attached deck and create a summary. Flag any missing titles, headers, or content that looks incomplete. Also list the number of slides and identify any visuals or charts that might have issues (overlap, misalignment, etc.).",
+      "expected_output": "Text extraction report showing all content, completeness assessment, and visual issue flags",
+      "assertions": [
+        {
+          "name": "content_extracted",
+          "description": "All visible text content successfully extracted from slides"
+        },
+        {
+          "name": "completeness_check",
+          "description": "Report identifies missing or incomplete content if present"
+        },
+        {
+          "name": "visual_inspection",
+          "description": "Report flags potential visual issues like overlapping elements or misalignment"
+        }
+      ]
+    }
+  ]
+}

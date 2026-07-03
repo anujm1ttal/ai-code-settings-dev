@@ -462,7 +462,7 @@ class TestPluginRegistry:
             "pptx-core": 1,
             "code-mcp-tools": 2,
             "geometry-rhino": 4,
-            "manuscript-tools": 2,
+            "manuscript-tools": 1,
         }
         for plugin_id, expected_count in skills_by_plugin.items():
             if plugin_id in PLUGIN_REGISTRY:

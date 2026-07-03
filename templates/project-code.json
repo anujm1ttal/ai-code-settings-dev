@@ -4,5 +4,13 @@
   "auto_include": true,
   "active_skills": [],
   "disabled_skills": [],
-  "metadata": {}
+  "metadata": {},
+  "schema_version": "2.0.0",
+  "plugins": [
+    {
+      "plugin_id": "code-mcp-tools",
+      "enabled": true,
+      "version": "1.0.0"
+    }
+  ]
 }

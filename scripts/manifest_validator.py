@@ -65,7 +65,7 @@ PLUGIN_REGISTRY: dict[str, dict] = {
     },
     "manuscript-tools": {
         "category": "manuscript",
-        "skills": ["manuscript-review", "glossary-extraction"],
+        "skills": ["manuscript-review"],
         "project_types": ["manuscript"],
     },
 }
