@@ -2,7 +2,7 @@
 
 **Claude Code AI OS** — An orchestration layer for structured, multi-agent AI development workflows.
 
-This repository contains the global ruleset, agent definitions, skill modules, and templates that power Claude Code sessions across all projects. It serves as a centralized registry for architectural patterns, coding standards, security protocols, and domain expertise.
+This repository contains the source code and infrastructure for the AI OS: agent definitions, rules, skills, plugins, and templates. The AI OS powers Claude Code sessions across all your projects through a production deployment at `~/.claude/`.
 
 ---
 
@@ -20,15 +20,22 @@ Think of it as a **knowledge base and execution framework** that makes AI agents
 
 ---
 
-## 🚀 Quick Start
+## 👥 For Users
 
-### For Claude Code Users
+If you're **using Claude Code** to work on a project, this is your reference:
 
-1. **Run a session**: Open any project and start Claude Code
-   - The system auto-loads `project.json` and determines active skills
-   - All rules and agent definitions are available to the AI
+### Quick Start
 
-2. **Use commands**:
+1. **Create a project**: Copy a template from `~/.claude/templates/` to your project root as `project.json`
+   ```bash
+   cp ~/.claude/templates/project-code.json my-project/project.json
+   ```
+
+2. **Start a session**: Open your project in Claude Code
+   - The system auto-loads `~/.claude/` (production deployment)
+   - Agent definitions, rules, and skills are automatically available
+
+3. **Use commands**:
    ```
    /blueprint          Plan a new feature or phase
    /triage             Investigate and fix bugs
@@ -38,16 +45,36 @@ Think of it as a **knowledge base and execution framework** that makes AI agents
    /council            High-rigor deliberation on architecture
    ```
 
-3. **Check the cheatsheet**: See [cheatsheet.md](cheatsheet.md) for quick reference
+### Reference
 
-### For Developers/Maintainers
+- **[cheatsheet.md](cheatsheet.md)** — Quick command reference and navigation
+- **[~/.claude/agents/agents.overview.md](~/.claude/agents/agents.overview.md)** — Which agent to use for what task
+- **[~/.claude/skills/skills.overview.md](~/.claude/skills/skills.overview.md)** — Available skills and how to trigger them
+- **[~/.claude/CLAUDE.md](~/.claude/CLAUDE.md)** — Full orchestration rules loaded at session boot
+
+---
+
+## 👨‍💻 For Developers
+
+If you're **maintaining or improving the AI OS**, this is where you work:
+
+### Repository Structure
+
+This repo is **source/development only**. It's where:
+- You edit and test new rules, agents, and skills
+- You run the full test suite before deployment
+- Development artifacts (tests/, scripts/migrate_*.py) live here
+
+Everything is deployed to `~/.claude/` (production) via `scripts/deploy.sh` for use in actual sessions.
+
+### Quick Start
 
 1. **Navigate the registry**:
    - [agents/agents.overview.md](agents/agents.overview.md) — Agent L1 routing map
    - [skills/skills.overview.md](skills/skills.overview.md) — Skill registry and discovery
    - [rules/common/](rules/common/) — Canonical standards
 
-2. **Update rules**: Edit files in `rules/common/` (changes affect all sessions)
+2. **Update rules**: Edit files in `rules/common/` (changes affect all sessions after deployment)
    - `orchestration.md` — Agent routing, task lifecycle
    - `coding-style.md` — Language-specific standards, immutability rules
    - `standards.md` — Interaction protocol, communication style
@@ -57,112 +84,126 @@ Think of it as a **knowledge base and execution framework** that makes AI agents
 
 4. **Run tests**: `pytest tests/` to validate manifest schema and plugin integrity
 
----
+5. **Deploy to production**: 
+   ```bash
+   bash scripts/deploy.sh
+   ```
+   See [DEPLOY.md](DEPLOY.md) for full deployment checklist
 
-## 📁 Directory Structure
+### Deployment Architecture
 
 ```
-ai-code-settings/
-├── README.md (this file)
-├── cheatsheet.md                    # Quick reference for common commands
+ai-code-settings/    ← (you are here — development/source)
+  ├─ agents/, rules/, skills/, optional_plugins/
+  ├─ scripts/, tests/
+  └─ DEPLOY.md, scripts/deploy.sh
+
+~/.claude/           ← (production/runtime)
+  ├─ agents/, rules/, skills/, optional_plugins/ (copied from repo)
+  ├─ scripts/manifest_validator.py (runtime only)
+  └─ templates/, CLAUDE.md (reference)
+
+my-project/          ← (project workspace)
+  ├─ project.json (from ~/.claude/templates/)
+  └─ Artifacts/ (project state)
+```
+
+Sessions auto-load from `~/.claude/` (never from this repo). Deploy via [scripts/deploy.sh](scripts/deploy.sh).
+
+---
+
+## 📁 Directory Structure (This Repository)
+
+```
+ai-code-settings/                   (SOURCE/DEVELOPMENT — edit here)
+├── README.md                        # This file
+├── DEPLOY.md                        # Deployment checklist & rollback procedure
+├── cheatsheet.md                    # Quick reference (copied to ~/.claude/)
 ├── project.json                     # Global manifest (V2 schema)
 │
-├── agents/                          # Agent role definitions
+├── agents/                          # Agent definitions (copied to ~/.claude/)
 │   ├── agents.overview.md           # L1 routing map
-│   ├── strategist.md                # Architecture, planning, ROI
-│   ├── coder.md                     # Implementation, refactoring
-│   ├── auditor.md                   # QA, technical review, gates
-│   ├── scribe.md                    # Documentation, teaching
-│   ├── council.md                   # Deliberation, consensus
-│   ├── creative-director.md         # Visual spec, composition
-│   └── concierge.md                 # State, sync, lifecycle
+│   ├── strategist.md, coder.md, auditor.md, etc.
+│   └── ...
 │
-├── rules/common/                    # Canonical standards (all projects)
+├── rules/common/                    # Canonical standards (copied to ~/.claude/)
 │   ├── orchestration.md             # Agent lifecycle, task flow
 │   ├── coding-style.md              # Language patterns, immutability
-│   ├── standards.md                 # Interaction, communication
+│   ├── standards.md                 # Interaction protocol
 │   ├── security.md                  # Secrets, incident response
 │   ├── testing-strategy.md          # Test lanes, evidence rules
 │   ├── architecture.md              # Deep modules, design principles
 │   ├── TOKEN-ECONOMICS.md           # Context slicing, bootstrap costs
 │   └── README.md                    # Rules overview
 │
-├── skills/                          # Universal core skills (always available)
+├── skills/                          # Universal core skills (copied to ~/.claude/)
 │   ├── skills.overview.md           # L1 skill discovery map
-│   ├── codebase-navigator/          # Search, grep, find patterns
-│   ├── systematic-debugging/        # 4-phase root-cause analysis
-│   ├── project-planner/             # Phased roadmaps, dependencies
-│   ├── project-journal/             # Session history, decision logs
-│   ├── implementation-dispatch/     # Subagent orchestration
-│   ├── python-patterns/             # Python idioms, best practices
-│   ├── verification-gate/           # Testing strategy, evidence
-│   ├── doc-updater/                 # Automated documentation sync
-│   └── ... (9 total universal skills)
+│   ├── codebase-navigator/
+│   ├── systematic-debugging/
+│   ├── project-planner/
+│   └── ... (9 universal skills, always available)
 │
-├── optional_plugins/                # Singleton skills (lazy-loaded, Phase 11)
-│   ├── index.md                     # Plugin registry overview
-│   ├── plugin_manifest_schema.json  # JSON Schema for validation
-│   ├── README.md                    # Migration guide
-│   │
-│   ├── youtube/
-│   │   ├── plugin.yaml
-│   │   ├── youtube-strategy/
-│   │   ├── youtube-scriptwriting/
-│   │   └── youtube-retention/
-│   ├── pptx/
-│   │   ├── plugin.yaml
-│   │   └── pptx/
-│   ├── pbi-report/
-│   │   ├── plugin.yaml
-│   │   └── powerbi-report/
-│   ├── code-mcp/
-│   │   ├── plugin.yaml
-│   │   ├── python-mcp/
-│   │   └── typescript-mcp/
-│   ├── geometry/
-│   │   ├── plugin.yaml
-│   │   ├── cd-foundations/
-│   │   ├── python-rhino-grasshopper/
-│   │   ├── rhino-e2e-testing/
-│   │   └── rhino-unit-testing/
-│   └── manuscript/
-│       ├── plugin.yaml
-│       ├── manuscript-review/
-│       └── business-analyst/
+├── optional_plugins/                # Singleton skills (copied to ~/.claude/)
+│   ├── index.md, README.md, plugin_manifest_schema.json
+│   ├── youtube/, pptx/, pbi-report/, code-mcp/, geometry/, manuscript/
+│   └── ... (13 singleton skills, lazy-loaded per project)
 │
-├── templates/                       # Project manifest templates
-│   ├── project-youtube.json         # V2 schema template
-│   ├── project-code.json
-│   ├── project-geometry.json
-│   ├── project-data.json
-│   ├── project-pbi.json
-│   ├── project-pptx.json
-│   ├── project-manuscript.json
-│   ├── project-hybrid.json
-│   └── project-minimal.json
+├── templates/                       # Project templates (copied to ~/.claude/)
+│   ├── project-code.json, project-youtube.json, etc.
+│   └── ... (bootstraps for new projects)
 │
-├── scripts/                         # Utility scripts
-│   ├── manifest_validator.py        # V1→V2 schema validation, plugin registry
-│   ├── migrate_skills_to_plugins.py # Migration with --dry-run, --apply, --rollback
-│   └── ... (other automation scripts)
+├── scripts/                         # Utilities & automation
+│   ├── deploy.sh                    # Deploy to ~/.claude/ (production)
+│   ├── manifest_validator.py        # Copied to ~/.claude/ for runtime
+│   ├── migrate_skills_to_plugins.py # One-time utility (dev only)
+│   └── ... (other dev scripts)
 │
-├── tests/                           # Test suite
-│   ├── test_manifest_validator_v2.py    # 46 tests (schema, plugins, backward compat)
-│   ├── test_v1_v2_migration.py          # 11 tests (auto-upgrade scenarios)
-│   └── ... (other tests)
+├── tests/                           # Test suite (development only)
+│   ├── test_manifest_validator_v2.py
+│   ├── test_v1_v2_migration.py
+│   └── ... (validation before deployment)
 │
-└── Artifacts/                       # Project state (workspace-specific)
-    ├── CLAUDE.md                    # Local overrides to global rules
-    ├── TODO.md                      # Phase tracking and task status
-    ├── IMPLEMENTATION_PLAN.md       # Technical design and roadmap
-    ├── MEMORY_ANCHORS.md            # Project-specific constants
-    ├── DECISION_LOG.md              # High-stakes pivots and resolutions
-    ├── learnings/                   # Persistent knowledge registry
-    ├── history/                     # Archived plans and decisions
-    ├── Temp/                        # Transient scripts and analysis
-    ├── .agent/                      # Internal state (migration, tasks)
-    └── ROLLBACK_PROCEDURE.md        # Manual reversal for plugin migration
+└── Artifacts/                       # Development state (repo-specific)
+    ├── TODO.md                      # Development tracking
+    ├── DECISION_LOG.md              # Development decisions
+    ├── learnings/                   # Development learnings
+    ├── history/                     # Archived plans
+    └── ...
 ```
+
+**What gets deployed to ~/.claude/:**
+- ✓ agents/, rules/, skills/, optional_plugins/, templates/
+- ✓ scripts/manifest_validator.py (runtime dependency)
+- ✓ CLAUDE.md, cheatsheet.md, README.md
+- ✗ tests/, scripts/migrate_*.py, Artifacts/ (development only)
+
+---
+
+## 🏗️ Architecture: Three Layers
+
+```
+┌─────────────────────────────────────┐
+│ ai-code-settings (Development)      │  ← You are here (for maintainers)
+│ - Source code, tests, development   │
+│ - Deploy to ~/.claude/ via DEPLOY.md│
+└─────────────────────────────────────┘
+            ↓ deploy.sh
+┌─────────────────────────────────────┐
+│ ~/.claude/ (Production/Runtime)     │  ← Loaded into every session
+│ - Immutable deployment              │
+│ - Rules, agents, skills, plugins    │
+│ - manifest_validator.py (runtime)   │
+└─────────────────────────────────────┘
+            ↓ auto-load
+┌─────────────────────────────────────┐
+│ my-project/ (Project Workspace)     │  ← Where users work
+│ - project.json (manifest)           │
+│ - Artifacts/ (project state)        │
+│ - Inherits everything from ~/.claude/
+└─────────────────────────────────────┘
+```
+
+**Sessions load from `~/.claude/`** (production), never from this repo (source). This ensures development artifacts never leak into active work.
 
 ---
 
@@ -186,14 +227,16 @@ Each agent has specific capabilities and task authority:
 
 Skills are modular expertise units. Two types:
 
-1. **Universal Core Skills** (always available in `skills/`)
+1. **Universal Core Skills** (always in `~/.claude/skills/`)
    - Available to all project types
    - Examples: codebase-navigator, systematic-debugging, project-planner
+   - Source: [skills/](skills/) in this repo
 
-2. **Optional Singleton Skills** (lazy-loaded from `optional_plugins/`)
+2. **Optional Singleton Skills** (lazy-loaded from `~/.claude/optional_plugins/`)
    - Project-type-specific (youtube, pptx, geometry, etc.)
    - Auto-enabled if `auto_include: true` in manifest
    - Can be disabled per project
+   - Source: [optional_plugins/](optional_plugins/) in this repo
 
 ### Manifests: V1 vs V2
 
@@ -223,7 +266,7 @@ Skills are modular expertise units. Two types:
 
 ---
 
-## 🔧 Common Workflows
+## 🔧 Common Workflows (Users)
 
 ### 1. Plan a New Feature
 ```bash
@@ -257,6 +300,37 @@ Skills are modular expertise units. Two types:
 
 ---
 
+## 🔨 Developer Workflows
+
+### Update a Global Rule
+
+1. Edit file in `rules/common/` (e.g., `rules/common/coding-style.md`)
+2. Test locally: `pytest tests/ -v`
+3. Deploy: `bash scripts/deploy.sh`
+4. New sessions inherit the change (via `~/.claude/`)
+
+### Add a New Skill
+
+1. Use [skill-creator](/.claude/skills/skill-creator/) workflow
+2. Place in `skills/` (universal) or `optional_plugins/[category]/` (singleton)
+3. Update [skills/skills.overview.md](skills/skills.overview.md) registry
+4. Run tests: `pytest tests/` (must pass)
+5. Deploy: `bash scripts/deploy.sh`
+
+### Deploy Changes
+
+```bash
+# Full deployment with validation
+bash scripts/deploy.sh
+
+# Skip tests (not recommended)
+bash scripts/deploy.sh --skip-tests
+
+# See DEPLOY.md for detailed checklist
+```
+
+---
+
 ## 🛡️ Security
 
 All secrets managed via environment variables or secure vaults:
@@ -264,22 +338,22 @@ All secrets managed via environment variables or secure vaults:
 - **Production**: Azure Key Vault, 1Password CLI, or equivalent
 - **Never commit**: API keys, tokens, connection strings, local paths
 
-See [rules/common/security.md](rules/common/security.md) for incident response procedures.
+See [rules/common/security.md](rules/common/security.md) for incident response procedures (source: this repo, deployed to `~/.claude/`).
 
 ---
 
-## 📊 Testing & Validation
+## 📊 Testing & Validation (Developers)
 
-All changes validated via test suite:
+All changes to the AI OS validated via test suite before deployment:
 
 ```bash
-# Run all tests
+# Run all tests (required before deploy)
 pytest tests/ -v
 
 # Run specific test class
 pytest tests/test_manifest_validator_v2.py::TestPluginRegistry -v
 
-# Check manifest on a project
+# Check manifest validation
 python scripts/manifest_validator.py --list-plugins
 ```
 
@@ -294,14 +368,25 @@ See [rules/common/testing-strategy.md](rules/common/testing-strategy.md) for lan
 
 ## 📚 Key References
 
-| Resource | Purpose |
-|:---|:---|
-| [agents/agents.overview.md](agents/agents.overview.md) | Which agent to use for what task |
-| [skills/skills.overview.md](skills/skills.overview.md) | Discover available skills and how to trigger them |
-| [rules/common/orchestration.md](rules/common/orchestration.md) | Task lifecycle, git branching, conflict resolution |
-| [rules/common/coding-style.md](rules/common/coding-style.md) | Language-specific standards (Python, TypeScript, C#, DAX) |
-| [cheatsheet.md](cheatsheet.md) | Quick command reference |
-| [optional_plugins/README.md](optional_plugins/README.md) | Plugin system walkthrough |
+### For Users
+
+| Resource | Purpose | Location |
+|:---|:---|:---|
+| [cheatsheet.md](cheatsheet.md) | Quick command reference | This repo (also `~/.claude/`) |
+| [~/.claude/agents/agents.overview.md](~/.claude/agents/agents.overview.md) | Which agent to use | Production deployment |
+| [~/.claude/skills/skills.overview.md](~/.claude/skills/skills.overview.md) | Available skills | Production deployment |
+| [~/.claude/CLAUDE.md](~/.claude/CLAUDE.md) | Full orchestration rules | Production deployment |
+
+### For Developers
+
+| Resource | Purpose | Location |
+|:---|:---|:---|
+| [DEPLOY.md](DEPLOY.md) | Deployment checklist & automation | This repo |
+| [agents/agents.overview.md](agents/agents.overview.md) | Agent definitions (source) | This repo |
+| [rules/common/orchestration.md](rules/common/orchestration.md) | Orchestration rules (source) | This repo |
+| [rules/common/coding-style.md](rules/common/coding-style.md) | Coding standards (source) | This repo |
+| [skills/skills.overview.md](skills/skills.overview.md) | Skill registry (source) | This repo |
+| [optional_plugins/README.md](optional_plugins/README.md) | Plugin system design | This repo |
 
 ---
 
@@ -309,47 +394,52 @@ See [rules/common/testing-strategy.md](rules/common/testing-strategy.md) for lan
 
 The optional plugin system launched in Phase 11 to optimize bootstrap overhead:
 
-- **13 singleton skills** moved to `optional_plugins/[category]/[skill]/`
-- **9 universal core skills** remain in `skills/` (always available)
+- **13 singleton skills** in `optional_plugins/[category]/[skill]/`
+- **9 universal core skills** in `skills/` (always available)
 - **V2 schema** with plugins array and auto-enable per project_type
 - **V1→V2 auto-upgrade** (transparent, backward compatible)
 - **Token savings**: 15–25% reduction for projects using 1–2 optional plugins
-
-See [Artifacts/ROLLBACK_PROCEDURE.md](Artifacts/ROLLBACK_PROCEDURE.md) for manual reversal if needed.
 
 **Release tag**: `v11.0.0-plugin-system`
 
 ---
 
-## 💡 Contributing
+## 💡 Contributing (Developers)
 
-To add or update a skill:
+### Add or Update a Skill
 
 1. Follow the [skill-creator](/.claude/skills/skill-creator/) workflow
 2. Place in `skills/` (universal) or `optional_plugins/[category]/` (singleton)
 3. Ensure SKILL.md has YAML frontmatter with name, description, compatibility
 4. Run tests: `pytest tests/` (must pass)
 5. Update [skills/skills.overview.md](skills/skills.overview.md) registry
-6. Commit with descriptive message
+6. Deploy: `bash scripts/deploy.sh`
 
-To modify global rules:
+### Modify Global Rules
 
 1. Edit file in `rules/common/`
 2. Update [rules/common/README.md](rules/common/README.md)
-3. Commit: `docs(rules): [description]`
-4. All active sessions inherit the change (on next `/sync`)
+3. Run tests: `pytest tests/ -v`
+4. Deploy: `bash scripts/deploy.sh`
+5. All active sessions inherit change after next `/sync`
 
 ---
 
 ## 📞 Support
 
-- **Question about an agent?** → Check [agents/agents.overview.md](agents/agents.overview.md)
-- **Need a skill?** → Search [skills/skills.overview.md](skills/skills.overview.md)
-- **Unclear rule?** → Read the full file in [rules/common/](rules/common/)
-- **Bug or regression?** → Check [Artifacts/learnings/](Artifacts/learnings/) for known issues
+**Users**:
+- **Quick reference?** → See [cheatsheet.md](cheatsheet.md)
+- **How do I use an agent?** → Check `~/.claude/agents/agents.overview.md`
+- **Which skill for my task?** → Search `~/.claude/skills/skills.overview.md`
+
+**Developers**:
+- **How do I deploy?** → See [DEPLOY.md](DEPLOY.md)
+- **How do I add a skill?** → Use [skill-creator](/.claude/skills/skill-creator/) workflow
+- **Deployment failed?** → Check rollback in [DEPLOY.md](DEPLOY.md)
+- **Tests are failing?** → Run `pytest tests/ -v` from this repo
 
 ---
 
 **Last updated**: July 3, 2026  
 **Latest tag**: v11.0.0-plugin-system  
-**Status**: Production-ready with plugin MVP
+**Status**: Production-ready with plugin MVP + deployment infrastructure
