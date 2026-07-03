@@ -1,0 +1,64 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Claude Code Project Manifest",
+  "description": "Declares project metadata and selectively activates skills to optimize token usage. Place in project root as project.json.",
+  "type": "object",
+  "required": ["project_type"],
+  "additionalProperties": false,
+  "properties": {
+    "project_name": {
+      "type": "string",
+      "description": "Human-readable project name (optional, for documentation).",
+      "examples": ["Stadium Sightline Optimizer", "YouTube Analytics Dashboard"]
+    },
+    "project_type": {
+      "type": "string",
+      "enum": ["code", "geometry", "data", "pptx", "pbi-report", "youtube", "manuscript", "hybrid"],
+      "description": "Classification that determines default skills and agent routing. See orchestration.md for mappings."
+    },
+    "auto_include": {
+      "type": "boolean",
+      "default": true,
+      "description": "If true, include default skills for project_type + active_skills. If false, use ONLY active_skills (minimal token use)."
+    },
+    "active_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Explicitly declare which skills are available in this project. If auto_include=true, these are added to the default set. If auto_include=false, these are the ONLY skills loaded.",
+      "examples": ["python-mcp", "typescript-mcp", "python-patterns"]
+    },
+    "disabled_skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Skills to EXCLUDE from the default set (only used if auto_include=true). Useful for removing less-relevant skills from a project type.",
+      "examples": ["youtube-retention", "dax-modeling"]
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional project-wide constants and constraints (mirrors Artifacts/MEMORY_ANCHORS.md intent).",
+      "additionalProperties": true,
+      "examples": [{"max_seats": 50000, "tolerance_mm": 1.5}]
+    }
+  },
+  "examples": [
+    {
+      "project_name": "Stadium Sightline Model",
+      "project_type": "geometry",
+      "auto_include": true,
+      "active_skills": ["python-rhino-grasshopper", "systematic-debugging"],
+      "disabled_skills": ["youtube-strategy"],
+      "metadata": {"max_seats": 50000, "tolerance_mm": 1.5}
+    },
+    {
+      "project_name": "Minimal Python Tool",
+      "project_type": "code",
+      "auto_include": false,
+      "active_skills": ["python-patterns", "python-mcp", "codebase-navigator"],
+      "metadata": {}
+    }
+  ]
+}

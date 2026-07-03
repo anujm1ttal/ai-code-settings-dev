@@ -17,20 +17,65 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 | **creative-director** | Visual spec, hierarchy | **Write**: `Artifacts/LAYOUT_SPEC.md` |
 | **concierge** | State, sync, intake | **Write**: `Artifacts/LEARNINGS.md`, `/clean` execution |
 
+## Project Configuration & Skill Manifest
+
+Every project **MUST** have a `project.json` file in its root directory to declare its type and active skills. This enables selective skill loading and reduces token overhead.
+
+### The Manifest (`project.json`)
+
+**Location**: Project root (same level as `README.md`, `pyproject.toml`, etc.)
+
+**Purpose**: Declare project type and selectively activate skills to optimize token usage.
+
+**Schema**: See `templates/project.schema.json` in the global registry.
+
+**Key Fields**:
+- `project_type`: Required. Determines default agent routing and default skill set.
+- `auto_include`: If `true` (default), include default skills for project type. If `false`, use ONLY `active_skills`.
+- `active_skills`: Explicitly declare which skills are available. These are added to (or replace) the default set depending on `auto_include`.
+- `disabled_skills`: Remove specific skills from the default set (only if `auto_include=true`).
+
+**Examples**:
+
+```json
+{
+  "project_name": "Stadium Sightline Model",
+  "project_type": "geometry",
+  "auto_include": true,
+  "active_skills": ["python-rhino-grasshopper", "systematic-debugging"],
+  "metadata": {"max_seats": 50000, "tolerance_mm": 1.5}
+}
+```
+
+```json
+{
+  "project_name": "Minimal Python Tool",
+  "project_type": "code",
+  "auto_include": false,
+  "active_skills": ["python-patterns", "python-mcp", "codebase-navigator"]
+}
+```
+
+**Token Impact**: Using `auto_include=false` can save ~2,400 tokens (eliminating L1 metadata for 24 unused skills) per session. Best for specialized projects.
+
+---
+
 ## Project Type Routing
 
-The `strategist` classifies every project during Step 0. This determines active agents and skills. Foundational skills (e.g., `cd-foundations`) are auto-activated based on project type.
+The `strategist` classifies every project during Step 0. This determines active agents and default skills. The `project.json` manifest allows selective override of the default skill set.
 
-| Project Type | Core Agents (Auto) | Available (On Demand) | Inactive |
+| Project Type | Core Agents | Default Skills | Override via |
 |:---|:---|:---|:---|
-| `youtube` | strategist, scribe, concierge | auditor | creative-director, coder |
-| `pptx` | strategist, creative-director, concierge | coder, auditor | scribe |
-| `pbi-report` | strategist, creative-director, coder | auditor, concierge | scribe |
-| `geometry` | strategist, coder, auditor | concierge | scribe, creative-director |
-| `code` | strategist, coder, auditor | concierge, scribe | creative-director |
-| `manuscript`| strategist, scribe, auditor | concierge | coder, creative-director |
-| `data` | strategist, coder, auditor | concierge | scribe, creative-director |
-| `hybrid` | concierge, strategist | All | — |
+| `youtube` | strategist, scribe, concierge | youtube-strategy, youtube-scriptwriting, youtube-retention | `project.json` |
+| `pptx` | strategist, creative-director, concierge | pptx, visual-composition, python-patterns | `project.json` |
+| `pbi-report` | strategist, creative-director, coder | powerbi-report, visual-composition, dax-modeling | `project.json` |
+| `geometry` | strategist, coder, auditor | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, python-patterns | `project.json` |
+| `code` | strategist, coder, auditor | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp | `project.json` |
+| `manuscript`| strategist, scribe, auditor | manuscript-review, glossary-extraction | `project.json` |
+| `data` | strategist, coder, auditor | dax-modeling, powerbi-report, python-patterns | `project.json` |
+| `hybrid` | concierge, strategist | All applicable (per detected files) | `project.json` |
+
+**All project types** also have access to foundational skills: `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate`, `project-planner`, `project-journal`, `doc-updater`.
 
 
 ## Command Fleet (Operational Layer)

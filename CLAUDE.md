@@ -64,9 +64,18 @@ Orchestration layer for Claude Code sessions.
 
 ## Concierge Operations
 
-- **`/sync`** — Filesystem-driven. Scans for drift between files and TODO/state artifacts. Use when plan and reality may have diverged.
+- **`/sync`** — Filesystem-driven. Scans for drift between files and TODO/state artifacts. Also loads and validates `project.json` to determine active skills. Use when plan and reality may have diverged.
 - **`/ingest`** — User-driven. Registers work done outside AI IDE (manual edits, external contributions) into project state.
 - **`/handoff`** — Session boundary. Supports `--lite` (Checkpoint) and `--phase` (Milestone). Compresses context, scrubs TODO, captures decisions, writes brief.
+
+### Manifest Loading (`project.json`)
+
+Every project **MUST** declare a `project.json` in its root. During `/sync` (and session boot), the concierge:
+1. Reads `project.json` and validates against the schema
+2. Determines active skills based on `project_type`, `auto_include`, and explicit declarations
+3. Injects the skill allowlist into agent context
+
+**Token Impact**: `auto_include=false` saves ~2,400 tokens/session by skipping metadata for unused skills.
 
 ## Session Lifecycle
 
@@ -75,21 +84,22 @@ Orchestration layer for Claude Code sessions.
 
 ## Project Type Routing
 
-`orchestration.md` defines project type classification and skill loading.
+Default skills per project type (overrideable via `project.json`):
 
-| Project Type | Skills Loaded |
+| Project Type | Default Skills |
 |:---|:---|
-| `youtube` | `youtube-strategy`, `youtube-scriptwriting`, `youtube-retention` → strategist, scribe, auditor, concierge |
-| `pptx` | `pptx`, `visual-composition`, `python-patterns` → strategist, creative-director, coder, auditor, concierge |
-| `pbi-report` | `powerbi-report`, `visual-composition`, `dax-modeling` → strategist, creative-director, coder, auditor, concierge |
-| `geometry` | `cd-foundations` (auto), `python-rhino-grasshopper`, `rhino-e2e-testing`, `rhino-unit-testing`, `python-patterns` → strategist, coder, auditor, concierge |
-| `code` | `codebase-navigator`, `systematic-debugging`, `python-patterns`, `python-mcp`, `typescript-mcp` → strategist, coder, auditor, concierge |
-| `data` | `dax-modeling`, `powerbi-report`, `python-patterns` → strategist, coder, auditor, concierge |
-| `manuscript`| `manuscript-review`, `glossary-extraction` → strategist, scribe, auditor, concierge |
-| `hybrid` | All applicable skills based on detected files → concierge, strategist, All |
-| *(all types)* | `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate`, `project-planner`, `project-journal`, `doc-updater` available — equip on coder/auditor as needed |
+| `youtube` | youtube-strategy, youtube-scriptwriting, youtube-retention |
+| `pptx` | pptx, visual-composition, python-patterns |
+| `pbi-report` | powerbi-report, visual-composition, dax-modeling |
+| `geometry` | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, python-patterns |
+| `code` | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp |
+| `data` | dax-modeling, powerbi-report, python-patterns |
+| `manuscript`| manuscript-review, glossary-extraction |
+| `hybrid` | All applicable (per detected files) |
 
-Full routing logic lives in `orchestration.md`. Add new project types there.
+**All types** also have foundational skills: codebase-navigator, systematic-debugging, implementation-dispatch, verification-gate, project-planner, project-journal, doc-updater.
+
+**Templates**: See `templates/project-*.json` for starter manifests. Copy to project root and name `project.json`.
 
 
 ## YouTube Pipeline

@@ -1,0 +1,8 @@
+{
+  "project_name": "Minimal Setup (Custom Skills Only)",
+  "project_type": "code",
+  "auto_include": false,
+  "active_skills": ["python-patterns", "codebase-navigator"],
+  "disabled_skills": [],
+  "metadata": {}
+}
