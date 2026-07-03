@@ -1,0 +1,28 @@
+plugin_id: code-mcp-tools
+category: code-mcp
+version: "1.0.0"
+description: "MCP tool development for Python and TypeScript. Provides schemas, JSON-RPC patterns, and async boundary standards."
+project_types:
+  - code
+skills:
+  - name: python-mcp
+    version: "1.2.0"
+    load_policy: auto
+  - name: typescript-mcp
+    version: "1.1.0"
+    load_policy: auto
+compatibility:
+  min_os_version: "2.5.0"
+  max_os_version: null
+  min_model_version: null
+  max_model_version: null
+auto_enable: true
+keywords:
+  - mcp
+  - tools
+  - python
+  - typescript
+  - json-rpc
+  - server
+dependencies: []
+conflicts: []

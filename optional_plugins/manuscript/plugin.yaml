@@ -1,0 +1,29 @@
+plugin_id: manuscript-tools
+category: manuscript
+version: "1.0.0"
+description: "Manuscript and academic writing support. Provides manuscript review workflows and glossary extraction for domain-specific terminology."
+project_types:
+  - manuscript
+skills:
+  - name: manuscript-review
+    version: "1.1.0"
+    load_policy: auto
+  - name: glossary-extraction
+    version: "1.0.0"
+    load_policy: auto
+compatibility:
+  min_os_version: "2.5.0"
+  max_os_version: null
+  min_model_version: null
+  max_model_version: null
+auto_enable: true
+keywords:
+  - manuscript
+  - academic
+  - writing
+  - review
+  - glossary
+  - terminology
+  - editing
+dependencies: []
+conflicts: []

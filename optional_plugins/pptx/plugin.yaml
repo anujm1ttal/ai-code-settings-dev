@@ -1,0 +1,24 @@
+plugin_id: pptx-core
+category: pptx
+version: "1.0.0"
+description: "PowerPoint presentation authoring and composition. Provides /deck command and component library support."
+project_types:
+  - pptx
+skills:
+  - name: pptx
+    version: "1.0.0"
+    load_policy: auto
+compatibility:
+  min_os_version: "2.5.0"
+  max_os_version: null
+  min_model_version: null
+  max_model_version: null
+auto_enable: true
+keywords:
+  - pptx
+  - presentation
+  - slides
+  - deck
+  - composition
+dependencies: []
+conflicts: []

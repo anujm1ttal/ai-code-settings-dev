@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Claude Code Project Manifest",
-  "description": "Declares project metadata and selectively activates skills to optimize token usage. Place in project root as project.json.",
+  "description": "Declares project metadata and selectively activates skills to optimize token usage. Place in project root as project.json. Supports Schema V1 (legacy) and V2 (with plugins).",
   "type": "object",
   "required": ["project_type"],
   "additionalProperties": false,
@@ -15,6 +15,12 @@
       "type": "string",
       "enum": ["code", "geometry", "data", "pptx", "pbi-report", "youtube", "manuscript", "hybrid"],
       "description": "Classification that determines default skills and agent routing. See orchestration.md for mappings."
+    },
+    "schema_version": {
+      "type": "string",
+      "enum": ["1.0.0", "2.0.0"],
+      "default": "1.0.0",
+      "description": "Manifest schema version. V1 = legacy, V2 = supports plugins. If omitted, defaults to V1."
     },
     "auto_include": {
       "type": "boolean",
@@ -37,6 +43,32 @@
       "description": "Skills to EXCLUDE from the default set (only used if auto_include=true). Useful for removing less-relevant skills from a project type.",
       "examples": ["youtube-retention", "dax-modeling"]
     },
+    "plugins": {
+      "type": "array",
+      "description": "Optional plugin references for V2 schemas. Each entry controls whether a plugin loads (auto-enabled by default for matching project_types).",
+      "items": {
+        "type": "object",
+        "required": ["plugin_id"],
+        "additionalProperties": false,
+        "properties": {
+          "plugin_id": {
+            "type": "string",
+            "description": "Unique plugin identifier (e.g., 'youtube-core', 'geometry-rhino'). Must exist in optional_plugins/ registry.",
+            "examples": ["youtube-core", "geometry-rhino", "code-mcp-tools"]
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether this plugin is active. If false, plugin loads but all skills are disabled."
+          },
+          "version": {
+            "type": "string",
+            "description": "Optional version constraint for the plugin (for future compatibility checks).",
+            "examples": ["1.0.0", ">=1.0.0"]
+          }
+        }
+      }
+    },
     "metadata": {
       "type": "object",
       "description": "Optional project-wide constants and constraints (mirrors Artifacts/MEMORY_ANCHORS.md intent).",
@@ -46,11 +78,26 @@
   },
   "examples": [
     {
-      "project_name": "Stadium Sightline Model",
+      "project_name": "Stadium Sightline Model (V1)",
       "project_type": "geometry",
       "auto_include": true,
       "active_skills": ["python-rhino-grasshopper", "systematic-debugging"],
       "disabled_skills": ["youtube-strategy"],
+      "metadata": {"max_seats": 50000, "tolerance_mm": 1.5}
+    },
+    {
+      "project_name": "Stadium Sightline Model (V2 with plugins)",
+      "project_type": "geometry",
+      "schema_version": "2.0.0",
+      "auto_include": true,
+      "active_skills": ["python-rhino-grasshopper", "systematic-debugging"],
+      "disabled_skills": [],
+      "plugins": [
+        {
+          "plugin_id": "geometry-rhino",
+          "enabled": true
+        }
+      ],
       "metadata": {"max_seats": 50000, "tolerance_mm": 1.5}
     },
     {
