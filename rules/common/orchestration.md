@@ -96,6 +96,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `/clean` | concierge | Purge `Artifacts/Temp/` and transient files | Maintenance mode |
 | `/learn` | concierge | Capture a persistent project lesson | Writes to `Artifacts/LEARNINGS.md` |
 | `/graduate` | concierge | Move project lessons to global OS settings | Writes to Global Registry |
+| `/skill-graph` | strategist | Visualize skill dependencies and identify clusters | Generates routing recommendations |
 
 ---
 
@@ -116,21 +117,22 @@ For minor edits that meet all criteria:
 
 1. **Planning, scoping, "should we"** → **strategist** (`/blueprint`)
 2. **Plan stress-testing, "grill me", shared understanding** → **strategist** or **council** (`/grill`)
-3. **Codebase discovery, tech-debt mapping, redundancy scans** → **strategist** (`/sweep`)
-4. **Bug investigation, root-cause analysis, fix planning** → **coder** (`/triage`)
-5. **Code implementation, refactoring, debugging** → **coder** (equip skills per table above)
-6. **Review, validation, "is this correct"** → **auditor** (`/audit`)
-7. **Factual codebase snapshot, compliance report** → **auditor** (`/snapshot`)
-8. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
-9. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
-10. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
-11. **Session start, "where was I"** → **concierge** (`/sync` with manifest validation)
-12. **Check/validate manifest, optimize skills** → **concierge** (`/manifest`)
-13. **Session end, context save** → **concierge** (`/handoff` [--lite|--phase])
-14. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
-15. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
-16. **Domain definitions, ubiquitous language, glossary extraction** → **scribe** (`glossary-extraction`)
-17. **Ambiguous** → **concierge** asks a clarifying question before routing.
+3. **Skill landscape, dependencies, routing optimization** → **strategist** (`/skill-graph`)
+4. **Codebase discovery, tech-debt mapping, redundancy scans** → **strategist** (`/sweep`)
+5. **Bug investigation, root-cause analysis, fix planning** → **coder** (`/triage`)
+6. **Code implementation, refactoring, debugging** → **coder** (equip skills per table above)
+7. **Review, validation, "is this correct"** → **auditor** (`/audit`)
+8. **Factual codebase snapshot, compliance report** → **auditor** (`/snapshot`)
+9. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
+10. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
+11. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
+12. **Session start, "where was I"** → **concierge** (`/sync` with manifest validation)
+13. **Check/validate manifest, optimize skills** → **concierge** (`/manifest`)
+14. **Session end, context save** → **concierge** (`/handoff` [--lite|--phase])
+15. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
+16. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
+17. **Domain definitions, ubiquitous language, glossary extraction** → **scribe** (`glossary-extraction`)
+18. **Ambiguous** → **concierge** asks a clarifying question before routing.
 
 ## Task Lifecycle
 

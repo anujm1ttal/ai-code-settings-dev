@@ -31,6 +31,7 @@ Orchestration layer for Claude Code sessions.
 |:---|:---|:---|
 | `/blueprint` | strategist | ROI-driven project planning and high-rigor phased roadmaps |
 | `/sweep` | strategist | Codebase discovery, tech-debt mapping, redundancy scans |
+| `/skill-graph` | strategist | Visualize skill dependencies and identify clusters |
 | `/grill` | strategist | Stress-test a plan for hidden risks |
 | `typescript-mcp` | `strategist, auditor, coder` | MCP server standards, Zod, JSON-RPC, async boundaries |
 | `systematic-debugging` | `coder, auditor` | 4-phase root-cause investigation process |
