@@ -165,6 +165,27 @@ For minor edits that meet all criteria:
 17. **Domain definitions, ubiquitous language, glossary extraction** → **scribe** (`glossary-extraction`)
 18. **Ambiguous** → **concierge** asks a clarifying question before routing.
 
+---
+
+## High-Rigor Engineering Workflow (Variant)
+
+For geometry-heavy work, production deployments, security-critical phases, or anything requiring **zero-rework tolerance** and an auditable evidence trail:
+
+**See**: [`high-rigor-engineering.md`](high-rigor-engineering.md)
+
+This variant adds synchronous gate-passing, runtime verification of every claim, and explicit approval at each step. It enforces:
+- **Evidence protocol**: All output to `Artifacts/Temp/<phase>_<step>_<command>.txt`
+- **Gate cadence**: One step per response, explicit approval only
+- **Patch protocol**: Audit → Propose → Approve → Apply → Verify (no synthetic diffs)
+- **Anti-patterns taxonomy**: Named violations (Ship-and-defer, Summary-substitution, Synthetic-diff, etc.)
+- **Scope lockdown**: Explicit approved file list, halt-immediately on violation
+
+**Use for**: Geometry validation, production systems, regulatory compliance, manifold verification, high-precision calculations.
+
+**Not for**: Exploratory prototyping, documentation, low-stakes bug fixes.
+
+---
+
 ## Task Lifecycle
 
 ```
