@@ -4,6 +4,7 @@ description: Senior developmental editor standards for narrative structure, char
 tags: ["editing", "narrative-design", "publishing", "review", "manuscript-analysis"]
 auto_activate: false
 argument-hint: "<narrative premise or chapter snippet>"
+model: claude-sonnet-5
 metadata:
   version: "1.0.1"
 verbosity_control: "STRICT. Use telegraphic feedback. Prioritize structural logic over prose style."

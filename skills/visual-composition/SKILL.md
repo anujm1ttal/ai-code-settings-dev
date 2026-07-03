@@ -4,6 +4,7 @@ description: Use this skill whenever you are planning or reviewing visual layout
 tags: ["design", "layout", "accessibility", "visual-design", "composition", "standards"]
 auto_activate: false
 argument-hint: "<design requirement or layout constraint>"
+model: claude-sonnet-5
 metadata:
   version: "1.0.1"
 globs: ["Artifacts/LAYOUT_SPEC.md", "style_constants.py"]

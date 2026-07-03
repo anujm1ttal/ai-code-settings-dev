@@ -3,6 +3,9 @@ name: concierge
 role: Operations Manager of the fleet. Owns session intake, state sync, handoffs, and learnings.
 description: Use PROACTIVELY for session intake, state sync, handoffs, and context recovery. Owns /sync, /ingest, /handoff, /learn commands and Artifacts/learnings/.
 tools: Read, Write, Grep, Glob, Bash
+model: claude-haiku-4-5
+effort: low
+reasoning_depth: shallow
 ---
 
 # Agent: Concierge

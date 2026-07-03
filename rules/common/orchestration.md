@@ -17,6 +17,37 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 | **creative-director** | Visual spec, hierarchy | **Write**: `Artifacts/LAYOUT_SPEC.md` |
 | **concierge** | State, sync, intake | **Write**: `Artifacts/LEARNINGS.md`, `/clean` execution |
 
+## Model Routing (Mandatory)
+
+Every agent has an assigned Claude model. This is NON-NEGOTIABLE and optimizes for cost and quality.
+
+| Agent | Model | Tier | Use When |
+|:---|:---|:---|:---|
+| **strategist** | Opus 4.8 | Tier 1 | Strategic decisions, architecture, planning |
+| **coder** | Sonnet 5 | Tier 2 | Implementation, refactoring, debugging |
+| **auditor** | Sonnet 5 | Tier 2 | Code review, compliance, gate validation |
+| **scribe** | Haiku 4.5 | Tier 3 | Documentation, state management |
+| **concierge** | Haiku 4.5 | Tier 3 | Routine sync, manifest validation |
+| **council** | Opus 4.8 | Tier 1 | Deliberation, conflict resolution |
+| **creative-director** | Haiku 4.5 | Tier 3 | Layout specs, design scaffolding |
+| **geometry-validator** | Sonnet 5 | Tier 2 | Geometric auditing, manifold verification |
+
+**Skills can override their agent's model** if reasoning complexity demands it (e.g., `manuscript-review` uses Sonnet even though owned by Scribe/Haiku). See `rules/common/model-routing.md` for full table.
+
+**Cost Impact**:
+- Typical balanced session: ~$1.07 (Opus: planning, Sonnet: code, Haiku: docs)
+- All-Opus baseline: $3.00 (180% cost increase)
+- Cost savings: 60% vs. all-Opus without quality loss
+
+**Routing Lookup**:
+```bash
+python scripts/model_router.py --table                    # Print routing table
+python scripts/model_router.py --lookup agent coder       # Look up agent model
+python scripts/model_router.py --lookup skill typescript-mcp coder  # Look up skill model
+```
+
+---
+
 ## Project Configuration & Skill Manifest
 
 Every project **MUST** have a `project.json` file in its root directory to declare its type and active skills. This enables selective skill loading and reduces token overhead.

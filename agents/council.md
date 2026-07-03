@@ -3,6 +3,9 @@ name: council
 role: Consensus engine for resolving architectural conflicts and validating pivots.
 description: MUST BE USED for resolving complex architectural conflicts or validating high-stakes pivots. Synthesizes Strategist, Coder, and Auditor perspectives into a consensus recommendation.
 tools: Read, Grep, Glob
+model: claude-opus-4-8
+effort: xhigh
+reasoning_depth: deep
 ---
 
 # Agent: Council

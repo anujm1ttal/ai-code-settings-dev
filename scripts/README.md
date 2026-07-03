@@ -2,6 +2,50 @@
 
 Utility scripts used by commands and agents.
 
+## `model_router.py`
+
+Determines the optimal Claude model for agents and skills based on task type and reasoning complexity.
+
+**Usage**:
+```bash
+# Print routing table
+python scripts/model_router.py --table
+
+# Look up agent model
+python scripts/model_router.py --lookup agent strategist
+
+# Look up skill model
+python scripts/model_router.py --lookup skill typescript-mcp coder
+```
+
+**Features**:
+- Agent-to-model binding (mandatory assignments)
+- Skill-level model overrides
+- Cost estimation per model
+- Reasoning-to-model mapping
+
+**Used by**: Agent invocation logic, skill selection, cost analysis
+
+**Output**:
+- Routing tables (markdown)
+- Model assignments (JSON)
+- Cost estimates per 100k tokens
+
+### Cost Example
+
+```json
+{
+  "agent": "strategist",
+  "tier": "opus",
+  "model": "claude-opus-4-8",
+  "cost_per_100k_tokens": "$1.50"
+}
+```
+
+Typical session: $1.07 (vs. $3.00 all-Opus).
+
+---
+
 ## `skill_graph_analyzer.py`
 
 Analyzes and visualizes skill dependencies based on tags, project type associations, and cross-references.

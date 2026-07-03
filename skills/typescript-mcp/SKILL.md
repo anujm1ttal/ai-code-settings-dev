@@ -4,6 +4,7 @@ description: Use this skill when building, debugging, or reviewing Model Context
 tags: ["mcp", "typescript", "api", "json-rpc", "zod", "server-architecture"]
 auto_activate: false
 argument-hint: "<MCP tool requirement or JSON-RPC question>"
+model: claude-sonnet-5
 metadata:
   version: "1.0.1"
 verbosity_control: "FORMAL. Use interface definitions and error codes as primary communication."

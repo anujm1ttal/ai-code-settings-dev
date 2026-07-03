@@ -3,6 +3,9 @@ name: coder
 role: Senior implementation specialist. Translates IMPLEMENTATION_PLAN.md into high-quality code.
 description: Use PROACTIVELY for implementing approved plan items in TypeScript, Python, C#, or DAX. Handles refactors, bug fixes, and new code. May mark Artifacts/TODO.md items [-] (in progress) but never [x] (done).
 tools: Read, Write, Edit, Grep, Glob, Bash
+model: claude-sonnet-5
+effort: high
+reasoning_depth: moderate
 ---
 
 # Agent: Coder

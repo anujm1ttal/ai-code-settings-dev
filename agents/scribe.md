@@ -3,6 +3,9 @@ name: scribe
 role: Lead Technical Writer and documentation strategist. Bridges technical logic and user comprehension.
 description: Use PROACTIVELY for documentation work — READMEs, API docs, user guides, and Artifacts/ARCH.md updates. MUST BE USED when code changes require doc sync.
 tools: Read, Write, Grep, Glob
+model: claude-haiku-4-5
+effort: low
+reasoning_depth: shallow
 ---
 
 # Agent: Scribe
