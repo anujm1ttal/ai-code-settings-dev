@@ -118,13 +118,39 @@ All state files MUST live in the **Artifacts/** directory within the true logica
 
 When creating or updating these files, you MUST use the absolute path of the workspace and place them in the `Artifacts/` folder.
 
-- **Architecture**: `Artifacts/ARCH.md`, `Artifacts/IMPLEMENTATION_PLAN.md`
-- **Roadmap**: `Artifacts/TODO.md`, `Artifacts/DECISION_LOG.md`
-- **Context**: `Artifacts/MEMORY_ANCHORS.md`, `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
-- **Transient**: `Artifacts/Temp/` (MANDATORY for all scratch scripts, diagrams, and temporary analysis. Shadow `scratch/` is FORBIDDEN.)
-- **Briefs**: `Artifacts/HANDOFF_BRIEF.md`
-- **Learnings**: `Artifacts/learnings/` (Categorized knowledge registry)
-- **History**: `Artifacts/history/` subdirectory for archived plans, task lists, and learnings
+### Root Files (Always at Artifacts/)
+
+- **IMPLEMENTATION_PLAN.md** — High-level roadmap spanning all phases and milestones
+- **TODO.md** — High-level task tracking and project execution status
+- **ARCH.md** — System architecture and design principles
+- **MEMORY_ANCHORS.md** — Project constants, constraints, and non-negotiables (Persistent — never archived)
+- **learnings/** — Categorized knowledge registry (Persistent — never archived)
+- **HANDOFF_BRIEF.md** — Session transition and next steps summary
+
+### Active Phase Files (Artifacts/Plans/)
+
+- **Phase-N-Plan.md** — Detailed phase technical design, objectives, file changes, dependencies, and success metrics (created at phase start)
+- **Phase-N-TODO.md** — Phase-level task tracking and status (created at phase start; managed during phase execution)
+
+### Phase Completion (Artifacts/Reports/)
+
+- **Phase-N-Report.md** — Phase completion summary, metrics, and outcomes (created at phase end)
+
+### Archive (Artifacts/History/)
+
+- **DECISION_LOG.md** — Historical decisions and pivots
+- **Plans/** — Archived Phase-N-Plan.md files (moved after phase completion)
+- **Reports/** — Archived Phase-N-Report.md files (moved after phase completion)
+- **Other ad-hoc artifacts** (except Temp/)
+
+### Transient Storage (Artifacts/Temp/)
+
+- One-off diagrams, scratch scripts, and temporary analysis (MANDATORY for all scratch files; shadow `scratch/` is FORBIDDEN)
+
+### Context Files
+
+- **Artifacts/.agent/current_task.md** — Session focus and current task pointer
+- **Artifacts/LOCAL_AGENT_PROFILES.json** — Sub-agent role definitions
 
 > [!IMPORTANT]
 > **Interface-First Pattern**: For any data exchange or tool-building task, Phase 1 MUST define the "Contract" (JSON Schema/Outline) and obtain explicit user approval before implementation.

@@ -109,7 +109,7 @@
 
 ## Phase 12.1: Update Global Rules
 
-- [ ] [coder] Update `CLAUDE.md` Artifacts section — Success: Root/Plans/Reports/History structure documented with lifecycle
+- [-] [coder] Update `CLAUDE.md` Artifacts section — Success: Root/Plans/Reports/History structure documented with lifecycle
 - [ ] [coder] Update `orchestration.md` persistence table — Success: Plans, Reports, History rows added; learnings/MEMORY_ANCHORS marked as persistent
 - [ ] [coder] Create `templates/Phase-N-Plan.md.template` — Success: Template with Objectives, Technical Approach, File Changes, Dependencies, Success Metrics
 - [ ] [coder] Create `templates/Phase-N-TODO.md.template` — Success: Phase-scoped todo template matching root TODO.md format
