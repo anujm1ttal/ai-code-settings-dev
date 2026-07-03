@@ -116,8 +116,8 @@
 
 ## Phase 12.2: Update Documentation
 
-- [ ] [scribe] Update `cheatsheet.md` Artifacts section — Success: Visual tree + lifecycle explanation added
-- [ ] [scribe] Update `README.md` Artifacts references — Success: Developer section mentions new structure
+- [-] [scribe] Update `cheatsheet.md` Artifacts section — Success: Visual tree + lifecycle explanation added
+- [-] [scribe] Update `README.md` Artifacts references — Success: Developer section mentions new structure
 
 - [ ] [auditor] Final verification — Success: All rules updated, templates created, no breaking changes
 

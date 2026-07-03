@@ -164,12 +164,21 @@ ai-code-settings/                   (SOURCE/DEVELOPMENT — edit here)
 │   └── ... (validation before deployment)
 │
 └── Artifacts/                       # Development state (repo-specific)
-    ├── TODO.md                      # Development tracking
-    ├── DECISION_LOG.md              # Development decisions
+    ├── IMPLEMENTATION_PLAN.md       # Development tracking
+    ├── TODO.md                      # Current phase tasks
+    ├── MEMORY_ANCHORS.md            # Project constants
     ├── learnings/                   # Development learnings
-    ├── history/                     # Archived plans
+    ├── Plans/                       # Phase-level detailed planning
+    ├── Reports/                     # Phase completion reports
+    ├── History/                     # Archived phases and decisions
     └── ...
 ```
+
+**Artifacts Structure:**
+- **Root**: High-level overviews (IMPLEMENTATION_PLAN.md, TODO.md) + persistent reference (MEMORY_ANCHORS.md, learnings/)
+- **Plans/**: Detailed per-phase planning (Phase-N-Plan.md, Phase-N-TODO.md)
+- **Reports/**: Phase completion summaries (Phase-N-Report.md)
+- **History/**: Archive for completed phases and decisions (DECISION_LOG.md)
 
 **What gets deployed to ~/.claude/:**
 - ✓ agents/, rules/, skills/, optional_plugins/, templates/

@@ -126,15 +126,33 @@ rules/common/architecture.md      ← Deep modules, design principles
 rules/common/TOKEN-ECONOMICS.md   ← Context slicing, bootstrap costs
 ```
 
-### Project State
+### Project State & Artifacts
 ```
-Artifacts/TODO.md                 ← Task status, phase tracking
-Artifacts/IMPLEMENTATION_PLAN.md  ← Technical design, file paths, logic
-Artifacts/DECISION_LOG.md         ← High-stakes pivots, resolutions
-Artifacts/MEMORY_ANCHORS.md       ← Project constants, non-negotiables
-Artifacts/learnings/              ← Persistent knowledge (by category)
-Artifacts/ROLLBACK_PROCEDURE.md   ← Manual migration reversal (Phase 11)
+Artifacts/
+├── IMPLEMENTATION_PLAN.md      (high-level: all phases)
+├── TODO.md                      (high-level: task tracking)
+├── ARCH.md                      (system architecture)
+├── MEMORY_ANCHORS.md            (project constants)
+├── learnings/                   (persistent knowledge registry)
+│
+├── Plans/                       (active phase work)
+│   ├── Phase-1-Plan.md          (created at phase start)
+│   └── Phase-1-TODO.md          (created at phase start)
+│
+├── Reports/                     (phase completion)
+│   └── Phase-1-Report.md        (created at phase end)
+│
+└── History/                     (archived artifacts)
+    ├── DECISION_LOG.md
+    ├── (old Plans/ and Reports/)
+    └── (ad-hoc artifacts)
 ```
+
+**Lifecycle:**
+- Phase starts → Plans/Phase-N-Plan.md + Plans/Phase-N-TODO.md
+- Phase completes → Reports/Phase-N-Report.md
+- Phase archived → move Plans/ and Reports/ to History/
+- learnings/ and MEMORY_ANCHORS.md stay at root (persistent)
 
 ### Templates
 ```
