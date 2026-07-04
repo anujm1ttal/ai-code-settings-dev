@@ -40,9 +40,24 @@ Extract intent from the conversation history.
 
 ### Write the SKILL.md
 Follow the anatomy and patterns in [architecture-guide.md](references/architecture-guide.md).
-- **Metadata**: Name + "pushy" description.
+- **Metadata**: Name + "pushy" description. The description states **triggering conditions only** ("Use this skill whenever…") — never a summary of the skill's process, or agents will follow the description instead of reading the body.
 - **Body**: Imperative instructions under 500 lines.
 - **Resources**: Scripts and references for deterministic tasks.
+
+### Match the Form to the Failure Type
+Before drafting, identify how agents fail WITHOUT the skill, then pick the structure that counters it:
+
+| Baseline Failure | Right Form | Wrong Form |
+|:---|:---|:---|
+| Violates a rule under pressure | Iron Law + anti-rationalization table + red flags | Soft guidance ("prefer…") |
+| Produces wrong output shape | Positive recipe / output template | Prohibition list |
+| Omits a required element | Structural template / checklist | Prose reminders |
+| Applies behavior at wrong times | Observable predicate ("when X is true, do Y") | Unconditional rule + exemption prose |
+
+**No nuance clauses in discipline skills**: "Don't X unless it matters" reopens the negotiation the skill exists to close. If a genuine exemption exists, make it an explicit, reportable claim ("state 'No testable surface: reason' in your report"), never a silent judgment call.
+
+### Baseline Testing is Mandatory for Discipline Skills
+For any skill that enforces behavior (Iron Laws, gates, protocols): run the baseline scenario WITHOUT the skill first, capture the agent's exact rationalizations, and build the anti-rationalization table from those observed excuses — not from imagination. A discipline skill shipped without a failing baseline is untested code.
 
 ## Evaluation & Iteration
 Follow the rigorous testing protocols in [testing-protocol.md](references/testing-protocol.md).

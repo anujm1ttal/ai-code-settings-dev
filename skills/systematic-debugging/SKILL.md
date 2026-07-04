@@ -5,7 +5,7 @@ tags: [debugging, troubleshooting, root-cause, testing, verification]
 auto_activate: false
 argument-hint: "<error message or failing test description>"
 metadata:
-  version: "1.0.1"
+  version: "1.1.0"
 ---
 
 
@@ -49,10 +49,6 @@ IS THIS A FAILURE?
 - **Pattern Matching**: Find a working example of the same logic in the codebase. Compare it against the failing code.
 - **Variable Isolation**: If multiple factors exist, isolate them. Change only ONE variable at a time using tests.
 
-## 🔗 Relationships
-- **Verification**: Depends on `verification-gate` for evidence standards.
-- **Automation**: Cross-ref `rhino-e2e-testing` for geometric reproduction.
-
 ### Phase 3: Hypothesis & Verification
 - State exactly what you believe is wrong.
 - Propose a fix that addresses the **root cause**, not the symptom.
@@ -64,7 +60,7 @@ IS THIS A FAILURE?
 - **Broad Sweep**: Check for the same bug pattern in other files.
 
 ## 🔄 High-Rigor TDD Loop
-Use this loop for all bug fixes and complex features:
+Use this loop for all bug fixes and complex features (full mandate: `test-driven-development` skill):
 1. **RED**: Create a minimal, automated test that reproduces the bug (or defines the new feature). Run it and confirm it **FAILS** with the expected error.
 2. **GREEN**: Implement the **minimum code** necessary to make the test pass. Do not over-engineer. Run the test and confirm it **PASSES**.
 3. **REFACTOR**: Improve the code quality, remove duplication, and align with `coding-style.md` while ensuring the test stays **GREEN**.
@@ -90,11 +86,22 @@ If you implement a fix and the test still fails **3 times in a row**, you must S
 - Adding "null checks" without understanding why the value was null.
 - `type: ignore` or `as any` used to "fix" a type error.
 
+## ⏱ Condition-Based Waiting (the fix for timeout-bumping)
+A bumped timeout never fixes a race — it hides it until a slower machine reopens it.
+- **Wait on the condition, not the clock**: poll for the observable state change (file exists, port open, status == ready) at a short interval with a hard deadline.
+- **Deadline = diagnosis**: on expiry, fail with the last observed state ("status still PENDING after 30s"), never a bare timeout message.
+- **No observable signal?** That IS the root cause — the system lacks a completion signal. Add one; do not guess durations.
+
 ## 📝 Verification Protocol
 When declaring a bug "Fixed," you must provide:
 1. The **Reproduction Script/Test** that initially failed.
 2. The **Root Cause** description (1 sentence).
 3. The **Fresh Evidence** (command output) showing the test now passes.
+
+## 🔗 Relationships
+- **Verification**: Depends on `verification-gate` for evidence standards.
+- **TDD Mandate**: Phase 4 fixes follow the `test-driven-development` skill.
+- **Lane Selection**: Reproduce in the cheapest valid lane per `rules/common/testing-strategy.md` (Lane B → A-headless → A-live → A-full).
 
 ## 📄 Output Templates
 
@@ -125,7 +132,7 @@ When performing a systematic deep-dive, maintain an `Artifacts/DEBUG_LOG.md` fil
 - **Proposed Fix**: [Minimal code change]
 - **Predicted Outcome**: [What should happen]
 
-## ✅ Phase 4: implementation & Defense
+## ✅ Phase 4: Implementation & Defense
 - [ ] Fix implemented
 - [ ] Regression test added
 - [ ] Defense-in-depth: [e.g., added assertion to module_x.py]

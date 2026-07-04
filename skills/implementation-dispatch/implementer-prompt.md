@@ -28,7 +28,7 @@ You are an Implementation Specialist.
 
 ## Process
 1. If ANYTHING is unclear, report status NEEDS_CONTEXT with your questions — do NOT guess
-2. Write a failing test first (if applicable)
+2. Write a failing test first, in the cheapest valid lane (see test-driven-development skill). Confirm it fails for the right reason. If the task genuinely has no testable surface (pure docs/config), state "No testable surface: <reason>" explicitly in your report — never skip silently
 3. Implement the minimal code to pass the test
 4. Run all tests and verify they pass
 5. Self-review: Check for magic numbers, missing error handling, scope creep

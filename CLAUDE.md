@@ -202,6 +202,7 @@ Claude Code hooks provide **hard guardrails** that cannot be rationalized away.
 | `session-boot.js` | `SessionStart` | Injects Artifacts state (TODO, Learnings, Current Task) into context |
 | `guard-paths.js` | `PreToolUse` | **Blocks** writes to binaries (`.pbix`, `.3dm`), secrets (`.env`), build artifacts |
 | `guard-commands.js` | `PreToolUse` | **Blocks** dangerous commands (`rm -rf`, force push, SQL drops) |
+| `guard-commit-evidence.js` | `PreToolUse` | **Blocks** `git commit` without fresh evidence in `Artifacts/Temp/` (opt-in: `project.json` → `"enforce_commit_evidence": true`) |
 | `auto-lint.js` | `PostToolUse` | Reports lint violations after file edits (report-only, no auto-fix) |
 | `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
 

@@ -7,6 +7,8 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 |:---|:---|:---|
 | `implementation-dispatch`| [abstract](file:///c:/Users/44547/source/repos/ai-code-settings/skills/implementation-dispatch/abstract.md) | Subagent orchestration and two-stage review workflow. |
 | `verification-gate` | [abstract](file:///c:/Users/44547/source/repos/ai-code-settings/skills/verification-gate/abstract.md) | Mandatory evidence-first verification before claiming "Done." |
+| `test-driven-development` | [abstract](file:///c:/Users/44547/source/repos/ai-code-settings/skills/test-driven-development/abstract.md) | Failing-test-first mandate (RED-GREEN-REFACTOR) for all production code. |
+| `receiving-code-review` | [abstract](file:///c:/Users/44547/source/repos/ai-code-settings/skills/receiving-code-review/abstract.md) | Verify-then-respond discipline for ingesting review feedback. |
 | `project-planner` | [abstract](file:///c:/Users/44547/source/repos/ai-code-settings/skills/project-planner/abstract.md) | Phased roadmaps, dependencies, and task decomposition. |
 | `systematic-debugging` | - | Root-cause investigation process for bugs. |
 | `codebase-navigator` | - | Context discovery and traversal for large projects. |

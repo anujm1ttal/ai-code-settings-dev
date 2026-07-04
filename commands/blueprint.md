@@ -18,7 +18,7 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 
 ## New Project
 1. Analyze user's project idea.
-2. **Requirements Interview**: Ask 3–5 targeted questions to uncover hidden constraints and goals (see `strategist.md`).
+2. **Requirements Interview**: Ask 3–5 targeted questions to uncover hidden constraints and goals (see `strategist.md`). Ask them **one at a time** — wait for each answer before asking the next; earlier answers should shape later questions. Prefer multiple-choice (AskUserQuestion) when the options are enumerable.
 3. **Step 0 Challenge**: PROJECT_TYPE, VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS.
 4. **Phased Roadmap**: 3–4 phases with numeric success metrics.
 5. **Create files**: `Artifacts/IMPLEMENTATION_PLAN.md`, `Artifacts/TODO.md`, `Artifacts/ARCH.md`.
