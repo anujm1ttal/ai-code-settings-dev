@@ -26,9 +26,10 @@ description: Canonical testing taxonomy, runtime-lane selection, evidence requir
 | :--- | :--- | :--- |
 | **Lane B — Pure** | math, parsing, validators, metadata, sorting, data transforms | No |
 | **Lane A-headless**| RhinoCommon geometry, Breps, meshes, intersections | Yes, via Rhino.Inside |
-| **Lane A-full** | UI, GH canvas, plugins, Rhino document state | Yes, Rhino UI |
+| **Lane A-live** | Scriptable checks needing plugins/document state headless can't load | Yes, running instance via `rhinocode` CLI (8.11+, `StartScriptServer`) |
+| **Lane A-full** | Interactive UI, dialogs, manual picks | Yes, Rhino UI (manual) |
 
-**Default Rule**: Use the cheapest lane that proves the claim.
+**Default Rule**: Use the cheapest lane that proves the claim. Lane order: B → A-headless → A-live → A-full.
 
 ## 3. Evidence Rules
 

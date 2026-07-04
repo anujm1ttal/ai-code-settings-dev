@@ -73,8 +73,9 @@ project.json (V1 or V2)
 
 - **Lane B** (Pure Python): Unit tests; no Rhino/runtime required
 - **Lane A-headless** (Rhino.Inside): Geometry tests; requires CPython 3.12+
-- **Lane A-full** (Rhino UI): GH canvas tests; requires Rhino 8 UI
-- **Default**: Use cheapest lane that proves the claim (Lane B >> Lane A-headless >> Lane A-full)
+- **Lane A-live** (`rhinocode` CLI): Scriptable probes against a running Rhino instance; requires Rhino 8.11+ and `StartScriptServer`
+- **Lane A-full** (Rhino UI): Interactive/manual tests; requires Rhino 8 UI
+- **Default**: Use cheapest lane that proves the claim (Lane B >> Lane A-headless >> Lane A-live >> Lane A-full)
 
 ### Python Runtime Matrix
 

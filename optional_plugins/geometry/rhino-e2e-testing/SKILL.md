@@ -1,11 +1,11 @@
 ---
 name: rhino-e2e-testing
 description: Use this skill whenever you are performing rigorous, headless end-to-end testing of RhinoCommon geometry, Grasshopper definitions, or plugin state using Rhino.Inside and pytest. It implements the "Lane A protocol" for verifying geometric invariants like manifoldness, intersections, and tolerance-aware comparisons. Trigger when you are fixing a geometric bug, adding a new Grasshopper component, or verifying a complex Brep operation. Do NOT use for geometry-agnostic logic that can be tested in pure Python (Lane B); use rhino-unit-testing instead.
-tags: ["rhino", "grasshopper", "testing", "pytest", "rhinoinside", "e2e"]
+tags: ["rhino", "grasshopper", "testing", "pytest", "rhinoinside", "rhinocode", "e2e"]
 auto_activate: false
 argument-hint: "[--run-tests|--setup-reproduction]"
 metadata:
-  version: "1.0.1"
+  version: "1.1.0"
 ---
 
 
@@ -29,8 +29,14 @@ DOES THE TEST REQUIRE GEOMETRIC INVARIANTS?
 │    │                 Best for CI/CD and rapid iteration.
 │    │
 │    └── TYPE: UI / Canvas / Plugin Interaction
+│        │
+│        ├── SCRIPTABLE (no dialogs, no manual picks)?
+│        │   └── [ACTION]: USE LANE A-LIVE (rhinocode CLI → running Rhino).
+│        │                 Drives a full Rhino session with all plugins loaded.
+│        │                 Use when headless cannot load specialized plugins.
+│        │
 │        └── [ACTION]: USE LANE A-FULL (Manual in Rhino UI).
-│                      Use when headless mode cannot load specialized plugins.
+│                      Last resort: requires human interaction.
 ```
 
 ### Prerequisites
@@ -102,6 +108,38 @@ Use the `geometry_assertions` library to verify geometric invariants. Never use 
 
 To test a `.gh` definition, use the `GH_DocumentIO` API to load, solve, and extract data. Keep components as thin wrappers that call into tested source modules.
 
+## 🎛 Lane A-live: `rhinocode` CLI (Rhino 8.11+)
+
+The `rhinocode` CLI drives a **live, fully-loaded Rhino session** from the terminal. It fills the gap between Lane A-headless (no specialized plugins) and Lane A-full (manual, no evidence trail): the agent writes a probe script, executes it inside the running Rhino instance, and captures real output.
+
+### Prerequisites
+- **Rhino 8.11 or later**.
+- `rhinocode` on PATH: `%PROGRAMFILES%\Rhino 8\System` (Windows) or `/Applications/Rhino 8.app/Contents/Resources/bin` (macOS).
+- The user runs `StartScriptServer` once inside Rhino — the CLI talks to this script server. **Semi-attended**: Rhino must be open; not a substitute for headless in unattended CI.
+
+### Subcommands
+| Command | Purpose |
+| :--- | :--- |
+| `rhinocode list --json` | List running Rhino instances (PID, ID, open docs) — verify the target before executing. |
+| `rhinocode script <path.py>` | Run a Python/C# script inside the live instance (all plugins + document state available). |
+| `rhinocode command "_circle 0 0 0 20"` | Execute a Rhino command remotely — smoke tests, repro setup. |
+| `rhinocode project build <path.rhproj>` | Compile a `.rhproj` into a `.yak` package — no running Rhino required; CI-friendly. |
+
+Target a specific instance with `--rhino <id>` when multiple are open.
+
+### Evidence Protocol
+Redirect all Lane A-live output to `Artifacts/Temp/` like any other verification command:
+
+```bash
+rhinocode list --json > Artifacts/Temp/<phase>_<step>_rhinocode_list.txt 2>&1
+rhinocode script probes/check_plugin_state.py > Artifacts/Temp/<phase>_<step>_rhinocode_probe.txt 2>&1
+```
+
+### Key Rules
+1. **Dialect**: Scripts run in Rhino's embedded CPython (~3.9) — all Rhino-internal dialect rules apply (`typing.List`, no `|` unions, `print()` only).
+2. **Not a pytest replacement**: Lane A-headless keeps fixtures, markers, coverage, and clean exit codes. `rhinocode script` is a coarser run-a-script channel — use it only when headless cannot prove the claim.
+3. **Verify the target**: Run `rhinocode list` before `script`/`command` to confirm the intended instance and document are active.
+
 ## 📜 Key Rules
 1. **Load First**: `rhinoinside.load(8)` must be called BEFORE any Rhino imports.
 2. **Session Scope**: Use `scope="session"` on fixtures — loading Rhino takes 2-3 seconds; do it once.
@@ -152,5 +190,5 @@ Standard `pytest` commands are also available:
 ## 🔧 Troubleshooting
 
 - **DLL Collisions**: Common if multiple versions of Rhino are installed. Use `rhinoinside.load(8)` explicitly.
-- **Missing Plugins**: Headless Rhino does not load all GH plugins by default. You may need to call `gh.Instances.ComponentServer.AddExternalObject()` manually in `conftest.py`.
+- **Missing Plugins**: Headless Rhino does not load all GH plugins by default. You may need to call `gh.Instances.ComponentServer.AddExternalObject()` manually in `conftest.py` — or escalate to Lane A-live (`rhinocode`), where the full plugin set is already loaded.
 - **License**: Rhino.Inside consumes a license just like a GUI session. Ensure your license server/Cloud Zoo is accessible.
