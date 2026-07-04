@@ -33,6 +33,20 @@ Return new state; never mutate in-place.
 - **Constants**: No magic numbers. Use `config.py` / `constants.ts` / `static class Constants` / parameter table.
   - **Rhino/.NET exception**: Raw integers permitted for unresolvable .NET enums WITH inline comment documenting the mapping.
 
+## The Decision Ladder (Before Writing Any Code)
+
+Apply in order; stop at the first rung that resolves the task:
+
+1. **Does this need to exist?** (YAGNI — skip it if not)
+2. **Already in the codebase?** (Reuse it)
+3. **Does stdlib cover it?** (Use it)
+4. **Does a native platform feature work?** (Use it)
+5. **Is there an already-installed dependency?** (Use it)
+6. **Can it be one line?** (Write one line)
+7. **Only then**: minimum working code.
+
+Never apply laziness to: input validation, error handling that prevents data loss, security, accessibility, or explicit user requirements.
+
 ## Surgical Precision (CRITICAL)
 
 - **Adjacent Code Protection**: Do not "improve," refactor, or reformat adjacent code, comments, or logic that is not directly part of the task.
@@ -140,6 +154,7 @@ Overrides for the constrained Rhino 8 runtime:
 - [ ] Post-Schema Test — run `pytest` after any Pydantic model or validation schema change before committing
 - [ ] Step 0 Alignment — code achieves strategist's Minimalism goal
 - [ ] Seniority Filter — Would a senior engineer say this is overcomplicated or speculative?
+- [ ] Decision Ladder — Was reuse/stdlib/native/existing-dependency ruled out before new code was written?
 
 ## Codebase Scanning & Search
 
