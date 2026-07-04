@@ -15,7 +15,7 @@ Create `pptx-slide-design` — a skill generating copy-paste-ready slide-design 
 | Plugin (`plugin_id`) | Skills | Theme |
 |:---|:---|:---|
 | `ms-office` (`ms-office-core`) | `pptx`, `docx`, `xlsx` | OOXML file manipulation (shared `scripts/office/` engine) |
-| `visual-storytelling` (`visual-storytelling-core`) | `banana-prompt`, `pptx-slide-design` (new) | Copy-paste prompt generation for external AI renderers |
+| `visual-storytelling` (`visual-storytelling-core`) | `banana-prompt` (registered now); `pptx-slide-design` added Phase 2 → **1 skill now, 2 after Phase 2** | Copy-paste prompt generation for external AI renderers |
 
 **Step 0 (approved):** VALUE_CHECK — converts design system + slide intent into a Copilot-ready prompt. MINIMALISM — `SKILL.md` + 2 refs + 3 examples, consumes `LAYOUT_SPEC.md`, no renderer. Gates — consume `LAYOUT_SPEC.md`; 7-type taxonomy; two-plugin split.
 
@@ -87,7 +87,7 @@ Model METADATA.yaml on `optional_plugins/ms-office/pptx/METADATA.yaml` (the move
 |:---|:---|
 | `optional_plugins/pptx/plugin.yaml` | DELETE (retired) |
 | `templates/project-pptx.json` | `plugins`: replace `pptx-core` with BOTH `ms-office-core` + `visual-storytelling-core` |
-| `optional_plugins/index.md` | Quick-Ref table: replace `pptx-core` row with `ms-office-core` (3 skills) + `visual-storytelling-core` (2 skills); Directory-Structure tree: `pptx/` → `ms-office/` + `visual-storytelling/`; skill-count totals |
+| `optional_plugins/index.md` | Quick-Ref table: replace `pptx-core` row with `ms-office-core` (3 skills) + `visual-storytelling-core` (1 skill now: banana-prompt; 2 after Phase 2 adds pptx-slide-design); Directory-Structure tree: `pptx/` → `ms-office/` + `visual-storytelling/`; skill-count totals |
 | `optional_plugins/README.md` | Migration-guide references to pptx/banana-prompt |
 
 **C. Test assertions hardcoding plugin_ids (2 files — REQUIRED, will fail CI otherwise):**
@@ -117,7 +117,7 @@ Model METADATA.yaml on `optional_plugins/ms-office/pptx/METADATA.yaml` (the move
 - `Artifacts/PHASE_11_*`, `Artifacts/SKILL_*`, `REGISTRY_HEALTH_REPORT.md` — stale reports, skip.
 
 ### 4.3 Success Metric
-`python scripts/manifest_validator.py --list-plugins` shows `ms-office-core` (3 skills) + `visual-storytelling-core` (2 skills), no `pptx-core`; `pytest tests/test_manifest_validator_v2.py tests/test_v1_v2_migration.py` exits 0; grep `pptx-core` = 0 outside stale Artifacts.
+`python scripts/manifest_validator.py --list-plugins` shows `ms-office-core` (3 skills) + `visual-storytelling-core` (1 skill now: banana-prompt; → 2 after Phase 2 adds pptx-slide-design), no `pptx-core`; `pytest tests/test_manifest_validator_v2.py tests/test_v1_v2_migration.py` exits 0; grep `pptx-core` = 0 outside stale Artifacts.
 **Owner:** coder + auditor. **Deps:** none (runs first).
 
 ---

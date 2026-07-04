@@ -1,9 +1,9 @@
 # Project TODO: `pptx-slide-design` Skill + `ms-office` / `visual-storytelling` Plugins
 
-**Status:** Phase 0 pending branch init
+**Status:** Phase 1 complete (Contract) — ready to commit; Phase 2 next
 **Owner:** strategist → coder → auditor
 **Plan Reference:** `Artifacts/IMPLEMENTATION_PLAN.md`
-**Branch:** `phase-0-office-storytelling-restructure`
+**Branch:** `phase-1-pptx-slide-design-contract`
 
 ---
 
@@ -39,18 +39,22 @@
 
 **AUDIT STATUS [2026-07-04]:** FINAL PASS. All 5 gates clean with fresh evidence, re-verified via project `.venv` after the schema fix: `pytest tests/ -q` -> 46 passed, exit 0; `--list-plugins` -> ms-office-core (pptx, docx, xlsx), visual-storytelling-core (banana-prompt), no pptx-core; `git diff optional_plugins/plugin_manifest_schema.json` -> exactly the 1-line enum restoration, no other drift. Phase 0 terminal. Merge gate satisfied per `Artifacts/IMPLEMENTATION_PLAN.md` Section 8 -- commit authorization remains a separate, user-gated step (auditor does not commit).
 
-**DOC-SYNC NOTE for strategist:** `Artifacts/IMPLEMENTATION_PLAN.md` Section 1 and this file's task descriptions still say visual-storytelling has "2 skills" -- actual/correct registered count is 1 (banana-prompt only; pptx-slide-design does not exist until Phase 2). Code is correct; prose is stale. Non-blocking -- sync during next plan touch.
+**DOC-SYNC NOTE [2026-07-04, RESOLVED by strategist]:** `visual-storytelling` has **1 registered skill now** (banana-prompt); becomes **2 after Phase 2** adds pptx-slide-design. Stale "2 skills" prose in `Artifacts/IMPLEMENTATION_PLAN.md` (§1, §4.2 index.md row, §4.3 success metric) corrected to "1 now, 2 after Phase 2." Registered code count remains 1 until Phase 2 — no code change.
 
 ---
 
 ## Phase 1 — Contract
 
-### [ ] [strategist] Define design-token map
+### [x] [strategist] Define design-token map
 **Description:** Create `optional_plugins/visual-storytelling/pptx-slide-design/references/design-tokens.md` — map palette/type/grid/spacing/archetypes from `LAYOUT_SPEC.md` + 7-type taxonomy.
 **Success:** covers all 6 visual-composition archetypes + title; 0 new schema files.
 
-### [ ] [coder] Verify design-tokens against LAYOUT_SPEC.md
+### [x] [coder] Verify design-tokens against LAYOUT_SPEC.md
 **Success:** 1:1 mapping validated; no missing archetypes/tokens.
+
+**AUDIT STATUS [2026-07-04]:** PASS. All 4 gates clean (success metric, source-integrity spot-check, Hard Rules, scope). `find` confirms 0 new JSON schema files; 7-type taxonomy confirmed (Title + 6 visual-composition archetypes, 1:1 match against `SKILL.md` Repeating Patterns table). No Phase 1 auditor task exists in this phase's task list — see Phase 1 header for terminal sign-off. Authorized to proceed with commit (user-gated).
+
+**DEFERRED (non-blocking, LOW):** §1.3 `grid.columns=1` exception cites only `§Grid Rules`; should also cite `§Repeating Patterns` (Hero+Evidence / Full-Bleed Visual structures are the actual grounding for the stacked-layout exception). Citation-precision only — underlying claim is source-traceable, not fabricated. Fold into Phase 2 SKILL.md authoring pass.
 
 ---
 

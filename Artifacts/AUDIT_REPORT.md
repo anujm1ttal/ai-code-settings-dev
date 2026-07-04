@@ -187,3 +187,84 @@ Simply not staging the `.pyc` files is the *weaker* option — they will keep re
 **Recommendation:** Treat the `.gitignore` + `git rm --cached` cleanup as a **separate, tiny follow-up commit** (or a pre-Phase-0-commit hygiene commit) rather than folding it into the Phase 0 restructure commit — keeps the Phase 0 diff purely about the plugin restructure (Surgical Precision: no unrelated changes in the same commit). If the user prefers a single commit, it is acceptable to include the `.gitignore` change + `git rm --cached` in the same commit as Phase 0, since it's mechanically trivial and doesn't touch any tested surface — but do not silently fold it in without calling it out in the commit message.
 
 **Commit still requires explicit user authorization — not triggered by this audit.**
+
+---
+
+# Audit Report — Phase 1: Contract
+
+**Branch:** `phase-1-pptx-slide-design-contract` — **State:** working-tree only, no commit made
+**Auditor:** auditor (Sonnet 5) — **Date:** 2026-07-04
+**Scope:** `optional_plugins/visual-storytelling/pptx-slide-design/references/design-tokens.md` (new), `Artifacts/IMPLEMENTATION_PLAN.md` (doc-sync), `Artifacts/TODO.md` (doc-sync)
+
+## Project Profile
+
+- **Language:** Markdown (contract document only — no source code in this phase)
+- **Domain:** Skill-authoring meta-repo (`skill-authoring` project type); target skill domain is `pptx`/visual-storytelling
+- **Frameworks:** None invoked — this is a documentation contract, not implementation
+- **Build/Test:** N/A for this phase (no code, no schema, nothing to `pytest`)
+
+This is the **final independent gate** on top of an already-completed two-stage review (strategist authored → coder verified 5/5 items, including 2 re-verified after fixes). My job is not to repeat that pass but to check it wasn't rubber-stamped.
+
+---
+
+## Strengths
+
+- **Explicit read-contract framing:** Lines 3 and 5 of `design-tokens.md` state up front — twice, in different words — that this document is a contract/vocabulary map, not a token source, and that values come from `LAYOUT_SPEC.md`/`style_constants.py`. This directly satisfies Hard Rule 2 without requiring inference.
+- **Every field cites a real source section.** Spot-checked against `skills/visual-composition/SKILL.md` (not against the coder's prior verification): `palette.accent` → "one accent element per screen max" (SKILL.md L107) ✓; `grid.density_limit` → 5 blocks / 2 charts / 6 lines (SKILL.md L74, exact numbers) ✓; accessibility contrast 4.5:1 / 3:1 at 18pt+ (SKILL.md L90) ✓; banned-defaults list (Inter, Roboto, Arial, Segoe UI; centered-everything; accent-line-under-title) matches SKILL.md L143–149 verbatim in substance. No fabricated section names — all 12 cited `§`-headers (`Grid Rules`, `Spacing`, `Reading Flow`, `Density Control`, `Pacing`, `Accessibility`, `Color Rules`, `Typography Rules`, `Repeating Patterns`, `Anti-Slop Deny List`, `Concrete Palette Options`, `Typography Pairings`) exist verbatim in `SKILL.md`.
+- **Taxonomy closure is exact, not approximate.** The 6 archetypes listed in `design-tokens.md` §2 Types 2–7 (Hero+Evidence, Two-Column Compare, Grid of Cards, Top Summary+Detail, Left Narrative+Right Visual, Full-Bleed Visual) match `SKILL.md`'s "Repeating Patterns" table (L129–134) 1:1, same names, same order. No invented 8th type; Type 1 (Title/Section) is correctly called out as the one type outside the visual-composition archetype set.
+- **Fallback section correctly marks its own uncertainty.** L114 flags "no source-specified default — inference" for the 2-column fallback choice, rather than silently presenting an inference as a sourced fact. This is the kind of intellectual honesty the interaction standards require.
+- **Zero scope creep.** `git status` shows exactly one new file (the contract doc) plus two doc-sync-only diffs in `Artifacts/`. No `.pptx`, no renderer code, no JSON schema, nothing touching Phase 0's already-merged-pending surface.
+
+---
+
+## Gate Verdicts
+
+### Gate 1 — Success metric (7 types, 0 schema files): PASS
+
+- `design-tokens.md` §2 table enumerates exactly 7 rows (Title/Section Opener + 6 archetypes); explicit coverage line 89: "Type 1 = title; Types 2–7 = the 6 visual-composition archetypes... 7 total."
+- `find optional_plugins/visual-storytelling/pptx-slide-design -type f` → **one file**: `references/design-tokens.md`. `find ... -name "*.json"` → **0 results**. Metric satisfied exactly as stated in `Artifacts/IMPLEMENTATION_PLAN.md` §5 and `Artifacts/TODO.md` Phase 1.
+
+### Gate 2 — Source integrity spot-check (independent, not re-trusting coder's pass): PASS
+
+Read `skills/visual-composition/SKILL.md` directly (not the coder's notes) and cross-checked 5 fields plus all 12 section citations — see Strengths. No fabricated field, no invented section, no numeric drift (density limits, contrast ratios, and column-count max all match source exactly, not "close enough").
+
+### Gate 3 — Hard Rules: PASS
+
+1. No `.pptx`/renderer logic present — confirmed by reading the full file; it is markdown tables and prose only, zero executable content, zero file-generation instructions.
+2. Frames itself as a **read** contract, not a new source of truth — confirmed via L3, L5, and the "Source of truth precedence" list (L7–10), which explicitly subordinates this doc to `LAYOUT_SPEC.md` → `style_constants.py` → `visual-composition/SKILL.md` fallback, in that order.
+
+### Gate 4 — Scope: PASS
+
+```
+git status --short
+ M Artifacts/IMPLEMENTATION_PLAN.md
+ M Artifacts/TODO.md
+?? optional_plugins/visual-storytelling/pptx-slide-design/
+```
+Both `Artifacts/*.md` diffs are doc-sync only (correcting stale "2 skills" prose from a Phase 0 audit finding to "1 now, 2 after Phase 2" — no code touched, no Phase 2 work pulled forward). Nothing outside Phase 1's declared file list.
+
+---
+
+## Adjudication: `grid.columns=1` citation (§1.3)
+
+**Finding:** The `columns=1` exception in §1.3 cites only `(§Grid Rules)`, but `SKILL.md`'s Grid Rules section (L27–33) says only "Slides: 2–3 columns max" — it contains **no** exception language. The actual grounding for permitting a single-column/stacked layout comes from the archetype *structures* themselves: "Hero + Evidence" (large stat top, detail below — implicitly stacked) and "Full-Bleed Visual" (single image, minimal text) in `SKILL.md`'s **Repeating Patterns** section (L119–137), which `design-tokens.md` §1.5 already cites for `archetypes.chosen`.
+
+**Ruling: Non-blocking, LOW severity — citation-precision defect, not a sourcing defect.** The underlying claim (columns=1 permitted for hero/full-bleed layouts) is legitimately traceable to real source content — it is not invented. The defect is that §1.3 under-cites by omitting a second reference to `§Repeating Patterns` alongside `§Grid Rules`. This does not misrepresent the source, invent a rule, or violate a Hard Rule; it is a cross-reference completeness gap. Deferred as a polish item rather than routed back to strategist for a 3rd rejection cycle on the same document — escalating a citation-precision nit to a blocking fix here would violate Scope Control (proportionality) and the "Seniority Filter" check in `coding-style.md`.
+
+**Action:** Logged below as a deferred TODO item for the next doc-touch (Phase 2 SKILL.md authoring), not a Phase 1 blocker.
+
+---
+
+## Verdict: PASS
+
+All 4 gates clean. The one open item (grid.columns citation precision) is non-blocking per the ruling above.
+
+**Authorized to proceed with commit.**
+
+### Staging list for the eventual commit
+
+- `optional_plugins/visual-storytelling/pptx-slide-design/references/design-tokens.md` (new)
+- `Artifacts/IMPLEMENTATION_PLAN.md` (doc-sync: "2 skills" → "1 now, 2 after Phase 2" prose correction)
+- `Artifacts/TODO.md` (Phase 1 status + task marks)
+
+Commit itself remains gated on the user's explicit `approved, proceed with commit` — this audit authorizes readiness, it does not trigger the commit.
