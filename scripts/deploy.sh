@@ -112,12 +112,13 @@ echo ""
 
 echo -e "${YELLOW}[5/6]${NC} Copying production artifacts..."
 
-# Copy directories
-cp -r "$SOURCE/agents"          "$DEST/agents"
-cp -r "$SOURCE/rules"           "$DEST/rules"
-cp -r "$SOURCE/skills"          "$DEST/skills"
-cp -r "$SOURCE/optional_plugins" "$DEST/optional_plugins"
-cp -r "$SOURCE/templates"       "$DEST/templates"
+# Copy directories.
+# Remove the destination first so `cp -r` creates a fresh copy instead of
+# nesting the source inside an existing dir (e.g. optional_plugins/optional_plugins).
+for dir in agents rules skills optional_plugins templates; do
+  rm -rf "$DEST/$dir"
+  cp -r "$SOURCE/$dir" "$DEST/$dir"
+done
 
 # Copy critical files
 cp "$SOURCE/scripts/manifest_validator.py" "$DEST/scripts/manifest_validator.py"
