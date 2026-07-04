@@ -47,7 +47,7 @@ Orchestration layer for Gemini sessions.
 | `skill-creator` | `concierge, strategist` | Designing and optimizing new skill modules |
 | `doc-updater` | `scribe, auditor` | Automated documentation updates and staleness audits |
 | `business-analyst` | strategist | Requirement elicitation, stakeholder mapping, and ROI validation |
-| `banana-prompt` | creative-director | Optimized AI image prompts for thumbnails and decks |
+| `banana-prompt` | creative-director | Optimized AI image prompts for thumbnails and decks (`optional_plugins/visual-storytelling/`) |
 | `rhino-unit-testing` | `coder, auditor` | Lane B (Pure Python) testing for geometry-agnostic logic |
 | `/ideate` | strategist | YouTube video conceptualization |
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |

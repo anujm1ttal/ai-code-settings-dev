@@ -11,6 +11,11 @@
       "plugin_id": "youtube-core",
       "enabled": true,
       "version": "1.0.0"
+    },
+    {
+      "plugin_id": "visual-storytelling-core",
+      "enabled": true,
+      "version": "1.0.0"
     }
   ]
 }

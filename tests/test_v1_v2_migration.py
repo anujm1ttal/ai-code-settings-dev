@@ -280,7 +280,7 @@ class TestV1toV2Upgrade:
         """Verify that plugin inference matches project type (not arbitrary)."""
         test_cases = [
             ("youtube", "youtube-core"),
-            ("pptx", "pptx-core"),
+            ("pptx", "ms-office-core"),
             ("code", "code-mcp-tools"),
             ("geometry", "geometry-rhino"),
             ("pbi-report", "pbi-core"),

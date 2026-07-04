@@ -451,15 +451,16 @@ class TestPluginRegistry:
     """Test PLUGIN_REGISTRY is properly defined."""
 
     def test_registry_completeness(self):
-        """All 6 plugin categories are registered."""
+        """All 7 plugin categories are registered."""
         categories = {p["category"] for p in PLUGIN_REGISTRY.values()}
-        assert categories == {"youtube", "pptx", "pbi-report", "code-mcp", "geometry", "manuscript"}
+        assert categories == {"youtube", "pbi-report", "code-mcp", "geometry", "manuscript", "ms-office", "visual-storytelling"}
 
     def test_registry_skill_counts(self):
         """Plugin registry has correct skill assignments."""
         skills_by_plugin = {
             "youtube-core": 3,
-            "pptx-core": 1,
+            "ms-office-core": 3,
+            "visual-storytelling-core": 1,
             "pbi-core": 1,
             "code-mcp-tools": 2,
             "geometry-rhino": 4,

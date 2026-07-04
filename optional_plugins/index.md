@@ -15,13 +15,14 @@ The optional plugin system reduces bootstrap overhead by lazy-loading specialize
 | Plugin ID | Category | Skills (Count) | Project Types | Auto-Enable | Min OS |
 |:---|:---|:---|:---|:---|:---|
 | `youtube-core` | youtube | youtube-strategy, youtube-scriptwriting, youtube-retention (3) | youtube | Yes | 2.5.0 |
-| `pptx-core` | pptx | pptx (1) | pptx | Yes | 2.5.0 |
+| `ms-office-core` | ms-office | pptx, docx, xlsx (3) | pptx, data, manuscript | Yes | 2.5.0 |
+| `visual-storytelling-core` | visual-storytelling | banana-prompt (1) | pptx, youtube | Yes | 2.5.0 |
 | `pbi-core` | pbi-report | *(none in v1.0)* | pbi-report, data | Yes | 2.5.0 |
 | `code-mcp-tools` | code-mcp | python-mcp, typescript-mcp (2) | code | Yes | 2.5.0 |
 | `geometry-rhino` | geometry | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing (4) | geometry | Yes | 2.5.0 |
 | `manuscript-tools` | manuscript | manuscript-review, glossary-extraction (2) | manuscript | Yes | 2.5.0 |
 
-**Total Skills in Phase 11.1**: 12 singleton skills across 6 plugins.
+**Total Skills in Phase 0**: 15 singleton skills across 7 plugins.
 
 ---
 
@@ -75,7 +76,8 @@ Users can override activation in `project.json`:
 | geometry-rhino | 4 | 400 | geometry projects only | 2,500 |
 | manuscript-tools | 2 | 200 | manuscript projects only | 2,700 |
 | code-mcp-tools | 2 | 200 | code + MCP focus only | 2,700 |
-| pptx-core | 1 | 100 | pptx projects only | 2,800 |
+| ms-office-core | 3 | 300 | pptx, data, manuscript projects | 2,600 |
+| visual-storytelling-core | 1 | 100 | pptx, youtube projects | 2,800 |
 
 **Expected Outcome**: A project using only `youtube` and foundational skills will load ~12 skills total instead of 29, saving ~1,700 tokens/session.
 
@@ -93,9 +95,14 @@ optional_plugins/
 │   ├── youtube-strategy/       (Skill directory — moved in Phase 11.2)
 │   ├── youtube-scriptwriting/
 │   └── youtube-retention/
-├── pptx/
+├── ms-office/
 │   ├── plugin.yaml
-│   └── pptx/                  (Skill directory — moved in Phase 11.2)
+│   ├── pptx/                   (Skill directory — moved in Phase 0)
+│   ├── docx/                   (Skill directory — moved in Phase 0)
+│   └── xlsx/                   (Skill directory — moved in Phase 0)
+├── visual-storytelling/
+│   ├── plugin.yaml
+│   └── banana-prompt/          (Skill directory — moved in Phase 0)
 ├── pbi-report/
 │   └── plugin.yaml            (No skills in v1.0; reserved for future)
 ├── code-mcp/

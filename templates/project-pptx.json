@@ -8,7 +8,12 @@
   "schema_version": "2.0.0",
   "plugins": [
     {
-      "plugin_id": "pptx-core",
+      "plugin_id": "ms-office-core",
+      "enabled": true,
+      "version": "1.0.0"
+    },
+    {
+      "plugin_id": "visual-storytelling-core",
       "enabled": true,
       "version": "1.0.0"
     }

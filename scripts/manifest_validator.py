@@ -20,7 +20,7 @@ ProjectType = Literal["code", "geometry", "data", "pptx", "pbi-report", "youtube
 SchemaVersion = Literal["1.0.0", "2.0.0"]
 
 # Plugin categories
-PluginCategory = Literal["youtube", "pptx", "pbi-report", "code-mcp", "geometry", "manuscript"]
+PluginCategory = Literal["youtube", "pptx", "pbi-report", "code-mcp", "geometry", "manuscript", "ms-office", "visual-storytelling"]
 
 # Default skills per project type (V1 + V2 compatible)
 DEFAULT_SKILLS: dict[ProjectType, list[str]] = {
@@ -43,10 +43,15 @@ PLUGIN_REGISTRY: dict[str, dict] = {
         "skills": ["youtube-strategy", "youtube-scriptwriting", "youtube-retention"],
         "project_types": ["youtube"],
     },
-    "pptx-core": {
-        "category": "pptx",
-        "skills": ["pptx"],
-        "project_types": ["pptx"],
+    "ms-office-core": {
+        "category": "ms-office",
+        "skills": ["pptx", "docx", "xlsx"],
+        "project_types": ["pptx", "data", "manuscript"],
+    },
+    "visual-storytelling-core": {
+        "category": "visual-storytelling",
+        "skills": ["banana-prompt"],
+        "project_types": ["pptx", "youtube"],
     },
     "pbi-core": {
         "category": "pbi-report",

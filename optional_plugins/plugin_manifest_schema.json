@@ -14,7 +14,7 @@
     },
     "category": {
       "type": "string",
-      "enum": ["youtube", "pptx", "pbi-report", "code-mcp", "geometry", "manuscript"],
+      "enum": ["youtube", "pbi-report", "code-mcp", "geometry", "manuscript", "pptx", "ms-office", "visual-storytelling"],
       "description": "Functional category. Determines directory placement and activation rules."
     },
     "version": {

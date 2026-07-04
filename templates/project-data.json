@@ -11,6 +11,11 @@
       "plugin_id": "pbi-core",
       "enabled": true,
       "version": "1.0.0"
+    },
+    {
+      "plugin_id": "ms-office-core",
+      "enabled": true,
+      "version": "1.0.0"
     }
   ]
 }

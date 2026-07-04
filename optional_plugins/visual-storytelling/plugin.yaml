@@ -1,0 +1,29 @@
+plugin_id: visual-storytelling-core
+category: visual-storytelling
+version: 1.0.0
+description: Copy-paste-ready prompt generation for external AI renderers. Provides
+  image and slide-design prompt engineering for thumbnails, decks, and visual assets.
+project_types:
+- pptx
+- youtube
+skills:
+- name: banana-prompt
+  version: 1.0.0
+  load_policy: auto
+compatibility:
+  min_os_version: 2.5.0
+  max_os_version: null
+  min_model_version: null
+  max_model_version: null
+auto_enable: true
+keywords:
+- prompt
+- image
+- thumbnail
+- slide
+- storytelling
+- renderer
+- copilot
+- visual
+dependencies: []
+conflicts: []

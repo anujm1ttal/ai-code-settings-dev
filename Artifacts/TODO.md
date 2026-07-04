@@ -1,123 +1,99 @@
-# Global Skill Audit Tasks
+# Project TODO: `pptx-slide-design` Skill + `ms-office` / `visual-storytelling` Plugins
 
-- [x] [strategist] Phase 1: Structural Inventory — Success: Audit report populated with all skills
-    - [x] List all skills and check for `SKILL.md`
-    - [x] Verify YAML frontmatter and directory structure
-    - [x] Create `Artifacts/SKILL_AUDIT_REPORT.md`
-- [x] [coder] Phase 2: Depth & Compliance Analysis — Success: Detailed report on bloat and style
-    - [x] Analyze `SKILL.md` line counts
-    - [x] Review instruction tone and progressive disclosure
-- [x] [auditor] Phase 3: Trigger Optimization — Success: List of recommended description improvements
-    - [x] Evaluate "pushiness" and clarity of descriptions
-- [x] [concierge] Final cleanup and handoff — Success: All findings documented and walkthrough created
-- [x] [coder] Phase 4: Remediation — Success: Bloated skills refactored using Deep-Load Protocol
-    - [x] Refactor `docx` skill (Moved API/XML to `references/`)
-    - [x] Refactor `business-analyst` skill (Moved templates/guides to `references/`)
-    - [x] Refactor `manuscript-review` skill (Moved market/editorial to `references/`)
-    - [x] Refactor `xlsx` skill (Moved standards/guides to `references/`)
-    - [x] Refactor `skill-creator` skill (Moved testing/optimization to `references/`)
+**Status:** Phase 0 pending branch init
+**Owner:** strategist → coder → auditor
+**Plan Reference:** `Artifacts/IMPLEMENTATION_PLAN.md`
+**Branch:** `phase-0-office-storytelling-restructure`
 
 ---
 
-# Phase 11: Optional Plugin System for Singleton Skills
+## Phase 0 — Office/Storytelling Restructure (RUNS FIRST)
 
-**Objective**: Move 12 singleton skills to optional plugins, reducing bootstrap overhead by 15–25%.
+### [x] [coder] Scaffold both plugins
+**Description:** Create `optional_plugins/ms-office/plugin.yaml` (`ms-office-core`, skills pptx/docx/xlsx, project_types `[pptx,data,manuscript]`) and `optional_plugins/visual-storytelling/plugin.yaml` (`visual-storytelling-core`, skills banana-prompt/pptx-slide-design, project_types `[pptx,youtube]`). Model on `optional_plugins/pptx/plugin.yaml`.
+**Success:** both validate against `plugin_manifest_schema.json`.
 
-**Phases**: 11.1 (Infrastructure, Week 33) → 11.2 (Copy & Validate, Week 34) → 11.3 (Deactivation, Week 35)
+### [x] [coder] Move skills + author 3 METADATA.yaml
+**Description:** MOVE `optional_plugins/pptx/pptx/`→`ms-office/pptx/`; `skills/docx/`→`ms-office/docx/` (+METADATA.yaml); `skills/xlsx/`→`ms-office/xlsx/` (+METADATA.yaml); `skills/banana-prompt/`→`visual-storytelling/banana-prompt/` (+METADATA.yaml). DELETE `optional_plugins/pptx/plugin.yaml` + empty dir.
+**Success:** 5 skill dirs in place (4 moved, 1 new later); docx/xlsx/banana-prompt each have METADATA.yaml; old `pptx/` plugin gone.
 
-## Phase 11.1: Plugin Infrastructure
+### [x] [coder] Register categories (2 files)
+**Description:** `scripts/manifest_validator.py` — add `ms-office`, `visual-storytelling` to `PluginCategory` Literal; add both plugin_ids to `PLUGIN_REGISTRY`, remove `pptx-core`. `optional_plugins/plugin_manifest_schema.json` — add both to `category` enum.
+**Success:** `--list-plugins` shows both plugins; no `pptx-core`.
+**AUDIT [2026-07-04, RESOLVED]:** MEDIUM finding (schema enum dropped `"pptx"`) fixed -- `"pptx"` re-added to `optional_plugins/plugin_manifest_schema.json` category enum (1-line diff, verified). `pytest tests/ -q` re-confirmed 46 passed, exit 0 (via project `.venv`). Gate 3 clean. Task closed.
 
-- [x] [coder] Create `optional_plugins/` directory structure — Success: All category dirs exist with correct hierarchy
-- [x] [coder] Write `optional_plugins/plugin_manifest_schema.json` — Success: Schema passes validation against 12 sample YAML files
-- [x] [coder] Write `optional_plugins/index.md` (L0 registry overview) — Success: Readable registry index with skill counts
-- [x] [coder] Update `scripts/manifest_validator.py` to support V2 schema — Success: Validator accepts both V1 and V2 manifests
-- [x] [coder] Write `optional_plugins/README.md` (migration guide) — Success: Clear walkthrough for developers
-- [x] [auditor] Validate schema consistency, JSON/YAML syntax, Python code — Success: [AUDIT-PASS] Phase 11.1 complete
+### [x] [coder] Update test assertions (2 files)
+**Description:** `tests/test_manifest_validator_v2.py` L451–471 `test_plugin_registry`: update `categories` set + `skills_by_plugin` (remove `pptx-core:1`; add `ms-office-core:3`, `visual-storytelling-core:2`). `tests/test_v1_v2_migration.py` L283: `("pptx","pptx-core")` → `("pptx","ms-office-core")`.
+**Success:** assertions reflect new plugin_ids.
 
-## Phase 11.2: Copy & Validate Singletons
+### [x] [coder] Update registry docs + templates
+**Description:** REQUIRED — `templates/project-pptx.json` (both plugins), `optional_plugins/index.md` (table+tree+skill listing), `optional_plugins/README.md`, `skills/skills.overview.md` (move banana-prompt/docx/xlsx out of core), `CLAUDE.md` L51, `GEMINI.md`. RECOMMENDED — add plugin to `templates/project-youtube.json` (visual-storytelling-core), `project-data.json` + `project-manuscript.json` (ms-office-core).
+**Success:** grep `pptx-core` = 0 outside stale Artifacts.
 
-- [x] [coder] Copy 12 singleton skills to `optional_plugins/[category]/[skill]/` — Success: All 12 skills copied, diff against originals is zero
-- [x] [coder] Create `plugin.yaml` for each of 6 categories — Success: All category manifests written and formatted
-- [x] [coder] Create `METADATA.yaml` for each of 12 skills — Success: All skill metadata files complete with required fields
-- [x] [coder] Update 9 project templates with `plugins` key — Success: All `templates/project-*.json` use V2 schema structure
-- [x] [auditor] Validate all YAML syntax and schema compliance — Success: `/audit PASS` for all 18 YAML files
-- [x] [auditor] Spot-check 3 representative skills (youtube-strategy, python-rhino-grasshopper, manuscript-review) — Success: Auditor report noting no structural drift
-- [x] [coder] Fix PLUGIN_REGISTRY sync: Add `powerbi-report` to `pbi-core.skills` in `scripts/manifest_validator.py` line 53 — Success: manifest_validator.py --list-plugins correctly lists powerby-report; all 30 tests PASS
-- [x] [auditor] Re-verify Phase 11.2 gates after fix (commit caab6d7) — Success: [AUDIT-PASS] · [ZERO-ISSUES]
+### [x] [coder] Verify migration
+**Description:** `pytest tests/test_manifest_validator_v2.py tests/test_v1_v2_migration.py` + `python scripts/manifest_validator.py --list-plugins`.
+**Success:** pytest exit 0; validator lists `ms-office-core` (3) + `visual-storytelling-core` (2).
 
-## Phase 11.3: Deactivation & Rollback Safety
+### [x] [auditor] Mark Phase 0 terminal
+**Success:** all Phase 0 tasks `[x]`; tests exit 0; no `pptx-core` regressions.
 
-- [x] [coder] Write `scripts/migrate_skills_to_plugins.py` (idempotent, reversible) — Success: Script runs with `--dry-run`, `--apply`, `--rollback` modes
-- [x] [coder] Write `Artifacts/ROLLBACK_PROCEDURE.md` (step-by-step reversal) — Success: Documented procedure validated on test environment
-- [x] [coder] Test backward compatibility: V1→V2 manifest upgrade on 3 test projects — Success: Auto-upgrade silent and correct; old manifests load unchanged
-- [x] [coder] Run comprehensive test suite: schema validation, plugin discovery, token calculation — Success: All 46 tests pass (100% pass rate)
-- [x] [auditor] Spot-check integration with `/manifest`, `/sync`, `/audit` workflows — Success: Gate 4 PASS; no regressions in core concierge commands
-- [x] [coder] After auditor sign-off: Remove singleton skills from `skills/` — Success: 13 skills removed, `skills/skills.overview.md` updated
-- [x] [concierge] Update CLAUDE.md and MEMORY_ANCHORS with plugin system information — Success: All agent routing references updated
-- [x] [coder] Create git tag `v11.0.0-plugin-system` — Success: Commit 1d1859ebcd95b3fa6847482899de26e12858e5ec, tag created (local)
+**AUDIT STATUS [2026-07-04]:** FINAL PASS. All 5 gates clean with fresh evidence, re-verified via project `.venv` after the schema fix: `pytest tests/ -q` -> 46 passed, exit 0; `--list-plugins` -> ms-office-core (pptx, docx, xlsx), visual-storytelling-core (banana-prompt), no pptx-core; `git diff optional_plugins/plugin_manifest_schema.json` -> exactly the 1-line enum restoration, no other drift. Phase 0 terminal. Merge gate satisfied per `Artifacts/IMPLEMENTATION_PLAN.md` Section 8 -- commit authorization remains a separate, user-gated step (auditor does not commit).
 
-**Verification**:
-- [x] All singleton skills inaccessible from `skills/`; accessible from `optional_plugins/[category]/`
-- [x] `auto_include=true` projects auto-enable plugins for their type
-- [x] Token savings validated: 15–25% reduction for bootstrap on 1–2 plugin projects
-- [x] Rollback tested and functional (migration_state.json saved, --rollback mode ready)
-- [x] No regressions in `/sync`, `/manifest`, `/audit` workflows
+**DOC-SYNC NOTE for strategist:** `Artifacts/IMPLEMENTATION_PLAN.md` Section 1 and this file's task descriptions still say visual-storytelling has "2 skills" -- actual/correct registered count is 1 (banana-prompt only; pptx-slide-design does not exist until Phase 2). Code is correct; prose is stale. Non-blocking -- sync during next plan touch.
 
 ---
 
-## Phase 11.3 Remediation (Blocking Issues)
+## Phase 1 — Contract
 
-> [!CRITICAL]
-> These tasks MUST be completed before running migration --apply
+### [ ] [strategist] Define design-token map
+**Description:** Create `optional_plugins/visual-storytelling/pptx-slide-design/references/design-tokens.md` — map palette/type/grid/spacing/archetypes from `LAYOUT_SPEC.md` + 7-type taxonomy.
+**Success:** covers all 6 visual-composition archetypes + title; 0 new schema files.
 
-- [x] [coder] Resolve Issue 1: Add business-analyst to optional_plugins and PLUGIN_REGISTRY
-  - Decide on plugin category (new plugin or existing)
-  - Copy skill files to optional_plugins/[category]/business-analyst/
-  - Update PLUGIN_REGISTRY in manifest_validator.py
-  - Verify with `--list-plugins`
-  - Success: python -c "from scripts.manifest_validator import PLUGIN_REGISTRY; assert 'business-analyst' in [s for p in PLUGIN_REGISTRY.values() for s in p.get('skills', [])]"
-
-- [x] [coder] Resolve Issue 2: Add cd-foundations to SINGLETON_SKILLS in migration script
-  - Edit line 39 of scripts/migrate_skills_to_plugins.py
-  - Add "cd-foundations" to the list (alphabetically sorted)
-  - Run --dry-run to verify all 12 skills are ready for migration
-  - Success: `--dry-run` output shows "13 to remove" and no "missing from plugins"
-
-- [x] [auditor] Re-verify Phase 11.3 Gate 4 after fixes — Success: All 13 SINGLETON_SKILLS verified in plugins
-  - Run pytest to confirm 46/46 still passing
-  - Verify PLUGIN_REGISTRY now has all 13 skills
-  - Re-run Gate 4 spot-check for Migration Script Integration
-  - Success: All 13 SINGLETON_SKILLS can be verified in plugins
-
-- [ ] [coder] After auditor approval: Execute migration --apply
-  - Ensure all uncommitted changes are committed
-  - Run `python scripts/migrate_skills_to_plugins.py --apply`
-  - Verify 13 skills removed from skills/
-  - Confirm skills/skills.overview.md updated
-  - Success: skills/ directory reduced from ~30 to ~17 skills
-
-- [ ] [auditor] Final verification post-migration
-  - Verify no skills in both locations (skills/ AND optional_plugins/)
-  - Test /manifest command on V1 and V2 projects
-  - Test /sync with upgraded manifests
-  - Test /audit with plugins
-  - Success: No regressions in concierge workflows
+### [ ] [coder] Verify design-tokens against LAYOUT_SPEC.md
+**Success:** 1:1 mapping validated; no missing archetypes/tokens.
 
 ---
 
-# Phase 12: Standardize Artifacts Workflow
+## Phase 2 — Skill Build
 
-## Phase 12.1: Update Global Rules
+### [ ] [scribe] Author SKILL.md + METADATA.yaml
+**Description:** `optional_plugins/visual-storytelling/pptx-slide-design/SKILL.md` (banana-prompt structure) + `METADATA.yaml`.
+**Success:** SKILL.md complete, ≥400 words, ready for review.
 
-- [-] [coder] Update `CLAUDE.md` Artifacts section — Success: Root/Plans/Reports/History structure documented with lifecycle
-- [-] [coder] Update `orchestration.md` persistence table — Success: Plans, Reports, History rows added; learnings/MEMORY_ANCHORS marked as persistent
-- [-] [coder] Create `templates/Phase-N-Plan.md.template` — Success: Template with Objectives, Technical Approach, File Changes, Dependencies, Success Metrics
-- [-] [coder] Create `templates/Phase-N-TODO.md.template` — Success: Phase-scoped todo template matching root TODO.md format
+### [ ] [scribe] Author slide-prompt-templates.md
+**Description:** `.../references/slide-prompt-templates.md` — 7 slot templates + 3 worked Input→Output examples, each a single copy-paste block.
+**Success:** 7 templates; 3 examples copy-paste-ready; tokens by name (no ad-hoc hex).
 
-## Phase 12.2: Update Documentation
+---
 
-- [-] [scribe] Update `cheatsheet.md` Artifacts section — Success: Visual tree + lifecycle explanation added
-- [-] [scribe] Update `README.md` Artifacts references — Success: Developer section mentions new structure
+## Phase 3 — Register + Integrate
 
-- [ ] [auditor] Final verification — Success: All rules updated, templates created, no breaking changes
+### [ ] [coder] Register skill in overview
+**Description:** Add `pptx-slide-design` to `skills/skills.overview.md` + `optional_plugins/index.md`; confirm in `visual-storytelling/plugin.yaml`.
+**Success:** skill appears in registry.
 
+### [ ] [auditor] Test 3 prompts with Copilot Premium
+**Success:** user approves ≥80% first-pass quality; no major rendering issues.
+
+### [ ] [auditor] Mark project terminal
+**Success:** all tasks `[x]`; success metrics met; ready to merge.
+
+---
+
+## Merge Gates
+
+- **Phase 0:** all tasks `[x]` + `pytest` exit 0 → merge `phase-0-office-storytelling-restructure` to `main`, delete branch.
+- Subsequent phases branch from `main` per lifecycle.
+
+---
+
+## Notes
+
+- **Re-recon:** docx/xlsx are `skills/` singletons (no METADATA.yaml); pptx already a plugin skill; `scripts/office/` triplicated (dedup deferred — report only).
+- **Structural twin for pptx-slide-design:** `banana-prompt` (now `optional_plugins/visual-storytelling/banana-prompt/`).
+- **No implementation on `main`.**
+- **Hard Rules (auditor rejects on violation):**
+  1. `pptx-slide-design`/`banana-prompt` never generate office files or invoke renderers (`ms-office` skills exempt).
+  2. `pptx-slide-design` reads design tokens from `LAYOUT_SPEC.md` — never redefines.
+  3. Phase 0 registry renames mirrored in test assertions before merge.
+- **Routing tradeoff:** plugins atomic — data/manuscript auto-load extra ms-office skills, youtube auto-loads pptx-slide-design (~200 tokens each, accepted).

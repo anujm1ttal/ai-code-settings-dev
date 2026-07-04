@@ -253,7 +253,7 @@ See [rules/common/testing-strategy.md](rules/common/testing-strategy.md) for det
 | **youtube** | youtube-core | project-youtube.json |
 | **code** | code-mcp-tools | project-code.json |
 | **geometry** | geometry-rhino | project-geometry.json |
-| **pptx** | pptx-core | project-pptx.json |
+| **pptx** | ms-office-core, visual-storytelling-core | project-pptx.json |
 | **pbi-report** | pbi-core | project-pbi.json |
 | **data** | pbi-core | project-data.json |
 | **manuscript** | manuscript-tools | project-manuscript.json |

@@ -23,8 +23,8 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 | Skill | Purpose |
 |:---|:---|
 | `visual-composition` | Cross-medium design principles and brand governance. |
-| `docx` | Professional Microsoft Word document generation. |
-| `xlsx` | Financial modeling and Excel automation standards. |
+
+> `docx`/`xlsx` moved to `optional_plugins/ms-office/` (plugin `ms-office-core`). See `optional_plugins/index.md`.
 
 ## Domain: Geometry (Rhino/GH)
 | Skill | Purpose |
@@ -35,4 +35,5 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 |:---|:---|:---|
 | `dax-modeling` | Data | Power BI data modeling and DAX authoring. |
 | `glossary-extraction` | DDD | Extracting ubiquitous language to GLOSSARY.md. |
-| `banana-prompt` | AI Art | Prompt engineering for Midjourney and DALL-E. |
+
+> `banana-prompt` moved to `optional_plugins/visual-storytelling/` (plugin `visual-storytelling-core`). See `optional_plugins/index.md`.
