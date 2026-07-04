@@ -50,6 +50,16 @@ For bug fixes and feature development:
 4. **Confirm Pass**: Confirm the test passes.
 5. **Runtime Check**: Add E2E only if the bug involves runtime behavior.
 
+### Deferred Defects: Strict Xfail
+Encode every known-but-deferred defect as an executable marker asserting the **correct** behavior that currently fails:
+
+```python
+@pytest.mark.xfail(strict=True, reason="<defect> — fix scheduled Phase N")
+```
+
+- **Why**: The defect list is enforced, not prose. A silent fix triggers XPASS and fails the build, forcing deliberate marker removal — the documentation cannot rot.
+- **Rules**: Reproduce the defect before encoding it (never xfail an unconfirmed defect). Cite the fixing phase in `reason`. The auditor counts remaining xfails against the deferred-defect list at each phase gate.
+
 ## 5. Mocking Boundaries
 
 - **Rule**: Mock external systems; do not mock internal logic.

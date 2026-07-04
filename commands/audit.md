@@ -65,6 +65,14 @@ All scan rules are defined in `coding-style.md`. Domain-specific additions:
 
 **Nuance**: Not all "sloppy" patterns are bugs. Fire-and-forget operations, shutdown cleanup, and best-effort paths may legitimately swallow errors. Flag the pattern, but assess whether it's the correct engineering choice before requiring a fix.
 
+## Health Score
+
+Every full audit report computes an overall project health score:
+
+`Health = Architecture (20%) + Code Quality (15%) + Test Coverage (25%) + Documentation (15%) + Compliance (25%)`
+
+Each dimension is scored 0–100. Bands: **90+** Good · **80–89** Acceptable · **<80** Needs Work. Record the score in `Artifacts/AUDIT_REPORT.md` so project health can be trended across audits.
+
 ## Severity Levels
 
 - **CRITICAL**: Security flaws, math errors, crashes, data corruption, unit mismatches, schema violations, missing IDisposable.

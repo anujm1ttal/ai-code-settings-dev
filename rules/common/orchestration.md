@@ -309,6 +309,7 @@ The `auditor` spawns parallel reviewers to audit the same code block:
 - **Domain Specialist**: Checks against specific skill (e.g., `rhino-e2e-testing`).
 - **Risk Reviewer**: Audits for security and edge cases.
 *Result: Aggregated into `Artifacts/AUDIT_REPORT.md`.*
+*Default: Use `--team` for all full audits — measurably faster and deeper than sequential scanning. Fall back to a single auditor only when token limits are hit.*
 
 ### 2. Independent Module Refactor
 The `coder` can spawn sub-agents to refactor non-dependent modules simultaneously:

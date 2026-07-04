@@ -38,7 +38,12 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
    ```
    User confirms which to add to `Artifacts/TODO.md`. Never auto-add.
 2. **Session Summary**: Tasks worked on, agents active, decisions/pivots made.
-3. **State Snapshot**: Update `.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md`.
+3. **State Snapshot**: Update `.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md`. Then run the **State File Health Check** — all five must be healthy and synchronized before the session ends (prevents context loss):
+   - `.agent/current_task.md` — updated with current task status
+   - `Artifacts/TODO.md` — active task markers correct
+   - `Artifacts/IMPLEMENTATION_PLAN.md` — no unnecessary changes
+   - `Artifacts/ARCH.md` — stable
+   - `Artifacts/DECISION_LOG.md` — stable
 4. **Context Compression**: Summarize resolved threads. Preserve active tasks/open questions. Discard superseded plans and verbose outputs.
 5. **TODO Hygiene**: Scrub completed micro-tasks. Archive to `Artifacts/history/TODO_phase_[n].md` if >200 lines.
 6. **Generate Brief**: Follow the **Mirroring Rule [HARD-GATE]**: Write to the brain/shadow directory with `IsArtifact: true` AND to `Artifacts/HANDOFF_BRIEF.md` in the workspace with `IsArtifact: false` using the absolute path.

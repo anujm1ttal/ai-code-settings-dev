@@ -5,7 +5,7 @@ tags: [subagent, delegation, orchestration, parallel, task-execution, context-ma
 auto_activate: false
 argument-hint: "[--dispatch <agent_type> | --status]"
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
 ---
 
 
@@ -39,6 +39,7 @@ Read the relevant template before dispatching. Adapt the placeholders to the spe
 - Select the next `[ ]` task from `Artifacts/TODO.md`.
 - Verify dependencies are met (no predecessors still `[ ]` or `[-]`).
 - Identify file scope boundaries for the subagent.
+- **Footprint Check (mandatory before any parallel wave)**: List each task's file footprint. ANY overlap ⇒ merge those tasks into one agent or serialize them — parallel writes to one file fail as silent overwrites, not merge conflicts. Additionally, every parallel prompt must explicitly ban shared-config edits (`conftest.py`, `pytest.ini`, shared fixtures): instruct "define fixtures locally."
 
 ### 2. Subagent Invocation
 Use the `agent` tool with the `implementer-prompt.md` template.

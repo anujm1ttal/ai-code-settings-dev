@@ -5,7 +5,7 @@ tags: ["python", "development", "standards", "backend", "coding-style"]
 auto_activate: false
 argument-hint: "<Python logic requirement or code style question>"
 metadata:
-  version: "1.0.1"
+  version: "1.1.0"
 globs: ["*.py", "pyproject.toml", "setup.cfg"]
 verbosity_control: "TECHNICAL. Prioritize code blocks over prose. Use high-density bullet points for logic rules."
 ---
@@ -116,3 +116,7 @@ verbosity_control: "TECHNICAL. Prioritize code blocks over prose. Use high-densi
   - Avoid `list[T]` lowercase generics.
 - **Validation**: `pydantic` v2 at system boundaries.
 - **Data Classes**: `dataclasses` with `frozen=True, slots=True` for internal value objects.
+
+## ⚠️ Known Gotchas
+- **pytest.ini `[tool:pytest]` header is silently inert**: pytest.ini requires the `[pytest]` section header; `[tool:pytest]` is valid only in setup.cfg. With the wrong header, pytest ignores the ENTIRE file — markers, addopts, strict flags — and emits no warning. After any pytest-config change, prove it is live: `pytest --markers` must list your custom markers, and a deliberately unregistered marker must error under `--strict-markers`.
+- **Stranded venv (base interpreter uninstalled)**: When `.venv/Scripts/python.exe` won't launch because its base Python was removed, reinstall a matching version (`py install 3.13`) and repoint `home=`/`executable` in `.venv/pyvenv.cfg` instead of deleting the venv. Repointing preserves all installed site-packages (rhinoinside, pinned deps, un-frozen state); rebuild only if the package set is trivially reproducible.
