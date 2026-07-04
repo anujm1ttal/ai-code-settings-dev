@@ -10,6 +10,9 @@ skills:
 - name: banana-prompt
   version: 1.0.0
   load_policy: auto
+- name: pptx-slide-design
+  version: 1.0.0
+  load_policy: auto
 compatibility:
   min_os_version: 2.5.0
   max_os_version: null

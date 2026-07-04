@@ -1,118 +1,129 @@
-# Design-Token Contract: `pptx-slide-design`
+# Deck Profile Contract: `pptx-slide-design`
 
-> **Purpose.** Defines the design tokens `pptx-slide-design` reads at prompt-generation time and the closed 7-type slide taxonomy those tokens feed. This is a **contract** (expected field shape), not a schema and not a token source. The token *values* come from a per-project `Artifacts/LAYOUT_SPEC.md` (emitted by `creative-director`, backed by `style_constants.py`); the token *vocabulary* is owned by `visual-composition`.
-
-**Hard Rule (Plan §1.2):** `pptx-slide-design` **reads** tokens — it never redefines them. If a value is absent, apply the [Fallback](#4-fallback-no-layout_spec) — never invent hex, fonts, or sizes.
+> **Purpose.** Defines the **FIXED LAYER** (deck-wide constants) that this skill reads from `Artifacts/LAYOUT_SPEC.md` (authored by `creative-director`) and auto-injects into every slide prompt. The skill resolves all token values (hex, fonts, sizes) and emits them **concrete** into the Copilot prompt — never abstract names. This ensures deck consistency and makes Copilot's rendering job unambiguous.
+>
+> **Core principle:** The skill is a bridge from deck profile + slide brief → slide-ready Copilot prompt at the **exact fidelity of the reference slides** (see `reference-slides.md`).
 
 **Source of truth precedence:**
 1. `Artifacts/LAYOUT_SPEC.md` (per-project, `creative-director`-authored) — wins.
-2. `style_constants.py` (per-project literal token values, referenced by name from `LAYOUT_SPEC.md`).
-3. `visual-composition/SKILL.md` (default vocabulary + named palettes/pairings) — fallback only.
+2. `style_constants.py` (per-project literal token values) — values live here.
+3. `visual-composition/SKILL.md` (fallback defaults only) — used only if LAYOUT_SPEC.md absent.
 
 ---
 
-## 1. Token Field Map
+## Deck Profile Structure
 
-Five token groups. Each field lists its `LAYOUT_SPEC.md` origin and its `visual-composition` source section.
+The profile is a **fixed contract** — same fields on every slide in the deck. The user supplies this once per deck via `LAYOUT_SPEC.md`; the skill reads it and auto-injects it into every prompt.
 
-### 1.1 Palette
+### 1. Palette (Color Layer)
 
-| Field | Shape | Source (`visual-composition`) |
+| Role | Name & Hex | Usage |
 |:---|:---|:---|
-| `palette.name` | Named theme, e.g. `Midnight Executive` | §Concrete Palette Options |
-| `palette.primary` | Named color + hex (`navy / 1E2761`) — titles, anchors | §Color Rules |
-| `palette.secondary` | Named color + hex | §Concrete Palette Options |
-| `palette.accent` | Named color + hex — **one accent element per slide max** | §Color Rules |
-| `palette.neutrals` | 3–4 grays (body text, borders, backgrounds) | §Color Rules |
-| `palette.semantic` | `red=negative`, `green=positive`, `amber=warning` | §Color Rules |
-| `palette.chart_sequence` | Fixed ordered color list (never tool defaults) | §Color Rules |
+| **Background** | Warm cream `#F5F1E8` | Full-slide background; clean, diagrammatic, no photo |
+| **Primary (Ink)** | Charcoal `#2A2A2A` | Titles, body text, strong contrast elements |
+| **Accent** | Terracotta `#C84A1E` | Highlights, badges, arrows, connectors; use sparingly |
+| **Muted greys** | `#888888` (text), `#666666` (secondary), `#555555` (labels), `#D6D0C4` (rules/outlines), `#A8A29A` (close-out) | Section headings, footer, muted annotations |
+| **Categorical** | Soft blue `#7BA7BC`, soft green `#8FAE6D`, soft yellow `#E8C547` | Card/region fills, heatmap colours, data visualization; use at 30–40% opacity for backgrounds, 65–75% for active data |
 
-Colors referenced **by name** in prompts; hex only where a renderer requires literal values. All values must resolve to `style_constants.py`.
+**Auto-inject rule:** Every emitted prompt includes these exact hex values and usage guidance, so Copilot renders slides that match their siblings.
 
-### 1.2 Type Scale
+### 2. Fonts (Typography Layer)
 
-| Field | Shape | Source (`visual-composition`) |
-|:---|:---|:---|
-| `type.heading_font` | 1 family (e.g. `Georgia`) — **not** a banned default | §Typography Pairings; §Anti-Slop Deny List |
-| `type.body_font` | 1 family (e.g. `Calibri`) | §Typography Pairings |
-| `type.scale.title` | Largest step — headlines, hero stats | §Typography Rules |
-| `type.scale.subtitle` | Second step — section headers, shared compare headers | §Typography Rules |
-| `type.scale.body` | Body copy step (≥12pt) | §Typography Rules; §Accessibility |
-| `type.scale.caption` | Small labels, card captions | §Typography Rules |
-| `type.scale.footnote` | Smallest step — sources, caveats (≥10pt) | §Typography Rules; §Accessibility |
-| `type.line_height` | Body 1.3–1.5×; headings 1.1–1.2× | §Typography Rules |
+| Role | Family | Usage | Example |
+|:---|:---|:---|:---|
+| **Serif (Heading/Takeaway)** | Deck serif (e.g., Georgia, Palatino) | Titles (no full stop), takeaway lines, body text | "The model can answer back" (title) |
+| **Monospace (Labels/Headings)** | Cascadia Code | Section headings (small caps, 10–11pt), footer, page numbers (italic), annotations | "01 · Intent" (section); "Cascadia Code Italic" (footer L) |
 
-`type.scale` is a 4–5-step scale; the five named sub-fields above are its individually addressable steps. No sizes outside the declared scale. Max **2 font families** per deck (`heading_font` + `body_font`). Font-size floors are body ≥12pt and footnote ≥10pt (§Accessibility). `18pt+` is **not** a font-size minimum — it is the threshold above which "large text" qualifies for the relaxed **3:1** contrast rule (see §3).
+**Font rules:**
+- Titles: serif family, dark charcoal `#2A2A2A`, **no full stop**, size inherited per region
+- Section headings: Cascadia Code, small caps, 10–11pt, muted grey `#888888`
+- Footer left: Slide title in Cascadia Code Italic, muted grey, smaller size
+- Footer right: Page number in Cascadia Code Regular, muted grey
+- Body: Serif or clean sans, 10–11pt, dark charcoal or muted grey per context
 
-### 1.3 Grid & Margins
+### 3. Furniture (Deck-Wide Layout Constants)
 
-| Field | Shape | Source (`visual-composition`) |
-|:---|:---|:---|
-| `grid.columns` | Slides: 2–3 max (§Grid Rules). **Exception:** single-column/stacked (`columns=1`) is permitted for hero/full-bleed layouts where one focal element spans the slide | §Grid Rules |
-| `grid.margins` | Consistent across all slides; defined once | §Grid Rules |
-| `grid.reading_flow` | `F-pattern` (text-heavy) or `Z-pattern` (visual-heavy) | §Reading Flow |
-| `grid.density_limit` | ≤5 content blocks, ≤2 charts, ≤6 body lines per slide | §Density Control |
+**Top-left:** Slide title (serif, dark charcoal, no full stop)  
+**Top-right badge:** "GRI · KICK-OFF" label + thin terracotta rule `#C84A1E` — **keep exactly as on other slides**  
+**Footer left:** Slide title in Cascadia Code Italic, muted grey `#888888`  
+**Footer right:** Page number in Cascadia Code Regular, muted grey `#888888`  
+**Background:** Warm cream `#F5F1E8`, no photographic background, clean/diagrammatic style
 
-### 1.4 Base Spacing Unit
+### 4. Card Convention (Repeating Pattern)
 
-| Field | Shape | Source (`visual-composition`) |
-|:---|:---|:---|
-| `spacing.unit` | Base unit, e.g. `0.25in` / `8px` | §Spacing |
-| `spacing.rule` | All gaps = integer multiples of `spacing.unit` | §Spacing |
-| `spacing.grouping` | Tight = related; wide = unrelated | §Spacing |
+All cards/regions follow this standard:
+- **Shape:** Rounded rectangle (4–6pt corner rounding)
+- **Background:** Light fill at 30–40% opacity of the region's primary colour (e.g., soft blue @ 35% opacity for a blue region)
+- **Accent bar:** Thin colour bar on top or left edge (full opacity, matching region colour)
+- **Outline:** Thin line, muted grey `#D6D0C4`
+- **Padding:** Generous internal spacing (1× base unit minimum)
+- **Text inside:** Cascadia Code or serif body, dark charcoal, 10–11pt
 
-### 1.5 Archetype Set
+### 5. Tone Defaults (Deck-Wide Style)
 
-| Field | Shape | Source (`visual-composition`) |
-|:---|:---|:---|
-| `archetypes.chosen` | 3–5 patterns selected from the closed 6 (§2) | §Repeating Patterns |
-| `archetypes.pacing` | Alternate dense/sparse; no 3+ dense in a row | §Pacing |
+- Clean · minimal · diagrammatic · architectural/editorial · honest · calm · research-oriented · clear at a glance
+- Avoid: metaphors (cake/car/recipe) · AI robot/brain/magic-wand icons · fake futuristic UI · heavy 3D render · dense technical diagrams · long paragraphs · bright saturated colours · decorative imagery · the term "DSL"
 
-Deviation from a chosen archetype requires justification (auditor gate).
+### 6. Layout Menu — Per-Slide Archetype Options
+
+The skill picks one of these 7 layouts based on the user's slide brief (§3 below):
+
+| # | Layout Name | Intent | Zones | When to Use |
+|:---|:---|:---|:---|:---|
+| 1 | **Title / Section** | Deck title or divider; minimal content, maximum impact | Title top, optional subtitle, centred | Deck openers, section breaks |
+| 2 | **Hero + Evidence** | Large headline/stat top, supporting detail below | Hero ~40% top, evidence ~60% below | Insight slides, KPI reveal |
+| 3 | **Two-Column Compare** | Left vs. right under shared header | Shared header, left/right columns | Before/after, option comparison |
+| 4 | **Grid of Cards** | Repeated small units (3–5 cards) in rows | Repeated cards, 2–3 columns, grid alignment | Multi-item summary, team bios |
+| 5 | **Top Summary + Detail** | KPI/headline strip, detail table/chart below | KPI band ~25% top, detail ~75% below | Dashboard pages, exec summaries |
+| 6 | **Left Narrative + Right Visual** | Text on left; chart/image on right | Left ~55%, right ~45%, shared header optional | Analysis, case studies, data stories |
+| 7 | **Full-Bleed Visual** | Single image/graphic dominates; minimal text overlay | Image full slide; optional overlay bottom/centre | Section openers, impact moments |
+
+**Fallback mapping:** If no LAYOUT_SPEC.md, use visual-composition defaults (Charcoal Minimal palette, Editorial fonts, 2–3 column grid, 0.25in spacing unit).
 
 ---
 
-## 2. Closed 7-Type Slide Taxonomy
+## 13-Part Prompt Anatomy (Skill Output Structure)
 
-**Title/Section opener** + the **6 `visual-composition` archetypes** (SKILL.md §Repeating Patterns). Closed set — a slide intent that fits none maps to the nearest type; the skill does not invent an eighth.
+Every emitted prompt follows this structure, with parts 3, 4, 5, 9-styling, 10, 11, 12 **auto-injected** from the profile; the user supplies 1, 2, 6, 7-content, 8, 9-text, 13.
 
-| # | Slide Type | Structure | Tokens Consumed |
+| # | Section | Source | Role |
 |:--|:---|:---|:---|
-| 1 | **Title / Section Opener** | Deck title or divider; minimal content | `palette.primary` (bg), `palette.accent`, `type.scale.title` + `type.scale.subtitle`, `grid.margins`, `spacing.unit` |
-| 2 | **Hero + Evidence** | Large headline/stat top, supporting detail below | `type.scale.title` (hero), `palette.accent` (stat), `grid.columns=1` (stacked, per §1.3 exception), `spacing.rule` (vertical rhythm) |
-| 3 | **Two-Column Compare** | Left vs. right under shared header | `grid.columns=2`, `type.scale.subtitle` (shared header) + `type.scale.body`, `palette.semantic` (optional), `spacing.grouping` (gutter) |
-| 4 | **Grid of Cards** | Repeated small units in rows | `grid.columns=2–3`, `palette.neutrals` (card bg), `type.scale.body` + `type.scale.caption`, `spacing.unit` (inter-card) |
-| 5 | **Top Summary + Detail** | KPI/headline strip, detail table or chart below | `grid.density_limit`, `type.scale.title` (KPI) + `type.scale.body`, `palette.accent` + `palette.chart_sequence`, `spacing.rule` |
-| 6 | **Left Narrative + Right Visual** | Text left, chart/image right | `grid.columns=2`, `type.scale.body` (left), `grid.margins` (image right), `palette.chart_sequence`, `spacing.grouping` |
-| 7 | **Full-Bleed Visual** | Single image/graphic, minimal text overlay | `palette.primary` (overlay), `type.scale.title` (overlay), `grid.margins=0` (`columns=1`, per §1.3 exception), `spacing.unit` (minimal), semantic overlay contrast ≥4.5:1 |
+| 1 | Command + purpose | Brief | "Rebuild Slide N... keep the purpose..." |
+| 2 | Content-truth directive | Brief | "Show the actual object, not metaphor" |
+| 3 | Title + styling | Profile + brief | Serif font, charcoal, no full stop (from profile; text from brief) |
+| 4 | Furniture (badge, footer) | **Profile ONLY** | "Keep the top-right GRI · KICK-OFF badge exactly as other slides" |
+| 5 | Background | **Profile ONLY** | Cream `#F5F1E8`, no photo, diagrammatic |
+| 6 | Overall layout | Brief | Zones, panels, proportions, reading order, connectors |
+| 7 | Per-region spec | Brief + profile | Region heading (Cascadia Code, small caps, 10–11pt, muted grey), visual device, exact content, **+ Purpose line** |
+| 8 | Flow devices | Brief | Arrows, loops, heatmap logic |
+| 9 | Takeaway line | Brief + profile | Text from brief; styling from profile (serif italic, ~20pt, charcoal, centre-aligned) |
+| 10 | Visual tone | Profile + brief | Adjectives: clean, minimal, diagrammatic, architectural, honest, calm, research-oriented, clear at a glance |
+| 11 | Forbidden list | Profile + brief | Deck-wide anti-cliché (metaphors, AI icons, fake UI, dense diagrams, DSL term, long paragraphs); slide-specific specifics |
+| 12 | Palette (with hex) | **Profile ONLY** | Exact hex values resolved from deck profile: `#F5F1E8` (background), `#C84A1E` (accent), `#2A2A2A` (charcoal), muted greys, categorical colours with opacities |
+| 13 | Speaker-note intent | Brief | The verbal narrative this visual should support |
 
-**Coverage:** Type 1 = title; Types 2–7 = the 6 `visual-composition` archetypes (Hero+Evidence, Two-Column Compare, Grid of Cards, Top Summary+Detail, Left Narrative+Right Visual, Full-Bleed Visual). **7 total.**
-
----
-
-## 3. Accessibility Invariants (always enforced)
-
-Independent of `LAYOUT_SPEC.md` — the skill applies these to every generated prompt (`visual-composition` §Accessibility):
-
-- Contrast ≥ **4.5:1** body text, ≥ **3:1** large text (large text = **18pt+**).
-- Font-size floors: body ≥12pt, footnote ≥10pt.
-- No color-only meaning — pair with label/position/icon.
-- No text on busy backgrounds without solid/semi-transparent overlay (esp. Type 7).
-- Never emphasize more than 2 elements per slide.
+**Critical inversion (v1 mistake fixed):** Parts 3–5, 9-styling, 10, 11, 12 use **concrete hex and named fonts** (e.g., "Cascadia Code", "#C84A1E", "18–20pt"), NOT abstract token names like `palette.primary` or `type.scale.title`. Token names live only in this contract prose (what the skill reads); the emitted prompt is user-facing and must render without external resolution.
 
 ---
 
-## 4. Fallback (no `LAYOUT_SPEC.md`)
+## Fallback Defaults (if no LAYOUT_SPEC.md)
 
-If a project has **no** `Artifacts/LAYOUT_SPEC.md`, the skill falls back to these `visual-composition` defaults (never ad-hoc values):
+If a project has no `Artifacts/LAYOUT_SPEC.md`, the skill uses these fallback values:
 
-| Token Group | Fallback Default | Source (`visual-composition`) |
+| Element | Fallback | Source |
 |:---|:---|:---|
-| Palette | `Charcoal Minimal` — `36454F` / `F2F2F2` / `212121` | §Concrete Palette Options |
-| Typography | `Editorial` — Georgia (heading) / Calibri (body) | §Typography Pairings |
-| Type scale | 5 steps: title / subtitle / body / caption / footnote; body ≥12pt | §Typography Rules |
-| Grid | 2 columns (chosen within the declared 2–3 range; no source-specified default — inference), consistent margins, F/Z reading flow | §Grid Rules |
-| Spacing unit | `0.25in` / `8px`, all gaps as multiples | §Spacing |
-| Archetypes | All 6 available; density ≤5 blocks / ≤2 charts / ≤6 lines | §Repeating Patterns, §Density Control |
+| **Palette** | Charcoal Minimal: `#36454F` (primary), `#F2F2F2` (secondary), `#212121` (accent) | visual-composition defaults |
+| **Fonts** | Editorial: Georgia (serif, heading), Calibri (body) | visual-composition defaults |
+| **Type scale** | 5 steps: title ~40pt, subtitle ~24pt, body ≥12pt, caption ~10pt, footnote ≥10pt | visual-composition §Typography Rules |
+| **Grid** | 2–3 columns (2 typical; 3 for multi-card layouts), consistent margins, F/Z reading flow | visual-composition §Grid Rules |
+| **Spacing unit** | 0.25in / 8px, all gaps as integer multiples | visual-composition defaults |
+| **Archetypes** | All 7 available; density ≤5 blocks per slide, ≤2 charts, ≤6 body lines | visual-composition §Repeating Patterns |
 
-**Fallback banner rule:** when defaults are used, the generated prompt states `[fallback: visual-composition defaults]` so the user can supply a `LAYOUT_SPEC.md` for brand-specific output. Banned defaults (Inter, Roboto, Arial, Segoe UI; centered-everything; accent-line-under-title) are rejected even in fallback (§Anti-Slop Deny List).
+When fallback is used, the emitted prompt includes: `[fallback: visual-composition defaults]` so the user knows to supply a project-specific `LAYOUT_SPEC.md` for branded output.
+
+---
+
+**Last updated:** 2026-07-04  
+**Serves:** `pptx-slide-design` skill output generation  
+**Worked examples:** See `reference-slides.md` (Slide A "The model can answer back", Slide B "The year ahead")  
+**Dependency:** `visual-composition/SKILL.md` (fallback source), `creative-director` (LAYOUT_SPEC.md author)

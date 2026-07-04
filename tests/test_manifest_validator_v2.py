@@ -460,7 +460,7 @@ class TestPluginRegistry:
         skills_by_plugin = {
             "youtube-core": 3,
             "ms-office-core": 3,
-            "visual-storytelling-core": 1,
+            "visual-storytelling-core": 2,
             "pbi-core": 1,
             "code-mcp-tools": 2,
             "geometry-rhino": 4,

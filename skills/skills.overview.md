@@ -36,4 +36,4 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 | `dax-modeling` | Data | Power BI data modeling and DAX authoring. |
 | `glossary-extraction` | DDD | Extracting ubiquitous language to GLOSSARY.md. |
 
-> `banana-prompt` moved to `optional_plugins/visual-storytelling/` (plugin `visual-storytelling-core`). See `optional_plugins/index.md`.
+> `banana-prompt`, `pptx-slide-design` live in `optional_plugins/visual-storytelling/` (plugin `visual-storytelling-core`). See `optional_plugins/index.md`.

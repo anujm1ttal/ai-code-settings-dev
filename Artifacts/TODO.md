@@ -1,6 +1,6 @@
 # Project TODO: `pptx-slide-design` Skill + `ms-office` / `visual-storytelling` Plugins
 
-**Status:** Phase 1 complete (Contract) — ready to commit; Phase 2 next
+**Status:** Phase 1 complete (Contract) — Phase 2 Skill Build REWORK in progress
 **Owner:** strategist → coder → auditor
 **Plan Reference:** `Artifacts/IMPLEMENTATION_PLAN.md`
 **Branch:** `phase-1-pptx-slide-design-contract`
@@ -58,21 +58,23 @@
 
 ---
 
-## Phase 2 — Skill Build
+## Phase 2 — Skill Build (REWORK: Rebuilt Around Reference-Slides 13-Part Anatomy)
 
-### [ ] [scribe] Author SKILL.md + METADATA.yaml
-**Description:** `optional_plugins/visual-storytelling/pptx-slide-design/SKILL.md` (banana-prompt structure) + `METADATA.yaml`.
-**Success:** SKILL.md complete, ≥400 words, ready for review.
+### [-] REWORK [scribe] Author SKILL.md + METADATA.yaml
+**Description:** `optional_plugins/visual-storytelling/pptx-slide-design/SKILL.md` (banana-prompt structure, rebuilt to emit concrete-hex-only prompts, NOT abstract token names) + `METADATA.yaml`.
+**Success:** SKILL.md complete (≥400 words), 4-step pipeline aligned with reference-slides.md 13-part anatomy, ready for review.
+**REWORK NOTE [2026-07-04]:** v1 emitted abstract token names (`palette.primary`) INTO prompts; v2 emits concrete hex (`#C84A1E`). Core inversion complete.
 
-### [ ] [scribe] Author slide-prompt-templates.md
-**Description:** `.../references/slide-prompt-templates.md` — 7 slot templates + 3 worked Input→Output examples, each a single copy-paste block.
-**Success:** 7 templates; 3 examples copy-paste-ready; tokens by name (no ad-hoc hex).
+### [-] REWORK [scribe] Author slide-prompt-templates.md
+**Description:** `.../references/slide-prompt-templates.md` — 13-part skeleton (annotated) + 3 worked Input→Output examples, each a single copy-paste block. Skeleton maps 1:1 to reference-slides.md anatomy table.
+**Success:** 13-part skeleton present; 7 layout archetypes (Title/Section, Hero+Evidence, Two-Column Compare, Grid of Cards, Top Summary+Detail, Left Narrative+Right Visual, Full-Bleed Visual) via Part 6 variation; 3 examples copy-paste-ready; **zero abstract token names** in any emitted-prompt example.
+**REWORK NOTE [2026-07-04]:** v1 had "7 templates" as separate files; v2 has 1 skeleton + 7 Part-6 variations (cleaner). v1 had token names in examples; v2 has concrete hex + fonts only.
 
 ---
 
 ## Phase 3 — Register + Integrate
 
-### [ ] [coder] Register skill in overview
+### [-] [coder] Register skill in overview
 **Description:** Add `pptx-slide-design` to `skills/skills.overview.md` + `optional_plugins/index.md`; confirm in `visual-storytelling/plugin.yaml`.
 **Success:** skill appears in registry.
 
@@ -100,4 +102,5 @@
   1. `pptx-slide-design`/`banana-prompt` never generate office files or invoke renderers (`ms-office` skills exempt).
   2. `pptx-slide-design` reads design tokens from `LAYOUT_SPEC.md` — never redefines.
   3. Phase 0 registry renames mirrored in test assertions before merge.
+  4. **CRITICAL (v2):** Output prompts MUST use concrete hex + named fonts, NEVER abstract token names. This is load-bearing for Copilot rendering.
 - **Routing tradeoff:** plugins atomic — data/manuscript auto-load extra ms-office skills, youtube auto-loads pptx-slide-design (~200 tokens each, accepted).

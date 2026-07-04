@@ -50,7 +50,7 @@ PLUGIN_REGISTRY: dict[str, dict] = {
     },
     "visual-storytelling-core": {
         "category": "visual-storytelling",
-        "skills": ["banana-prompt"],
+        "skills": ["banana-prompt", "pptx-slide-design"],
         "project_types": ["pptx", "youtube"],
     },
     "pbi-core": {

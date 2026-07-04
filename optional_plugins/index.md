@@ -16,7 +16,7 @@ The optional plugin system reduces bootstrap overhead by lazy-loading specialize
 |:---|:---|:---|:---|:---|:---|
 | `youtube-core` | youtube | youtube-strategy, youtube-scriptwriting, youtube-retention (3) | youtube | Yes | 2.5.0 |
 | `ms-office-core` | ms-office | pptx, docx, xlsx (3) | pptx, data, manuscript | Yes | 2.5.0 |
-| `visual-storytelling-core` | visual-storytelling | banana-prompt (1) | pptx, youtube | Yes | 2.5.0 |
+| `visual-storytelling-core` | visual-storytelling | banana-prompt, pptx-slide-design (2) | pptx, youtube | Yes | 2.5.0 |
 | `pbi-core` | pbi-report | *(none in v1.0)* | pbi-report, data | Yes | 2.5.0 |
 | `code-mcp-tools` | code-mcp | python-mcp, typescript-mcp (2) | code | Yes | 2.5.0 |
 | `geometry-rhino` | geometry | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing (4) | geometry | Yes | 2.5.0 |
@@ -77,7 +77,7 @@ Users can override activation in `project.json`:
 | manuscript-tools | 2 | 200 | manuscript projects only | 2,700 |
 | code-mcp-tools | 2 | 200 | code + MCP focus only | 2,700 |
 | ms-office-core | 3 | 300 | pptx, data, manuscript projects | 2,600 |
-| visual-storytelling-core | 1 | 100 | pptx, youtube projects | 2,800 |
+| visual-storytelling-core | 2 | 200 | pptx, youtube projects | 2,700 |
 
 **Expected Outcome**: A project using only `youtube` and foundational skills will load ~12 skills total instead of 29, saving ~1,700 tokens/session.
 
@@ -102,7 +102,8 @@ optional_plugins/
 │   └── xlsx/                   (Skill directory — moved in Phase 0)
 ├── visual-storytelling/
 │   ├── plugin.yaml
-│   └── banana-prompt/          (Skill directory — moved in Phase 0)
+│   ├── banana-prompt/          (Skill directory — moved in Phase 0)
+│   └── pptx-slide-design/     (Skill directory — authored in Phase 2)
 ├── pbi-report/
 │   └── plugin.yaml            (No skills in v1.0; reserved for future)
 ├── code-mcp/
