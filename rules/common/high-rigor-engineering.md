@@ -96,7 +96,7 @@ Each phase has an **explicit approved file list**. The agent does not touch file
 
 ### Out-of-Scope Issues
 
-Bugs or findings discovered outside the approved scope become **findings** (logged in phase report as `<phase>_<component>_<n>`) and are deferred to a separate phase. They are **never fixed** in the current phase.
+Bugs or findings discovered outside the approved scope become **findings** (filed in `Artifacts/BACKLOG.md` under a `<phase>_<component>_<n>` id, not scattered across phase reports) and are deferred to a separate phase. They are **never fixed** in the current phase.
 
 ### Anti-Pattern: Scope-Creep-via-Cleanup
 
@@ -210,7 +210,7 @@ Prior-phase Temp files are out of scope for the current commit.
 
 ### Format
 
-Match prior accepted phase commits. Default: plain `-m` flags (one for title, one per body paragraph). No new conventions without explicit per-phase authorization.
+Match prior accepted phase commits. Default: plain `-m` flags (one for title, one per body paragraph). No new conventions without explicit per-phase authorization. **Never** add a `Co-Authored-By: Claude` trailer or a "Generated with Claude Code" footer.
 
 ### Approval
 

@@ -59,6 +59,10 @@ Encode every known-but-deferred defect as an executable marker asserting the **c
 
 - **Why**: The defect list is enforced, not prose. A silent fix triggers XPASS and fails the build, forcing deliberate marker removal — the documentation cannot rot.
 - **Rules**: Reproduce the defect before encoding it (never xfail an unconfirmed defect). Cite the fixing phase in `reason`. The auditor counts remaining xfails against the deferred-defect list at each phase gate.
+- **Green-baseline / hygiene / migration phases**: When a test-only phase carries both a "go green" goal AND a "no production changes" constraint, encode any production defect it *discovers* as `xfail(strict=True)` — never weaken/delete the test or fix production out of scope. This satisfies both pulls at once: the baseline goes green while the bug stays loud (a later silent production fix triggers XPASS and fails the build).
+
+### Inherited Triage Is a Hypothesis
+"Bend the failing test to the maintained production contract" assumes the contract is correct — but the contract is *unverified* until you run production. Before matching a failing test to current production, probe actual production behavior (a throwaway probe script). Mechanically matching tests to production encodes production bugs as expected behavior. (Evidence: 5 of 13 "rotten" inherited tests were correct tests catching real production bugs; only a runtime probe distinguished rot from a real defect.)
 
 ## 5. Mocking Boundaries
 

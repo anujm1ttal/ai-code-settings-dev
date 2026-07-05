@@ -248,6 +248,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 | `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
 | `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist | **The "How & Why"**: Technical design and rationale. |
 | `Artifacts/TODO.md` | Strategist | All (see authority) | **The "Who & When"**: High-level execution status. |
+| `Artifacts/BACKLOG.md` | Strategist/Coder (first deferral) | All | **Deferred-work registry**: unscheduled deferred work, filed findings, pending product decisions. Reference-on-demand (NOT boot-loaded). Lazy-created on first deferral, never scaffolded at init. Scoped/phase-shaped work → PLAN; loose item/finding/product-decision → BACKLOG; scheduled/status → TODO; decisions → DECISION_LOG. |
 | `Artifacts/ARCH.md` | Strategist | Scribe (formatting) | Long-term system architecture |
 | `Artifacts/COUNCIL_PROTOCOLS.md` | Strategist | Strategist | Deliberation rules for high-rigor decisions |
 | `Artifacts/DECISION_LOG.md` | Council | Council | Pivot tracking & high-stakes resolutions |
@@ -367,9 +368,9 @@ If an agent performs the same action type on the same file/state 3 times without
 
 ### 3. Findings Protocol (Phase Handoff)
 To ensure technical continuity across session boundaries:
-1. **Produce**: At the end of every task, the agent writes a brief `Artifacts/findings.md` documenting technical specifics (variable names, logic traps, API quirks).
-2. **Consume**: The next agent reads `findings.md` as part of their intake.
-3. **Graduate**: The Concierge promotes persistent findings to the `Artifacts/learnings/` registry during `/handoff`.
+1. **Produce**: At the end of every task, the agent files technical specifics (variable names, logic traps, API quirks) into `Artifacts/BACKLOG.md` — the single home for deferred work and findings — rather than scattering them across per-phase "still open" sections.
+2. **Consume**: The next agent reads `BACKLOG.md` as part of their intake.
+3. **Graduate**: The Concierge promotes persistent findings to the `Artifacts/learnings/` registry during `/handoff`; scheduled items graduate out to a PLAN phase.
 
 ### 4. Slicing & Economics
 Refer to `rules/common/TOKEN-ECONOMICS.md` for mandatory project slicing thresholds and context pressure management rules.

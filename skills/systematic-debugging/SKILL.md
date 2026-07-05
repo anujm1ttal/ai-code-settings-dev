@@ -58,6 +58,7 @@ IS THIS A FAILURE?
 - Implement the fix using the **High-Rigor TDD Loop**.
 - **Defense**: Add validation or assertions to the crash site to prevent this class of bug from recurring silently.
 - **Broad Sweep**: Check for the same bug pattern in other files.
+- **Re-triage after collection-layer fixes**: After any fix at the *collection* layer (import-mode, testpaths, conftest, guard, fixture), re-run the FULL suite — tests that could not be collected before are now runnable and may fail. The pre-fix failure count is a floor, not the total. Corollary: the exit gate must be the literal success-metric invocation (full combined run), never a per-file/per-directory proxy — standalone-green ≠ combined-run-green.
 
 ## 🔄 High-Rigor TDD Loop
 Use this loop for all bug fixes and complex features (full mandate: `test-driven-development` skill):

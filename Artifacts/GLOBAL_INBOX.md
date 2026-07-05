@@ -6,6 +6,6 @@ Cross-project lessons awaiting graduation into global rules, skills, or standard
 
 ---
 
-*(empty — last graduation: 2026-07-04, 7 entries)*
+*Inbox empty. Last graduated 2026-07-05 (5 entries from `my_mcp_rhino` → BACKLOG artifact, testing-strategy, systematic-debugging, standards).*
 
 ## [END OF GLOBAL INBOX]

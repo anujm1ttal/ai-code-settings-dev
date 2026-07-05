@@ -137,3 +137,4 @@ Critical architectural decisions (e.g., Schema changes, Plan pivots) require exp
 - Bypassing Step 0 without explicit user override
 - Chat history as sole source of truth
 - Operating on empty files without flagging to the user
+- Adding a `Co-Authored-By: Claude` trailer or a "🤖 Generated with Claude Code" footer to commits (these are Claude Code's opt-out *defaults* — silence = they get added; never add them, use plain `-m` flags)
