@@ -44,6 +44,7 @@ Every agent has an assigned Claude model. This is NON-NEGOTIABLE and optimizes f
 python scripts/model_router.py --table                    # Print routing table
 python scripts/model_router.py --lookup agent coder       # Look up agent model
 python scripts/model_router.py --lookup skill typescript-mcp coder  # Look up skill model
+python scripts/model_routing_audit.py --violations-only   # Verify runtime honored assignments
 ```
 
 ---

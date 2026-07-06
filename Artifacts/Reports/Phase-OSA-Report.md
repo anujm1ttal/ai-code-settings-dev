@@ -37,6 +37,12 @@ Absorbed two OS-improvement workstreams that were uncommitted drift on `main`, a
 
 ## Follow-ups (not in this phase)
 
-1. **Model-routing runtime bypass** → BACKLOG; needs Step 0 (likely a harness/runtime issue, not config).
-2. **Doc-sync:** `optional_plugins/index.md`, `skills.overview.md`, `DEPLOY.md`, and the `manifest_validator.py` PLUGIN_REGISTRY still describe the pre-native structure. Reconcile-or-retire the bespoke validator now that native plugins are canonical.
-3. **Permanent skill placement:** where each plugin is enabled (user/global vs per-project) is a usage decision, deliberately left open.
+Filed in `Artifacts/BACKLOG.md`:
+
+1. `osa_model-routing_1` (HIGH) — runtime bypasses assigned tiers; needs Step 0 (harness/runtime issue, not config).
+2. `osa_plugin-docs_2` (MEDIUM) — stale pre-native refs in `index.md`, `skills.overview.md`, `DEPLOY.md`, `manifest_validator.py`; reconcile-or-retire the bespoke validator.
+3. `osa_plugin-scope_3` (LOW) — permanent per-plugin enable scope (per-project vs global), left open per usage.
+
+The audit tool is now documented in `scripts/README.md` (usage) and
+`rules/common/model-routing.md` (Verification section + known-issue note); the
+bypass finding is linked from both.
