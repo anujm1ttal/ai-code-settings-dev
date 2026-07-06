@@ -87,7 +87,7 @@ Every project **MUST** have a `project.json` file in its root directory to decla
 }
 ```
 
-**Token Impact**: Using `auto_include=false` can save ~2,400 tokens (eliminating L1 metadata for 24 unused skills) per session. Best for specialized projects.
+**Token Impact**: Actual skill-metadata token cost is governed by which **native plugins are enabled** (`enabledPlugins`), not by `auto_include`. `auto_include=false` narrows the concierge's advertised skill set (routing intent); to actually skip a skill's L1 metadata, disable or don't install its plugin for the project.
 
 ---
 

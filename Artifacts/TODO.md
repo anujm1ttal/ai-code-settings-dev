@@ -12,9 +12,9 @@
 - [x] [strategist] `[user-approval]` B0 Step-0: mapping locked (name=dir, omit version, plugin.yaml sidecar) — approved 2026-07-06
 - [x] [coder] B1 Pilot: `code-mcp` converted — commit `813a66b`; `claude plugin validate` exit 0
 - [x] [coder+auditor] B2 Proof gate: **PASSED** — user installed pilot; `python-mcp`/`typescript-mcp` surface as slash commands
-- [-] [coder] B3 Roll out remaining 6 groups (geometry, manuscript, ms-office, pbi-report, visual-storytelling, youtube)
-- [ ] [scribe] B4 Fix CLAUDE.md/orchestration.md token-saving honesty claim
-- [ ] [auditor] B5 Verify + merge `phase-os-audit` → `main`
+- [x] [coder] B3 Roll out remaining 6 groups — commit `5227b29`; all 7 plugins validate exit 0
+- [x] [scribe] B4 Fix token-saving honesty claim — corrected in CLAUDE.md, orchestration.md, templates/README.md (×2), commands/manifest.md
+- [-] [auditor] B5 Verify + merge `phase-os-audit` → `main`
 
 **Finding → BACKLOG (not fixed here):** subagents run on wrong tier (haiku vs sonnet/opus); runtime ignores `model:` frontmatter — needs separate Step 0.
 

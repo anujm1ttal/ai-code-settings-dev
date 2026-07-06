@@ -77,7 +77,7 @@ Every project **MUST** declare a `project.json` in its root. During `/sync` (and
 2. Determines active skills based on `project_type`, `auto_include`, and explicit declarations
 3. Injects the skill allowlist into agent context
 
-**Token Impact**: `auto_include=false` saves ~2,400 tokens/session by skipping metadata for unused skills.
+**Token Impact**: Actual skill-metadata token cost is governed by which **native plugins are enabled** (`enabledPlugins`), not by `auto_include`. To truly skip an unused skill's metadata, disable or don't install its plugin. `auto_include`/`active_skills` express concierge **routing intent** — which skills to advertise as active — not the loader gate.
 
 ## Session Lifecycle
 

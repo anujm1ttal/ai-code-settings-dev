@@ -65,8 +65,8 @@ Current Setup:
 - Estimated L2 usage: varies by session
 
 Savings Opportunity:
-- If auto_include=false: save ~2,400 tokens/session
-  (requires: only keep 3-4 skills in active_skills)
+- auto_include=false narrows advertised skills (routing intent)
+- Real metadata savings = disable/don't-install unused native plugins (enabledPlugins)
 ```
 
 **Recommendations** (if any):
