@@ -1,0 +1,5 @@
+{
+  "name": "pbi-report",
+  "description": "Power BI report development and modeling. Provides visual composition, DAX design, and performance optimization for BI projects.",
+  "author": { "name": "Anuj Mittal" }
+}

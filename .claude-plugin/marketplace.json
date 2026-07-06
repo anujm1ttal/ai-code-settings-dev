@@ -1,0 +1,42 @@
+{
+  "name": "ai-code-settings",
+  "owner": { "name": "Anuj Mittal" },
+  "description": "Personal AI-OS plugins: MCP tooling, geometry, Office, Power BI, YouTube, and visual-storytelling skills.",
+  "plugins": [
+    {
+      "name": "code-mcp",
+      "source": "./optional_plugins/code-mcp",
+      "description": "MCP tool development for Python and TypeScript. Provides schemas, JSON-RPC patterns, and async boundary standards."
+    },
+    {
+      "name": "geometry",
+      "source": "./optional_plugins/geometry",
+      "description": "Rhinoceros/Grasshopper geometry modeling and computation. Provides RhinoCommon APIs, E2E testing, and manifoldness verification."
+    },
+    {
+      "name": "manuscript",
+      "source": "./optional_plugins/manuscript",
+      "description": "Manuscript and academic writing support. Provides manuscript review workflows and glossary extraction for domain-specific terminology."
+    },
+    {
+      "name": "ms-office",
+      "source": "./optional_plugins/ms-office",
+      "description": "OOXML file manipulation for Microsoft Office documents. Provides pptx, docx, and xlsx creation, editing, and validation via a shared office engine."
+    },
+    {
+      "name": "pbi-report",
+      "source": "./optional_plugins/pbi-report",
+      "description": "Power BI report development and modeling. Provides visual composition, DAX design, and performance optimization for BI projects."
+    },
+    {
+      "name": "visual-storytelling",
+      "source": "./optional_plugins/visual-storytelling",
+      "description": "Copy-paste-ready prompt generation for external AI renderers. Provides image and slide-design prompt engineering for thumbnails, decks, and visual assets."
+    },
+    {
+      "name": "youtube",
+      "source": "./optional_plugins/youtube",
+      "description": "YouTube content creation pipeline (strategy, scriptwriting, retention). Enables /ideate, /script, /pack commands and associated skills."
+    }
+  ]
+}

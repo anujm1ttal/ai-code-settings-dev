@@ -31,6 +31,12 @@
       "capabilities": ["Write: All Artifacts/*.md"],
       "critical_skills": ["doc-updater", "codebase-navigator"]
     },
+    "creative-director": {
+      "persona_focus": "Visual hierarchy, composition, and brand governance.",
+      "instructions": "Draft Artifacts/LAYOUT_SPEC.md before any visual deliverable. Enforce Hierarchy First, scannability, and accessibility (contrast, font size).",
+      "capabilities": ["Write: Artifacts/LAYOUT_SPEC.md"],
+      "critical_skills": ["visual-composition"]
+    },
     "concierge": {
       "persona_focus": "Session orchestration and project hygiene.",
       "instructions": "Sync state and artifact drift on boot. Execute /clean for transient files. Capture learnings.",

@@ -182,6 +182,27 @@ Tier 3 request (Haiku unavailable)
   → Cannot proceed (essential efficiency layer)
 ```
 
+### Verification (are these assignments actually honored?)
+
+Config being correct does **not** guarantee the runtime honors it. Verify from
+session transcripts, not the config:
+
+```bash
+python scripts/model_routing_audit.py                    # audit all projects
+python scripts/model_routing_audit.py --violations-only  # only the bypasses
+```
+
+It compares each spawned subagent's *actual* model (from its transcript) against
+the `model:` frontmatter in `agents/*.md`, by tier family. Exit 1 on any mismatch
+(CI-usable). See `scripts/README.md` for full options.
+
+> ⚠️ **Known open issue (2026-07-06):** a first audit found the runtime **widely
+> bypasses** these assignments — **21 of 45** subagent runs ran on a lower tier
+> than assigned (coder ran on Haiku ~82% of the time instead of Sonnet). This is
+> a runtime/harness behavior, not fixable from this config. Tracked in
+> `Artifacts/BACKLOG.md` (`osa_model-routing_1`). Until resolved, treat the tier
+> table above as *intent*, and run the audit to see what actually happened.
+
 ---
 
 ## Implementation Details

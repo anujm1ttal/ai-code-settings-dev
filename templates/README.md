@@ -72,7 +72,7 @@ Optional project-wide constants and constraints. Mirrors the intent of `Artifact
 
 ## Token Savings
 
-Using `auto_include=false` saves approximately **2,400 tokens per session** by eliminating L1 metadata for ~24 unused skills.
+Actual skill-metadata token cost is governed by which **native plugins are enabled** (`enabledPlugins`), not by `auto_include`. To skip an unused skill's L1 metadata, disable or don't install its plugin for the project. `auto_include=false` narrows the concierge's advertised (routing-intent) skill set — useful for clarity, but the loader gate is native plugin enablement.
 
 **Recommended for**:
 - Specialized single-purpose projects
@@ -103,7 +103,7 @@ The concierge validates your manifest during `/sync`:
 }
 ```
 
-**Savings**: ~2,400 tokens/session (skip 25 unused skills)
+**Effect**: narrows the concierge's advertised skill set to these 3 (routing intent). Real metadata savings come from not enabling the other plugins for this project.
 
 ### Scenario 2: Rhino model with extra debugging skill
 
