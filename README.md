@@ -81,6 +81,7 @@ Everything is deployed to `~/.claude/` (production) via `scripts/deploy.sh` for 
    - `coding-style.md` — Language-specific standards, immutability rules
    - `standards.md` — Interaction protocol, communication style
    - `security.md` — Secret management, incident response
+   - `claude-md-standards.md` — CLAUDE.md quality bar, global-vs-project split, size caps
 
 3. **Create skills**: Use the [skill-creator](/.claude/skills/skill-creator/) to design new domain modules
 
@@ -135,6 +136,7 @@ ai-code-settings/                   (SOURCE/DEVELOPMENT — edit here)
 │   ├── testing-strategy.md          # Test lanes, evidence rules
 │   ├── architecture.md              # Deep modules, design principles
 │   ├── TOKEN-ECONOMICS.md           # Context slicing, bootstrap costs
+│   ├── claude-md-standards.md       # CLAUDE.md quality bar + global/project split
 │   └── README.md                    # Rules overview
 │
 ├── skills/                          # Universal core skills (copied to ~/.claude/)

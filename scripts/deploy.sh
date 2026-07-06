@@ -115,7 +115,7 @@ echo -e "${YELLOW}[5/6]${NC} Copying production artifacts..."
 # Copy directories.
 # Remove the destination first so `cp -r` creates a fresh copy instead of
 # nesting the source inside an existing dir (e.g. optional_plugins/optional_plugins).
-for dir in agents rules skills optional_plugins templates; do
+for dir in agents rules skills optional_plugins templates commands; do
   rm -rf "$DEST/$dir"
   cp -r "$SOURCE/$dir" "$DEST/$dir"
 done
@@ -123,7 +123,8 @@ done
 # Copy critical files
 cp "$SOURCE/scripts/manifest_validator.py" "$DEST/scripts/manifest_validator.py"
 cp "$SOURCE/optional_plugins/plugin_manifest_schema.json" "$DEST/optional_plugins/plugin_manifest_schema.json"
-cp "$SOURCE/CLAUDE.md"          "$DEST/CLAUDE.md"
+# CLAUDE-global.md is the deployable global (NOT the repo-specific CLAUDE.md)
+cp "$SOURCE/CLAUDE-global.md"   "$DEST/CLAUDE.md"
 cp "$SOURCE/cheatsheet.md"      "$DEST/cheatsheet.md"
 cp "$SOURCE/README.md"          "$DEST/README.md"
 
@@ -137,7 +138,7 @@ echo ""
 echo -e "${YELLOW}[6/6]${NC} Validating deployment..."
 
 # Check all required directories exist
-for dir in agents rules skills optional_plugins templates; do
+for dir in agents rules skills optional_plugins templates commands; do
   if [ ! -d "$DEST/$dir" ]; then
     echo -e "${RED}✗ Missing directory: $DEST/$dir${NC}"
     exit 1

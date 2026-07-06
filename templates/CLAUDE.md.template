@@ -1,0 +1,44 @@
+<!--
+  Project CLAUDE.md — starter skeleton.
+  Governed by rules/common/claude-md-standards.md. Keep ≤150 lines (hard cap 250).
+  Rule of thumb: if a line does not change what the agent DOES in THIS repo, delete it.
+  Global OS behavior is inherited from ~/.claude/CLAUDE.md — do NOT restate it here.
+  Delete these comments and every "e.g." placeholder before committing.
+-->
+
+# <Project Name>
+
+<One line: what this repo is and who/what it serves.>
+
+## Stack & Layout
+
+- **Language / runtime**: <e.g. Python 3.12, TypeScript, C#/.NET 6>
+- **Entry points**: <e.g. src/main.py, src/index.ts>
+- **Key directories**: <e.g. `src/` app · `tests/` suite · `scripts/` tooling>
+
+## Commands
+
+| Task | Command |
+|:---|:---|
+| Install | <e.g. `uv sync` / `npm install`> |
+| Build | <e.g. `npm run build`> |
+| Test | <e.g. `pytest -q` / `npm test`> |
+| Lint / typecheck | <e.g. `ruff check .` / `pyright`> |
+| Run | <e.g. `python -m app` / `npm run dev`> |
+
+## Local Law (overrides global defaults)
+
+<Only rules that DIFFER from or ADD to the global OS. If nothing overrides, delete this section.>
+- <e.g. "Always run `npm run build` before tests — the test harness reads `dist/`.">
+- <e.g. "This repo uses tabs, not spaces — match existing files.">
+
+## Gotchas
+
+<Non-obvious traps a new agent would hit. Delete if none.>
+- <e.g. "The `legacy/` dir is frozen — never edit; it mirrors an external vendor drop.">
+
+## Pointers
+
+- Architecture & design → `Artifacts/ARCH.md`
+- Standards inherited from the OS → `~/.claude/rules/common/*`
+- Full docs → `README.md`

@@ -21,6 +21,7 @@ Quick reference for common commands, workflows, and navigation in Claude Code se
 | **Generate docs** | `/docs` | scribe | Create/update README, API docs, user guides |
 | **Teach the code** | `/explain` | scribe | Walk through a codebase section |
 | **Extract glossary** | `/glossary-extraction` | scribe | Capture ubiquitous language to GLOSSARY.md |
+| **Audit a CLAUDE.md** | `/claude-md` | auditor | Score/update a CLAUDE.md against the quality bar (report-first) |
 
 ---
 
