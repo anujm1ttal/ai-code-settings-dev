@@ -1,9 +1,34 @@
-# Project TODO: `pptx-slide-design` Skill + `ms-office` / `visual-storytelling` Plugins
+# Active Initiative: Phase OSA — OS Self-Audit
 
-**Status:** Phase 0 ✅ merged; Phase 1 ✅ complete; Phase 2/3 in progress (templates flagged for refinement)  
+**Status:** DRAFT — awaiting Step 0 approval · **Branch:** `phase-os-audit` (not yet created)
+**Plan Reference:** `Artifacts/Plans/Phase-OSA-Plan.md`
+**Absorbs:** model-routing audit tool + plugin-registry gap (both were uncommitted drift on `main`)
+
+### Workstream A — Model-Routing Verification (built; verify + commit)
+- [ ] [auditor] Verify `model_routing_audit.py` — Success: table renders; exit 1 on mismatch
+- [ ] [coder] Commit A standalone on `phase-os-audit` (script + README + profile) — Success: 3 files, `py_compile` clean
+
+### Workstream B — Plugin Registry Unification (convert to real plugins)
+- [ ] [strategist] `[user-approval]` B0 Step-0: lock plugin.yaml→plugin.json mapping + pilot list
+- [ ] [coder] B1 Pilot: convert `code-mcp` → marketplace.json + plugin.json (move only)
+- [ ] [coder+auditor] B2 Proof gate: `/plugin install` + restart → skill surfaces live
+- [ ] [coder] B3 Roll out remaining 6 groups (gated on B2)
+- [ ] [scribe] B4 Fix CLAUDE.md/orchestration.md token-saving honesty claim
+- [ ] [auditor] B5 Verify + merge `phase-os-audit` → `main`
+
+**Finding → BACKLOG (not fixed here):** subagents run on wrong tier (haiku vs sonnet/opus); runtime ignores `model:` frontmatter — needs separate Step 0.
+
+---
+
+# Parked Project: `pptx-slide-design` Skill + `ms-office` / `visual-storytelling` Plugins
+
+**Status:** BLOCKED on user Copilot Premium test; Phase 0 ✅ merged; Phase 1 ✅; Phase 2/3 in progress  
 **Owner:** strategist → coder → auditor  
 **Plan Reference:** `Artifacts/IMPLEMENTATION_PLAN.md`  
 **Branch:** `phase-1-pptx-slide-design-contract` (holding; merge pending template refinement + Copilot test)
+
+> [!NOTE]
+> **Pick up next session →** `Artifacts/NEXT_SESSION_plugin-registry-gap.md` — the `plugin.yaml`/`project.json → plugins[]` system surfaces **no** skills (bespoke abstraction, no loader). Only `~/.claude/skills/` does. Contains evidence + 2 fix paths + a product decision. Relevant to the active pptx/ms-office plugin work below.
 
 ---
 
