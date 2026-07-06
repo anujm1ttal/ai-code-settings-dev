@@ -18,3 +18,5 @@ Concierge reads this first during `/sync` boot. Promotes/demotes during `/handof
 | 4 | project-note | Native Plugins Are the Skill Loader | project-notes/index.md | 2026-07-06 |
 | 5 | anti-pattern | Audit All History vs New Config = False Positives | anti-patterns/index.md | 2026-07-06 |
 | 6 | execution-rule | Verify Centrally After Parallel Fan-Out | execution-rules/index.md | 2026-07-06 |
+| 7 | anti-pattern | Deploy Script Stale After Subsystem Retire | anti-patterns/index.md | 2026-07-06 |
+| 8 | project-note | Global vs Project CLAUDE.md Split | project-notes/index.md | 2026-07-06 |

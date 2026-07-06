@@ -1,61 +1,39 @@
 # Handoff Brief
 
-**Tier:** L3 Phase-Gate · **Date:** 2026-07-06 · **Branch:** `main` @ `ea5540e`
+**Tier:** L2 Session · **Date:** 2026-07-06 · **Branch:** `main` @ `a7f8bb3` (pushed to `origin/main`)
 
 ## Session Summary
-
-Began as a `/sync`; surfaced two uncommitted drift workstreams on `main`, which
-grew into two full phases plus backlog cleanup. Agents: concierge (sync/handoff),
-strategist (planning), coder ×4 (implementation + doc pruning fan-out),
-claude-code-guide (native plugin schema). ~15 commits across 3 merges.
+- **Initiative:** CMD — CLAUDE.md Discipline (new, planned + built + shipped in one session).
+- **Agents active:** strategist (plan + standard), coder (split + deploy repair), auditor (command + cross-ref check), concierge (this handoff).
+- **Flow:** `/blueprint` → Step 0 → 3-phase roadmap → implement → deploy → document → merge → push.
 
 ## Completed
-
-| Work | Outcome |
-|:---|:---|
-| **Phase OSA** — model-routing tool + native plugin conversion | Merged `6bdd944` |
-| **Phase OSA-2** — full manifest retire (28 files deleted) | Merged `1c00fb3` |
-| `osa_model-routing_1` | RESOLVED — false positive; `--since` filter added |
-| `osa_plugin-docs_2` | RESOLVED — full retire |
-| `osa_plugin-scope_3` | CLOSED — by design (per-project `enabledPlugins`) |
-
-**Key result:** native Claude Code plugins are now the single skill-loading
-registry. The bespoke `plugin.yaml`/`project.json`/`manifest_validator` layer —
-which never actually surfaced skills — is entirely gone.
+- **CMD-1 Standard** → `rules/common/claude-md-standards.md` (global-vs-project split table, 6 dimensions, 6 anti-patterns, size caps) + `templates/CLAUDE.md.template`.
+- **CMD-2 Split** → `CLAUDE-global.md` (deployable, → `~/.claude/CLAUDE.md`, zero-regression diff) + repo `CLAUDE.md` slimmed 195→65 lines. `deploy.sh` repointed.
+- **CMD-3 Command** → `/claude-md` (thin wrapper over installed `claude-md-improver`, report-first) registered in `CLAUDE-global.md` + `cheatsheet.md`. Cross-ref check clean.
+- **deploy.sh repair** → fixed 3 dead references from OSA-2 retirement (was unrunnable 2 phases); added `commands/` to copy loop (fixed `skill-graph.md` drift).
+- **Docs** → README (diagram, split narrative, tree, deploy list, Key Files), DEPLOY.md (record), CHANGELOG.md, memory (`deployment_architecture`).
+- **Deployed** to `~/.claude/` (backup `~/.claude.backup-20260706-132956`); **merged** to main (`a7f8bb3`, --no-ff); **pushed** to origin.
 
 ## In Progress
+- None. Clean phase gate.
 
-None. Clean phase gate.
+## Blockers
+- None.
 
-## Blockers / Open Threads
-
-- **Push:** `main` is ~30 commits ahead of `origin/main`. NOT pushed (never
-  requested). Private repo → nothing deployed. Decide next session.
-- **Parked:** pptx-slide-design Phase 2/3 blocked on user Copilot Premium test
-  (branch `phase-1-pptx-slide-design-contract`).
-- **Accepted residual:** one `project.json type` mention in
-  `skills/receiving-code-review/SKILL.md` (left per Hard Rule 1).
-
-## Decisions (see DECISION_LOG.md)
-
-1. Convert `optional_plugins/*` → native plugins (bespoke format had no loader).
-2. Full-retire the manifest system (Option 3) over reconcile.
-3. Model-routing "bypass" = false positive from stale-config auditing.
+## Decisions (see DECISION_LOG.md, all 2026-07-06 [CMD])
+- Split CLAUDE.md into global + project tiers.
+- Reuse `claude-md-improver` instead of building a scanner (Decision Ladder rung 2).
+- Repair `deploy.sh` (OSA-2 regression) as a deploy precondition.
 
 ## State File Health
-
-| File | Status |
-|:---|:---|
-| `.agent/current_task.md` | ✅ Updated — no active task |
-| `Artifacts/TODO.md` | ✅ Phase OSA complete; all follow-ups closed; pptx parked |
-| `Artifacts/BACKLOG.md` | ✅ All 3 items resolved/closed |
-| `Artifacts/DECISION_LOG.md` | ✅ Created — 3 decisions logged |
-| `Artifacts/MEMORY_ANCHORS.md` | ✅ Updated to native-plugin architecture |
-| `Artifacts/IMPLEMENTATION_PLAN.md` | ⚠️ Still the parked pptx plan (unchanged) |
-| `Artifacts/learnings/` | ✅ 3 new entries + HOT.md refreshed |
+- `.agent/current_task.md` — ✅ updated (L2, CMD complete).
+- `Artifacts/TODO.md` — ✅ CMD section all `[x]` except optional GEMINI.md follow-up.
+- `Artifacts/IMPLEMENTATION_PLAN.md` — ✅ untouched (still the parked pptx plan; CMD plan lives in `Artifacts/Plans/CMD-Plan.md`).
+- `Artifacts/ARCH.md` — ✅ stable.
+- `Artifacts/DECISION_LOG.md` — ✅ 3 CMD entries prepended.
 
 ## Next Session
-
-- **concierge/user** → decide on `git push origin main` (30 commits pending).
-- **OR strategist** → resume pptx-slide-design if user runs the Copilot test.
-- New work → `/blueprint`. All OS self-audit threads are closed.
+- **concierge/coder → GEMINI.md split** (optional): bring `GEMINI.md` into parity with the CLAUDE.md global/project split. Deferred at Step 0; only stale doc remaining. It is not deployed, so low urgency.
+- **Housekeeping:** `Artifacts/Temp/scratch_test.md` deletion is unstaged (pre-existing, unrelated) — commit or restore.
+- **Parked:** pptx-slide-design Phase 2/3 still BLOCKED on the user's Copilot Premium test.
