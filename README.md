@@ -97,13 +97,14 @@ Everything is deployed to `~/.claude/` (production) via `scripts/deploy.sh` for 
 
 ```
 ai-code-settings/    ← (you are here — development/source; also the plugin marketplace)
-  ├─ agents/, rules/, skills/, optional_plugins/, .claude-plugin/marketplace.json
-  ├─ scripts/, tests/
+  ├─ agents/, rules/, skills/, commands/, optional_plugins/, templates/
+  ├─ CLAUDE-global.md  (deploys as the global) · CLAUDE.md (this repo's own guidance)
+  ├─ .claude-plugin/marketplace.json, scripts/, tests/
   └─ DEPLOY.md, scripts/deploy.sh
 
 ~/.claude/           ← (production/runtime)
-  ├─ agents/, rules/, skills/, optional_plugins/ (copied from repo)
-  └─ templates/, CLAUDE.md (reference)
+  ├─ agents/, rules/, skills/, commands/, optional_plugins/, templates/ (copied from repo)
+  └─ CLAUDE.md (deployed from the repo's CLAUDE-global.md, not its CLAUDE.md)
 
 my-project/          ← (project workspace)
   ├─ .claude/settings.json (enabledPlugins: [...])
@@ -112,6 +113,11 @@ my-project/          ← (project workspace)
 
 Sessions auto-load from `~/.claude/` (never from this repo). Deploy via [scripts/deploy.sh](scripts/deploy.sh).
 
+> **Global vs project CLAUDE.md.** `CLAUDE-global.md` holds the OS-wide instructions and is what
+> deploys to `~/.claude/CLAUDE.md` (loaded in every session). The repo's own `CLAUDE.md` is
+> project-specific guidance for maintaining *this* repo and is **not** deployed. Both are governed
+> by [rules/common/claude-md-standards.md](rules/common/claude-md-standards.md); audit either with `/claude-md`.
+
 ---
 
 ## 📁 Directory Structure (This Repository)
@@ -119,6 +125,8 @@ Sessions auto-load from `~/.claude/` (never from this repo). Deploy via [scripts
 ```
 ai-code-settings/                   (SOURCE/DEVELOPMENT — edit here)
 ├── README.md                        # This file
+├── CLAUDE-global.md                 # Global OS instructions → deploys to ~/.claude/CLAUDE.md
+├── CLAUDE.md                        # This repo's own guidance (NOT deployed)
 ├── DEPLOY.md                        # Deployment checklist & rollback procedure
 ├── cheatsheet.md                    # Quick reference (copied to ~/.claude/)
 ├── .claude-plugin/marketplace.json  # Native plugin marketplace registry
@@ -146,14 +154,19 @@ ai-code-settings/                   (SOURCE/DEVELOPMENT — edit here)
 │   ├── project-planner/
 │   └── ... (9 universal skills, always available)
 │
+├── commands/                        # Slash-command procedures (copied to ~/.claude/)
+│   ├── blueprint.md, audit.md, handoff.md, claude-md.md, etc.
+│   └── ... (one .md per command)
+│
 ├── optional_plugins/                # Native plugins (copied to ~/.claude/)
 │   ├── index.md, README.md          # Catalog + authoring guide
 │   ├── youtube/, ms-office/, pbi-report/, code-mcp/, geometry/, manuscript/, visual-storytelling/
 │   │   └── each has .claude-plugin/plugin.json + skills/<skill>/
 │   └── ... (7 plugins, 17 skills total, installed/enabled per project)
 │
-├── templates/                       # Phase plan/TODO templates (copied to ~/.claude/)
+├── templates/                       # Phase plan/TODO + CLAUDE.md templates (copied to ~/.claude/)
 │   ├── Phase-N-Plan.md.template, Phase-N-TODO.md.template
+│   ├── CLAUDE.md.template            # Starter skeleton for new project CLAUDE.md files
 │   └── README.md
 │
 ├── scripts/                         # Utilities & automation
@@ -181,9 +194,9 @@ ai-code-settings/                   (SOURCE/DEVELOPMENT — edit here)
 - **History/**: Archive for completed phases and decisions (DECISION_LOG.md)
 
 **What gets deployed to ~/.claude/:**
-- ✓ agents/, rules/, skills/, optional_plugins/, templates/
-- ✓ CLAUDE.md, cheatsheet.md, README.md
-- ✗ tests/, scripts/migrate_*.py, Artifacts/ (development only)
+- ✓ agents/, rules/, skills/, commands/, optional_plugins/, templates/
+- ✓ CLAUDE-global.md (→ ~/.claude/CLAUDE.md), cheatsheet.md, README.md
+- ✗ CLAUDE.md (this repo's own guidance), tests/, scripts/, Artifacts/ (development only)
 
 ---
 
@@ -380,6 +393,8 @@ See [rules/common/testing-strategy.md](rules/common/testing-strategy.md) for lan
 | [agents/agents.overview.md](agents/agents.overview.md) | Agent definitions (source) | This repo |
 | [rules/common/orchestration.md](rules/common/orchestration.md) | Orchestration rules (source) | This repo |
 | [rules/common/coding-style.md](rules/common/coding-style.md) | Coding standards (source) | This repo |
+| [CLAUDE-global.md](CLAUDE-global.md) | Global OS instructions (source → `~/.claude/CLAUDE.md`) | This repo |
+| [rules/common/claude-md-standards.md](rules/common/claude-md-standards.md) | CLAUDE.md quality bar + global/project split | This repo |
 | [skills/skills.overview.md](skills/skills.overview.md) | Skill registry (source) | This repo |
 | [optional_plugins/README.md](optional_plugins/README.md) | Plugin system design | This repo |
 

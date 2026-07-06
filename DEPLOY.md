@@ -109,7 +109,7 @@ Keep track of deployments. Add an entry each time you sync:
 | Date | Version | Changes | Status |
 |:---|:---|:---|:---|
 | 2026-07-03 | v11.0.0 | Plugin system MVP complete | ✓ DEPLOYED |
-| — | — | — | — |
+| 2026-07-06 | — | CMD: CLAUDE.md standard + global/project split + `/claude-md`; deploy.sh repaired (OSA-2 regression) + now deploys `commands/` | ✓ DEPLOYED |
 
 ---
 
