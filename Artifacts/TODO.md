@@ -16,7 +16,10 @@
 - [x] [scribe] B4 Fix token-saving honesty claim — corrected in CLAUDE.md, orchestration.md, templates/README.md (×2), commands/manifest.md
 - [x] [auditor] B5 Verify + merge — 7/7 plugins valid, 46 tests pass; merged `6bdd944`, branch deleted
 
-**Phase OSA COMPLETE.** Follow-ups in `Artifacts/BACKLOG.md`: `osa_model-routing_1` (HIGH), `osa_plugin-docs_2` (MED), `osa_plugin-scope_3` (LOW).
+**Phase OSA COMPLETE.** Follow-ups in `Artifacts/BACKLOG.md`:
+- ~~`osa_model-routing_1` (HIGH)~~ — RESOLVED (false positive; `--since` filter added)
+- ~~`osa_plugin-docs_2` (MED)~~ — RESOLVED (Phase OSA-2: full manifest retire, merged `1c00fb3`)
+- `osa_plugin-scope_3` (LOW) — OPEN: per-plugin enable scope (usage decision, no code)
 
 **Finding → BACKLOG (not fixed here):** subagents run on wrong tier (haiku vs sonnet/opus); runtime ignores `model:` frontmatter — needs separate Step 0.
 
