@@ -16,7 +16,6 @@ Quick reference for common commands, workflows, and navigation in Claude Code se
 | **Stress-test a plan** | `/grill` | strategist | Finding hidden risks or assumptions in a proposal |
 | **Skill dependencies** | `/skill-graph` | strategist | Understanding skill ecosystem, optimize loading |
 | **High-rigor decision** | `/council` | council | Resolving architectural conflict or consensus |
-| **Validate manifest** | `/manifest` | concierge | Check project.json schema and plugins |
 | **Sync filesystem** | `/sync` | concierge | Reconcile plan artifacts with actual code state |
 | **Import external work** | `/ingest` | concierge | Register manual changes into project state |
 | **Generate docs** | `/docs` | scribe | Create/update README, API docs, user guides |
@@ -172,13 +171,13 @@ templates/project-geometry.json   ← V2 schema template (geometry projects)
 pytest tests/ -v
 
 # Run specific test file
-pytest tests/test_manifest_validator_v2.py -v
+pytest tests/test_<name>.py -v
 
 # Run specific test class
-pytest tests/test_manifest_validator_v2.py::TestPluginRegistry -v
+pytest tests/test_<name>.py::Test<ClassName> -v
 
 # Run specific test
-pytest tests/test_manifest_validator_v2.py::TestPluginRegistry::test_registry_completeness -v
+pytest tests/test_<name>.py::Test<ClassName>::test_<case> -v
 ```
 
 ### Test Lanes (Choose the cheapest that proves the claim)
@@ -210,7 +209,6 @@ See [rules/common/testing-strategy.md](rules/common/testing-strategy.md) for det
 → Search skills/skills.overview.md for "debug"
 → Found: systematic-debugging (coder, auditor)
 → Automatically loaded for code projects
-→ If not loaded, add to active_skills in project.json
 ```
 
 ### Example: "I need to optimize a Rhino component"
@@ -218,52 +216,7 @@ See [rules/common/testing-strategy.md](rules/common/testing-strategy.md) for det
 → Search for "rhino"
 → Found: python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing
 → Check if auto-enabled for geometry projects
-→ If custom project, add to plugins array in project.json (V2)
 ```
-
----
-
-## 📋 Project Manifest (project.json)
-
-### V1 Schema (Legacy)
-```json
-{
-  "project_type": "code",
-  "auto_include": true,
-  "active_skills": ["python-mcp"],
-  "disabled_skills": []
-}
-```
-
-### V2 Schema (Current)
-```json
-{
-  "project_type": "code",
-  "schema_version": "2.0.0",
-  "auto_include": true,
-  "plugins": [
-    {"plugin_id": "code-mcp-tools", "enabled": true, "version": "1.0.0"}
-  ]
-}
-```
-
-### Project Types & Auto-Plugins
-| Type | Auto-Enabled Plugin | Canonical Template |
-|:---|:---|:---|
-| **youtube** | youtube-core | project-youtube.json |
-| **code** | code-mcp-tools | project-code.json |
-| **geometry** | geometry-rhino | project-geometry.json |
-| **pptx** | ms-office-core, visual-storytelling-core | project-pptx.json |
-| **pbi-report** | pbi-core | project-pbi.json |
-| **data** | pbi-core | project-data.json |
-| **manuscript** | manuscript-tools | project-manuscript.json |
-| **hybrid** | (none) | project-hybrid.json |
-| **minimal** | (none) | project-minimal.json |
-
-### V1→V2 Auto-Upgrade
-- V1 manifests (no `schema_version`) auto-upgrade to V2 on first validation
-- Upgrade is **transparent**: no user intervention, all V1 fields preserved
-- Plugins array is **inferred** from project_type
 
 ---
 
@@ -406,9 +359,8 @@ Never use global pip or system Python.
 
 ### "Skill X not found"
 1. Check skills/skills.overview.md for exact name
-2. Verify skill is enabled in project.json (active_skills or plugins)
-3. For plugins: confirm project_type matches plugin's auto_type
-4. Run /sync to reload skill registry
+2. For plugins: confirm project_type matches plugin's auto_type
+3. Run /sync to reload skill registry
 
 ### "Test Y failed"
 1. Read the assertion message carefully
@@ -416,12 +368,6 @@ Never use global pip or system Python.
 3. For Lane B: verify no Rhino dependencies
 4. For Lane A: verify Rhino.Inside/full Rhino available
 5. Run with `-vv` flag for detailed output: `pytest -vv tests/test_name.py`
-
-### "Manifest validation error"
-1. Ensure project.json has `project_type`
-2. For V2: confirm `schema_version: "2.0.0"`
-3. Run: `python scripts/manifest_validator.py --list-plugins`
-4. Check PLUGIN_REGISTRY in scripts/manifest_validator.py
 
 ### "Changes not showing up"
 1. Run /sync to reconcile filesystem with TODOs

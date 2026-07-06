@@ -76,7 +76,6 @@ Example:
 - Session start (understand skill landscape)
 - Before reducing skills (visualize impact of deletions)
 - When designing new project types (see coverage gaps)
-- During `/manifest --optimize` (confirm recommendations)
 - Pre-`/handoff` (document skill relationships for next session)
 
 ## Arguments
@@ -85,13 +84,12 @@ Example:
 
 ## Boundaries
 
-Does NOT: modify `project.json`, delete skills, execute code.
+Does NOT: delete skills, execute code.
 
-**Authority**: Strategist owns routing. May recommend skill bundling or consolidation, but implementation requires `/manifest` updates and `/graduate` approval.
+**Authority**: Strategist owns routing. May recommend skill bundling or consolidation, but implementation requires `/graduate` approval.
 
 ## Integration with Other Commands
 
-- **`/manifest --optimize`**: Provides context for skill reduction decisions
 - **`/blueprint`**: Strategist reviews graph during Step 0 to plan skill coverage
 - **`/sync`**: Can call `/skill-graph` to refresh understanding after registry changes
 - **`/graduate`**: When moving a singleton to optional archive, document here first

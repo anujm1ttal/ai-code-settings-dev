@@ -13,7 +13,7 @@ The AI OS provides:
 1. **Agents** — Role-based personas (strategist, coder, auditor, scribe, council, creative-director, concierge) with specific capabilities and authority boundaries
 2. **Rules** — Canonical standards for coding style, architecture, security, testing, and interaction
 3. **Skills** — Domain-specific modules for YouTube, PowerBI, Rhino/Grasshopper, Python/TypeScript MCP, and more
-4. **Plugins** — Optional singleton skills packaged for lazy-loading and token optimization (Phase 11 MVP)
+4. **Plugins** — Native Claude Code plugins (7 plugins, 17 skills) for lazy-loading and token optimization, distributed via `.claude-plugin/marketplace.json`
 5. **Commands** — Procedural workflows (`/blueprint`, `/audit`, `/handoff`, `/sweep`, `/council`, etc.)
 
 Think of it as a **knowledge base and execution framework** that makes AI agents more reliable, rigorous, and aligned with your project's standards.
@@ -26,10 +26,12 @@ If you're **using Claude Code** to work on a project, this is your reference:
 
 ### Quick Start
 
-1. **Create a project**: Copy a template from `~/.claude/templates/` to your project root as `project.json`
-   ```bash
-   cp ~/.claude/templates/project-code.json my-project/project.json
+1. **Enable optional plugins** (if your project needs them — geometry, ms-office, pbi-report, etc.):
    ```
+   /plugin marketplace add ~/.claude
+   /plugin install geometry@ai-code-settings
+   ```
+   Then list the plugin name in your project's `.claude/settings.json` under `enabledPlugins`. See [optional_plugins/README.md](optional_plugins/README.md).
 
 2. **Start a session**: Open your project in Claude Code
    - The system auto-loads `~/.claude/` (production deployment)
@@ -82,7 +84,7 @@ Everything is deployed to `~/.claude/` (production) via `scripts/deploy.sh` for 
 
 3. **Create skills**: Use the [skill-creator](/.claude/skills/skill-creator/) to design new domain modules
 
-4. **Run tests**: `pytest tests/` to validate manifest schema and plugin integrity
+4. **Run tests**: `pytest tests/` to validate the test suite before deployment
 
 5. **Deploy to production**: 
    ```bash
@@ -93,18 +95,17 @@ Everything is deployed to `~/.claude/` (production) via `scripts/deploy.sh` for 
 ### Deployment Architecture
 
 ```
-ai-code-settings/    ← (you are here — development/source)
-  ├─ agents/, rules/, skills/, optional_plugins/
+ai-code-settings/    ← (you are here — development/source; also the plugin marketplace)
+  ├─ agents/, rules/, skills/, optional_plugins/, .claude-plugin/marketplace.json
   ├─ scripts/, tests/
   └─ DEPLOY.md, scripts/deploy.sh
 
 ~/.claude/           ← (production/runtime)
   ├─ agents/, rules/, skills/, optional_plugins/ (copied from repo)
-  ├─ scripts/manifest_validator.py (runtime only)
   └─ templates/, CLAUDE.md (reference)
 
 my-project/          ← (project workspace)
-  ├─ project.json (from ~/.claude/templates/)
+  ├─ .claude/settings.json (enabledPlugins: [...])
   └─ Artifacts/ (project state)
 ```
 
@@ -119,7 +120,7 @@ ai-code-settings/                   (SOURCE/DEVELOPMENT — edit here)
 ├── README.md                        # This file
 ├── DEPLOY.md                        # Deployment checklist & rollback procedure
 ├── cheatsheet.md                    # Quick reference (copied to ~/.claude/)
-├── project.json                     # Global manifest (V2 schema)
+├── .claude-plugin/marketplace.json  # Native plugin marketplace registry
 │
 ├── agents/                          # Agent definitions (copied to ~/.claude/)
 │   ├── agents.overview.md           # L1 routing map
@@ -143,25 +144,22 @@ ai-code-settings/                   (SOURCE/DEVELOPMENT — edit here)
 │   ├── project-planner/
 │   └── ... (9 universal skills, always available)
 │
-├── optional_plugins/                # Singleton skills (copied to ~/.claude/)
-│   ├── index.md, README.md, plugin_manifest_schema.json
-│   ├── youtube/, pptx/, pbi-report/, code-mcp/, geometry/, manuscript/
-│   └── ... (13 singleton skills, lazy-loaded per project)
+├── optional_plugins/                # Native plugins (copied to ~/.claude/)
+│   ├── index.md, README.md          # Catalog + authoring guide
+│   ├── youtube/, ms-office/, pbi-report/, code-mcp/, geometry/, manuscript/, visual-storytelling/
+│   │   └── each has .claude-plugin/plugin.json + skills/<skill>/
+│   └── ... (7 plugins, 17 skills total, installed/enabled per project)
 │
-├── templates/                       # Project templates (copied to ~/.claude/)
-│   ├── project-code.json, project-youtube.json, etc.
-│   └── ... (bootstraps for new projects)
+├── templates/                       # Phase plan/TODO templates (copied to ~/.claude/)
+│   ├── Phase-N-Plan.md.template, Phase-N-TODO.md.template
+│   └── README.md
 │
 ├── scripts/                         # Utilities & automation
 │   ├── deploy.sh                    # Deploy to ~/.claude/ (production)
-│   ├── manifest_validator.py        # Copied to ~/.claude/ for runtime
 │   ├── migrate_skills_to_plugins.py # One-time utility (dev only)
 │   └── ... (other dev scripts)
 │
 ├── tests/                           # Test suite (development only)
-│   ├── test_manifest_validator_v2.py
-│   ├── test_v1_v2_migration.py
-│   └── ... (validation before deployment)
 │
 └── Artifacts/                       # Development state (repo-specific)
     ├── IMPLEMENTATION_PLAN.md       # Development tracking
@@ -182,7 +180,6 @@ ai-code-settings/                   (SOURCE/DEVELOPMENT — edit here)
 
 **What gets deployed to ~/.claude/:**
 - ✓ agents/, rules/, skills/, optional_plugins/, templates/
-- ✓ scripts/manifest_validator.py (runtime dependency)
 - ✓ CLAUDE.md, cheatsheet.md, README.md
 - ✗ tests/, scripts/migrate_*.py, Artifacts/ (development only)
 
@@ -201,12 +198,12 @@ ai-code-settings/                   (SOURCE/DEVELOPMENT — edit here)
 │ ~/.claude/ (Production/Runtime)     │  ← Loaded into every session
 │ - Immutable deployment              │
 │ - Rules, agents, skills, plugins    │
-│ - manifest_validator.py (runtime)   │
+│ - Also a plugin marketplace source  │
 └─────────────────────────────────────┘
             ↓ auto-load
 ┌─────────────────────────────────────┐
 │ my-project/ (Project Workspace)     │  ← Where users work
-│ - project.json (manifest)           │
+│ - .claude/settings.json (enabledPlugins)
 │ - Artifacts/ (project state)        │
 │ - Inherits everything from ~/.claude/
 └─────────────────────────────────────┘
@@ -241,37 +238,27 @@ Skills are modular expertise units. Two types:
    - Examples: codebase-navigator, systematic-debugging, project-planner
    - Source: [skills/](skills/) in this repo
 
-2. **Optional Singleton Skills** (lazy-loaded from `~/.claude/optional_plugins/`)
-   - Project-type-specific (youtube, pptx, geometry, etc.)
-   - Auto-enabled if `auto_include: true` in manifest
-   - Can be disabled per project
+2. **Optional Plugin Skills** (native Claude Code plugins, installed on demand)
+   - Project-type-specific (youtube, geometry, ms-office, etc.)
+   - Distributed via this repo's marketplace: [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json)
+   - Enabled per project via `enabledPlugins` in that project's `.claude/settings.json`
    - Source: [optional_plugins/](optional_plugins/) in this repo
 
-### Manifests: V1 vs V2
+### Enabling Plugins
 
-**V1 Schema** (legacy):
+Install once from the marketplace, then enable per project:
+```
+/plugin marketplace add ~/.claude
+/plugin install geometry@ai-code-settings
+```
 ```json
+// my-project/.claude/settings.json
 {
-  "project_type": "code",
-  "auto_include": true,
-  "active_skills": ["python-mcp"],
-  "disabled_skills": []
+  "enabledPlugins": ["geometry", "code-mcp"]
 }
 ```
 
-**V2 Schema** (current, with plugins):
-```json
-{
-  "project_type": "code",
-  "schema_version": "2.0.0",
-  "auto_include": true,
-  "plugins": [
-    {"plugin_id": "code-mcp-tools", "enabled": true, "version": "1.0.0"}
-  ]
-}
-```
-
-**Auto-Upgrade**: V1 manifests automatically upgrade to V2 on first validation (transparent, backward compatible).
+See [optional_plugins/README.md](optional_plugins/README.md) for the full plugin catalog and authoring guide.
 
 ---
 
@@ -321,7 +308,7 @@ Skills are modular expertise units. Two types:
 ### Add a New Skill
 
 1. Use [skill-creator](/.claude/skills/skill-creator/) workflow
-2. Place in `skills/` (universal) or `optional_plugins/[category]/` (singleton)
+2. Place in `skills/` (universal) or `optional_plugins/<plugin>/skills/` (plugin-specific)
 3. Update [skills/skills.overview.md](skills/skills.overview.md) registry
 4. Run tests: `pytest tests/` (must pass)
 5. Deploy: `bash scripts/deploy.sh`
@@ -359,11 +346,8 @@ All changes to the AI OS validated via test suite before deployment:
 # Run all tests (required before deploy)
 pytest tests/ -v
 
-# Run specific test class
-pytest tests/test_manifest_validator_v2.py::TestPluginRegistry -v
-
-# Check manifest validation
-python scripts/manifest_validator.py --list-plugins
+# Inspect the plugin marketplace registry
+cat .claude-plugin/marketplace.json
 ```
 
 **Test lanes**:
@@ -399,17 +383,15 @@ See [rules/common/testing-strategy.md](rules/common/testing-strategy.md) for lan
 
 ---
 
-## 🚢 Phase 11: Plugin System (MVP Complete)
+## 🚢 Plugin System (Native Claude Code Plugins)
 
-The optional plugin system launched in Phase 11 to optimize bootstrap overhead:
+The optional plugin system runs on native Claude Code plugin infrastructure:
 
-- **13 singleton skills** in `optional_plugins/[category]/[skill]/`
-- **9 universal core skills** in `skills/` (always available)
-- **V2 schema** with plugins array and auto-enable per project_type
-- **V1→V2 auto-upgrade** (transparent, backward compatible)
-- **Token savings**: 15–25% reduction for projects using 1–2 optional plugins
-
-**Release tag**: `v11.0.0-plugin-system`
+- **7 plugins, 17 skills** in `optional_plugins/<plugin>/skills/<skill>/`, each plugin backed by a `.claude-plugin/plugin.json`
+- **Universal core skills** in `skills/` (always available, no install/enable step)
+- Registered via [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json); installed with `/plugin install <name>@ai-code-settings`
+- Enabled per project via `enabledPlugins` in that project's `.claude/settings.json`
+- **Token savings**: only enabled plugins' skills load into context — no bespoke manifest/schema layer required
 
 ---
 
@@ -418,7 +400,7 @@ The optional plugin system launched in Phase 11 to optimize bootstrap overhead:
 ### Add or Update a Skill
 
 1. Follow the [skill-creator](/.claude/skills/skill-creator/) workflow
-2. Place in `skills/` (universal) or `optional_plugins/[category]/` (singleton)
+2. Place in `skills/` (universal) or `optional_plugins/<plugin>/skills/` (plugin-specific)
 3. Ensure SKILL.md has YAML frontmatter with name, description, compatibility
 4. Run tests: `pytest tests/` (must pass)
 5. Update [skills/skills.overview.md](skills/skills.overview.md) registry

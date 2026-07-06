@@ -22,11 +22,10 @@ In any Claude Code session, type:
 /hooks
 ```
 
-You should see all 6 hooks listed:
+You should see all 5 hooks listed:
 - `SessionStart` → `session-boot.js`
 - `PreToolUse (Edit|MultiEdit|Write)` → `guard-paths.js`
 - `PreToolUse (Bash)` → `guard-commands.js`
-- `PreToolUse (Bash)` → `guard-commit-evidence.js`
 - `PostToolUse (Edit|MultiEdit|Write)` → `auto-lint.js`
 - `PostToolUse (*)` → `audit-trail.js`
 
@@ -37,7 +36,6 @@ You should see all 6 hooks listed:
 | `session-boot.js` | `SessionStart` | Injects Artifacts state (TODO, Learnings, Current Task) into session context |
 | `guard-paths.js` | `PreToolUse` | **Blocks** writes to binaries, secrets, build artifacts |
 | `guard-commands.js` | `PreToolUse` | **Blocks** dangerous shell commands (rm -rf, force push, SQL drops) |
-| `guard-commit-evidence.js` | `PreToolUse` | **Blocks** `git commit` without fresh verification evidence in `Artifacts/Temp/` (opt-in per project) |
 | `auto-lint.js` | `PostToolUse` | Reports lint violations after file edits (report-only, no auto-fix) |
 | `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
 
@@ -66,13 +64,6 @@ To customize, edit the `BLOCKED_*` constants in `guard-paths.js`.
 - Fork bombs, disk format commands, piped curl-to-shell
 
 To customize, edit the `BLOCKED_PATTERNS` array in `guard-commands.js`.
-
-### Commit Evidence Gate (opt-in)
-`guard-commit-evidence.js` mechanically enforces the `verification-gate` Iron Law: it denies `git commit` unless a file matching an evidence pattern (`pytest`, `test`, `ruff`, `lint`, `build`, …) was modified in `Artifacts/Temp/` within the last 30 minutes.
-
-- **Opt-in**: only enforced when the project's `project.json` declares `"enforce_commit_evidence": true`. All other projects are unaffected.
-- **Bypass** (auditable): include `[no-verify-evidence]` in the commit message for docs-only commits.
-- To adjust the freshness window or patterns, edit `FRESHNESS_MINUTES` / `EVIDENCE_PATTERN` in the script.
 
 ## Troubleshooting
 

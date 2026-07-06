@@ -30,11 +30,6 @@
             "type": "command",
             "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/guard-commands.js\"",
             "timeout": 3000
-          },
-          {
-            "type": "command",
-            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/guard-commit-evidence.js\"",
-            "timeout": 3000
           }
         ]
       }

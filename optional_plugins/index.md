@@ -1,85 +1,51 @@
 # Optional Plugins Registry
 
-**L0 Overview**: Plugin discovery, load policies, and activation rules for the Claude Code optional plugin system.
+**L0 Overview**: Catalog of native Claude Code plugins bundled in this repository, their skills, and how to install/enable them.
 
 ## Overview
 
-The optional plugin system reduces bootstrap overhead by lazy-loading specialized skills only when needed. Plugins are organized by functional category (youtube, geometry, manuscript, etc.) and auto-activate based on `project_type` detection.
+Each functional category (youtube, geometry, manuscript, etc.) is a **real native Claude Code plugin** — not a bespoke manifest entry. A plugin is a directory with a `.claude-plugin/plugin.json` descriptor and a `skills/<skill>/` directory per skill it provides. Plugins are lazy-loaded: only install/enable the ones a given project needs.
 
-**Impact**: 15–25% token savings on projects using only 1–2 plugin categories.
-
----
-
-## Quick Reference Table
-
-| Plugin ID | Category | Skills (Count) | Project Types | Auto-Enable | Min OS |
-|:---|:---|:---|:---|:---|:---|
-| `youtube-core` | youtube | youtube-strategy, youtube-scriptwriting, youtube-retention (3) | youtube | Yes | 2.5.0 |
-| `ms-office-core` | ms-office | pptx, docx, xlsx (3) | pptx, data, manuscript | Yes | 2.5.0 |
-| `visual-storytelling-core` | visual-storytelling | banana-prompt, pptx-slide-design (2) | pptx, youtube | Yes | 2.5.0 |
-| `pbi-core` | pbi-report | *(none in v1.0)* | pbi-report, data | Yes | 2.5.0 |
-| `code-mcp-tools` | code-mcp | python-mcp, typescript-mcp (2) | code | Yes | 2.5.0 |
-| `geometry-rhino` | geometry | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing (4) | geometry | Yes | 2.5.0 |
-| `manuscript-tools` | manuscript | manuscript-review, glossary-extraction (2) | manuscript | Yes | 2.5.0 |
-
-**Total Skills in Phase 0**: 15 singleton skills across 7 plugins.
+**Source of truth**: [`.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) at the repo root lists every plugin (name, source path, description). If this table and the marketplace file ever disagree, the marketplace file wins — re-derive this table from it and the `skills/` directory listings.
 
 ---
 
-## Load Policies
+## Plugin Catalog
 
-Each skill within a plugin has a load policy:
-
-| Policy | Meaning | Activation |
+| Plugin | Description | Skills (Count) |
 |:---|:---|:---|
-| `auto` | Loads automatically when plugin is active | Default for core skills |
-| `on-demand` | User must explicitly enable in project.json | Reserved for future extensions |
-| `disabled` | Not available in this plugin version | For deprecation warnings |
+| `code-mcp` | MCP tool development for Python and TypeScript. Schemas, JSON-RPC patterns, async boundary standards. | python-mcp, typescript-mcp (2) |
+| `geometry` | Rhinoceros/Grasshopper geometry modeling and computation. RhinoCommon APIs, E2E testing, manifoldness verification. | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing (4) |
+| `manuscript` | Manuscript and academic writing support. Review workflows and glossary extraction. | business-analyst, manuscript-review (2) |
+| `ms-office` | OOXML file manipulation for Microsoft Office documents (pptx, docx, xlsx) via a shared office engine. | docx, pptx, xlsx (3) |
+| `pbi-report` | Power BI report development and modeling. Visual composition, DAX design, performance optimization. | powerbi-report (1) |
+| `visual-storytelling` | Copy-paste-ready prompt generation for external AI renderers (thumbnails, decks, visual assets). | banana-prompt, pptx-slide-design (2) |
+| `youtube` | YouTube content creation pipeline (strategy, scriptwriting, retention). Enables `/ideate`, `/script`, `/pack`. | youtube-retention, youtube-scriptwriting, youtube-strategy (3) |
+
+**Total**: 7 plugins, 17 skills.
 
 ---
 
-## Activation Rules
+## Install & Enable (Native Plugin Flow)
 
-### Automatic Activation
-A plugin is automatically activated if:
-1. **Project type match**: `manifest.project_type` matches one of `plugin.project_types`
-2. **Auto-include enabled**: Either `manifest.auto_include=true` OR manifest explicitly references the plugin
-3. **Compatibility met**: Current AI OS version ≥ `plugin.compatibility.min_os_version`
+Plugins are distributed via a Claude Code **marketplace**. This repository is itself a marketplace (`.claude-plugin/marketplace.json`).
 
-### Manual Override
-Users can override activation in `project.json`:
+1. **Add the marketplace** (once per machine):
+   ```
+   /plugin marketplace add c:\Users\44547\source\repos\ai-code-settings
+   ```
+2. **Install a plugin**:
+   ```
+   /plugin install geometry@ai-code-settings
+   ```
+3. **Enable per-project**: add the plugin name to `enabledPlugins` in that project's `.claude/settings.json`:
+   ```json
+   {
+     "enabledPlugins": ["geometry", "code-mcp"]
+   }
+   ```
 
-```json
-{
-  "project_type": "youtube",
-  "auto_include": true,
-  "plugins": [
-    { "plugin_id": "youtube-core", "enabled": false },
-    { "plugin_id": "geometry-rhino", "enabled": true }
-  ]
-}
-```
-
----
-
-## Token Impact Analysis
-
-### Baseline Costs (L1 metadata per skill)
-- ~100 tokens per skill metadata
-- 29 total skills in global registry
-- All skills loaded: ~2,900 tokens
-
-### Per-Plugin Cost
-| Plugin | Skills | Approx. Tokens | Loaded For | Savings (opt-out) |
-|:---|:---|:---|:---|:---|
-| youtube-core | 3 | 300 | youtube projects only | 2,600 |
-| geometry-rhino | 4 | 400 | geometry projects only | 2,500 |
-| manuscript-tools | 2 | 200 | manuscript projects only | 2,700 |
-| code-mcp-tools | 2 | 200 | code + MCP focus only | 2,700 |
-| ms-office-core | 3 | 300 | pptx, data, manuscript projects | 2,600 |
-| visual-storytelling-core | 2 | 200 | pptx, youtube projects | 2,700 |
-
-**Expected Outcome**: A project using only `youtube` and foundational skills will load ~12 skills total instead of 29, saving ~1,700 tokens/session.
+Only enabled plugins load their skills into a project's context — this is the lazy-loading mechanism (no bespoke `project.json`/manifest layer involved).
 
 ---
 
@@ -87,116 +53,41 @@ Users can override activation in `project.json`:
 
 ```
 optional_plugins/
-├── index.md                    (This file — L0 registry)
-├── README.md                   (Migration guide for users)
-├── plugin_manifest_schema.json (JSON Schema for validation)
-├── youtube/
-│   ├── plugin.yaml            (Manifest for youtube category)
-│   ├── youtube-strategy/       (Skill directory — moved in Phase 11.2)
-│   ├── youtube-scriptwriting/
-│   └── youtube-retention/
-├── ms-office/
-│   ├── plugin.yaml
-│   ├── pptx/                   (Skill directory — moved in Phase 0)
-│   ├── docx/                   (Skill directory — moved in Phase 0)
-│   └── xlsx/                   (Skill directory — moved in Phase 0)
-├── visual-storytelling/
-│   ├── plugin.yaml
-│   ├── banana-prompt/          (Skill directory — moved in Phase 0)
-│   └── pptx-slide-design/     (Skill directory — authored in Phase 2)
-├── pbi-report/
-│   └── plugin.yaml            (No skills in v1.0; reserved for future)
+├── index.md                          (This file — L0 catalog)
+├── README.md                         (Native plugin structure & usage guide)
 ├── code-mcp/
-│   ├── plugin.yaml
-│   ├── python-mcp/            (Skill directory — moved in Phase 11.2)
-│   └── typescript-mcp/
+│   ├── .claude-plugin/plugin.json
+│   └── skills/{python-mcp, typescript-mcp}/
 ├── geometry/
-│   ├── plugin.yaml
-│   ├── cd-foundations/        (Skill directory — moved in Phase 11.2)
-│   ├── python-rhino-grasshopper/
-│   ├── rhino-e2e-testing/
-│   └── rhino-unit-testing/
-└── manuscript/
-    ├── plugin.yaml
-    ├── manuscript-review/     (Skill directory — moved in Phase 11.2)
-    └── glossary-extraction/
+│   ├── .claude-plugin/plugin.json
+│   └── skills/{cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing}/
+├── manuscript/
+│   ├── .claude-plugin/plugin.json
+│   └── skills/{business-analyst, manuscript-review}/
+├── ms-office/
+│   ├── .claude-plugin/plugin.json
+│   └── skills/{docx, pptx, xlsx}/
+├── pbi-report/
+│   ├── .claude-plugin/plugin.json
+│   └── skills/powerbi-report/
+├── visual-storytelling/
+│   ├── .claude-plugin/plugin.json
+│   └── skills/{banana-prompt, pptx-slide-design}/
+└── youtube/
+    ├── .claude-plugin/plugin.json
+    └── skills/{youtube-retention, youtube-scriptwriting, youtube-strategy}/
 ```
 
 ---
 
-## Manifest Versioning
+## Token Impact
 
-The plugin system introduces **Schema V2** for `project.json` manifests.
-
-### V1 → V2 Migration
-
-**V1 Manifest** (current, pre-plugin):
-```json
-{
-  "project_type": "youtube",
-  "auto_include": true,
-  "active_skills": ["banana-prompt"],
-  "disabled_skills": []
-}
-```
-
-**V2 Manifest** (with plugin support):
-```json
-{
-  "project_type": "youtube",
-  "schema_version": "2.0.0",
-  "auto_include": true,
-  "active_skills": ["banana-prompt"],
-  "disabled_skills": [],
-  "plugins": [
-    { "plugin_id": "youtube-core", "enabled": true }
-  ]
-}
-```
-
-**Auto-upgrade**: The `manifest_validator.py` script auto-detects V1 manifests and offers silent upgrade to V2 (without writing to disk unless user approves).
-
----
-
-## Plugin Discovery
-
-To list all available plugins:
-
-```bash
-python scripts/manifest_validator.py /path/to/project --list-plugins
-```
-
-To validate a plugin manifest:
-
-```bash
-python scripts/manifest_validator.py /path/to/project --validate-plugins
-```
-
----
-
-## Constraints & Future Work
-
-### Phase 11.1 (Infrastructure)
-- Plugins are read-only (manifest-driven activation only).
-- No dynamic plugin loading or unloading mid-session.
-- Plugins must be part of the git repository (no external/downloadable plugins in v1).
-
-### Phase 11.2 (Implementation)
-- Copy singleton skills to plugin directories.
-- Validate YAML syntax and schema compliance.
-- Update project templates to include `plugins` key.
-
-### Phase 11.3 (Deactivation)
-- Remove singleton skills from `skills/` after validation.
-- Implement reversible migration script with rollback support.
-- Update all routing and discovery commands to recognize plugins.
+Enabling only the plugins a project needs avoids loading unused skill metadata into context. A project that only needs `geometry` installs and enables that one plugin instead of all 17 skills across all 7 plugins.
 
 ---
 
 ## See Also
 
-- `plugin_manifest_schema.json` — Full JSON Schema specification
-- `README.md` — User migration guide
-- `scripts/manifest_validator.py` — Validation and upgrade logic
-- `templates/project.schema.json` — Updated with `plugins` support
-- `Artifacts/IMPLEMENTATION_PLAN.md` — Phase 11 technical design
+- [`../.claude-plugin/marketplace.json`](../.claude-plugin/marketplace.json) — Canonical plugin registry (name, source, description)
+- `README.md` — Native plugin structure and authoring guide
+- `../skills/skills.overview.md` — Universal (always-on) skill registry, distinct from these optional plugins

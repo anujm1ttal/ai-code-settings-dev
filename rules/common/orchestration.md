@@ -27,7 +27,7 @@ Every agent has an assigned Claude model. This is NON-NEGOTIABLE and optimizes f
 | **coder** | Sonnet 5 | Tier 2 | Implementation, refactoring, debugging |
 | **auditor** | Sonnet 5 | Tier 2 | Code review, compliance, gate validation |
 | **scribe** | Haiku 4.5 | Tier 3 | Documentation, state management |
-| **concierge** | Haiku 4.5 | Tier 3 | Routine sync, manifest validation |
+| **concierge** | Haiku 4.5 | Tier 3 | Routine sync, state management |
 | **council** | Opus 4.8 | Tier 1 | Deliberation, conflict resolution |
 | **creative-director** | Haiku 4.5 | Tier 3 | Layout specs, design scaffolding |
 | **geometry-validator** | Sonnet 5 | Tier 2 | Geometric auditing, manifold verification |
@@ -49,63 +49,20 @@ python scripts/model_routing_audit.py --violations-only   # Verify runtime honor
 
 ---
 
-## Project Configuration & Skill Manifest
-
-Every project **MUST** have a `project.json` file in its root directory to declare its type and active skills. This enables selective skill loading and reduces token overhead.
-
-### The Manifest (`project.json`)
-
-**Location**: Project root (same level as `README.md`, `pyproject.toml`, etc.)
-
-**Purpose**: Declare project type and selectively activate skills to optimize token usage.
-
-**Schema**: See `templates/project.schema.json` in the global registry.
-
-**Key Fields**:
-- `project_type`: Required. Determines default agent routing and default skill set.
-- `auto_include`: If `true` (default), include default skills for project type. If `false`, use ONLY `active_skills`.
-- `active_skills`: Explicitly declare which skills are available. These are added to (or replace) the default set depending on `auto_include`.
-- `disabled_skills`: Remove specific skills from the default set (only if `auto_include=true`).
-
-**Examples**:
-
-```json
-{
-  "project_name": "Stadium Sightline Model",
-  "project_type": "geometry",
-  "auto_include": true,
-  "active_skills": ["python-rhino-grasshopper", "systematic-debugging"],
-  "metadata": {"max_seats": 50000, "tolerance_mm": 1.5}
-}
-```
-
-```json
-{
-  "project_name": "Minimal Python Tool",
-  "project_type": "code",
-  "auto_include": false,
-  "active_skills": ["python-patterns", "python-mcp", "codebase-navigator"]
-}
-```
-
-**Token Impact**: Actual skill-metadata token cost is governed by which **native plugins are enabled** (`enabledPlugins`), not by `auto_include`. `auto_include=false` narrows the concierge's advertised skill set (routing intent); to actually skip a skill's L1 metadata, disable or don't install its plugin for the project.
-
----
-
 ## Project Type Routing
 
-The `strategist` classifies every project during Step 0. This determines active agents and default skills. The `project.json` manifest allows selective override of the default skill set.
+The `strategist` classifies every project during Step 0. This determines active agents and default skills. Per-project skill activation is via native plugins (`enabledPlugins` in settings); the table below is routing guidance, not a stored config.
 
 | Project Type | Core Agents | Default Skills | Override via |
 |:---|:---|:---|:---|
-| `youtube` | strategist, scribe, concierge | youtube-strategy, youtube-scriptwriting, youtube-retention | `project.json` |
-| `pptx` | strategist, creative-director, concierge | pptx, visual-composition, python-patterns | `project.json` |
-| `pbi-report` | strategist, creative-director, coder | powerbi-report, visual-composition, dax-modeling | `project.json` |
-| `geometry` | strategist, coder, auditor | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, python-patterns | `project.json` |
-| `code` | strategist, coder, auditor | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp | `project.json` |
-| `manuscript`| strategist, scribe, auditor | manuscript-review, glossary-extraction | `project.json` |
-| `data` | strategist, coder, auditor | dax-modeling, powerbi-report, python-patterns | `project.json` |
-| `hybrid` | concierge, strategist | All applicable (per detected files) | `project.json` |
+| `youtube` | strategist, scribe, concierge | youtube-strategy, youtube-scriptwriting, youtube-retention | `enabledPlugins` |
+| `pptx` | strategist, creative-director, concierge | pptx, visual-composition, python-patterns | `enabledPlugins` |
+| `pbi-report` | strategist, creative-director, coder | powerbi-report, visual-composition, dax-modeling | `enabledPlugins` |
+| `geometry` | strategist, coder, auditor | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, python-patterns | `enabledPlugins` |
+| `code` | strategist, coder, auditor | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp | `enabledPlugins` |
+| `manuscript`| strategist, scribe, auditor | manuscript-review, glossary-extraction | `enabledPlugins` |
+| `data` | strategist, coder, auditor | dax-modeling, powerbi-report, python-patterns | `enabledPlugins` |
+| `hybrid` | concierge, strategist | All applicable (per detected files) | `enabledPlugins` |
 
 **All project types** also have access to foundational skills: `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate`, `project-planner`, `project-journal`, `doc-updater`.
 
@@ -117,7 +74,6 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `/blueprint` | strategist | Initialize or pivot the project roadmap | Writes to `IMPLEMENTATION_PLAN.md` |
 | `/audit` | auditor | Gate-based quality review | Writes to `AUDIT_REPORT.md` |
 | `/sync` | concierge | Reconcile filesystem drift with plan | Validates `Artifacts/` vs source |
-| `/manifest` | concierge | Validate and visualize project.json skill manifest | Analyzes active skills, detects unused declarations, suggests optimizations |
 | `/ingest` | concierge | Import manual CAD/BI work into AI context | Formalizes `Artifacts/LAYOUT_SPEC.md` |
 | `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation | Writes to `Artifacts/history/` |
 | `/registry-audit`| auditor | Cross-reference integrity check for the OS registry | Validates links/enums |
@@ -158,13 +114,12 @@ For minor edits that meet all criteria:
 9. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
 10. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
 11. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
-12. **Session start, "where was I"** → **concierge** (`/sync` with manifest validation)
-13. **Check/validate manifest, optimize skills** → **concierge** (`/manifest`)
-14. **Session end, context save** → **concierge** (`/handoff` [--lite|--phase])
-15. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
-16. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
-17. **Domain definitions, ubiquitous language, glossary extraction** → **scribe** (`glossary-extraction`)
-18. **Ambiguous** → **concierge** asks a clarifying question before routing.
+12. **Session start, "where was I"** → **concierge** (`/sync`)
+13. **Session end, context save** → **concierge** (`/handoff` [--lite|--phase])
+14. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
+15. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
+16. **Domain definitions, ubiquitous language, glossary extraction** → **scribe** (`glossary-extraction`)
+17. **Ambiguous** → **concierge** asks a clarifying question before routing.
 
 ---
 
