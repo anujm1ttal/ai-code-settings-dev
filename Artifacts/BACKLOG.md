@@ -25,17 +25,21 @@ sessions no longer register as false positives; corrected `model-routing.md`.
 
 ---
 
-## `osa_plugin-docs_2` — Reconcile/retire the bespoke plugin manifest
+## ~~`osa_plugin-docs_2` — Reconcile/retire the bespoke plugin manifest~~ — RESOLVED
 
-**Filed:** 2026-07-06 (Phase OSA) · **Severity:** MEDIUM · **Type:** doc/tech-debt
+**Filed:** 2026-07-06 · **Resolved:** 2026-07-06 (Phase OSA-2) · **Severity:** ~~MEDIUM~~
 
-After the native-plugin conversion, two registries describe the same skills:
-native (`.claude-plugin/` + `enabledPlugins`, the real loader) and the AI-OS
-manifest (`plugin.yaml` + `project.json → plugins[]` + `manifest_validator.py`,
-routing intent only). Stale references to the pre-native skill layout remain in
-`optional_plugins/index.md`, `skills/skills.overview.md`, `DEPLOY.md`, and
-`manifest_validator.py`'s `PLUGIN_REGISTRY`. Decide: reconcile the two, or retire
-the bespoke validator now that native plugins are canonical.
+**Decision:** Option 3 (full retire). The entire bespoke manifest system was
+deleted — `manifest_validator.py`, root `project.json` + 9 templates + schema,
+`/manifest` command, 7 `plugin.yaml` sidecars, `plugin_manifest_schema.json`, the
+2 manifest test files, 4 dead migration scripts, and the dormant
+`guard-commit-evidence.js` hook. Native `.claude-plugin/` + `enabledPlugins` is
+now the single plugin registry. Docs pruned across ~14 files; `skill_graph_analyzer`
+made self-contained; `MEMORY_ANCHORS.md` updated to native architecture.
+
+**Residual (accepted):** one illustrative `project.json type` mention in
+`skills/receiving-code-review/SKILL.md` left untouched per Hard Rule 1 (no skill
+content edits).
 
 ---
 

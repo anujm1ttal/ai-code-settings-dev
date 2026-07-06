@@ -54,7 +54,6 @@ Orchestration layer for Claude Code sessions.
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
 | `/pack` | scribe | YouTube upload metadata and SEO |
 | `/sync` | concierge | Reconcile filesystem state with plan artifacts |
-| `/manifest` | concierge | Validate and visualize project.json skill manifest |
 | `/registry-audit` | auditor | Cross-reference integrity check for the OS registry |
 | `/ingest` | concierge | Register manual/external changes into project state |
 | `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation |
@@ -66,18 +65,9 @@ Orchestration layer for Claude Code sessions.
 
 ## Concierge Operations
 
-- **`/sync`** — Filesystem-driven. Scans for drift between files and TODO/state artifacts. Also loads and validates `project.json` to determine active skills. Use when plan and reality may have diverged.
+- **`/sync`** — Filesystem-driven. Scans for drift between files and TODO/state artifacts. Use when plan and reality may have diverged.
 - **`/ingest`** — User-driven. Registers work done outside AI IDE (manual edits, external contributions) into project state.
 - **`/handoff`** — Session boundary. Supports `--lite` (Checkpoint) and `--phase` (Milestone). Compresses context, scrubs TODO, captures decisions, writes brief.
-
-### Manifest Loading (`project.json`)
-
-Every project **MUST** declare a `project.json` in its root. During `/sync` (and session boot), the concierge:
-1. Reads `project.json` and validates against the schema
-2. Determines active skills based on `project_type`, `auto_include`, and explicit declarations
-3. Injects the skill allowlist into agent context
-
-**Token Impact**: Actual skill-metadata token cost is governed by which **native plugins are enabled** (`enabledPlugins`), not by `auto_include`. To truly skip an unused skill's metadata, disable or don't install its plugin. `auto_include`/`active_skills` express concierge **routing intent** — which skills to advertise as active — not the loader gate.
 
 ## Session Lifecycle
 
@@ -86,7 +76,7 @@ Every project **MUST** declare a `project.json` in its root. During `/sync` (and
 
 ## Project Type Routing
 
-Default skills per project type (overrideable via `project.json`):
+Default skills per project type (strategist/concierge routing guidance; per-project selection is via native `enabledPlugins`):
 
 | Project Type | Default Skills |
 |:---|:---|
@@ -100,9 +90,6 @@ Default skills per project type (overrideable via `project.json`):
 | `hybrid` | All applicable (per detected files) |
 
 **All types** also have foundational skills: codebase-navigator, systematic-debugging, implementation-dispatch, verification-gate, project-planner, project-journal, doc-updater.
-
-**Templates**: See `templates/project-*.json` for starter manifests. Copy to project root and name `project.json`.
-
 
 ## YouTube Pipeline
 
@@ -202,7 +189,6 @@ Claude Code hooks provide **hard guardrails** that cannot be rationalized away.
 | `session-boot.js` | `SessionStart` | Injects Artifacts state (TODO, Learnings, Current Task) into context |
 | `guard-paths.js` | `PreToolUse` | **Blocks** writes to binaries (`.pbix`, `.3dm`), secrets (`.env`), build artifacts |
 | `guard-commands.js` | `PreToolUse` | **Blocks** dangerous commands (`rm -rf`, force push, SQL drops) |
-| `guard-commit-evidence.js` | `PreToolUse` | **Blocks** `git commit` without fresh evidence in `Artifacts/Temp/` (opt-in: `project.json` → `"enforce_commit_evidence": true`) |
 | `auto-lint.js` | `PostToolUse` | Reports lint violations after file edits (report-only, no auto-fix) |
 | `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
 

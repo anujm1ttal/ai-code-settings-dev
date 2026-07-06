@@ -63,7 +63,6 @@ concierge:
   reasoning_depth: shallow
   use_for:
     - /sync (drift detection)
-    - /manifest (validation)
     - /clean (housekeeping)
     - /handoff (compression)
   when_to_override: Never (routine state work)

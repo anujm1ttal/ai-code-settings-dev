@@ -87,44 +87,35 @@ def load_skills(skills_dir: Path) -> dict[str, SkillNode]:
     return skills
 
 
-def analyze_default_skills(manifest_schema: Path, skills: dict[str, SkillNode]) -> None:
-    """Load DEFAULT_SKILLS from manifest_validator and assign project affinities."""
-    validator_path = Path(__file__).parent / "manifest_validator.py"
-    if not validator_path.exists():
-        return
+# Project-type routing tables (inlined from the retired manifest_validator;
+# mirror the routing table in rules/common/orchestration.md).
+ALL_PROJECT_TYPES = ["youtube", "pptx", "pbi-report", "geometry", "code", "manuscript", "data", "hybrid"]
+FOUNDATIONAL_SKILLS = ["codebase-navigator", "systematic-debugging", "implementation-dispatch", "verification-gate", "project-planner", "project-journal", "doc-updater"]
+DEFAULT_SKILLS: dict[str, list[str]] = {
+    "youtube": ["youtube-strategy", "youtube-scriptwriting", "youtube-retention"],
+    "pptx": ["pptx", "visual-composition", "python-patterns"],
+    "pbi-report": ["powerbi-report", "visual-composition", "dax-modeling"],
+    "geometry": ["cd-foundations", "python-rhino-grasshopper", "rhino-e2e-testing", "rhino-unit-testing", "python-patterns"],
+    "code": ["codebase-navigator", "systematic-debugging", "python-patterns", "python-mcp", "typescript-mcp"],
+    "manuscript": ["manuscript-review", "glossary-extraction"],
+    "data": ["dax-modeling", "powerbi-report", "python-patterns"],
+    "hybrid": [],
+}
 
-    with open(validator_path, encoding="utf-8") as f:
-        content = f.read()
 
-    # Extract FOUNDATIONAL_SKILLS
-    foundational_match = re.search(r'FOUNDATIONAL_SKILLS\s*=\s*\[(.*?)\]', content, re.DOTALL)
-    foundational = []
-    if foundational_match:
-        foundational = re.findall(r'"([\w\-]+)"', foundational_match.group(1))
-        # Mark all foundational skills as universal (add to all project types)
-        for skill_name in foundational:
-            if skill_name in skills:
-                for ptype in ["youtube", "pptx", "pbi-report", "geometry", "code", "manuscript", "data", "hybrid"]:
-                    if ptype not in skills[skill_name].project_types:
-                        skills[skill_name].project_types.append(ptype)
-
-    # Extract DEFAULT_SKILLS dict
-    match = re.search(r"DEFAULT_SKILLS[:\s]*dict\[.*?\]\s*=\s*\{(.*?)\n\}", content, re.DOTALL)
-    if not match:
-        return
-
-    defaults_text = match.group(1)
-
-    # Parse project type -> skills
-    for project_type in ["youtube", "pptx", "pbi-report", "geometry", "code", "manuscript", "data", "hybrid"]:
-        pattern = rf'"{project_type}"\s*:\s*\[(.*?)\]'
-        match = re.search(pattern, defaults_text, re.DOTALL)
-        if match:
-            skill_list = re.findall(r'"([\w\-]+)"', match.group(1))
-            for skill_name in skill_list:
-                if skill_name in skills:
-                    if project_type not in skills[skill_name].project_types:
-                        skills[skill_name].project_types.append(project_type)
+def analyze_default_skills(skills: dict[str, SkillNode]) -> None:
+    """Assign project-type affinities from the inlined default-skill tables."""
+    # Foundational skills are universal across every project type.
+    for skill_name in FOUNDATIONAL_SKILLS:
+        if skill_name in skills:
+            for ptype in ALL_PROJECT_TYPES:
+                if ptype not in skills[skill_name].project_types:
+                    skills[skill_name].project_types.append(ptype)
+    # Per-type default skills.
+    for project_type, skill_list in DEFAULT_SKILLS.items():
+        for skill_name in skill_list:
+            if skill_name in skills and project_type not in skills[skill_name].project_types:
+                skills[skill_name].project_types.append(project_type)
 
 
 def build_connections(skills: dict[str, SkillNode]) -> None:
@@ -303,7 +294,7 @@ def main():
 
     # Load and analyze
     skills = load_skills(skills_dir)
-    analyze_default_skills(root / "templates" / "project.schema.json", skills)
+    analyze_default_skills(skills)
     build_connections(skills)
     analysis = analyze_graph(skills)
 

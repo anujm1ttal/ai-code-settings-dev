@@ -26,20 +26,15 @@ cd c:\Users\44547\source\repos\ai-code-settings
 cp -r agents/           ~/.claude/agents/
 cp -r rules/            ~/.claude/rules/
 cp -r skills/           ~/.claude/skills/
-cp -r optional_plugins/ ~/.claude/optional_plugins/
 cp -r templates/        ~/.claude/templates/
-
-# Copy runtime scripts (only manifest_validator.py, not migration utils)
-cp scripts/manifest_validator.py ~/.claude/scripts/manifest_validator.py
-
-# Copy schema file
-cp optional_plugins/plugin_manifest_schema.json ~/.claude/optional_plugins/plugin_manifest_schema.json
 
 # Copy reference docs
 cp CLAUDE.md   ~/.claude/CLAUDE.md
 cp cheatsheet.md ~/.claude/cheatsheet.md
 cp README.md   ~/.claude/README.md
 ```
+
+Plugins are not copied here — they install via `/plugin marketplace add` + `/plugin install` from `.claude-plugin/marketplace.json`.
 
 ---
 
@@ -54,7 +49,7 @@ These stay in ai-code-settings only (development/testing):
 - ❌ `Artifacts/DECISION_LOG.md` — repo-specific history
 - ❌ `Artifacts/learnings/` — repo-specific learnings
 - ❌ `.git/`, `.gitignore`, etc. — version control
-- ❌ Any other scripts in `scripts/` except `manifest_validator.py`
+- ❌ Scripts in `scripts/` — dev-time utilities, not required at runtime
 
 ---
 
@@ -65,38 +60,13 @@ These stay in ai-code-settings only (development/testing):
 ls -la ~/.claude/agents/
 ls -la ~/.claude/rules/common/
 ls -la ~/.claude/skills/
-ls -la ~/.claude/optional_plugins/
 ls -la ~/.claude/templates/
-ls -la ~/.claude/scripts/manifest_validator.py
-
-# Verify manifest_validator.py works
-python ~/.claude/scripts/manifest_validator.py --list-plugins
 
 # Spot-check one skill (should match source)
 diff -r \
   c:\Users\44547\source\repos\ai-code-settings\skills\codebase-navigator \
   ~/.claude/skills/codebase-navigator
 # Should show no differences
-```
-
----
-
-## Verify in a Test Project
-
-Create a temporary test project to confirm ~/.claude/ loads correctly:
-
-```bash
-# Create test directory
-mkdir -p /tmp/test-project
-cd /tmp/test-project
-
-# Copy template from ~/.claude/
-cp ~/.claude/templates/project-code.json project.json
-
-# Test manifest validation
-python ~/.claude/scripts/manifest_validator.py --file project.json
-
-# Expected output: V2 schema validation PASS, all plugins listed
 ```
 
 ---
@@ -125,24 +95,6 @@ If deployment causes issues:
 TIMESTAMP=20260703-143022  # Replace with actual timestamp
 rm -rf ~/.claude
 cp -r ~/.claude.backup-$TIMESTAMP ~/.claude
-
-# Verify rollback
-python ~/.claude/scripts/manifest_validator.py --list-plugins
-```
-
----
-
-## Post-Deployment: Update Project Templates
-
-After syncing to ~/.claude/, projects should use templates from there:
-
-```bash
-# For a new project:
-cp ~/.claude/templates/project-code.json /my-project/project.json
-
-# For existing projects (optional):
-# No change needed — they already use their own project.json
-# But they can update to latest template version if desired
 ```
 
 ---
@@ -174,7 +126,7 @@ DEST="$HOME/.claude"
 echo "Deploying $SOURCE → $DEST"
 
 # Validate source
-if [ ! -f "$SOURCE/tests/test_manifest_validator_v2.py" ]; then
+if [ ! -f "$SOURCE/CLAUDE.md" ]; then
   echo "ERROR: Not in ai-code-settings root"
   exit 1
 fi
@@ -191,16 +143,10 @@ echo "Backup created: $DEST.backup-$TIMESTAMP"
 cp -r "$SOURCE/agents"          "$DEST/agents"
 cp -r "$SOURCE/rules"           "$DEST/rules"
 cp -r "$SOURCE/skills"          "$DEST/skills"
-cp -r "$SOURCE/optional_plugins" "$DEST/optional_plugins"
 cp -r "$SOURCE/templates"       "$DEST/templates"
-cp "$SOURCE/scripts/manifest_validator.py" "$DEST/scripts/manifest_validator.py"
-cp "$SOURCE/optional_plugins/plugin_manifest_schema.json" "$DEST/optional_plugins/plugin_manifest_schema.json"
 cp "$SOURCE/CLAUDE.md"          "$DEST/CLAUDE.md"
 cp "$SOURCE/cheatsheet.md"      "$DEST/cheatsheet.md"
 cp "$SOURCE/README.md"          "$DEST/README.md"
-
-# Validate
-python "$DEST/scripts/manifest_validator.py" --list-plugins
 
 echo "✓ Deployment complete"
 echo "  Source: $SOURCE"
@@ -221,8 +167,7 @@ bash scripts/deploy.sh
 - [ ] All runtime artifacts copied
 - [ ] Dev-only artifacts excluded
 - [ ] Backup created
-- [ ] Deployment validated (manifest_validator works)
-- [ ] Test project confirms loading
+- [ ] Deployment validated (spot-check diff passed)
 - [ ] Rollback procedure documented
 - [ ] Deployment record updated
 

@@ -12,7 +12,7 @@
 
 2. **Plugin System Adoption (Phase 11+)**: Singleton skills (used by exactly 1 project type) MUST be in `optional_plugins/[category]/[skill]/`. Core/universal skills remain in `skills/`.
 
-3. **Manifest Schema Versioning**: All `project.json` files MUST declare `schema_version`. Auto-upgrade V1→V2 is silent but logged. No projects left on V0.
+3. **Native Plugin Registry**: `.claude-plugin/marketplace.json` (repo root) is the single source of truth for the 7 optional plugins (`code-mcp`, `geometry`, `manuscript`, `ms-office`, `pbi-report`, `visual-storytelling`, `youtube`). Each plugin ships its own `optional_plugins/<name>/.claude-plugin/plugin.json`. No schema versioning layer exists — plugins are installed/enabled natively via Claude Code's plugin system.
 
 4. **Token Economy Priority**: Bootstrap costs capped at 7,600 tokens per project (foundational + universal + project-specific). Plugins reduce this to 5,100–6,700 tokens (18–25% savings).
 
@@ -35,20 +35,22 @@
 ### Plugin System Boundary
 
 - **Core Skills** (`skills/`): Foundational (7) + Universal (9) = 16 skills. These are ALWAYS available.
-- **Plugin Skills** (`optional_plugins/[category]/`): Singleton skills (12). Lazy-loaded only if project type matches and `auto_include=true`.
-- **No Hybrid Load**: A plugin skill is either fully loaded (all references, metadata) or not loaded at all. No partial loads.
+- **Plugin Skills** (`optional_plugins/<name>/skills/<skill>/`): 17 skills across 7 native plugins. Surfaced only when the plugin is installed AND enabled for the project.
+- **No Hybrid Load**: A plugin's skills are either fully available (plugin installed + enabled) or not visible at all. No partial loads.
 
-### Manifest Validation Flow
+### Native Plugin Load Flow
 
 ```
-project.json (V1 or V2)
+.claude-plugin/marketplace.json (repo root)
+    ↓ lists 7 plugins: code-mcp, geometry, manuscript,
+    ↓   ms-office, pbi-report, visual-storytelling, youtube
+optional_plugins/<name>/.claude-plugin/plugin.json
+    ↓ (per-plugin manifest: name, description, author)
+/plugin marketplace add <repo>  →  /plugin install <name>@ai-code-settings
     ↓
-[manifest_validator.py]
-    ├─ Detect version
-    ├─ If V1: auto-upgrade to V2 (idempotent)
-    ├─ Resolve plugins for project_type
-    ├─ Validate all skills exist in registry
-    └─ Return effective_skills set
+.claude/settings.json → "enabledPlugins": { "<name>@ai-code-settings": true }
+    ↓ (the real loader gate — no project.json/auto_include involved)
+Plugin's skills/<skill>/ surfaced to the agent
 ```
 
 ---
@@ -106,24 +108,21 @@ project.json (V1 or V2)
 - Identified 8 universal skills, 12 singletons, 111 tag clusters
 - Enabled Phase 11 plugin system design
 
-### Phase 11: Optional Plugin System (COMPLETE - v11.0.0-plugin-system)
+### Phase 11: Optional Plugin System (HISTORICAL — superseded)
 - Migrated 13 singletons to `optional_plugins/`
-- Implemented lazy-loading via manifest V2 schema
+- Implemented lazy-loading via a bespoke manifest V2 schema (`project.json` + `manifest_validator.py` + `PLUGIN_REGISTRY`)
 - Achieved 18–25% bootstrap token savings
 - **Delivery**: Git tag `v11.0.0-plugin-system` created
-- **Highlights**: 
-  - All 13 skills migrated to plugin format
-  - V1→V2 auto-upgrade implemented and tested
-  - PLUGIN_REGISTRY hardcoded in `scripts/manifest_validator.py`
-  - Rollback procedure documented in `Artifacts/ROLLBACK_PROCEDURE.md`
+- **Superseded**: Phase OSA / OSA-2 (2026-07-06) retired this entire bespoke manifest mechanism (`scripts/manifest_validator.py`, `PLUGIN_REGISTRY`, root `project.json` + `templates/project*.json`, `/manifest` command, `plugin.yaml` files, `guard-commit-evidence.js` hook) and converted all plugins to Claude Code's native plugin system (`.claude-plugin/marketplace.json` + per-plugin `plugin.json`). See Phase 13.
 
 ### Phase 12: Skill Maturity Tiers (PLANNED)
 - Classify skills: Tier 1 (Essential), Tier 2 (Recommended), Tier 3 (Niche)
 - Enable selective skill discovery in agent prompts
 
-### Phase 13: Cross-Registry Unification (PLANNED)
-- Align with Anthropic's published skill library
-- Bi-directional sync for published skills
+### Phase 13: Cross-Registry Unification (COMPLETE — 2026-07-06)
+- Retired the bespoke manifest/plugin.yaml system entirely; native Claude Code plugins are now the single registry
+- `.claude-plugin/marketplace.json` lists all 7 plugins; each has `optional_plugins/<name>/.claude-plugin/plugin.json`
+- Loader gate is `enabledPlugins` in `.claude/settings.json` — no `project.json`/`auto_include` involved
 
 ---
 
@@ -138,41 +137,39 @@ project.json (V1 or V2)
 
 ---
 
-## Plugin System Architecture (Phase 11 Complete)
+## Plugin System Architecture (Native Claude Code Plugins — current, since Phase OSA-2 2026-07-06)
 
 ### Non-Negotiables
 
-1. **Singleton Skills Are Now Plugins**: youtube-strategy, youtube-scriptwriting, youtube-retention, pptx, powerbi-report, python-mcp, typescript-mcp, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, manuscript-review, business-analyst, cd-foundations
-   - Accessible ONLY via `optional_plugins/[category]/[skill]/`
-   - NO longer in `skills/` directory (removed in Phase 11.3)
-   - Lazy-loaded per plugin configuration in project manifest
+1. **Singleton Skills Live in Native Plugins**: 17 skills across 7 plugins:
+   - `code-mcp`: python-mcp, typescript-mcp
+   - `geometry`: cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing
+   - `manuscript`: business-analyst, manuscript-review
+   - `ms-office`: docx, pptx, xlsx
+   - `pbi-report`: powerbi-report
+   - `visual-storytelling`: banana-prompt, pptx-slide-design
+   - `youtube`: youtube-retention, youtube-scriptwriting, youtube-strategy
+   - Accessible ONLY via `optional_plugins/<name>/skills/<skill>/` — NOT in `skills/`
 
-2. **Manifest V2 Schema Is Default**: All new projects should use `schema_version: "2.0.0"` with `plugins` array
-   - V1 manifests auto-upgrade to V2 on validation (transparent to users)
-   - No loss of functionality during upgrade
-   - Plugin refs are optional; `auto_include: true` projects auto-enable per project_type
+2. **Marketplace + Plugin Manifest Is Default**: `.claude-plugin/marketplace.json` (repo root) lists all 7 plugins by name/source/description. Each plugin has its own `optional_plugins/<name>/.claude-plugin/plugin.json` (name, description, author). No schema versioning, no auto-upgrade logic — plugins are a flat native registry.
 
 3. **Core Skills Remain Universal**: 9 core skills remain in `skills/` (not plugins)
    - Always available, never lazy-loaded
    - Non-negotiable for all project types
    - Examples: codebase-navigator, systematic-debugging, project-planner
 
-4. **Plugin Registry Is Hardcoded**: `PLUGIN_REGISTRY` in `scripts/manifest_validator.py` maps:
-   - plugin_id → {category, skills[], project_types[], auto_enable}
-   - Must stay in sync with actual `optional_plugins/[category]/plugin.yaml` files
-   - Auditor gate: Any drift → regression test failure
+4. **Loader Gate Is `enabledPlugins`**: A plugin's skills surface only when:
+   - The plugin is installed (`/plugin marketplace add <repo>` then `/plugin install <name>@ai-code-settings`), AND
+   - It is enabled per-project via `"enabledPlugins": { "<name>@ai-code-settings": true }` in `.claude/settings.json`
+   - There is no `project.json`/`auto_include`/`PLUGIN_REGISTRY` gate — this IS the gate.
 
-5. **Rollback Is Possible**: Migration state saved to `Artifacts/.agent/migration_state.json`
-   - Use `python scripts/migrate_skills_to_plugins.py --rollback` to restore skills/ if needed
-   - Manual procedure in `Artifacts/ROLLBACK_PROCEDURE.md`
-   - Rollback is tested and reversible
+5. **Validation Is Native**: Use `claude plugin validate` against each `optional_plugins/<name>/` directory. No custom validator script exists.
 
 ### Key Routing
 
-- **New singleton-related question?** → Check `optional_plugins/[category]/[skill]/SKILL.md`
-- **Manifest validation broken?** → Check PLUGIN_REGISTRY sync in `scripts/manifest_validator.py`
-- **Plugin not loading?** → Verify plugin.yaml has skill in skills array, and project manifest has plugin_id in plugins array
-- **Need to add a new optional plugin?** → Follow structure in `optional_plugins/[category]/plugin.yaml` + create category dir with plugin.yaml + add to PLUGIN_REGISTRY
+- **New singleton-related question?** → Check `optional_plugins/<name>/skills/<skill>/SKILL.md`
+- **Plugin not surfacing?** → Verify it's installed AND `enabledPlugins` has `"<name>@ai-code-settings": true` in `.claude/settings.json`
+- **Need to add a new optional plugin?** → Create `optional_plugins/<name>/.claude-plugin/plugin.json` + `optional_plugins/<name>/skills/<skill>/`, then add an entry to `.claude-plugin/marketplace.json`. Validate with `claude plugin validate`.
 
 ---
 
@@ -197,5 +194,5 @@ project.json (V1 or V2)
 
 ---
 
-**Last Updated**: 2026-07-03
+**Last Updated**: 2026-07-06
 **Next Review**: After Phase 12 completion (estimated 2026-09-15)
