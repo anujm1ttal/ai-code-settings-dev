@@ -1,0 +1,5 @@
+{
+  "name": "visual-storytelling",
+  "description": "Copy-paste-ready prompt generation for external AI renderers. Provides image and slide-design prompt engineering for thumbnails, decks, and visual assets.",
+  "author": { "name": "Anuj Mittal" }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "geometry",
+  "description": "Rhinoceros/Grasshopper geometry modeling and computation. Provides RhinoCommon APIs, E2E testing, and manifoldness verification.",
+  "author": { "name": "Anuj Mittal" }
+}

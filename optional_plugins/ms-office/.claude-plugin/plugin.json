@@ -1,0 +1,5 @@
+{
+  "name": "ms-office",
+  "description": "OOXML file manipulation for Microsoft Office documents. Provides pptx, docx, and xlsx creation, editing, and validation via a shared office engine.",
+  "author": { "name": "Anuj Mittal" }
+}

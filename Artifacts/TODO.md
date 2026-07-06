@@ -9,10 +9,10 @@
 - [x] [coder] Commit A standalone on `phase-os-audit` — commit `73a50da`, 3 files, `py_compile` clean
 
 ### Workstream B — Plugin Registry Unification (convert to real plugins)
-- [ ] [strategist] `[user-approval]` B0 Step-0: lock plugin.yaml→plugin.json mapping + pilot list
-- [ ] [coder] B1 Pilot: convert `code-mcp` → marketplace.json + plugin.json (move only)
-- [ ] [coder+auditor] B2 Proof gate: `/plugin install` + restart → skill surfaces live
-- [ ] [coder] B3 Roll out remaining 6 groups (gated on B2)
+- [x] [strategist] `[user-approval]` B0 Step-0: mapping locked (name=dir, omit version, plugin.yaml sidecar) — approved 2026-07-06
+- [x] [coder] B1 Pilot: `code-mcp` converted — commit `813a66b`; `claude plugin validate` exit 0
+- [x] [coder+auditor] B2 Proof gate: **PASSED** — user installed pilot; `python-mcp`/`typescript-mcp` surface as slash commands
+- [-] [coder] B3 Roll out remaining 6 groups (geometry, manuscript, ms-office, pbi-report, visual-storytelling, youtube)
 - [ ] [scribe] B4 Fix CLAUDE.md/orchestration.md token-saving honesty claim
 - [ ] [auditor] B5 Verify + merge `phase-os-audit` → `main`
 
