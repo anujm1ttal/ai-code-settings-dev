@@ -125,3 +125,48 @@ python scripts/manifest_validator.py . --export
 ```
 
 Exit code: 0 if valid, 1 if invalid.
+
+---
+
+## `model_routing_audit.py`
+
+Verifies that spawned subagents actually **ran** on the model their agent
+definition assigns. Config in `agents/*.md` can be perfectly wired while the
+runtime silently ignores it (e.g. subagents inheriting the main-thread model) —
+this script proves it from the session transcripts, not the config.
+
+**Usage**:
+```bash
+# Audit one project's transcripts
+python scripts/model_routing_audit.py ~/.claude/projects/<project-hash>/
+
+# Audit every project (default path)
+python scripts/model_routing_audit.py
+
+# Show only the runs that violated their assignment
+python scripts/model_routing_audit.py <path> --violations-only
+
+# Audit against the deployed config instead of the repo's agents/
+python scripts/model_routing_audit.py <path> --agents-dir ~/.claude/agents
+
+# Machine-readable rows
+python scripts/model_routing_audit.py <path> --json
+```
+
+**How it works**:
+- **Assigned model**: parsed live from the `model:` frontmatter of `agents/*.md`
+  (single source of truth — auto-tracks any config edits).
+- **Actual model**: the dominant model ID in each `<session>/subagents/agent-*.jsonl`
+  transcript; its `agentType` comes from the sibling `.meta.json`.
+- **Comparison is by tier/family** (opus / sonnet / haiku) so dated snapshots
+  like `claude-haiku-4-5-20251001` correctly match an assigned `claude-haiku-4-5`.
+
+**Statuses**: `OK` (honored), `MISMATCH` (tier bypassed), `NO-DATA` (empty
+transcript), `UNMANAGED` (built-in agent with no assignment, e.g. `Explore`).
+
+**Output**: markdown table per subagent run + a per-agent honored/violated
+summary.
+
+**Used by**: routing self-audit; CI gate on model discipline.
+
+Exit code: 0 if every managed subagent honored its assignment, 1 on any mismatch.
