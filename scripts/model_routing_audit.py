@@ -22,6 +22,7 @@ mismatch (CI-usable).
 from __future__ import annotations
 
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 import argparse
 import io
@@ -120,12 +121,30 @@ def audit_subagent(meta_file: Path, assigned: dict[str, str]) -> dict[str, str] 
     }
 
 
-def collect_rows(root: Path, assigned: dict[str, str]) -> list[dict[str, str]]:
-    """Audit every subagent transcript found under root (any depth)."""
+def _transcript_mtime(meta_file: Path) -> float:
+    """mtime of a subagent's transcript (falls back to the meta file)."""
+    transcript = meta_file.with_name(meta_file.name.replace(".meta.json", ".jsonl"))
+    probe = transcript if transcript.exists() else meta_file
+    try:
+        return probe.stat().st_mtime
+    except OSError:
+        return 0.0
+
+
+def collect_rows(
+    root: Path, assigned: dict[str, str], since_ts: float | None = None
+) -> list[dict[str, str]]:
+    """Audit every subagent transcript found under root (any depth).
+
+    If since_ts is given, transcripts last modified before it are skipped —
+    use it to exclude pre-config or deliberate alternate-model sessions that
+    would otherwise register as false-positive mismatches.
+    """
     rows = [
         row
         for meta_file in sorted(root.glob("**/subagents/*.meta.json"))
-        if (row := audit_subagent(meta_file, assigned)) is not None
+        if (since_ts is None or _transcript_mtime(meta_file) >= since_ts)
+        and (row := audit_subagent(meta_file, assigned)) is not None
     ]
     return rows
 
@@ -183,6 +202,13 @@ def main() -> int:
     )
     parser.add_argument("--violations-only", action="store_true", help="Show only mismatched runs in the table.")
     parser.add_argument("--json", action="store_true", help="Emit raw rows as JSON instead of a report.")
+    parser.add_argument(
+        "--since",
+        metavar="YYYY-MM-DD",
+        default=None,
+        help="Only audit transcripts modified on/after this date. Excludes pre-config "
+        "or deliberate alternate-model sessions that would register as false positives.",
+    )
     args = parser.parse_args()
 
     root = Path(args.path)
@@ -194,8 +220,16 @@ def main() -> int:
         print(f"Agents dir not found: {agents_dir}", file=sys.stderr)
         return 2
 
+    since_ts: float | None = None
+    if args.since is not None:
+        try:
+            since_ts = datetime.fromisoformat(args.since).timestamp()
+        except ValueError:
+            print(f"Invalid --since date (expected YYYY-MM-DD): {args.since}", file=sys.stderr)
+            return 2
+
     assigned = load_assigned_models(agents_dir)
-    rows = collect_rows(root, assigned)
+    rows = collect_rows(root, assigned, since_ts)
 
     if args.json:
         print(json.dumps(rows, indent=2))

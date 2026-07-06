@@ -194,14 +194,16 @@ python scripts/model_routing_audit.py --violations-only  # only the bypasses
 
 It compares each spawned subagent's *actual* model (from its transcript) against
 the `model:` frontmatter in `agents/*.md`, by tier family. Exit 1 on any mismatch
-(CI-usable). See `scripts/README.md` for full options.
+(CI-usable). Use `--since YYYY-MM-DD` to scope the audit to transcripts after your
+routing config took effect — otherwise pre-config and deliberate alternate-model
+sessions register as false positives. See `scripts/README.md` for full options.
 
-> ⚠️ **Known open issue (2026-07-06):** a first audit found the runtime **widely
-> bypasses** these assignments — **21 of 45** subagent runs ran on a lower tier
-> than assigned (coder ran on Haiku ~82% of the time instead of Sonnet). This is
-> a runtime/harness behavior, not fixable from this config. Tracked in
-> `Artifacts/BACKLOG.md` (`osa_model-routing_1`). Until resolved, treat the tier
-> table above as *intent*, and run the audit to see what actually happened.
+> ✅ **Routing is honored (verified 2026-07-06).** An initial audit *appeared* to
+> show 21/45 runs bypassing their tier, but scoping to post-config transcripts
+> (`--since 2026-07-05`) yields **0 violations**. The apparent bypasses were all
+> pre-config sessions (before routing existed) or deliberate alternate-model runs
+> (a full Fable session, early Qwen experiments) — not runtime failures. Always
+> pass `--since` when auditing so historical sessions don't cry wolf.
 
 ---
 

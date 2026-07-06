@@ -146,6 +146,9 @@ python scripts/model_routing_audit.py
 # Show only the runs that violated their assignment
 python scripts/model_routing_audit.py <path> --violations-only
 
+# Only audit transcripts on/after a date (exclude pre-config / alt-model sessions)
+python scripts/model_routing_audit.py --since 2026-07-05
+
 # Audit against the deployed config instead of the repo's agents/
 python scripts/model_routing_audit.py <path> --agents-dir ~/.claude/agents
 
