@@ -5,26 +5,23 @@ Reference-on-demand (not boot-loaded). ID format: `<phase>_<component>_<n>`.
 
 ---
 
-## `osa_model-routing_1` — Runtime bypasses assigned model tiers
+## ~~`osa_model-routing_1` — Runtime bypasses assigned model tiers~~ — RESOLVED (not a bug)
 
-**Filed:** 2026-07-06 (Phase OSA) · **Severity:** HIGH · **Type:** finding (needs own Step 0)
+**Filed:** 2026-07-06 · **Resolved:** 2026-07-06 · **Severity:** ~~HIGH~~ → none
 
-**Evidence:** `scripts/model_routing_audit.py` audited session transcripts vs the
-`model:` frontmatter in `agents/*.md`: **15 honored / 21 violated / 45 runs**.
-Coder ran on `claude-haiku-4-5` ~82% of the time despite being assigned Sonnet;
-auditor honored only 36%; strategist and one run dropped to Haiku too.
+**Original claim:** the audit showed 15 honored / 21 violated / 45 runs — agents
+apparently downgraded to Haiku at runtime.
 
-**Impact:** the cost/quality model in `rules/common/model-routing.md` is intent
-only — expensive agents are silently downgraded at runtime, so both the quality
-(Sonnet/Opus reasoning) and the cost accounting are off.
+**Resolution:** false positive from historical data. Model routing was set up on
+July 3; the audit was scanning transcripts back to June against the new config.
+Scoping to post-config transcripts (`--since 2026-07-05`) yields **0 violations /
+3 honored**. The 21 "violations" decompose as: 2 Qwen (June experiments, not even
+Claude models), 6 Fable (one deliberate July-4 Fable session — main thread was
+213 msgs of `claude-fable-5`), 13 Haiku (one July-3 setup-day session). **No
+post-config downgrades exist — routing is honored.**
 
-**Why deferred:** the bypass is a runtime/harness behavior (the runtime appears to
-ignore per-agent `model:` frontmatter), not fixable from repo config. Needs its
-own Step 0 to investigate: is it a subagent-inherits-main-thread-model default, a
-settings misconfiguration, or a harness limitation? Detect-only in Phase OSA
-(Hard Rule 3).
-
-**Repro:** `python scripts/model_routing_audit.py --violations-only`
+**Outcome:** added `--since YYYY-MM-DD` to the audit tool so historical/alt-model
+sessions no longer register as false positives; corrected `model-routing.md`.
 
 ---
 

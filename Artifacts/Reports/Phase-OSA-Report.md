@@ -39,7 +39,7 @@ Absorbed two OS-improvement workstreams that were uncommitted drift on `main`, a
 
 Filed in `Artifacts/BACKLOG.md`:
 
-1. `osa_model-routing_1` (HIGH) — runtime bypasses assigned tiers; needs Step 0 (harness/runtime issue, not config).
+1. ~~`osa_model-routing_1` (HIGH)~~ — **RESOLVED 2026-07-06**: false positive from pre-config/alt-model history. `--since 2026-07-05` → 0 violations; routing is honored. Added `--since` filter to the tool.
 2. `osa_plugin-docs_2` (MEDIUM) — stale pre-native refs in `index.md`, `skills.overview.md`, `DEPLOY.md`, `manifest_validator.py`; reconcile-or-retire the bespoke validator.
 3. `osa_plugin-scope_3` (LOW) — permanent per-plugin enable scope (per-project vs global), left open per usage.
 
