@@ -1,0 +1,12 @@
+{
+  "name": "ai-code-settings",
+  "owner": { "name": "Anuj Mittal" },
+  "description": "Personal AI-OS plugins: MCP tooling, geometry, Office, Power BI, YouTube, and visual-storytelling skills.",
+  "plugins": [
+    {
+      "name": "code-mcp",
+      "source": "./optional_plugins/code-mcp",
+      "description": "MCP tool development for Python and TypeScript. Provides schemas, JSON-RPC patterns, and async boundary standards."
+    }
+  ]
+}

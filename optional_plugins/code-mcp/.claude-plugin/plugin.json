@@ -1,0 +1,5 @@
+{
+  "name": "code-mcp",
+  "description": "MCP tool development for Python and TypeScript. Provides schemas, JSON-RPC patterns, and async boundary standards.",
+  "author": { "name": "Anuj Mittal" }
+}

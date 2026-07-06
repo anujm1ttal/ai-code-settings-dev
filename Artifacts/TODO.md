@@ -4,9 +4,9 @@
 **Plan Reference:** `Artifacts/Plans/Phase-OSA-Plan.md`
 **Absorbs:** model-routing audit tool + plugin-registry gap (both were uncommitted drift on `main`)
 
-### Workstream A — Model-Routing Verification (built; verify + commit)
-- [ ] [auditor] Verify `model_routing_audit.py` — Success: table renders; exit 1 on mismatch
-- [ ] [coder] Commit A standalone on `phase-os-audit` (script + README + profile) — Success: 3 files, `py_compile` clean
+### Workstream A — Model-Routing Verification (built; verify + commit) ✅
+- [x] [auditor] Verify `model_routing_audit.py` — table renders; exit 1 on mismatch (15 honored / 21 violated / 45 runs); evidence `Artifacts/Temp/osa_A1_audit_*.txt`
+- [x] [coder] Commit A standalone on `phase-os-audit` — commit `73a50da`, 3 files, `py_compile` clean
 
 ### Workstream B — Plugin Registry Unification (convert to real plugins)
 - [ ] [strategist] `[user-approval]` B0 Step-0: lock plugin.yaml→plugin.json mapping + pilot list
