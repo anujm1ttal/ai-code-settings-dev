@@ -19,7 +19,9 @@
 **Phase OSA COMPLETE.** Follow-ups in `Artifacts/BACKLOG.md`:
 - ~~`osa_model-routing_1` (HIGH)~~ — RESOLVED (false positive; `--since` filter added)
 - ~~`osa_plugin-docs_2` (MED)~~ — RESOLVED (Phase OSA-2: full manifest retire, merged `1c00fb3`)
-- `osa_plugin-scope_3` (LOW) — OPEN: per-plugin enable scope (usage decision, no code)
+- ~~`osa_plugin-scope_3` (LOW)~~ — CLOSED (by design: decide per project via `enabledPlugins`)
+
+**All Phase OSA follow-ups resolved.**
 
 **Finding → BACKLOG (not fixed here):** subagents run on wrong tier (haiku vs sonnet/opus); runtime ignores `model:` frontmatter — needs separate Step 0.
 

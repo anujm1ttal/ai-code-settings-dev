@@ -43,11 +43,13 @@ content edits).
 
 ---
 
-## `osa_plugin-scope_3` — Permanent per-plugin enable scope (product decision)
+## ~~`osa_plugin-scope_3` — Permanent per-plugin enable scope~~ — CLOSED (by design)
 
-**Filed:** 2026-07-06 (Phase OSA) · **Severity:** LOW · **Type:** product decision
+**Filed:** 2026-07-06 · **Closed:** 2026-07-06 · **Severity:** LOW
 
-Where each of the 7 plugins is enabled (user/global vs per-project
-`.claude/settings.json`) is deliberately left open. Per-project `enabledPlugins`
-delivers the "only load what the project needs" goal; decide per plugin as real
-projects adopt them.
+**Resolution:** no blanket decision needed — decide per project. Per-project
+`enabledPlugins` in `.claude/settings.json` already delivers the "only load what
+the project needs" goal, and the mechanism is in place + documented
+(`optional_plugins/index.md`). Forcing a global default now would re-create the
+global-install anti-pattern that was explicitly rejected. Each project enables the
+plugins it needs as it adopts them.
