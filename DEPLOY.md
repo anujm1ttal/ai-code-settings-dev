@@ -27,9 +27,11 @@ cp -r agents/           ~/.claude/agents/
 cp -r rules/            ~/.claude/rules/
 cp -r skills/           ~/.claude/skills/
 cp -r templates/        ~/.claude/templates/
+cp -r commands/         ~/.claude/commands/
 
 # Copy reference docs
-cp CLAUDE.md   ~/.claude/CLAUDE.md
+# CLAUDE-global.md is the deployable global (repo-specific CLAUDE.md is NOT deployed)
+cp CLAUDE-global.md ~/.claude/CLAUDE.md
 cp cheatsheet.md ~/.claude/cheatsheet.md
 cp README.md   ~/.claude/README.md
 ```
@@ -42,6 +44,7 @@ Plugins are not copied here — they install via `/plugin marketplace add` + `/p
 
 These stay in ai-code-settings only (development/testing):
 
+- ❌ `CLAUDE.md` — repo-specific guidance for maintaining the OS (the global is `CLAUDE-global.md`)
 - ❌ `tests/` — development validation only
 - ❌ `scripts/migrate_skills_to_plugins.py` — one-time utility
 - ❌ `scripts/phase_11_*.py` — one-time utilities
@@ -106,7 +109,7 @@ Keep track of deployments. Add an entry each time you sync:
 | Date | Version | Changes | Status |
 |:---|:---|:---|:---|
 | 2026-07-03 | v11.0.0 | Plugin system MVP complete | ✓ DEPLOYED |
-| — | — | — | — |
+| 2026-07-06 | — | CMD: CLAUDE.md standard + global/project split + `/claude-md`; deploy.sh repaired (OSA-2 regression) + now deploys `commands/` | ✓ DEPLOYED |
 
 ---
 
@@ -144,7 +147,7 @@ cp -r "$SOURCE/agents"          "$DEST/agents"
 cp -r "$SOURCE/rules"           "$DEST/rules"
 cp -r "$SOURCE/skills"          "$DEST/skills"
 cp -r "$SOURCE/templates"       "$DEST/templates"
-cp "$SOURCE/CLAUDE.md"          "$DEST/CLAUDE.md"
+cp "$SOURCE/CLAUDE-global.md"   "$DEST/CLAUDE.md"
 cp "$SOURCE/cheatsheet.md"      "$DEST/cheatsheet.md"
 cp "$SOURCE/README.md"          "$DEST/README.md"
 

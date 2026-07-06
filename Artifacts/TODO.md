@@ -1,4 +1,44 @@
-# Active Initiative: Phase OSA — OS Self-Audit
+# Active Initiative: CMD — CLAUDE.md Discipline
+
+**Status:** Phase CMD-1 in progress · **Branch:** `phase-cmd-1-claude-md-standard`
+**Plan Reference:** `Artifacts/Plans/CMD-Plan.md`
+**Step 0:** approved 2026-07-06 (thin wrapper + OS spec · rubric + template · on-demand · CLAUDE-global.md + lean repo CLAUDE.md)
+
+### Phase CMD-1 — The Standard *(Interface-First gate — signed off 2026-07-06)*
+- [x] [strategist] Draft `rules/common/claude-md-standards.md` — split table + 6 scored dimensions + 6 anti-patterns + size caps aligned to TOKEN-ECONOMICS
+- [x] [scribe] Author `templates/CLAUDE.md.template` starter skeleton (~45 lines)
+- [x] [scribe] Register new rule in `CLAUDE.md` + `README.md` rules index (2 spots in README)
+- [x] [user-approval] Sign off on the rubric before CMD-2 — approved (caps 150/250 project, 250/400 global; full global-tier split)
+- [ ] [auditor] Mark CMD-1 terminal — Success: all tasks `[x]`, hard rules clean (no rules/ duplication; caps self-consistent)
+
+### Phase CMD-2 — The Split
+- [x] [coder] Create `CLAUDE-global.md` (deployable global) — diff vs live global = additive-only (header + rule registration); zero content dropped
+- [x] [coder] Slim repo `CLAUDE.md` to repo-specific guidance — 65 lines (≤150 target)
+- [x] [coder] Repoint `scripts/deploy.sh:127` → copy `CLAUDE-global.md`; update `DEPLOY.md` (3 spots) — `bash -n` clean
+- [ ] [auditor] Mark CMD-2 terminal — Success: no global content dropped; deploy dry-run clean
+
+### Phase CMD-3 — The Command
+- [x] [auditor] Author `commands/claude-md.md` (thin `/claude-md` wrapper over `claude-md-improver`, graded on our standard, report-first)
+- [x] [scribe] Register `/claude-md` in command registry — `CLAUDE-global.md` table + `cheatsheet.md` (README has no exhaustive table; illustrative-only)
+- [x] [coder] **Scope addition (flagged):** add `commands/` to `deploy.sh` copy+validation loops — fixes latent drift (`skill-graph.md` was undeployed); required for `/claude-md` to deploy
+- [x] [auditor] Cross-reference integrity check — 9/9 deliverables present, plugin present, all refs resolve, 0 broken
+
+### Remaining
+- [x] Commit CMD initiative — `a393e2b` on `phase-cmd-1-claude-md-standard`
+- [x] Repair `deploy.sh` (OSA-2 regression: referenced 3 deleted manifest files → unrunnable) — `1801e24`
+- [x] Deploy to `~/.claude/` — success; backup `~/.claude.backup-20260706-125644`; global + 22 commands + new rule/template live; `/claude-md` confirmed in live command list
+- [ ] Merge `phase-cmd-1-claude-md-standard` → `main` and delete branch (after any final review)
+- [ ] GEMINI.md still holds old combined content (out of scope per Step 0; not deployed) — revisit if Gemini parity wanted
+
+### Hard Rules (Auditor Rejects on Violation)
+1. Standard MUST NOT duplicate `rules/common/*` content — reference, never restate
+2. Rubric size caps self-consistent with `TOKEN-ECONOMICS.md`
+3. No global OS content silently dropped in the split — every removed line lands in `CLAUDE-global.md`
+4. `/claude-md` MUST NOT auto-edit without confirmation; MUST reuse existing plugin (no reimplemented scanner)
+
+---
+
+# Completed Initiative: Phase OSA — OS Self-Audit
 
 **Status:** DRAFT — awaiting Step 0 approval · **Branch:** `phase-os-audit` (not yet created)
 **Plan Reference:** `Artifacts/Plans/Phase-OSA-Plan.md`

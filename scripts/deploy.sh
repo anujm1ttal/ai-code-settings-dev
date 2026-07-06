@@ -37,7 +37,7 @@ echo ""
 
 echo -e "${YELLOW}[1/6]${NC} Validating source repository..."
 
-if [ ! -f "$SOURCE/tests/test_manifest_validator_v2.py" ]; then
+if [ ! -f "$SOURCE/CLAUDE-global.md" ]; then
   echo -e "${RED}✗ ERROR: Not in ai-code-settings root directory${NC}"
   exit 1
 fi
@@ -56,12 +56,19 @@ echo ""
 
 if [ "$SKIP_TESTS" = false ]; then
   echo -e "${YELLOW}[2/6]${NC} Running test suite..."
-  if ! pytest "$SOURCE/tests/" -v --tb=short 2>&1 | tail -20; then
-    echo -e "${RED}✗ Tests failed. Deploy aborted.${NC}"
-    echo -e "    Use ${YELLOW}--skip-tests${NC} to skip (not recommended)"
-    exit 1
+  # Only run pytest if the suite actually contains test files (empty since OSA-2).
+  if ls "$SOURCE"/tests/test_*.py >/dev/null 2>&1; then
+    pytest "$SOURCE/tests/" --tb=short
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+      echo -e "${RED}✗ Tests failed (exit $rc). Deploy aborted.${NC}"
+      echo -e "    Use ${YELLOW}--skip-tests${NC} to skip (not recommended)"
+      exit 1
+    fi
+    echo -e "${GREEN}✓ Tests passed${NC}"
+  else
+    echo -e "${YELLOW}  → No test files in tests/ — skipping (nothing to run)${NC}"
   fi
-  echo -e "${GREEN}✓ Tests passed${NC}"
 else
   echo -e "${YELLOW}[2/6]${NC} Skipping tests (--skip-tests flag)"
 fi
@@ -115,15 +122,14 @@ echo -e "${YELLOW}[5/6]${NC} Copying production artifacts..."
 # Copy directories.
 # Remove the destination first so `cp -r` creates a fresh copy instead of
 # nesting the source inside an existing dir (e.g. optional_plugins/optional_plugins).
-for dir in agents rules skills optional_plugins templates; do
+for dir in agents rules skills optional_plugins templates commands; do
   rm -rf "$DEST/$dir"
   cp -r "$SOURCE/$dir" "$DEST/$dir"
 done
 
 # Copy critical files
-cp "$SOURCE/scripts/manifest_validator.py" "$DEST/scripts/manifest_validator.py"
-cp "$SOURCE/optional_plugins/plugin_manifest_schema.json" "$DEST/optional_plugins/plugin_manifest_schema.json"
-cp "$SOURCE/CLAUDE.md"          "$DEST/CLAUDE.md"
+# CLAUDE-global.md is the deployable global (NOT the repo-specific CLAUDE.md)
+cp "$SOURCE/CLAUDE-global.md"   "$DEST/CLAUDE.md"
 cp "$SOURCE/cheatsheet.md"      "$DEST/cheatsheet.md"
 cp "$SOURCE/README.md"          "$DEST/README.md"
 
@@ -137,7 +143,7 @@ echo ""
 echo -e "${YELLOW}[6/6]${NC} Validating deployment..."
 
 # Check all required directories exist
-for dir in agents rules skills optional_plugins templates; do
+for dir in agents rules skills optional_plugins templates commands; do
   if [ ! -d "$DEST/$dir" ]; then
     echo -e "${RED}✗ Missing directory: $DEST/$dir${NC}"
     exit 1
@@ -145,18 +151,12 @@ for dir in agents rules skills optional_plugins templates; do
 done
 
 # Check critical files exist
-for file in CLAUDE.md cheatsheet.md README.md scripts/manifest_validator.py optional_plugins/plugin_manifest_schema.json; do
+for file in CLAUDE.md cheatsheet.md README.md commands/claude-md.md; do
   if [ ! -f "$DEST/$file" ]; then
     echo -e "${RED}✗ Missing file: $DEST/$file${NC}"
     exit 1
   fi
 done
-
-# Test manifest_validator.py
-if ! python "$DEST/scripts/manifest_validator.py" --list-plugins > /dev/null 2>&1; then
-  echo -e "${RED}✗ manifest_validator.py validation failed${NC}"
-  exit 1
-fi
 
 echo -e "${GREEN}✓ Deployment validation passed${NC}"
 echo ""
