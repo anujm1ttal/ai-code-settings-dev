@@ -23,9 +23,11 @@
 - [x] [coder] **Scope addition (flagged):** add `commands/` to `deploy.sh` copy+validation loops — fixes latent drift (`skill-graph.md` was undeployed); required for `/claude-md` to deploy
 - [x] [auditor] Cross-reference integrity check — 9/9 deliverables present, plugin present, all refs resolve, 0 broken
 
-### Remaining (user-gated)
-- [ ] Run `bash scripts/deploy.sh` to push global + commands to `~/.claude/` — DEPLOY · HIGH IMPACT (mutates `~/.claude/`), user-gated
-- [ ] Commit CMD initiative on branch `phase-cmd-1-claude-md-standard` — awaiting `approved, proceed with commit`
+### Remaining
+- [x] Commit CMD initiative — `a393e2b` on `phase-cmd-1-claude-md-standard`
+- [x] Repair `deploy.sh` (OSA-2 regression: referenced 3 deleted manifest files → unrunnable) — `1801e24`
+- [x] Deploy to `~/.claude/` — success; backup `~/.claude.backup-20260706-125644`; global + 22 commands + new rule/template live; `/claude-md` confirmed in live command list
+- [ ] Merge `phase-cmd-1-claude-md-standard` → `main` and delete branch (after any final review)
 - [ ] GEMINI.md still holds old combined content (out of scope per Step 0; not deployed) — revisit if Gemini parity wanted
 
 ### Hard Rules (Auditor Rejects on Violation)
