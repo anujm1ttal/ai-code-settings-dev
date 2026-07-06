@@ -2,4 +2,4 @@
 
 Mandatory guidelines derived from past project experience.
 
-*No entries yet.*
+- [Verify Centrally After Parallel Subagent Fan-Out](file:///c:/Users/44547/source/repos/ai-code-settings/Artifacts/learnings/execution-rules/verify-centrally-after-fanout.md)
