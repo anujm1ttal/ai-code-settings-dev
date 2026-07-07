@@ -146,7 +146,7 @@ Model METADATA.yaml on `optional_plugins/ms-office/pptx/METADATA.yaml` (the move
 **F. Verify-only / DO NOT EDIT:**
 - `scripts/phase_11_2_update_templates.py`, `scripts/migrate_skills_to_plugins.py` — historical one-shot migration scripts; verify only.
 - `hooks/*`, remaining `skills/docx|xlsx` internal `scripts/office/`, `commands/*.md`, `agents/*.md`, `rules/common/orchestration.md`, `cheatsheet.md`, `README.md` — reference `.pptx`/`python-pptx`/skill-name/project_type (unchanged); no plugin_id. **No edit.**
-- `Artifacts/PHASE_11_*`, `Artifacts/SKILL_*`, `REGISTRY_HEALTH_REPORT.md` — stale reports, skip.
+- `Artifacts/History/PHASE_11_*`, `Artifacts/History/SKILL_*`, `Artifacts/History/REGISTRY_HEALTH_REPORT.md` — stale reports (archived OSH-6), skip.
 
 ### 4.3 Success Metric
 `python scripts/manifest_validator.py --list-plugins` shows `ms-office-core` (3 skills) + `visual-storytelling-core` (1 skill now: banana-prompt; → 2 after Phase 2 adds pptx-slide-design), no `pptx-core`; `pytest tests/test_manifest_validator_v2.py tests/test_v1_v2_migration.py` exits 0; grep `pptx-core` = 0 outside stale Artifacts.

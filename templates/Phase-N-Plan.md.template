@@ -29,6 +29,15 @@
 - Downstream integrations
 - Public API changes
 
+## Hard Rules (Auditor Rejects on Violation)
+
+[2-3 invariants this phase must never break — see `rules/common/standards.md`
+§"The Negative Test Suite". Success Metrics prove the positive goal; Hard Rules
+give the auditor explicit grounds for immediate rejection.]
+
+1. [Invariant 1, e.g., "No behavior change to X outside this phase's scope."]
+2. [Invariant 2, e.g., "Migrations are additive — never delete existing data."]
+
 ## Success Metrics
 
 - [ ] Metric 1: [Numeric target, e.g., "All 15 unit tests pass"]

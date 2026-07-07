@@ -22,12 +22,13 @@ These directories and files are **production** — they get copied to ~/.claude/
 # Navigate to ai-code-settings repo root
 cd c:\Users\44547\source\repos\ai-code-settings
 
-# Copy runtime directories (production-only)
-cp -r agents/           ~/.claude/agents/
-cp -r rules/            ~/.claude/rules/
-cp -r skills/           ~/.claude/skills/
-cp -r templates/        ~/.claude/templates/
-cp -r commands/         ~/.claude/commands/
+# Copy runtime directories (production-only). Remove the destination first —
+# `cp -r dir/ dest/dir/` on an existing dest nests source-inside-dest instead
+# of replacing it, so rm-before-cp matches what scripts/deploy.sh actually does.
+for d in agents rules skills templates commands hooks; do
+  rm -rf ~/.claude/$d
+  cp -r $d/ ~/.claude/$d/
+done
 
 # Copy reference docs
 # CLAUDE-global.md is the deployable global (repo-specific CLAUDE.md is NOT deployed)
@@ -36,7 +37,9 @@ cp cheatsheet.md ~/.claude/cheatsheet.md
 cp README.md   ~/.claude/README.md
 ```
 
-Plugins are not copied here — they install via `/plugin marketplace add` + `/plugin install` from `.claude-plugin/marketplace.json`.
+`optional_plugins/` is intentionally **not** copied — real plugin installs live in
+`~/.claude/plugins/` via `/plugin marketplace add` + `/plugin install` from
+`.claude-plugin/marketplace.json`, not a raw folder copy.
 
 ---
 
@@ -46,8 +49,6 @@ These stay in ai-code-settings only (development/testing):
 
 - ❌ `CLAUDE.md` — repo-specific guidance for maintaining the OS (the global is `CLAUDE-global.md`)
 - ❌ `tests/` — development validation only
-- ❌ `scripts/migrate_skills_to_plugins.py` — one-time utility
-- ❌ `scripts/phase_11_*.py` — one-time utilities
 - ❌ `Artifacts/TODO.md` — repo-specific tracking
 - ❌ `Artifacts/DECISION_LOG.md` — repo-specific history
 - ❌ `Artifacts/learnings/` — repo-specific learnings
@@ -64,6 +65,7 @@ ls -la ~/.claude/agents/
 ls -la ~/.claude/rules/common/
 ls -la ~/.claude/skills/
 ls -la ~/.claude/templates/
+ls -la ~/.claude/hooks/
 
 # Spot-check one skill (should match source)
 diff -r \
@@ -74,30 +76,38 @@ diff -r \
 
 ---
 
-## Archive Old Version (Safety)
+## Backups (handled by scripts/deploy.sh)
 
-Before overwriting ~/.claude/, keep a backup:
+`scripts/deploy.sh` creates `~/.claude.backup-<timestamp>/` automatically before
+copying. The backup covers **only the items this script deploys**
+(`agents/ rules/ skills/ templates/ commands/ hooks/ CLAUDE.md cheatsheet.md
+README.md`) — not all of `~/.claude/` (which also holds `plugins/`, `projects/`,
+`shell-snapshots/`, `settings.json`, etc.). Older backups beyond the last 5 are
+pruned automatically.
 
 ```bash
-# Create timestamped backup
-TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-cp -r ~/.claude ~/.claude.backup-$TIMESTAMP
-
 # List backups
-ls -la ~/ | grep .claude.backup
+ls -1d ~/.claude.backup-* | sort
 ```
 
 ---
 
 ## Rollback Procedure
 
-If deployment causes issues:
+If deployment causes issues, restore the deployed items from a backup. This
+replaces each item **entirely** (remove-then-copy, not merge-copy) so anything
+added to `~/.claude/` after the backup was taken does not survive the
+rollback — a plain `cp -r "$BACKUP/." ~/.claude/` would leave such additions
+in place because `cp -r` only overlays, never deletes. Rollback still does
+not touch `plugins/`, `projects/`, or `settings.json` (never backed up in the
+first place):
 
 ```bash
-# Restore from backup
-TIMESTAMP=20260703-143022  # Replace with actual timestamp
-rm -rf ~/.claude
-cp -r ~/.claude.backup-$TIMESTAMP ~/.claude
+BACKUP=~/.claude.backup-20260703-143022  # Replace with actual timestamp
+for item in agents rules skills templates commands hooks CLAUDE.md cheatsheet.md README.md; do
+  rm -rf ~/.claude/$item
+  [ -e "$BACKUP/$item" ] && cp -r "$BACKUP/$item" ~/.claude/$item
+done
 ```
 
 ---
@@ -113,53 +123,17 @@ Keep track of deployments. Add an entry each time you sync:
 
 ---
 
-## Automation (Future)
+## Automation
 
-Consider creating a deploy script:
-
-```bash
-#!/bin/bash
-# scripts/deploy.sh (add to ai-code-settings repo)
-
-set -e  # Exit on error
-
-SOURCE=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
-DEST="$HOME/.claude"
-
-echo "Deploying $SOURCE → $DEST"
-
-# Validate source
-if [ ! -f "$SOURCE/CLAUDE.md" ]; then
-  echo "ERROR: Not in ai-code-settings root"
-  exit 1
-fi
-
-# Run tests before deploy
-pytest "$SOURCE/tests/" -v || exit 1
-
-# Create backup
-TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-cp -r "$DEST" "$DEST.backup-$TIMESTAMP"
-echo "Backup created: $DEST.backup-$TIMESTAMP"
-
-# Copy production artifacts
-cp -r "$SOURCE/agents"          "$DEST/agents"
-cp -r "$SOURCE/rules"           "$DEST/rules"
-cp -r "$SOURCE/skills"          "$DEST/skills"
-cp -r "$SOURCE/templates"       "$DEST/templates"
-cp "$SOURCE/CLAUDE-global.md"   "$DEST/CLAUDE.md"
-cp "$SOURCE/cheatsheet.md"      "$DEST/cheatsheet.md"
-cp "$SOURCE/README.md"          "$DEST/README.md"
-
-echo "✓ Deployment complete"
-echo "  Source: $SOURCE"
-echo "  Dest:   $DEST"
-echo "  Backup: $DEST.backup-$TIMESTAMP"
-```
+`scripts/deploy.sh` already implements the steps above (validate source → run
+`tests/` → back up deployed items → copy `agents/ rules/ skills/ templates/
+commands/ hooks/` + top-level docs → validate). It intentionally excludes
+`optional_plugins/` (installed via the marketplace instead).
 
 Usage:
 ```bash
-bash scripts/deploy.sh
+bash scripts/deploy.sh                # full run
+bash scripts/deploy.sh --skip-tests   # skip pytest (not recommended)
 ```
 
 ---
@@ -176,5 +150,5 @@ bash scripts/deploy.sh
 
 ---
 
-**Last updated**: July 3, 2026  
-**Status**: Template ready for first production deployment
+**Last updated**: July 7, 2026 (OSH-6)  
+**Status**: Mirrors `scripts/deploy.sh` as-built; see Deployment Record above for history

@@ -8,14 +8,9 @@ Analyzes skill relationships based on:
 - Cross-references in descriptions
 """
 
-import json
 import sys
 from pathlib import Path
 import io
-
-# Force UTF-8 output
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', newline='')
-from typing import TypedDict
 from dataclasses import dataclass, field
 from collections import defaultdict
 import re
@@ -37,16 +32,48 @@ class SkillNode:
 class GraphAnalysis:
     """Analysis results for the skill dependency graph."""
     skills: dict[str, SkillNode]
-    project_affinities: dict[ProjectType, list[tuple[str, int]]]  # skill -> co-occurrence count
+    project_affinities: dict[ProjectType, dict[str, int]]  # skill -> co-occurrence count
     tag_clusters: dict[str, list[str]]  # tag -> [skills]
     singletons: list[str]  # skills used in only 1 project type
     universal_skills: list[str]  # skills used in 3+ project types
     recommendations: list[str] = field(default_factory=list)
 
 
+def parse_skill_file(skill_file: Path) -> SkillNode | None:
+    """Parse a single SKILL.md's YAML frontmatter into a SkillNode."""
+    content = skill_file.read_text(encoding="utf-8")
+
+    if not content.startswith("---"):
+        return None
+
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return None
+
+    lines = parts[1].strip().split("\n")
+
+    name = None
+    description = ""
+    tags: list[str] = []
+
+    for line in lines:
+        if line.startswith("name:"):
+            name = line.split(":", 1)[1].strip().strip("'\"")
+        elif line.startswith("description:"):
+            description = line.split(":", 1)[1].strip().strip("'\"")
+        elif line.startswith("tags:"):
+            tag_str = line.split(":", 1)[1].strip()
+            tags = re.findall(r"[\w\-]+", tag_str)
+
+    if not name:
+        return None
+
+    return SkillNode(name=name, tags=tags, description=description)
+
+
 def load_skills(skills_dir: Path) -> dict[str, SkillNode]:
-    """Load all skills and extract metadata."""
-    skills = {}
+    """Load all skills and extract metadata from a skills directory."""
+    skills: dict[str, SkillNode] = {}
 
     for skill_dir in skills_dir.iterdir():
         if not skill_dir.is_dir():
@@ -56,33 +83,29 @@ def load_skills(skills_dir: Path) -> dict[str, SkillNode]:
         if not skill_file.exists():
             continue
 
-        with open(skill_file, encoding="utf-8") as f:
-            content = f.read()
+        node = parse_skill_file(skill_file)
+        if node:
+            skills[node.name] = node
 
-        # Parse YAML frontmatter
-        if content.startswith("---"):
-            _, frontmatter, _ = content.split("---", 2)
-            lines = frontmatter.strip().split("\n")
+    return skills
 
-            name = None
-            description = ""
-            tags = []
 
-            for line in lines:
-                if line.startswith("name:"):
-                    name = line.split(":", 1)[1].strip().strip("'\"")
-                elif line.startswith("description:"):
-                    description = line.split(":", 1)[1].strip().strip("'\"")
-                elif line.startswith("tags:"):
-                    tag_str = line.split(":", 1)[1].strip()
-                    tags = re.findall(r"[\w\-]+", tag_str)
+def load_plugin_skills(root: Path) -> dict[str, SkillNode]:
+    """Load skills bundled in native plugins (`optional_plugins/*/skills/*/SKILL.md`).
 
-            if name:
-                skills[name] = SkillNode(
-                    name=name,
-                    tags=tags,
-                    description=description,
-                )
+    Plugin skills are not mirrored into `skills/`, so they need their own scan
+    to appear in the dependency graph (script half of CM-13).
+    """
+    skills: dict[str, SkillNode] = {}
+
+    plugins_root = root / "optional_plugins"
+    if not plugins_root.is_dir():
+        return skills
+
+    for skill_file in plugins_root.glob("*/skills/*/SKILL.md"):
+        node = parse_skill_file(skill_file)
+        if node:
+            skills[node.name] = node
 
     return skills
 
@@ -154,7 +177,7 @@ def analyze_graph(skills: dict[str, SkillNode]) -> GraphAnalysis:
             tag_clusters[tag].append(name)
 
     # Project affinities
-    project_affinities: dict[ProjectType, list[tuple[str, int]]] = defaultdict(lambda: defaultdict(int))
+    project_affinities: dict[ProjectType, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     for name, skill in skills.items():
         for project_type in skill.project_types:
             project_affinities[project_type][name] = 1
@@ -208,8 +231,7 @@ def format_graph_report(analysis: GraphAnalysis) -> str:
     # Project affinities
     lines.append("## Project Type Affinities")
     for project_type in sorted(analysis.project_affinities.keys()):
-        skills = analysis.project_affinities[project_type]
-        count = len(skills) if isinstance(skills, dict) else len(skills)
+        count = len(analysis.project_affinities[project_type])
         lines.append(f"- **{project_type}** ({count} skills)")
     lines.append("")
 
@@ -265,8 +287,7 @@ def format_ascii_graph(analysis: GraphAnalysis) -> str:
     # Simple hierarchical view
     for project_type in sorted(analysis.project_affinities.keys()):
         lines.append(f"[{project_type.upper()}]")
-        skills = analysis.project_affinities[project_type]
-        skill_names = sorted(skills.keys() if isinstance(skills, dict) else skills)
+        skill_names = sorted(analysis.project_affinities[project_type].keys())
         for skill in skill_names:
             # Mark universal skills with ★
             marker = "★" if skill in analysis.universal_skills else "•"
@@ -292,8 +313,9 @@ def main():
         print(f"Error: skills directory not found at {skills_dir}")
         sys.exit(1)
 
-    # Load and analyze
+    # Load and analyze (repo skills + native plugin skills, per CM-13)
     skills = load_skills(skills_dir)
+    skills.update(load_plugin_skills(root))
     analyze_default_skills(skills)
     build_connections(skills)
     analysis = analyze_graph(skills)
@@ -318,4 +340,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # Force UTF-8 output — only when run as a script; reassigning sys.stdout
+    # at import time corrupts pytest's capture fixture for any test that
+    # imports this module (matches scripts/model_router.py).
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", newline="")
     main()

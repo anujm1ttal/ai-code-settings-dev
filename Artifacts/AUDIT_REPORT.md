@@ -571,4 +571,165 @@ both fully confirmed. All 19 zero-loss blocks and all 20 Context Boundary cells 
 Combined with the already-clean line count, both `/claude-md` scores, all 3 precedence statements, and
 the high-rigor demotion (§§1-2, 5-6), every gate task now passes.
 
+---
+
+## OSH-6 Pre-Deploy Gate — Tooling & Repo Hygiene
+
+**Branch:** `phase-osh-6-tooling-hygiene` · **Reviewed:** uncommitted working tree (staged/unstaged) against `Artifacts/Plans/OSH-6-Plan.md` · **Method:** every claim independently re-derived — real `git diff`, sandboxed `deploy.sh` runs (`HOME=` redirected, never touched real `~/.claude/`), and two isolated mutation tests against scratch copies (never the tracked files).
+
+### Verdict: **PASS** (updated 2026-07-08 — see Re-Verification below; originally PASS-WITH-CONDITIONS)
+
+Original gate found one genuine defect (a hollow regression test) plus one real rollback-safety gap in `deploy.sh`. Both conditions have since been remediated and independently re-verified by this auditor (mutation-tested and sandbox-simulated, not taken on the coder's word) — see "### Re-Verification (2026-07-08)" at the end of this section. Condition 3 (running an actual `bash scripts/deploy.sh` against real `~/.claude/`) remains outstanding but is gated on explicit user approval, not on further auditor action.
+
+### Project Profile
+Language: Bash, Python 3.14 (host), Markdown. Domain: dev-tooling / repo hygiene for an AI-agent-OS source repo (not a runtime application). No Rhino/GH/DAX surface. Test/lint: `pytest`, manual CLI smoke.
+
+### Strengths
+
+- **`model_router.py` plugin lookup is a real fix, not a hack.** `find_skill_file()` genuinely globs `optional_plugins/*/skills/<name>/SKILL.md` and falls back cleanly; verified live: `python scripts/model_router.py --lookup skill manuscript-review scribe` → `sonnet` (matches plan's acceptance test exactly, fresh run, not code-inspection).
+- **`skill_graph_analyzer.py` plugin scan is symmetric and correct.** `load_plugin_skills()` finds all 16 `optional_plugins/*/skills/*/SKILL.md` files; `python scripts/skill_graph_analyzer.py .` reports "Total Skills: 31" = 15 repo + 16 plugin, exit 0. Dead `isinstance` guards and unused `TypedDict`/`json` imports genuinely removed (confirmed via diff, not claimed).
+- **`deploy.sh` backup/copy symmetry is correct.** `DEPLOYED_ITEMS` (backup) and the copy-loop + explicit file copies (deploy) target the identical 9 items (`agents rules skills templates commands hooks CLAUDE.md cheatsheet.md README.md`). Verified via a full sandboxed deploy run: backup 585 KB (well under the 10 MB metric), `optional_plugins` absent from `~/.claude/`, validation step green.
+- **Backup pruning works.** Sandboxed test with 7 pre-existing backups + 1 new → correctly pruned to 5.
+- **`--force` cleanly removed**, not left as a dead flag: parser rejects it (exit 1, "Unknown flag"), and a repo-wide grep confirms zero remaining doc references to a `deploy.sh --force` flag (CLAUDE.md, DEPLOY.md, cheatsheet.md all updated together).
+- **Docs are honest, not just reworded.** Every command added to `cheatsheet.md`'s intent table (`/deck`, `/snapshot`, `/ideate`, `/script`, `/pack`, `/registry-audit`, `/clean`, `/graduate`, `/learn`) has a real matching file in `commands/`. `glossary-extraction` correctly re-labeled "(skill, no slash)" — verified it lives at `skills/glossary-extraction/`, not `commands/`. Dead `scripts/migrate_skills_to_plugins.py` / `scripts/phase_11_*.py` references removed from `DEPLOY.md` — confirmed those files no longer exist anywhere in the repo.
+- **NEXT_SESSION content check was real, not skipped.** The archived `NEXT_SESSION_plugin-registry-gap.md` finding is genuinely resolved — cross-checked against `Artifacts/DECISION_LOG.md:75` ("2026-07-06 — Convert optional_plugins to native Claude Code plugins"), which pre-dates this phase and was correctly left untouched.
+- **30/30 tests pass, exit 0** (plan required ≥8). Three of four suites are demonstrably regression-locked (see Hard Rule 2 below) with well-designed edge cases (malformed frontmatter, vacuous-pass guards in `test_registry_integrity.py`).
+- **Scope discipline held**: no `agents/*.md`, `skills/*/SKILL.md`, `rules/common/*`, or `commands/*.md` content touched — tooling/docs/tests/hygiene only, per Hard Rule 3.
+
+### Hard Rule 1 — Moves, not deletes: **PASS**
+
+- All 14 archive moves are real `git mv`-tracked renames (`R` status, 100% similarity, zero content diff) into `Artifacts/History/` (+ `History/Plans/` for `CMD-Plan.md`). Verified via `git status --short` and `git diff --stat`.
+- `Artifacts/task.md` (deleted, 18 lines): content is a checklist of already-`[x]`-marked phases (PR-A/B/C, Phase 11, Phase 12). Cross-checked against `git log --all --oneline` — the actual work is committed (`cea263f feat: implement tiered handoff and scratch redirection`, `243e96a feat: upgrade planning rigor...`). Nothing unique lost; genuinely superseded by `.agent/current_task.md`. **Safe.**
+- `Artifacts/Temp/scratch_test.md` (deleted, 2 lines): a one-off scratch-location verification note, already `D`-flagged on disk pre-phase per `current_task.md`'s own open-threads list. **Safe.**
+- `Artifacts/SESSIONS/` (claimed deleted): directory does not exist on disk and produces no git diff (git doesn't track empty dirs) — consistent with "was already empty." **Safe, nothing to lose.**
+
+### Hard Rule 2 — Regression-lock: **CONDITIONAL FAIL (1 of 30 tests)**
+
+Ran `pytest tests/ -v` myself (not trusted from coder summary): **30 passed, exit 0.** Fresh, clean run confirmed twice after an unrelated environment hiccup (see note below).
+
+Mutation-tested every test the coder didn't already prove, using throwaway copies (never editing the tracked files):
+
+| Test file | Mutation applied | Result |
+|:---|:---|:---|
+| `test_hooks_smoke.py::test_guard_commands_denies_rm_rf_root` | Commented out the `rm -rf /` root-delete pattern in a scratch copy of `guard-commands.js` | **Test correctly FAILED** (JSON decode error on now-empty/allowed output) — genuinely regression-locked. |
+| `test_routing_audit_parsing.py::test_load_assigned_models_skips_overview_and_abstract_files` | Removed the `.abstract.md`/`agents.overview.md` skip branch in a scratch copy of `model_routing_audit.py` | **Test correctly FAILED** — genuinely regression-locked. |
+| `test_routing_audit_parsing.py::test_dominant_model_reads_transcript_and_ignores_synthetic` | Removed the `!= SYNTHETIC` filter (i.e., synthetic entries now counted) in a scratch copy | **Test still PASSED.** **HOLLOW TEST — does not lock its claimed regression.** |
+
+**Root cause of the hollow test**: the fixture has 2× `claude-sonnet-5` vs 1× `<synthetic>`. Sonnet wins `most_common(1)` regardless of whether synthetic is filtered — the assertion (`== "claude-sonnet-5"`) passes identically with the fix reverted. The test's own docstring/name promises "ignores synthetic" but the data never forces that code path to matter. **Fix required**: rebalance the fixture so removing the filter changes the outcome (e.g., 1× real model vs 2× `<synthetic>`, asserting the real model still wins) before this can count as a locked regression test.
+
+**Process note (self-disclosed)**: during mutation testing I ran `git checkout -- scripts/model_routing_audit.py` intending to restore my own scratch edit, but the coder's changes to that file were unstaged (not staged), so the checkout reverted the file to HEAD, wiping the coder's diff. Caught immediately via `git diff HEAD` returning empty, restored from a pre-mutation backup I'd taken, and reconfirmed the restored file byte-for-byte matches the diff captured at the start of this audit. Final working tree matches the original `git status --short` exactly (verified side-by-side above). Flagging per this agent's own evidence-first standard — the coder's work was not lost, but the near-miss is recorded.
+
+### Hard Rule 3 — No OS-behavior change: **PASS**
+
+- `sys.stdout` reassignment moved behind `if __name__ == "__main__":` in all 3 scripts (`model_router.py`, `model_routing_audit.py`, `skill_graph_analyzer.py`). Verified CLI behavior is unchanged: ran all three directly — `--table`, `--lookup`, `--violations-only`, and `skill_graph_analyzer.py .` all produced correct output including UTF-8 special characters (★ markers render correctly), confirming the wrapper still applies at runtime, only import-time reassignment (which was corrupting pytest's capture fixture) is removed.
+- No `agents/*.md`, `skills/*/SKILL.md`, `rules/common/*.md`, or `commands/*.md` files appear in the diff — confirmed via `git status --short` (only `scripts/`, `tests/`, `templates/`, `CLAUDE.md`, `DEPLOY.md`, `cheatsheet.md`, `Artifacts/` changed).
+- `deploy.sh` itself changes deploy *mechanics* (in-scope, plan-authorized) but not deployed *content* — the set of files it copies is unchanged in kind (still `agents rules skills templates commands hooks` + 3 docs), only `optional_plugins` is dropped (per plan, since real installs live in `~/.claude/plugins/`).
+
+### deploy.sh Safety Assessment (highest-risk change)
+
+Ran `bash scripts/deploy.sh` end-to-end against a fully sandboxed `HOME=` (never touched the real `~/.claude/`), including a repeat run with 7 pre-seeded fake backups to test pruning. Findings:
+
+- **Forward path is solid**: validate → test-gate → backup (scoped, 585 KB) → copy (clean `rm -rf` + `cp -r`, no nesting) → validate. Exit 0, all 6 steps green.
+- **Backup/copy scope is symmetric** (9 items each side) — the concern flagged in the task brief is resolved correctly.
+- **Rollback hint has a real, reproducible gap.** The printed rollback command (`cp -r "$BACKUP_DIR/." "$DEST/"`) is a *merge*-copy, not the old *replace* semantics (`rm -rf ~/.claude && cp -r backup ~/.claude`). Reproduced directly: added a file to a deployed dir that postdates a given backup, then ran the documented rollback command — **the new file survived the rollback** (merge-copy never deletes extras). This means if a future deploy *adds* a new rule/skill/command file and that deploy needs to be rolled back, the stray new file is left behind in production. Low likelihood of triggering during a single-phase rollback, but real, and the plan explicitly cared about backup/rollback correctness (TL-M3/M4). **Recommend**: prefix the rollback hint with a clean of each deployed item (`rm -rf "$DEST/$item"` for each in `DEPLOYED_ITEMS`) before the merge-copy, restoring the old replace-semantics without reintroducing the original "wipes all of `~/.claude/`" over-broad-delete problem.
+- **No `Artifacts/Temp/osh-6_verify.txt` evidence exists**, and the corresponding TODO line ("Full deploy + verification commands... → osh-6_verify.txt") is still `[ ]`, not `[-]`. The coder did not self-verify `deploy.sh` end-to-end before handoff — I generated the above evidence myself as the auditor since none existed. This should not have been left for the auditor to discover from scratch; flag for strategist re: coder's exit-criteria discipline on this task line.
+
+### Scope Deviation Rulings
+
+**(a) Coder edited `Artifacts/TODO.md` pointer references — ACCEPTABLE, narrow.** Two lines changed: the `CMD-Plan.md` path pointer (now `History/Plans/CMD-Plan.md`) and the `NEXT_SESSION_plugin-registry-gap.md` note (now points at the archived location + resolved-decision reference). Both are mechanical, direct consequences of the coder's own authorized archive-sweep action in the same diff — leaving them stale would have been worse than fixing them. This is not "add/remove tasks" (forbidden) or a status-marker change (auditor-only) — it's incidental path-text hygiene. Ruling: accept, but strategist should ratify at next plan touch since `Artifacts/TODO.md` restructuring is nominally strategist-owned per the TODO authority table.
+
+**(b) Test suite is 284 lines vs. the plan's "<200 lines" guideline — ACCEPTABLE.** The 200-line figure is in "Technical Approach" (soft guidance), not a Hard Rule. Read all 4 files: no padding, no redundant fixtures — each file targets a genuinely distinct regression class (router lookup, audit-parsing, hook subprocess contract, registry cross-reference), and `test_registry_integrity.py`'s vacuous-pass guard is exactly the kind of defensive test that justifies going over a soft line budget. Net: acceptable overrun.
+
+### Strategist Findings Confirmed (not auditor's to fix)
+
+- `Artifacts/IMPLEMENTATION_PLAN.md` (around the "Verify-only / DO NOT EDIT" list) references `scripts/phase_11_2_update_templates.py` and `scripts/migrate_skills_to_plugins.py` — **confirmed these files no longer exist anywhere in the repo** — and references `Artifacts/PHASE_11_*`, `Artifacts/SKILL_*`, `REGISTRY_HEALTH_REPORT.md` at their old root paths — **confirmed these are now moved to `Artifacts/History/`.** Both are real stale pointers.
+- `Artifacts/MEMORY_ANCHORS.md`'s "Skill Audit History" table links `Artifacts/SKILL_AUDIT_REPORT.md` — **confirmed moved to `Artifacts/History/SKILL_AUDIT_REPORT.md`,** link is stale.
+- Confirmed via `git status`/`git diff` that the coder correctly left both files untouched (strategist-owned) rather than editing them itself.
+
+### Conditions Before Deploy Sign-Off
+
+1. **Fix the hollow test** — rebalance `test_dominant_model_reads_transcript_and_ignores_synthetic`'s fixture (or add a second assertion case) so it fails when the `!= SYNTHETIC` filter is removed. Re-run the mutation check to confirm.
+2. **Fix the rollback-hint gap in `deploy.sh`/`DEPLOY.md`** — clean each deployed item before the merge-copy in the documented rollback command, or explicitly document the merge-copy's limitation (added files aren't removed) if the coder/strategist judge the fix not worth the complexity. Either resolution is acceptable; silence is not.
+3. **Run the actual `bash scripts/deploy.sh` full verification** the phase plan calls for and capture it to `Artifacts/Temp/osh-6_verify.txt` — this task line is still `[ ]`, unverified by the coder. (I ran a sandboxed equivalent above as gate evidence, but the phase's own exit criterion asks for this artifact and it doesn't exist yet.)
+4. Strategist should ratify the `Artifacts/TODO.md` pointer-text edits (scope deviation a) and the 2 confirmed stale pointers in `IMPLEMENTATION_PLAN.md`/`MEMORY_ANCHORS.md` at next touch — not blocking, but should not be silently forgotten.
+
+None of the above are regressions in already-shipped OS behavior (Hard Rule 3 holds), and the `~/.claude/optional_plugins/` deletion + full deploy remain safe to proceed **once conditions 1–3 are closed**. Re-audit after fixes; do not mark the phase's remaining TODO lines `[x]` until then.
+
+---
+
+### Re-Verification (2026-07-08) — Conditions 1 & 2
+
+Re-verified only the 2 code conditions per coordinator request. Condition 4 (strategist stale pointers) was reported already fixed by the coordinator — confirmed via `git status --short` that `Artifacts/IMPLEMENTATION_PLAN.md` and `Artifacts/MEMORY_ANCHORS.md` now show as modified (strategist-owned edits present) — not independently re-read line-by-line per the coordinator's instruction to skip re-checking it. Nothing was trusted from the coder's remediation claim; both conditions were mutation-tested / simulated directly.
+
+**Condition 1 (hollow test) — CLEARED.**
+
+`tests/test_routing_audit_parsing.py::test_dominant_model_reads_transcript_and_ignores_synthetic` fixture is now 1× `claude-sonnet-5` : 3× `<synthetic>` (was 2:1). Re-ran the exact mutation protocol from the original gate, in an isolated scratch copy (tracked files never touched):
+
+| Step | Action | Result |
+|:---|:---|:---|
+| 1 | Baseline (unmutated) run | PASSED |
+| 2 | Removed the `!= SYNTHETIC` filter in the scratch copy | **FAILED** — `AssertionError: assert '<synthetic>' == 'claude-sonnet-5'` (synthetic now wins 3-to-1, exactly the intended flip) |
+| 3 | Restored unmutated file, re-ran | PASSED |
+
+The test now genuinely locks the regression it claims to guard. Full suite re-run on the real tree: `pytest tests/ -v` → **30 passed, exit 0.**
+
+**Condition 2 (rollback) — CLEARED.**
+
+Verified both bugs and both fixes, sandboxed under a scratch `HOME=` (real `~/.claude/` never touched):
+
+- Ran a fresh sandboxed deploy, then seeded non-deployed production data that must never be touched by rollback: `plugins/some-plugin/data.json`, `projects/my-project/session.jsonl`, `settings.json`.
+- Ran a second deploy (this backup is the rollback target), then simulated a **third**, later deploy adding a new file to a deployed dir (`rules/STRAY_NEW_RULE.md`) that postdates the rollback-target backup — reproducing exactly the scenario the original gate flagged.
+- Executed the exact per-item loop `scripts/deploy.sh:189-191` prints (copy-pasted the live rendered output, not a paraphrase: `for item in agents rules skills templates commands hooks CLAUDE.md cheatsheet.md README.md; do rm -rf "$DEST/$item"; [ -e "$BACKUP_DIR/$item" ] && cp -r "$BACKUP_DIR/$item" "$DEST/$item"; done`).
+- **Result**: `STRAY_NEW_RULE.md` was removed (real replace-semantics — the merge-copy bug from the original gate is fixed). `rules/` file count restored to the pre-stray baseline (9 files). The three non-deployed files (`plugins/`, `projects/`, `settings.json`) were **byte-identical (md5) before and after** — confirming the coder's second bug-fix (the opposite failure mode: a full `rm -rf ~/.claude && cp -r backup ~/.claude` would have destroyed all three) is also real and correctly resolved by the new per-item loop.
+- `DEPLOY.md`'s Rollback Procedure section was diffed against `scripts/deploy.sh:189-191` — the documented `for item in agents rules skills templates commands hooks CLAUDE.md cheatsheet.md README.md; do rm -rf ~/.claude/$item; [ -e "$BACKUP/$item" ] && cp -r "$BACKUP/$item" ~/.claude/$item; done` snippet matches the script's `DEPLOYED_ITEMS` list and logic exactly (same 9 items, same order, same remove-then-conditional-copy semantics). Docs and code agree.
+
+**Gate status**: Both code conditions cleared with fresh, self-generated evidence (not claims). Condition 3 (an actual `bash scripts/deploy.sh` run against real `~/.claude/`, plus `Artifacts/Temp/osh-6_verify.txt`) and the `[user-approval]` deletion of `~/.claude/optional_plugins/` remain outstanding — both require the user's explicit go-ahead per the phase plan, not further auditor verification. Do not mark the phase's remaining `Artifacts/Plans/OSH-6-TODO.md` lines `[x]` until the real deploy runs and its evidence is captured.
+
 **Gate re-audit trigger consumed**: no further re-audit needed for OSH-5 content.
+
+---
+
+## OSH-6 Final Sign-Off (terminal phase — closes Initiative OSH)
+
+**Date:** 2026-07-08 · **Branch:** `phase-osh-6-tooling-hygiene` · **Method:** fresh evidence only — nothing accepted on the coordinator's or coder's word.
+
+### VERDICT: **PASS — initiative-complete.** All 6 OSH phases now auditor-PASSed; OSH-6 deployed; commit/merge is the only remaining step, gated on explicit user approval (not auditor action).
+
+### 1. Deploy evidence (`Artifacts/Temp/osh-6_verify.txt`)
+
+Read in full. Confirms, fresh: `[1/6]` source validation ✓, `[2/6]` test suite — **30 collected, 30 passed** (not skipped, actually ran) ✓, `[3/6]` destination ready ✓, `[4/6]` backup created at `~/.claude.backup-20260708-000656` + "Pruned 7 old backup(s), keeping last 5" ✓, `[5/6]` artifacts copied ✓, `[6/6]` validation passed ✓ → `DEPLOYMENT COMPLETE`. Independently re-confirmed live: `ls -d ~/.claude.backup-*` → exactly 5 directories, newest matches the verify.txt timestamp. `~/.claude/optional_plugins/` → `No such file or directory` (confirmed absent). `~/.claude/plugins/` → present with native marketplace/catalog files intact. Evidence is fresh, complete, and matches reality — not summarized or asserted.
+
+### 2. Hard Rules — held across the whole phase
+
+| Rule | Status | Evidence |
+|:---|:---|:---|
+| **1. Moves-not-deletes** | PASS | `git status --short` (fresh, this pass): all 14 archive entries show as `R` (100%-similarity renames) into `Artifacts/History/` (+ `History/Plans/` for `CMD-Plan.md`). Only 2 real deletions, both pre-enumerated: `Artifacts/task.md` (superseded checklist, work committed elsewhere — confirmed via `git log`), `Artifacts/Temp/scratch_test.md` (scratch note, `D`-staged for `git rm --cached`). No unenumerated deletion. |
+| **2. Regression-lock** | PASS | Re-ran `pytest tests/ -v` fresh this pass: **30 passed, exit 0** (plan required ≥8). The pre-deploy gate's one hollow test (`test_dominant_model_reads_transcript_and_ignores_synthetic`) was remediated and independently mutation-re-verified in this file's "Re-Verification (2026-07-08)" section above (fixture rebalanced 1:3, mutation now correctly fails). Not re-litigated here per the standing re-audit-trigger-consumed note — carried forward as already-cleared. |
+| **3. No-OS-behavior-change** | PASS | Fresh `git status --short` this pass: changed paths are `Artifacts/*` (hygiene + strategist pointer fixes), `CLAUDE.md`, `DEPLOY.md`, `cheatsheet.md`, `scripts/*.py`, `scripts/deploy.sh`, `templates/*`, `tests/` (new, untracked). **Zero** `agents/*.md`, `skills/*/SKILL.md`, `rules/common/*`, or `commands/*.md` entries — confirmed by direct grep of the status output, not inference. `git diff --stat main HEAD` returns empty because `main` and this branch's tip are the same commit (all changes are uncommitted working-tree edits, consistent with "not yet committed" status) — the correct check is therefore the working-tree diff against tracked HEAD, which is what was inspected. |
+
+### 3. Success metrics — plan checklist walked against reality
+
+| Metric (OSH-6-Plan.md §Success Metrics / §Verification) | Result | Fresh evidence |
+|:---|:---|:---|
+| Router regression test green; manuscript-review → sonnet | ✅ | `python scripts/model_router.py --lookup skill manuscript-review scribe` → `{"tier": "sonnet", "model": "claude-sonnet-5", ...}` (this pass, live run) |
+| `pytest tests/ -v` ≥ 8 tests, exit 0 | ✅ | 30 passed, exit 0 (this pass) |
+| `bash scripts/deploy.sh` full run: validation passes, `optional_plugins/` absent, backup <10 MB, ≤5 retained | ✅ | `osh-6_verify.txt` all-green + live filesystem check: `~/.claude/optional_plugins` absent, exactly 5 backup dirs present (pruned from a pre-existing 7, matching the "Pruned 7... keeping last 5" log line). `du -sh` on the 5 surviving dirs: the phase's own new backup (`.claude.backup-20260708-000656`, scoped by the fixed deploy.sh) is **584 KB** — well under 10 MB. The 4 older surviving backups (115–150 MB each) predate this phase's `DEPLOYED_ITEMS`-scoping fix (TL-M4) and were correctly left as-is (the fix scopes new backups going forward; it does not retroactively shrink legacy ones) — not a violation of the metric, which concerns this phase's own deploy output. |
+| deploy.sh ↔ DEPLOY.md ↔ CLAUDE.md fully agree | ✅ | Spot-audited this pass: `optional_plugins` exclusion comment present in all 3 (deploy.sh:132, DEPLOY.md:40/131, CLAUDE.md:33); `DEPLOYED_ITEMS` list (`agents rules skills templates commands hooks CLAUDE.md cheatsheet.md README.md`) identical in deploy.sh (:100, :191) and DEPLOY.md (:28, :107); zero `--force` references remain anywhere in scripts/deploy.sh, DEPLOY.md, CLAUDE.md, or cheatsheet.md (fully removed, not left dangling) |
+| `Get-ChildItem Artifacts` root schema-clean | ✅ | Fresh `ls -la Artifacts/`: only schema-recognized entries (`ARCH.md`, `AUDIT_REPORT.md`, `BACKLOG.md`, `COUNCIL_PROTOCOLS.md`, `DECISION_LOG.md`, `GLOBAL_INBOX.md`, `HANDOFF_BRIEF.md`, `IMPLEMENTATION_PLAN.md`, `LOCAL_AGENT_PROFILES.json`, `MEMORY_ANCHORS.md`, `Plans/`, `Reports/`, `TODO.md`, `Temp/`, `History/` (see below), `learnings/`, `.agent/`). None of the 14 archived files, `task.md`, or `SESSIONS/` remain at root. |
+| Single `History/` casing holds all archives | ✅ | `git ls-files \| grep -c "^Artifacts/History/"` → 18 (includes the phase's 14 new moves + 4 pre-existing). `git ls-files \| grep -c "^Artifacts/history/"` (literal lowercase path) → **0**. The `ls` listing shows a physical dir named `history` only because NTFS is case-insensitive-but-preserving (Windows quirk, not a git dual-tracking regression) — git's index has exactly one casing tracked. TL-H5/RU-F4 confirmed resolved. |
+| Auditor PASS | ✅ | This section. |
+
+### 4. `[user-approval]` task — `~/.claude/optional_plugins/` deletion
+
+Confirmed independently, not taken on report: `ls ~/.claude/optional_plugins` → "No such file or directory". `ls ~/.claude/plugins` → native plugin data intact (`blocklist.json`, `installed_plugins.json`, `known_marketplaces.json`, `marketplaces/`, `plugin-catalog-cache.json`). All 9 `DEPLOYED_ITEMS` present and current-dated at `~/.claude/` (`CLAUDE.md`, `README.md`, `cheatsheet.md`, `agents/`, `commands/`, `hooks/`, `rules` via `Artifacts` sibling paths, `skills/`, `templates/`). One documentation gap noted, non-blocking: `Artifacts/DECISION_LOG.md` has no dedicated entry recording the user's explicit approval of this specific deletion (the closest entry, 2026-07-06, covers the broader plugin-architecture conversion, not this cleanup step) — acceptable given the OSH Step-0 approval already covers all 6 phases' file-level actions, but flagged for the strategist to consider a one-line addendum at next DECISION_LOG touch.
+
+### 5. Tasks marked `[x]` this pass
+
+- `Artifacts/Plans/OSH-6-TODO.md`: all 12 task lines (branch creation through the auditor verification line) + all 4 Status-block checkboxes (Strategist approval [already x], Git branch created, Implementation complete, Auditor verification complete).
+- `Artifacts/TODO.md`: OSH-6 initiative line (line 13) → `[x]`, following the OSH-4/OSH-5 convention (audit-PASS + deploy = `[x]` at this tier; commit/merge still pending explicit approval, noted inline).
+
+### 6. Not evaluated (explicitly out of auditor scope)
+
+`git commit`, `git push`, merge to `main` — all withheld pending the user's explicit `approved, proceed with commit` per `high-rigor-engineering.md` §6. This sign-off authorizes commit-readiness; it does not execute or request the commit.
+
+**Initiative OSH (6/6 phases): PASS.**

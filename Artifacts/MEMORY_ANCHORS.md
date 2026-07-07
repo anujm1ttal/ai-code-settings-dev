@@ -177,7 +177,7 @@ Plugin's skills/<skill>/ surfaced to the agent
 
 | Phase | Focus | Status | Link |
 |:---|:---|:---|:---|
-| Phase 1–4 | Structural audit & remediation | ✓ COMPLETE | `Artifacts/SKILL_AUDIT_REPORT.md` |
+| Phase 1–4 | Structural audit & remediation | ✓ COMPLETE | `Artifacts/History/SKILL_AUDIT_REPORT.md` |
 | Phase 9 | Dependency graph analysis | ✓ COMPLETE | `Artifacts/Temp/` (archived) |
 | Phase 11 | Plugin system design & rollout | ✓ COMPLETE | Git tag `v11.0.0-plugin-system` |
 

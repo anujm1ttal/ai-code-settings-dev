@@ -30,9 +30,6 @@ import json
 import re
 import sys
 
-# Force UTF-8 output (matches sibling scripts)
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", newline="")
-
 Tier = str  # "opus" | "sonnet" | "haiku" | "other"
 SYNTHETIC = "<synthetic>"
 
@@ -243,4 +240,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # Force UTF-8 output — only when run as a script; reassigning sys.stdout
+    # at import time corrupts pytest's capture fixture for any test that
+    # imports this module (matches scripts/model_router.py).
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", newline="")
     sys.exit(main())

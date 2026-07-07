@@ -1,6 +1,6 @@
 #!/bin/bash
 # Deploy AI OS from ai-code-settings (dev) to ~/.claude/ (production)
-# Usage: bash scripts/deploy.sh [--skip-tests] [--force]
+# Usage: bash scripts/deploy.sh [--skip-tests]
 
 set -e  # Exit on error
 
@@ -12,12 +12,10 @@ NC='\033[0m' # No Color
 
 # Parse flags
 SKIP_TESTS=false
-FORCE=false
 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --skip-tests) SKIP_TESTS=true; shift ;;
-    --force) FORCE=true; shift ;;
     *) echo "Unknown flag: $1"; exit 1 ;;
   esac
 done
@@ -56,16 +54,17 @@ echo ""
 
 if [ "$SKIP_TESTS" = false ]; then
   echo -e "${YELLOW}[2/6]${NC} Running test suite..."
-  # Only run pytest if the suite actually contains test files (empty since OSA-2).
+  # Only run pytest if the suite actually contains test files.
   if ls "$SOURCE"/tests/test_*.py >/dev/null 2>&1; then
-    pytest "$SOURCE/tests/" --tb=short
-    rc=$?
-    if [ "$rc" -ne 0 ]; then
-      echo -e "${RED}✗ Tests failed (exit $rc). Deploy aborted.${NC}"
+    # `if pytest ...` (not `pytest ...; rc=$?`) so a nonzero exit is caught by
+    # the conditional instead of triggering `set -e` before the hint prints.
+    if pytest "$SOURCE/tests/" --tb=short; then
+      echo -e "${GREEN}✓ Tests passed${NC}"
+    else
+      echo -e "${RED}✗ Tests failed. Deploy aborted.${NC}"
       echo -e "    Use ${YELLOW}--skip-tests${NC} to skip (not recommended)"
       exit 1
     fi
-    echo -e "${GREEN}✓ Tests passed${NC}"
   else
     echo -e "${YELLOW}  → No test files in tests/ — skipping (nothing to run)${NC}"
   fi
@@ -85,14 +84,6 @@ if [ ! -d "$DEST" ]; then
   mkdir -p "$DEST"
 fi
 
-if [ ! -d "$DEST/scripts" ]; then
-  mkdir -p "$DEST/scripts"
-fi
-
-if [ ! -d "$DEST/optional_plugins" ]; then
-  mkdir -p "$DEST/optional_plugins"
-fi
-
 echo -e "${GREEN}✓ Destination ready${NC}"
 echo ""
 
@@ -104,10 +95,28 @@ echo -e "${YELLOW}[4/6]${NC} Creating backup..."
 
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 BACKUP_DIR="$HOME/.claude.backup-$TIMESTAMP"
+# Only the items this script deploys — NOT the full ~/.claude/ (which also
+# holds projects/, plugins/, shell-snapshots/, etc. and would bloat backups).
+DEPLOYED_ITEMS=(agents rules skills templates commands hooks CLAUDE.md cheatsheet.md README.md)
 
 if [ -d "$DEST" ]; then
-  cp -r "$DEST" "$BACKUP_DIR"
+  mkdir -p "$BACKUP_DIR"
+  for item in "${DEPLOYED_ITEMS[@]}"; do
+    if [ -e "$DEST/$item" ]; then
+      cp -r "$DEST/$item" "$BACKUP_DIR/$item"
+    fi
+  done
   echo -e "${GREEN}✓ Backup created: $BACKUP_DIR${NC}"
+
+  # Prune to the last 5 backups so ~/.claude.backup-* doesn't grow unbounded.
+  mapfile -t ALL_BACKUPS < <(ls -1d "$HOME"/.claude.backup-* 2>/dev/null | sort)
+  PRUNE_COUNT=$((${#ALL_BACKUPS[@]} - 5))
+  if [ "$PRUNE_COUNT" -gt 0 ]; then
+    for ((i = 0; i < PRUNE_COUNT; i++)); do
+      rm -rf "${ALL_BACKUPS[$i]}"
+    done
+    echo -e "${YELLOW}  → Pruned $PRUNE_COUNT old backup(s), keeping last 5${NC}"
+  fi
 else
   echo -e "${YELLOW}  → No existing deployment to backup${NC}"
 fi
@@ -120,9 +129,11 @@ echo ""
 echo -e "${YELLOW}[5/6]${NC} Copying production artifacts..."
 
 # Copy directories.
+# optional_plugins is intentionally excluded: real plugin installs live in
+# ~/.claude/plugins/ via the marketplace, not a raw copy of the repo folder.
 # Remove the destination first so `cp -r` creates a fresh copy instead of
-# nesting the source inside an existing dir (e.g. optional_plugins/optional_plugins).
-for dir in agents rules skills optional_plugins templates commands hooks; do
+# nesting the source inside an existing dir (e.g. rules/rules).
+for dir in agents rules skills templates commands hooks; do
   rm -rf "$DEST/$dir"
   cp -r "$SOURCE/$dir" "$DEST/$dir"
 done
@@ -143,7 +154,7 @@ echo ""
 echo -e "${YELLOW}[6/6]${NC} Validating deployment..."
 
 # Check all required directories exist
-for dir in agents rules skills optional_plugins templates commands hooks; do
+for dir in agents rules skills templates commands hooks; do
   if [ ! -d "$DEST/$dir" ]; then
     echo -e "${RED}✗ Missing directory: $DEST/$dir${NC}"
     exit 1
@@ -175,6 +186,7 @@ echo -e "  ${GREEN}Backup:${NC}  $BACKUP_DIR"
 echo ""
 echo "Next: New Claude Code sessions will load from ~/.claude/"
 echo ""
-echo "Rollback (if needed):"
-echo "  rm -rf ~/.claude && cp -r $BACKUP_DIR ~/.claude"
+echo "Rollback (if needed — backup only covers deployed items, not all of ~/.claude/;"
+echo "replaces each item fully so anything added post-backup doesn't survive):"
+echo "  for item in ${DEPLOYED_ITEMS[@]}; do rm -rf \"$DEST/\$item\"; [ -e \"$BACKUP_DIR/\$item\" ] && cp -r \"$BACKUP_DIR/\$item\" \"$DEST/\$item\"; done"
 echo ""

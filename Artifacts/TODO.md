@@ -10,7 +10,7 @@
 - [x] **OSH-3 — One Name for Every State File** (`9e060c2` + `2147dd8`) — auditor PASS (one residual found + fixed: project-journal archive scheme); single `History/` casing; DECISION_LOG at root; deployed 2026-07-07.
 - [x] **OSH-4 — Registry Reconciliation & Skill Hygiene** (branch `phase-osh-4-registry-skills`, not yet committed) — auditor PASS (initial gate found 3 HIGH + 2 MEDIUM, all fixed and re-verified; final MEDIUM G4-07 stale "17 skills" count fixed); deployed 2026-07-07. Awaiting explicit user approval for commit/merge.
 - [x] **OSH-5 — Token-Economy Diet & Precedence** (`9174be5`) — auditor PASS (Content Gate, 19/19 zero-loss blocks + 20/20 Context Boundary cells confirmed, 1 remediation cycle); corpus 1,827→1,160 lines (−36.5%); CLAUDE-global.md 12/12 `/claude-md` score; deployed 2026-07-07, verified live (`~/.claude/rules/common/` excludes high-rigor, skill present, line counts match). Merge to `main` still pending explicit user approval.
-- [ ] **OSH-6 — Tooling & Repo Hygiene** (branch `phase-osh-6-tooling-hygiene`) — Success: router returns correct plugin-skill models; pytest ≥ 8 real tests exit 0; deploy.sh ↔ docs agree; Artifacts root schema-clean
+- [x] **OSH-6 — Tooling & Repo Hygiene** (branch `phase-osh-6-tooling-hygiene`, not yet committed) — auditor PASS (Final Sign-Off 2026-07-08; pre-deploy gate found 1 hollow test + 1 rollback-safety gap, both remediated and mutation-re-verified); router returns correct plugin-skill models (manuscript-review → sonnet); 30/30 tests pass exit 0; deploy.sh ↔ DEPLOY.md ↔ CLAUDE.md spot-audited consistent; Artifacts root schema-clean, single `History/` casing (0 files tracked under lowercase path); production deploy DONE 2026-07-08 (`osh-6_verify.txt`, backup pruned to 5); `~/.claude/optional_plugins/` deleted + confirmed absent. **Initiative-complete — awaiting commit + merge approval.**
 
 ### Housekeeping (pre-kickoff)
 - [ ] [concierge] Reconcile stale CMD "Merge branch → main" line — already merged at `a7f8bb3`; mark done or clear via `/sync` before OSH-1 starts
@@ -44,7 +44,7 @@
 # Prior Initiative: CMD — CLAUDE.md Discipline
 
 **Status:** Phase CMD-1 in progress · **Branch:** `phase-cmd-1-claude-md-standard`
-**Plan Reference:** `Artifacts/Plans/CMD-Plan.md`
+**Plan Reference:** `Artifacts/History/Plans/CMD-Plan.md` (archived — CMD closed/merged, per OSH-6 sweep)
 **Step 0:** approved 2026-07-06 (thin wrapper + OS spec · rubric + template · on-demand · CLAUDE-global.md + lean repo CLAUDE.md)
 
 ### Phase CMD-1 — The Standard *(Interface-First gate — signed off 2026-07-06)*
@@ -118,7 +118,10 @@
 **Branch:** `phase-1-pptx-slide-design-contract` (holding; merge pending template refinement + Copilot test)
 
 > [!NOTE]
-> **Pick up next session →** `Artifacts/NEXT_SESSION_plugin-registry-gap.md` — the `plugin.yaml`/`project.json → plugins[]` system surfaces **no** skills (bespoke abstraction, no loader). Only `~/.claude/skills/` does. Contains evidence + 2 fix paths + a product decision. Relevant to the active pptx/ms-office plugin work below.
+> The plugin-registry gap this note used to flag (`Artifacts/NEXT_SESSION_plugin-registry-gap.md`)
+> is resolved — see `Artifacts/DECISION_LOG.md` "2026-07-06 — Convert optional_plugins to native
+> Claude Code plugins". Finding archived to `Artifacts/History/NEXT_SESSION_plugin-registry-gap.md`
+> (OSH-6 sweep).
 
 ---
 

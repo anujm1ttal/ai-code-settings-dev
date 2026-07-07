@@ -41,10 +41,10 @@ ai-code-settings/  ──deploy.sh──▶  ~/.claude/  ──inherited──�
 | Task | Command |
 |:---|:---|
 | Test | `pytest tests/ -v` |
-| Deploy to `~/.claude/` | `bash scripts/deploy.sh` (`--skip-tests`, `--force`) |
+| Deploy to `~/.claude/` | `bash scripts/deploy.sh` (`--skip-tests` to skip pytest) |
 | Rule-routing table | `python scripts/model_router.py --table` |
 | Verify routing honored | `python scripts/model_routing_audit.py --violations-only` |
-| Skill dependency graph | `python scripts/skill_graph_analyzer.py` |
+| Skill dependency graph | `python scripts/skill_graph_analyzer.py .` |
 
 ## Local law (overrides / additions)
 

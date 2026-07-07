@@ -7,13 +7,10 @@ Supports model overrides at the skill level for specialized tasks.
 """
 
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal
 import re
 import io
 import sys
-
-# Force UTF-8 output
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', newline='')
 
 ModelTier = Literal["opus", "sonnet", "haiku"]
 ModelID = Literal["claude-opus-4-8", "claude-sonnet-5", "claude-haiku-4-5"]
@@ -47,30 +44,62 @@ REASONING_TO_MODEL: dict[str, tuple[ModelTier, str]] = {
 }
 
 
-def load_skill_model_override(skill_name: str, skills_dir: Path) -> Optional[ModelID]:
-    """Load model override from skill SKILL.md frontmatter if it exists."""
-    skill_file = skills_dir / skill_name / "SKILL.md"
-    if not skill_file.exists():
-        return None
+def find_skill_file(skill_name: str, skills_dir: Path) -> Path | None:
+    """Locate a skill's SKILL.md.
 
-    try:
-        with open(skill_file, encoding="utf-8") as f:
-            content = f.read()
+    Checks the primary skills dir first, then falls back to native plugin
+    skills under `optional_plugins/*/skills/<name>/SKILL.md` (plugins are not
+    mirrored into `skills/`, so lookups must span both roots).
+    """
+    primary = skills_dir / skill_name / "SKILL.md"
+    if primary.exists():
+        return primary
 
-        if content.startswith("---"):
-            _, frontmatter, _ = content.split("---", 2)
-            match = re.search(r"model:\s+(claude-[\w-]+)", frontmatter)
-            if match:
-                model_id = match.group(1)
-                if model_id in MODEL_PRICING:
-                    return model_id
-    except Exception:
-        pass
+    plugins_root = skills_dir.parent / "optional_plugins"
+    if plugins_root.is_dir():
+        for match in plugins_root.glob(f"*/skills/{skill_name}/SKILL.md"):
+            return match
 
     return None
 
 
-def get_agent_model(agent_name: str) -> Optional[tuple[ModelTier, ModelID]]:
+def _tier_for_model(model_id: ModelID) -> ModelTier:
+    """Infer the routing tier from a model id."""
+    if "opus" in model_id:
+        return "opus"
+    if "sonnet" in model_id:
+        return "sonnet"
+    return "haiku"
+
+
+def load_skill_model_override(skill_name: str, skills_dir: Path) -> ModelID | None:
+    """Load model override from skill SKILL.md frontmatter if it exists."""
+    skill_file = find_skill_file(skill_name, skills_dir)
+    if skill_file is None:
+        return None
+
+    try:
+        content = skill_file.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+
+    if not content.startswith("---"):
+        return None
+
+    parts = content.split("---", 2)
+    if len(parts) < 3:
+        return None
+
+    match = re.search(r"model:\s+(claude-[\w-]+)", parts[1])
+    if match:
+        model_id = match.group(1)
+        if model_id in MODEL_PRICING:
+            return model_id
+
+    return None
+
+
+def get_agent_model(agent_name: str) -> tuple[ModelTier, ModelID] | None:
     """Get the mandatory model for an agent."""
     return AGENT_MODELS.get(agent_name)
 
@@ -82,8 +111,7 @@ def get_skill_model(
     # Check for skill-level override
     override = load_skill_model_override(skill_name, skills_dir)
     if override:
-        tier = "opus" if "opus" in override else ("sonnet" if "sonnet" in override else "haiku")
-        return (tier, override)  # type: ignore
+        return (_tier_for_model(override), override)
 
     # Fall back to owning agent
     agent_model = get_agent_model(agent_name)
@@ -95,7 +123,7 @@ def get_skill_model(
 
 
 def get_model_for_task(
-    task_type: str, agent_name: Optional[str] = None, skill_name: Optional[str] = None, skills_dir: Optional[Path] = None
+    task_type: str, agent_name: str | None = None, skill_name: str | None = None, skills_dir: Path | None = None
 ) -> tuple[ModelTier, ModelID, str]:
     """
     Route a task to the appropriate model.
@@ -215,4 +243,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # Force UTF-8 output — only when run as a script; reassigning sys.stdout
+    # at import time corrupts pytest's capture fixture for any test that
+    # imports this module (surfaced while writing tests/test_model_router.py).
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", newline="")
     main()

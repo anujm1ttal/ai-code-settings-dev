@@ -20,8 +20,17 @@ Quick reference for common commands, workflows, and navigation in Claude Code se
 | **Import external work** | `/ingest` | concierge | Register manual changes into project state |
 | **Generate docs** | `/docs` | scribe | Create/update README, API docs, user guides |
 | **Teach the code** | `/explain` | scribe | Walk through a codebase section |
-| **Extract glossary** | `/glossary-extraction` | scribe | Capture ubiquitous language to GLOSSARY.md |
+| **Extract glossary** | `glossary-extraction` (skill, no slash) | scribe | Capture ubiquitous language to GLOSSARY.md |
 | **Audit a CLAUDE.md** | `/claude-md` | auditor | Score/update a CLAUDE.md against the quality bar (report-first) |
+| **Scaffold a PPTX/deck** | `/deck` | concierge/coder/auditor | PowerPoint project scaffolding & validation |
+| **Factual codebase dump** | `/snapshot` | auditor | Descriptive-only report for external review |
+| **Conceptualize a video** | `/ideate` | strategist | Start a YouTube video from scratch |
+| **Write a video script** | `/script` | scribe | After `Artifacts/VIDEO_PLAN.md` exists |
+| **Pack video metadata** | `/pack` | scribe | After `Artifacts/SCRIPT.md` exists — titles, tags, SEO |
+| **Audit the OS registry** | `/registry-audit` | auditor | Cross-reference integrity check across agents/commands/skills |
+| **Clean up temp files** | `/clean` | concierge | Purge `Artifacts/Temp/` and other transient files |
+| **Promote a project lesson** | `/graduate` | concierge | Move a project learning to the global OS settings |
+| **Capture a lesson** | `/learn` | concierge | Write a persistent lesson to `Artifacts/learnings/` |
 
 ---
 
@@ -288,16 +297,10 @@ manuscript/
   └── business-analyst
 ```
 
-### Migration State
+### Migration State (historical — migration completed, script retired)
 ```
-Migration script: scripts/migrate_skills_to_plugins.py
-  --dry-run   → Show what would be removed
-  --apply     → Execute migration (13 skills removed from skills/)
-  --rollback  → Restore from git backup
-
-Rollback procedure: Artifacts/ROLLBACK_PROCEDURE.md
-Migration state: Artifacts/.agent/migration_state.json (audit trail)
 Release tag: v11.0.0-plugin-system
+Full history: Artifacts/DECISION_LOG.md
 ```
 
 ### Token Impact
@@ -389,7 +392,7 @@ Never use global pip or system Python.
 | Testing strategy & lanes | [rules/common/testing-strategy.md](rules/common/testing-strategy.md) |
 | Security protocols | [rules/common/security.md](rules/common/security.md) |
 | Plugin system walkthrough | [optional_plugins/README.md](optional_plugins/README.md) |
-| Rollback procedure | [Artifacts/ROLLBACK_PROCEDURE.md](Artifacts/ROLLBACK_PROCEDURE.md) |
+| Deploy & rollback procedure | [DEPLOY.md](DEPLOY.md) |
 
 ---
 
