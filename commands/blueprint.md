@@ -33,7 +33,7 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 5. **Git Init**: Create new branch `phase-[N]-[description]`.
 
 ## Re-Plan
-1. Archive current `Artifacts/IMPLEMENTATION_PLAN.md` + `Artifacts/TODO.md` to `Artifacts/history/` with timestamp.
+1. Archive current `Artifacts/IMPLEMENTATION_PLAN.md` + `Artifacts/TODO.md` to `Artifacts/History/` with timestamp.
 2. Post-mortem in `Artifacts/DECISION_LOG.md`: original assumption → invalidating evidence → constraint changes.
 3. **Requirements Interview**: Re-verify boundaries if failure was due to requirement drift.
 4. Full Step 0 referencing what failed.

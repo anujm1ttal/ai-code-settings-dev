@@ -65,7 +65,7 @@ Never apply laziness to: input validation, error handling that prevents data los
 ---
 
 ## 🧪 Testing Strategy
-All verification must follow the [testing-strategy.md](file:///c:/Users/44547/source/repos/ai-code-settings/rules/common/testing-strategy.md) rule.
+All verification must follow the [testing-strategy.md](./testing-strategy.md) rule.
 - **Lane Selection**: Use the cheapest lane (Lane B/Pure) that proves the claim.
 - **Evidence**: Provide fresh test output or exit codes for every claim.
 - **TDD**: Write failing tests in the lowest valid lane before fixing bugs.

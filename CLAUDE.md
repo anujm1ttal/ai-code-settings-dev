@@ -62,4 +62,4 @@ ai-code-settings/  ──deploy.sh──▶  ~/.claude/  ──inherited──�
 - Deploy checklist & rollback → `DEPLOY.md`
 - Full repo overview → `README.md`
 - Command/skill cheatsheet → `cheatsheet.md`
-- Active work & history → `Artifacts/TODO.md`, `Artifacts/Plans/`, `Artifacts/history/`
+- Active work & history → `Artifacts/TODO.md`, `Artifacts/Plans/`, `Artifacts/History/`

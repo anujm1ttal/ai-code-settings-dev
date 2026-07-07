@@ -58,7 +58,7 @@ During `/handoff`, before context compression:
 1. Scan session for corrections, backtracking, discoveries
 2. Propose candidate entries to user
 3. Append approved entries to `Artifacts/learnings/` (categorized)
-4. Prune categories if over 50 entries (archive oldest 10 to `Artifacts/history/`)
+4. Prune categories if over 50 entries (archive oldest 10 to `Artifacts/History/`)
 
 ### Passive Triggers
 Also capture a learning when user says:

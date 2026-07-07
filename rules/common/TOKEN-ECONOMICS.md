@@ -6,7 +6,7 @@ This document defines the strategies for maximizing token ROI and managing conte
 
 To minimize bootstrap costs, the system uses a tiered loading strategy:
 
-| Layer | token Estimate | Purpose |
+| Layer | Token Estimate | Purpose |
 |:---|:---|:---|
 | **L1 (Overview)** | ~2,000 | High-level map of all agents/skills. Load first to route. |
 | **L0 (Abstract)** | ~100–300 | Functional summary of a single agent/skill. Load to confirm fit. |
@@ -47,10 +47,10 @@ The Concierge monitors context usage and triggers `/handoff` when:
 
 ### The "Finding" Protocol (Inter-Phase Knowledge)
 
-To ensure knowledge survives a context reset (`/handoff`), agents must produce **Findings**:
-- **Findings** are ephemeral `Artifacts/findings.md` files created at the end of a task or phase.
+To ensure knowledge survives a context reset, agents file **Findings** to `Artifacts/BACKLOG.md`
+(the single home for deferred work and findings — see `orchestration.md` §Findings Protocol):
 - They document specific technical discoveries, variable names, or logic traps for the next agent.
-- During `/sync`, the Concierge promotes critical Findings to permanent **Learnings**.
+- During `/handoff`, the Concierge promotes persistent findings to the `Artifacts/learnings/` registry.
 
 ---
 

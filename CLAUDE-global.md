@@ -121,6 +121,7 @@ When creating or updating these files, you MUST use the absolute path of the wor
 - **ARCH.md** — System architecture and design principles
 - **MEMORY_ANCHORS.md** — Project constants, constraints, and non-negotiables (Persistent — never archived)
 - **learnings/** — Categorized knowledge registry (Persistent — never archived)
+- **DECISION_LOG.md** — Historical decisions and pivots (live, append-only; newest first — never archived wholesale)
 - **HANDOFF_BRIEF.md** — Session transition and next steps summary
 
 ### Active Phase Files (Artifacts/Plans/)
@@ -134,7 +135,6 @@ When creating or updating these files, you MUST use the absolute path of the wor
 
 ### Archive (Artifacts/History/)
 
-- **DECISION_LOG.md** — Historical decisions and pivots
 - **Plans/** — Archived Phase-N-Plan.md files (moved after phase completion)
 - **Reports/** — Archived Phase-N-Report.md files (moved after phase completion)
 - **Other ad-hoc artifacts** (except Temp/)
@@ -178,7 +178,7 @@ Claude Code accumulates project-specific knowledge in the `Artifacts/learnings/`
 - **Manual**: `/learn` command captures lessons mid-session.
 
 **Boundaries:**
-- Max 50 active entries per category. When exceeded, oldest entries archive to `Artifacts/history/`.
+- Max 50 active entries per category. When exceeded, oldest entries archive to `Artifacts/History/`.
 - No task status (use `Artifacts/TODO.md`), no architecture decisions (use `Artifacts/DECISION_LOG.md`), no temporary context.
 
 **Entry format:**

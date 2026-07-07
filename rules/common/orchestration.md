@@ -15,7 +15,7 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 | **scribe** | Documentation, teaching | **Write**: All Markdown docs in `Artifacts/` (exception: `README.md`) |
 | **council** | Synthesis, stress-testing | **Write**: `DECISION_LOG.md` |
 | **creative-director** | Visual spec, hierarchy | **Write**: `Artifacts/LAYOUT_SPEC.md` |
-| **concierge** | State, sync, intake | **Write**: `Artifacts/LEARNINGS.md`, `/clean` execution |
+| **concierge** | State, sync, intake | **Write**: `Artifacts/learnings/`, `/clean` execution |
 
 ## Model Routing (Mandatory)
 
@@ -75,14 +75,14 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `/audit` | auditor | Gate-based quality review | Writes to `AUDIT_REPORT.md` |
 | `/sync` | concierge | Reconcile filesystem drift with plan | Validates `Artifacts/` vs source |
 | `/ingest` | concierge | Import manual CAD/BI work into AI context | Formalizes `Artifacts/LAYOUT_SPEC.md` |
-| `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation | Writes to `Artifacts/history/` |
+| `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation | Writes `Artifacts/HANDOFF_BRIEF.md`; archives to `Artifacts/History/` |
 | `/registry-audit`| auditor | Cross-reference integrity check for the OS registry | Validates links/enums |
 | `/council` | council | High-rigor multi-persona deliberation | Follows `COUNCIL_PROTOCOLS.md` |
 | `/grill` | strategist | Stress-test a plan for hidden risks | Active interview mode |
 | `/sweep` | strategist | Global tech-debt and redundancy scan | Registry-wide discovery |
 | `/snapshot` | auditor | Factual codebase dump for external review | Purely descriptive |
 | `/clean` | concierge | Purge `Artifacts/Temp/` and transient files | Maintenance mode |
-| `/learn` | concierge | Capture a persistent project lesson | Writes to `Artifacts/LEARNINGS.md` |
+| `/learn` | concierge | Capture a persistent project lesson | Writes to `Artifacts/learnings/` |
 | `/graduate` | concierge | Move project lessons to global OS settings | Writes to Global Registry |
 | `/skill-graph` | strategist | Visualize skill dependencies and identify clusters | Generates routing recommendations |
 
@@ -159,7 +159,7 @@ This variant adds synchronous gate-passing, runtime verification of every claim,
   → /docs (scribe) → /sync (concierge) → /handoff (if ending)
 
 > [!IMPORTANT]
-> **Approval Discipline**: Every plan approval or execution request MUST follow the `Approval Label Rubric` defined in `standards.md`.
+> **Approval Discipline**: Every plan approval or execution request MUST follow the `Approval Rubric` defined in `standards.md`.
 ```
 
 ## Git Phase Branching
@@ -184,7 +184,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 | **Coder** | Mark `[-]` (in-progress) | Mark `[x]`, add/remove tasks |
 | **Auditor** | Mark `[x]` (complete) after all gates pass | Add/remove tasks |
 | **`/sync`, `/ingest`** | Propose completion (flag for auditor) | Mark `[x]` directly |
-| **Scribe, Concierge** | Read-only (concierge may archive to `Artifacts/history/`) | Modify content or status |
+| **Scribe, Concierge** | Read-only (concierge may archive to `Artifacts/History/`) | Modify content or status |
 
 **Task format**: `[ ] [agent] Task description — Success: metric`
 - `[ ]` Not started | `[-]` In progress | `[x]` Auditor-verified complete
@@ -236,7 +236,7 @@ To ensure project portability and auditability, agents MUST NOT use the system d
 To prevent information redundancy and "maintenance debt":
 
 1.  **IMPLEMENTATION_PLAN.md**: Must contain the **technical heavy lifting**. Specific file paths, logical changes, dependency orders, and code snippets belong here.
-2.  **Plan Pruning [HARD-GATE]**: To prevent bloat, only the **Current Phase** and **Upcoming Phases** remain in the Plan. Once a Phase is completed, its technical spec MUST be moved to `Artifacts/history/PLAN_Phase_[N].md`.
+2.  **Plan Pruning [HARD-GATE]**: To prevent bloat, only the **Current Phase** and **Upcoming Phases** remain in the Plan. Once a Phase is completed, its technical spec MUST be moved to `Artifacts/History/Plans/Phase-[N]-Plan.md`.
 3.  **TODO.md**: Must remain a **"Thin TODO"**. It should reference Phase numbers or high-level milestones from the plan.
     - **Forbidden**: Copy-pasting detailed file logic or implementation steps from the Plan into the TODO.
     - **Required**: Status tracking (`[-]`, `[x]`) only happens in the TODO.
@@ -251,10 +251,10 @@ To prevent information redundancy and "maintenance debt":
 
 ## Global Repository (AI OS Settings)
 
-The repository at `c:\Users\44547\source\repos\ai-code-settings` acts as the **Global Registry** for rules, skills, and standards.
+The `ai-code-settings` repository acts as the **Global Registry** for rules, skills, and standards.
 
-- **Global Inbox**: Cross-project learnings are staged at `c:\Users\44547\source\repos\ai-code-settings\Artifacts\GLOBAL_INBOX.md`.
-- **Graduation**: Recurring patterns identified in project-specific `LEARNINGS.md` should be graduated to the global registry using `/learn --global` during a project session, or `/graduate` when working inside the global repository.
+- **Global Inbox**: Cross-project learnings are staged in the ai-code-settings repo's `Artifacts/GLOBAL_INBOX.md`.
+- **Graduation**: Recurring patterns identified in a project's `Artifacts/learnings/` should be graduated to the global registry using `/learn --global` during a project session, or `/graduate` when working inside the global repository.
 
 ## Parallel Execution
 
@@ -306,7 +306,7 @@ The `council` agent orchestrates a parallel "debate" between the Strategist, Cod
 
 - **Context window >60%**: Concierge triggers `/handoff`. All agents yield.
 - **Security incident**: FREEZE → AUDIT → REMEDIATE → RESUME (see `security.md`).
-- **State file corruption**: Check `Artifacts/history/` → reconstruct from `Artifacts/.agent/current_task.md` + `Artifacts/DECISION_LOG.md` → `/sync`.
+- **State file corruption**: Check `Artifacts/History/` → reconstruct from `Artifacts/.agent/current_task.md` + `Artifacts/DECISION_LOG.md` → `/sync`.
 
 ## Safeguards & Efficiency
 

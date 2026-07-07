@@ -20,7 +20,17 @@ See `Artifacts/Plans/OSH-3-Plan.md` (canonical-decisions table is binding). Find
 
 ## Status
 
+> **Coder status (2026-07-07):** naming unified + verified. Final grep matrix all zero
+> (LEARNINGS.md, findings.md, lowercase Artifacts/history/, "Approval Label Rubric", hardcoded
+> machine paths). DECISION_LOG moved to Root Files (out of Archive) in CLAUDE-global. `git mv`
+> collapsed the history casing collision — only `Artifacts/History/` tracked now.
+> **Scope note:** the repo-wide casing sweep caught 4 files beyond the plan's enumerated list
+> (concierge.md, project-journal/SKILL.md, blueprint.md, handoff.md) — all pure RU-F4 casing
+> fixes, kept in scope since leaving them would defeat the single-casing goal. session-boot.js
+> (learnings path, OSH-1) and security.md (DECISION_LOG root) needed no change. Stacked on OSH-2.
+
 - [x] Strategist approval (Step 0 — user accepted 2026-07-07)
-- [ ] Git branch created
-- [ ] Implementation complete
+- [x] Git branch created (`phase-osh-3-naming-unification`, stacked on OSH-2)
+- [x] Implementation complete (coder) — grep matrix clean; single History/ casing
+- [ ] Deployed to `~/.claude/` (deferred with OSH-1/2)
 - [ ] Auditor verification complete

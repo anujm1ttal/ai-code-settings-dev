@@ -80,21 +80,21 @@ For major architectural shifts, technology pivots, or scope changes. This is an 
 - Formatting or naming changes.
 - Session summaries (that's `.agent/current_task.md`).
 
-## 📦 Archive Protocol: `Artifacts/history/`
+## 📦 Archive Protocol: `Artifacts/History/`
 
 ### Artifacts/TODO.md Archival
 - When `Artifacts/TODO.md` exceeds 200 lines, archive completed phases.
-- Format: `Artifacts/history/TODO_phase_[n]_[date].md`.
+- Format: `Artifacts/History/TODO_phase_[n]_[date].md`.
 - The archive is read-only — never modify archived files.
 - Current `Artifacts/TODO.md` retains only active and upcoming phases.
 
 ### Plan Archival
 - When `/blueprint` runs in Re-Plan mode, archive the current plan.
-- Format: `Artifacts/history/IMPLEMENTATION_PLAN_[date].md`.
+- Format: `Artifacts/History/IMPLEMENTATION_PLAN_[date].md`.
 - The `strategist` references archived plans during post-mortem analysis.
 
 ### Archive Index
-Maintain a `Artifacts/history/INDEX.md` file:
+Maintain a `Artifacts/History/INDEX.md` file:
 
 | File | Archived Date | Reason |
 | :--- | :--- | :--- |
@@ -116,7 +116,7 @@ Maintain a `Artifacts/history/INDEX.md` file:
 ### Session End Sequence
 1. **Summarize** — compress the session into `current_task.md` fields.
 2. **Scrub** — remove completed micro-tasks from `Artifacts/TODO.md`.
-3. **Archive** — move completed phases to `Artifacts/history/` if threshold exceeded.
+3. **Archive** — move completed phases to `Artifacts/History/` if threshold exceeded.
 4. **Log** — append decisions to `Artifacts/DECISION_LOG.md` if any occurred.
 5. **Brief** — output the handoff summary for the next session.
 
@@ -152,6 +152,6 @@ Run at every session end (`/handoff`):
 - [ ] Any manual drift documented in current_task.md or flagged for `/sync`?
 - [ ] Decisions logged in `Artifacts/DECISION_LOG.md` if applicable?
 - [ ] `Artifacts/TODO.md` under 200 lines (archive if needed)?
-- [ ] `Artifacts/history/INDEX.md` updated if archival occurred?
+- [ ] `Artifacts/History/INDEX.md` updated if archival occurred?
 - [ ] Next agent and action clearly identified in Handoff section?
 - [ ] Context window is lean — no stale threads or verbose outputs retained?

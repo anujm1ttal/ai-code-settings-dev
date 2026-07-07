@@ -1,5 +1,5 @@
 ---
-description: Capture a project-specific or global lesson into Artifacts/LEARNINGS.md or GLOBAL_INBOX.md.
+description: Capture a project-specific or global lesson into Artifacts/learnings/ or GLOBAL_INBOX.md.
 argument-hint: "[--global] <lesson>"
 ---
 
@@ -22,7 +22,7 @@ argument-hint: "[--global] <lesson>"
 2. **Classify** into category (subdirectory): `patterns` | `anti-patterns` | `project-notes` | `execution-rules`
 3. **Target Selection**:
    - **Local (Default)**: Use the relevant subdirectory in `Artifacts/learnings/` (e.g., `Artifacts/learnings/patterns/`).
-   - **Global (`--global`)**: Use `c:\Users\44547\source\repos\ai-code-settings\Artifacts\GLOBAL_INBOX.md`.
+   - **Global (`--global`)**: Use the ai-code-settings repo's `Artifacts/GLOBAL_INBOX.md`.
 4. **Check for duplicates** — grep target file for similar entries. If exists, update instead of append.
 5. **Append** to the target file using entry format:
    ```
@@ -30,7 +30,7 @@ argument-hint: "[--global] <lesson>"
    Description of what to remember and why.
    ```
 6. **Prune check (Local only)** — if category entry count > 50:
-   - Move oldest 10 entries to `Artifacts/history/`
+   - Move oldest 10 entries to `Artifacts/History/`
    - Log pruning in session output
 7. **Confirm** to user what was captured and where (local vs. global inbox)
 

@@ -45,13 +45,13 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
    - `Artifacts/ARCH.md` — stable
    - `Artifacts/DECISION_LOG.md` — stable
 4. **Context Compression**: Summarize resolved threads. Preserve active tasks/open questions. Discard superseded plans and verbose outputs.
-5. **TODO Hygiene**: Scrub completed micro-tasks. Archive to `Artifacts/history/TODO_phase_[n].md` if >200 lines.
+5. **TODO Hygiene**: Scrub completed micro-tasks. Archive to `Artifacts/History/` if >200 lines.
 6. **Generate Brief**: Follow the **Mirroring Rule [HARD-GATE]**: Write to the brain/shadow directory with `IsArtifact: true` AND to `Artifacts/HANDOFF_BRIEF.md` in the workspace with `IsArtifact: false` using the absolute path.
 7. **Hygiene Phase**: 
    - **Purge** (L2/L3): Delete all files in `Artifacts/Temp/`.
    - **Flag** (L1/L2/L3): Identify and propose deletion of stray transient files (e.g., `*.tmp`, `debug.log`, uncommitted scratch files not in `.gitignore`).
 8. **Memory Graduation**: Extract new constraints/constants and graduate them to `Artifacts/MEMORY_ANCHORS.md`.
-9. **Plan Pruning**: Move technical specs of completed phases from `Artifacts/IMPLEMENTATION_PLAN.md` to `Artifacts/history/PLAN_Phase_[N].md`.
+9. **Plan Pruning**: Move technical specs of completed phases from `Artifacts/IMPLEMENTATION_PLAN.md` to `Artifacts/History/Plans/Phase-[N]-Plan.md`.
 
 ## Handoff Brief Format
 
