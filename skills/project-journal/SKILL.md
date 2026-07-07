@@ -84,13 +84,13 @@ For major architectural shifts, technology pivots, or scope changes. This is an 
 
 ### Artifacts/TODO.md Archival
 - When `Artifacts/TODO.md` exceeds 200 lines, archive completed phases.
-- Format: `Artifacts/History/TODO_phase_[n]_[date].md`.
+- Archived to `Artifacts/History/` (date-suffixed to disambiguate snapshots, e.g. `TODO-2026-03-01.md`).
 - The archive is read-only — never modify archived files.
 - Current `Artifacts/TODO.md` retains only active and upcoming phases.
 
 ### Plan Archival
-- When `/blueprint` runs in Re-Plan mode, archive the current plan.
-- Format: `Artifacts/History/IMPLEMENTATION_PLAN_[date].md`.
+- When `/blueprint` runs in Re-Plan mode, archive the current plan to `Artifacts/History/` (date-suffixed, e.g. `IMPLEMENTATION_PLAN-2026-03-01.md`).
+- Completed **phase** plans/reports keep their `Phase-N-Plan.md` / `Phase-N-Report.md` names under `Artifacts/History/Plans/` and `History/Reports/` (per `orchestration.md`).
 - The `strategist` references archived plans during post-mortem analysis.
 
 ### Archive Index
@@ -98,8 +98,9 @@ Maintain a `Artifacts/History/INDEX.md` file:
 
 | File | Archived Date | Reason |
 | :--- | :--- | :--- |
-| TODO_phase_1_2026-03-01.md | 2026-03-01 | Phase 1 complete |
-| IMPLEMENTATION_PLAN_2026-03-10.md | 2026-03-10 | Re-plan after CPython pivot |
+| TODO-2026-03-01.md | 2026-03-01 | Phase 1 complete |
+| IMPLEMENTATION_PLAN-2026-03-10.md | 2026-03-10 | Re-plan after CPython pivot |
+| Phase-1-Plan.md | 2026-03-10 | Phase 1 archived (keep-name, in History/Plans/) |
 
 ## 🔄 Sync Logic (Alignment with `/sync`)
 
