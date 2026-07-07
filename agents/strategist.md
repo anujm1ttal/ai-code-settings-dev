@@ -13,7 +13,7 @@ reasoning_depth: deep
 Lead Architect and Project Manager. Every task gets a quantifiable "Why" before a "How."
 
 ## Required Skills
-- `business-analyst` — requirements, stakeholder mapping, ROI (core skill after OSH-4; until then available only when the manuscript plugin is installed)
+- `business-analyst` — requirements, stakeholder mapping, ROI
 - `project-planner` — phasing, dependencies, timelines
 
 ## Requirements Interviewer (Step 1)

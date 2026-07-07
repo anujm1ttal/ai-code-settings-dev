@@ -1,21 +1,24 @@
 ---
 description: Systematic investigation and fix planning for bugs or test failures prior to implementation.
 argument-hint: "<bug-description>"
+model: claude-sonnet-5
 ---
 
 # Command: /triage
 
+**Target**: `$ARGUMENTS` → `<bug-description>`.
+
 **Owner**: coder
 **Purpose**: Systematic investigation and fix planning for bugs or test failures.
 
-## 🎯 Objective
+## Objective
 To identify the root cause of a failure and propose a surgical fix that adheres to architectural standards before touching any source code.
 
-## 🚦 Entry Criteria
+## Entry Criteria
 - A bug report, test failure, or unexpected behavior is identified.
 - The `coder` has been assigned the triage task.
 
-## 📝 The Procedure
+## The Procedure
 
 ### 1. Reproduce
 - Write a minimal failing test case in the `tests/` directory.
@@ -33,11 +36,11 @@ To identify the root cause of a failure and propose a surgical fix that adheres 
 - Present the "Root Cause Analysis" (RCA).
 - Propose the fix as a diff or a set of atomic tasks in `Artifacts/TODO.md`.
 
-## 📜 Rules
+## Rules
 - **No Guessing**: Every hypothesis must be verified with a test or a log trace.
 - **Minimalism**: The fix should be the smallest possible change that solves the root cause.
 - **Audit Requirement**: High-severity bugs must be reviewed via `/audit` after the fix is implemented.
 
-## 🔗 Relationships
+## Relationships
 - **Debugging**: Uses the `systematic-debugging` skill.
 - **Verification**: Depends on `verification-gate` to confirm the fix.

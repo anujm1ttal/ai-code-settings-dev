@@ -1,11 +1,10 @@
 ---
 name: pptx-slide-design
 description: Use this skill to emit copy-paste-ready prompts that Copilot Premium can execute directly inside PowerPoint to render beautifully designed slides. The skill reads a deck profile (palette, fonts, furniture, tone, forbidden list) from `Artifacts/LAYOUT_SPEC.md` and a per-slide brief (purpose, layout choice, content, speaker note), then expands them into a **13-part prompt** that ensures deck-wide consistency while preserving the per-slide narrative. Trigger when a user has a LAYOUT_SPEC.md or asks to design individual slides. Do NOT use for authoring presentation content, generating `.pptx` files, or invoking any renderer — this skill emits text prompts only.
-tags: [powerpoint, slide-design, copilot, prompts, presentation, design-system]
-auto_activate: false
 argument-hint: "<slide intent, layout choice, and content>"
 metadata:
   version: "2.0.0"
+  tags: [powerpoint, slide-design, copilot, prompts, presentation, design-system]
 ---
 
 # Skill: PowerPoint Slide Design via Copilot Premium
@@ -136,7 +135,7 @@ Every emitted prompt follows this structure (from `reference-slides.md` anatomy 
 
 ## 📚 References (Deep-Load Protocol)
 
-Three files under `optional_plugins/visual-storytelling/pptx-slide-design/references/`:
+Three files under `references/`:
 
 1. **`design-tokens.md`** — Deck profile contract, 13-part anatomy, 7-layout menu, fallback defaults. This is what the skill *reads*.
 

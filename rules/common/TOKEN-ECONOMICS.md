@@ -14,6 +14,8 @@ To minimize bootstrap costs, the system uses a tiered loading strategy:
 
 **Mandatory Query Flow**: L1 (Overview) → L0 (Abstract) → L2 (Full Definition).
 
+**L0 Abstract threshold**: An L0 abstract is mandatory only for skills whose `SKILL.md` exceeds 150 lines. Skills at or under 150 lines skip L0 — the L1 overview entry plus the file itself is cheap enough to load directly.
+
 ---
 
 ## 💰 Token Budgeting

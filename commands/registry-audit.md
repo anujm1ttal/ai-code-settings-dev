@@ -1,17 +1,18 @@
 ---
 description: Cross-reference integrity check to ensure global registry consistency and documentation health.
 argument-hint: ""
+model: claude-sonnet-5
 ---
 
 # Command: /registry-audit
 
-**Owner**: Auditor
+**Owner**: auditor
 **Purpose**: Cross-reference integrity check for the Agent OS Registry.
 
-## 🎯 Objective
+## Objective
 To ensure that all agents, skills, commands, and project types defined in the global registry are internally consistent, non-broken, and properly documented.
 
-## 🚦 The Registry Audit Checklist
+## The Registry Audit Checklist
 
 ### 1. Skill Integrity
 - [ ] Every skill referenced in `CLAUDE-global.md`, `orchestration.md`, `cheatsheet.md`, or `GEMINI.md` exists in `skills/` or `optional_plugins/*/skills/`.
@@ -33,12 +34,12 @@ To ensure that all agents, skills, commands, and project types defined in the gl
 ### 5. Link Integrity
 - [ ] All `file:///` links in rules and cheatsheets point to existing files.
 
-## 📝 The Procedure
+## The Procedure
 1. Run a global search (Grep) for command and skill references.
 2. Cross-reference with directory listings (Glob) for `commands/`, `agents/`, `skills/`, and `optional_plugins/*/skills/`.
 3. Compare `PROJECT_TYPE` strings across the canonical files (`CLAUDE-global.md`, `orchestration.md`, `project-planner/SKILL.md`).
 4. Generate `Artifacts/REGISTRY_HEALTH_REPORT.md` if drift is found.
 
-## 🔗 Relationships
+## Relationships
 - **Sweep**: Invoked via `/sweep --registry`.
 - **Hardening**: Use after any refactor of the global OS structure.

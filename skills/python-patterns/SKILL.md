@@ -1,13 +1,12 @@
 ---
 name: python-patterns
-description: Use this skill whenever you are writing, refactoring, or reviewing Python 3.12+ code. It mandates Pythonic idioms (PEP 8), strict type hinting, loguru for logging, and immutability by default. Trigger when you are starting a new Python project, fixing a linting error from ruff, or adding a pydantic model for validation. Do NOT use for Rhino-internal scripts which must follow Python 3.12 syntax but limited libraries; refer to python-rhino-grasshopper for specialized Rhino runtime constraints.
-tags: ["python", "development", "standards", "backend", "coding-style"]
-auto_activate: false
+description: Use this skill whenever you are writing, refactoring, or reviewing Python 3.12+ code. It mandates Pythonic idioms (PEP 8), strict type hinting, loguru for logging, and immutability by default. Trigger when you are starting a new Python project, fixing a linting error from ruff, or adding a pydantic model for validation. Do NOT use for Rhino-internal scripts which must follow CPython ~3.9 with stdlib only; refer to python-rhino-grasshopper for specialized Rhino runtime constraints.
 argument-hint: "<Python logic requirement or code style question>"
 metadata:
   version: "1.1.0"
-globs: ["*.py", "pyproject.toml", "setup.cfg"]
-verbosity_control: "TECHNICAL. Prioritize code blocks over prose. Use high-density bullet points for logic rules."
+  tags: ["python", "development", "standards", "backend", "coding-style"]
+  globs: ["*.py", "pyproject.toml", "setup.cfg"]
+  verbosity_control: "TECHNICAL. Prioritize code blocks over prose. Use high-density bullet points for logic rules."
 ---
 
 

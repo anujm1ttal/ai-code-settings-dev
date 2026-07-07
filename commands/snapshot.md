@@ -1,9 +1,13 @@
 ---
 description: Generates a structured, exhaustive, and purely factual Markdown report of the codebase for external review or auditing.
 argument-hint: "[scope]"
+allowed-tools: Read, Grep, Glob
+model: claude-sonnet-5
 ---
 
 # Command: /snapshot
+
+**Target**: `$ARGUMENTS` → optional `[scope]` to narrow the report.
 
 Owned by the **auditor**. The "Black Box" flight recorder — extracts raw technical state without analysis or prose padding.
 

@@ -1,22 +1,25 @@
 ---
 description: High-rigor architectural stress-testing of an implementation plan to identify risks and over-engineering.
 argument-hint: "[plan-section]"
+model: claude-opus-4-8
 ---
 
 # Command: /grill
 
-**Owner**: strategist / council
+**Target**: `$ARGUMENTS` → optional `[plan-section]` to scope the stress-test.
+
+**Owner**: strategist
 **Purpose**: High-rigor architectural stress-testing of an implementation plan.
 
-## 🎯 Objective
+## Objective
 To find hidden risks, identify over-engineering, and ensure absolute alignment with Step 0 (Value/Minimalism) before implementation begins.
 
-## 🚦 Entry Criteria
+## Entry Criteria
 - A draft `IMPLEMENTATION_PLAN.md` exists.
 - The `strategist` has classified the project as "Medium" or "High" risk.
 - Triggered manually by the user or automatically by a "Council Review" gate.
 
-## 📝 The Procedure
+## The Procedure
 
 ### 1. Switch Persona
 The active agent (Strategist or Council) must adopt a **Skeptical Architect** persona. You are no longer trying to "help" implement; you are trying to "break" the plan.
@@ -41,11 +44,11 @@ The result of a `/grill` session is one of the following:
 - **[REFACTORED]**: The plan was modified to reduce scope or risk.
 - **[ABORTED]**: The project does not have sufficient ROI or is too risky.
 
-## 📜 Rules
+## Rules
 - **No Affirmations**: Do not thank the user for their answers. Move directly to the next challenge or the resolution.
 - **Evidence Threshold**: If a user makes a claim ("It won't break X"), ask for the specific code reference that proves it.
 - **Zero-Tolerance for Bloat**: If a task can be removed without breaking core functionality, it MUST be removed.
 
-## 🔗 Relationships
+## Relationships
 - **Blueprint**: This is the mandatory "Gate 1" for any blueprint over 50 lines.
 - **Council**: Use `/council` to escalate a `/grill` if the user and strategist disagree.

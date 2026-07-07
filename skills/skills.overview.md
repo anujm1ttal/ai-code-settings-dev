@@ -2,6 +2,8 @@
 
 This overview maps the available skills in the Agent OS. Load only the necessary skills per task. For high-use skills, refer to the L0 Abstract before loading the full definition.
 
+**Total**: 14 core skills across 4 domains (plus the optional-plugin skills — see `optional_plugins/index.md` for that catalog and count).
+
 ## Core Orchestration
 | Skill | Abstract (L0) | Purpose |
 |:---|:---|:---|
@@ -13,7 +15,9 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 | `systematic-debugging` | - | Root-cause investigation process for bugs. |
 | `codebase-navigator` | - | Context discovery and traversal for large projects. |
 | `project-journal` | - | Maintaining session history and decision logs. |
-| `skill-creator` | - | Designing and optimizing new skill modules. |
+| `business-analyst` | - | Requirement elicitation, stakeholder mapping, and ROI validation. |
+
+> `skill-creator` is provided by the installed marketplace plugin (not part of this repo). See `cheatsheet.md`.
 
 ## Domain: Development
 | Skill | Purpose |
@@ -26,11 +30,11 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 |:---|:---|
 | `visual-composition` | Cross-medium design principles and brand governance. |
 
-> `docx`/`xlsx` moved to `optional_plugins/ms-office/` (plugin `ms-office-core`). See `optional_plugins/index.md`.
+> `docx`/`xlsx`/`pptx` moved to `optional_plugins/ms-office/` (plugin `ms-office`). See `optional_plugins/index.md`.
 
 ## Domain: Geometry (Rhino/GH)
-| Skill | Purpose |
-|:---|:---|
+
+> Geometry skills (`cd-foundations`, `python-rhino-grasshopper`, `rhino-e2e-testing`, `rhino-unit-testing`) live in `optional_plugins/geometry/` (plugin `geometry`), not this repo's core skill set. See `optional_plugins/index.md`.
 
 ## Domain: Specialized
 | Skill | Category | Purpose |
@@ -38,4 +42,4 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 | `dax-modeling` | Data | Power BI data modeling and DAX authoring. |
 | `glossary-extraction` | DDD | Extracting ubiquitous language to GLOSSARY.md. |
 
-> `banana-prompt`, `pptx-slide-design` live in `optional_plugins/visual-storytelling/` (plugin `visual-storytelling-core`). See `optional_plugins/index.md`.
+> `banana-prompt`, `pptx-slide-design` live in `optional_plugins/visual-storytelling/` (plugin `visual-storytelling`). See `optional_plugins/index.md`.

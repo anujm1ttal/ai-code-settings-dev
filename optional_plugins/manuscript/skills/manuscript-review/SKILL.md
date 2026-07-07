@@ -1,13 +1,12 @@
 ---
 name: manuscript-review
-description: Senior developmental editor standards for narrative structure, character agency, and market-readiness. Used by the auditor for structural audits. Activated only when project type is "manuscript."
-tags: ["editing", "narrative-design", "publishing", "review", "manuscript-analysis"]
-auto_activate: false
+description: Use this skill whenever you are auditing narrative structure, character agency, or market-readiness of a manuscript. Trigger when the auditor is performing a structural audit and the project has been classified as "manuscript" type during Step 0. Do NOT use for business/ROI justification or non-narrative technical review — use business-analyst for requirement/ROI work instead.
 argument-hint: "<narrative premise or chapter snippet>"
 model: claude-sonnet-5
 metadata:
   version: "1.0.1"
-verbosity_control: "STRICT. Use telegraphic feedback. Prioritize structural logic over prose style."
+  tags: ["editing", "narrative-design", "publishing", "review", "manuscript-analysis"]
+  verbosity_control: "STRICT. Use telegraphic feedback. Prioritize structural logic over prose style."
 ---
 
 

@@ -1,10 +1,9 @@
 ---
 name: verification-gate
 description: "Use this skill whenever you are about to claim work is complete, fixed, or passing — before committing changes, creating pull requests, or marking tasks as done in the TODO list. It enforces the 'Iron Law': Evidence before assertions, always. Trigger when you have finished an implementation, a bug fix, or a refactor. Use whenever you are reporting status to the user. Do NOT use this skill for brainstorming or initial research where no concrete claim of completion is being made."
-tags: [verification, completion, evidence, quality-gate]
-auto_activate: false
 metadata:
   version: "1.0.0"
+  tags: [verification, completion, evidence, quality-gate]
 ---
 
 # Skill: Verification Gate

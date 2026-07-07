@@ -8,7 +8,7 @@
 - [x] **OSH-1 — Restore the Hooks Enforcement Layer** (`cedf673`) — auditor PASS; **deployed + live settings repointed 2026-07-07**; deployed-hook smoke tests green (PowerShell deny, force-push deny, false-positive allow, SessionStart wrapper, fail-open). Live-session firing confirmed on next restart.
 - [x] **OSH-2 — Fix Broken Gates & Capability Mismatches** (`87ba8e9`) — auditor PASS; phantom-ref matrix zero; all 8 agent tool-grants correct; deployed 2026-07-07.
 - [x] **OSH-3 — One Name for Every State File** (`9e060c2` + `2147dd8`) — auditor PASS (one residual found + fixed: project-journal archive scheme); single `History/` casing; DECISION_LOG at root; deployed 2026-07-07.
-- [ ] **OSH-4 — Registry Reconciliation & Skill Hygiene** (branch `phase-osh-4-registry-skills`) — Success: `/registry-audit` passes clean; 0 METADATA.yaml; skill-creator single-sourced; business-analyst core; 22/22 commands with model/tools frontmatter
+- [x] **OSH-4 — Registry Reconciliation & Skill Hygiene** (branch `phase-osh-4-registry-skills`, not yet committed) — auditor PASS (initial gate found 3 HIGH + 2 MEDIUM, all fixed and re-verified; final MEDIUM G4-07 stale "17 skills" count fixed); deployed 2026-07-07. Awaiting explicit user approval for commit/merge.
 - [ ] **OSH-5 — Token-Economy Diet & Precedence** (branch `phase-osh-5-token-diet`) — Success: always-loaded corpus ≤ ~1,300 lines with zero-loss map; `/claude-md CLAUDE-global.md` ≥ 10/12 no zeros; high-rigor demoted to on-demand skill
 - [ ] **OSH-6 — Tooling & Repo Hygiene** (branch `phase-osh-6-tooling-hygiene`) — Success: router returns correct plugin-skill models; pytest ≥ 8 real tests exit 0; deploy.sh ↔ docs agree; Artifacts root schema-clean
 

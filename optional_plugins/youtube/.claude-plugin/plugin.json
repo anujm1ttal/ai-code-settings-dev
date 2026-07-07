@@ -1,5 +1,6 @@
 {
   "name": "youtube",
+  "version": "1.0.1",
   "description": "YouTube content creation pipeline (strategy, scriptwriting, retention). Enables /ideate, /script, /pack commands and associated skills.",
   "author": { "name": "Anuj Mittal" }
 }

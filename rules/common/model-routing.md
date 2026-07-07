@@ -84,6 +84,15 @@ council:
     - /council (multi-persona deliberation)
     - Architectural conflict resolution
   when_to_override: Never (deliberation requires opus)
+
+geometry-validator:
+  model: claude-sonnet-5
+  effort: high
+  reasoning_depth: moderate
+  use_for:
+    - Geometric auditing (dispatched by auditor)
+    - Manifold verification
+  when_to_override: Never (dispatched, no standalone routing)
 ```
 
 ---

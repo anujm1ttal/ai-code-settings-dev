@@ -1,9 +1,12 @@
 ---
 description: Technical review for code quality, domain compliance, and plan gate validation. Invokes the auditor. Supports --pre mode for plan review before implementation.
 argument-hint: "[--pre|--team] [component]"
+model: claude-sonnet-5
 ---
 
 # Command: /audit
+
+**Target**: `$ARGUMENTS` → mode flag (`--pre`/`--team`) + optional `[component]` scope.
 
 Invokes the **auditor** agent for cross-domain quality check against `coding-style.md` and domain skills.
 

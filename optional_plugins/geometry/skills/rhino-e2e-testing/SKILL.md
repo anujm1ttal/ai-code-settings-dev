@@ -1,11 +1,10 @@
 ---
 name: rhino-e2e-testing
 description: Use this skill whenever you are performing rigorous, headless end-to-end testing of RhinoCommon geometry, Grasshopper definitions, or plugin state using Rhino.Inside and pytest. It implements the "Lane A protocol" for verifying geometric invariants like manifoldness, intersections, and tolerance-aware comparisons. Trigger when you are fixing a geometric bug, adding a new Grasshopper component, or verifying a complex Brep operation. Do NOT use for geometry-agnostic logic that can be tested in pure Python (Lane B); use rhino-unit-testing instead.
-tags: ["rhino", "grasshopper", "testing", "pytest", "rhinoinside", "rhinocode", "e2e"]
-auto_activate: false
 argument-hint: "[--run-tests|--setup-reproduction]"
 metadata:
   version: "1.1.0"
+  tags: ["rhino", "grasshopper", "testing", "pytest", "rhinoinside", "rhinocode", "e2e"]
 ---
 
 

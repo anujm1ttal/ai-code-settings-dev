@@ -1,9 +1,13 @@
 ---
 description: Triggers the scribe to explain or teach a codebase. Supports depth selection and targeted Q&A. Invokes codebase-navigator skill.
 argument-hint: "[--flow|--why|--find] [topic]"
+allowed-tools: Read, Grep, Glob
+model: claude-haiku-4-5
 ---
 
 # Command: /explain
+
+**Target**: `$ARGUMENTS` → mode flag (`--flow`/`--why`/`--find`) + optional `[topic]`.
 
 Invokes the **scribe** agent in Explain mode. Scribe equips `codebase-navigator`.
 

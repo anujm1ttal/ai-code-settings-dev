@@ -1,12 +1,11 @@
 ---
 name: project-planner
 description: Use this skill when initializing new projects, appending phases to an existing roadmap, mapping dependencies between tasks, or decomposing high-level goals into actionable TODO items. It enforces "Minimalism First" planning and ROI-driven prioritization. Trigger when the user asks "How should we build X?" or "What's next?", or when a complex task needs to be broken down. Do NOT use for one-off minor edits that fall under the Micro-Task Protocol.
-tags: ["planning", "project-management", "phasing", "estimation", "strategist", "roadmap"]
-auto_activate: false
 argument-hint: "<vague project idea or roadmap requirement>"
 metadata:
   version: "1.0.1"
-verbosity_control: "STRICT. Focus on deliverables, dependencies, and metrics. No aspirational language."
+  tags: ["planning", "project-management", "phasing", "estimation", "strategist", "roadmap"]
+  verbosity_control: "STRICT. Focus on deliverables, dependencies, and metrics. No aspirational language."
 ---
 
 
@@ -20,12 +19,7 @@ verbosity_control: "STRICT. Focus on deliverables, dependencies, and metrics. No
 - The first phase must be completable in 1–3 working sessions. If it can't, the scope is too large.
 
 ### ROI-Driven Context Escalation
-- **Rule**: Prioritize the lowest bandwidth representation that achieves the goal.
-- **Escalation Hierarchy**:
-    1. **Tier 1 (Metadata)**: Names, counts, types, summaries. (e.g., `list_dir`, `get_layer_counts`).
-    2. **Tier 2 (Logic)**: JSON payloads, schemas, relationship maps. (e.g., `get_viewport_layout_json`).
-    3. **Tier 3 (Full Content)**: Source code, screenshots, full renders. (e.g., `view_file`, `get_viewport_screenshot`).
-- **Constraint**: Only escalate to a higher Tier if the lower Tier confirms a high ROI for the deeper inspection.
+See `CLAUDE-global.md` § ROI Escalation (Tier 1 Metadata → Tier 2 Logic → Tier 3 Content). Only escalate when the lower tier confirms high ROI for the deeper inspection.
 
 ### Dependency-Driven Sequencing
 - Tasks are ordered by dependencies, not by perceived importance.
@@ -54,9 +48,7 @@ Vague language is a source of bugs and drift. The following terms and patterns a
 - **Phase boundaries are audit gates** — the `auditor` must verify all phase success metrics before the next phase begins.
 
 ### The Interface-First Pattern
-- For any task involving data exchange, external APIs, or multi-agent handoffs, **Phase 1 (or Phase A) MUST be the Contract Definition**.
-- **Objective**: Agree on the "shape" of the data, the JSON schema, or the script outline before any implementation logic is written.
-- **Success Metric**: Explicit User approval of the contract/schema.
+See `CLAUDE-global.md` § Interface-First Pattern. Phase 1 of any data-exchange, external-API, or multi-agent-handoff task must define the Contract and obtain explicit user approval before implementation.
 
 ### Roadmap Template
 
@@ -191,7 +183,7 @@ When creating new commands and skills, enforce a clean separation:
 
 **Exception:** Small skills where splitting would create more interface than it removes complexity (fails the Deletion Test) should remain as one file.
 
-### Task Briefing Patterns
+### Task Type Vocabulary
 
 | Type | Agent | Description | Example |
 | :--- | :--- | :--- | :--- |

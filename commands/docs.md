@@ -1,9 +1,12 @@
 ---
 description: Triggers the scribe to generate or update project documentation. Supports tier selection and gates auditor completion checks.
 argument-hint: "[--internal|--user|--reference|--all|--team] [filename]"
+model: claude-haiku-4-5
 ---
 
 # Command: /docs
+
+**Target**: `$ARGUMENTS` → tier flag (`--internal`/`--user`/`--reference`/`--all`/`--team`) + optional `[filename]`.
 
 Invokes the **scribe** agent. Scribe equips `doc-updater`.
 

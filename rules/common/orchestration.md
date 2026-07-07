@@ -16,6 +16,7 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 | **council** | Synthesis, stress-testing | **Write**: `DECISION_LOG.md` |
 | **creative-director** | Visual spec, hierarchy | **Write**: `Artifacts/LAYOUT_SPEC.md` |
 | **concierge** | State, sync, intake | **Write**: `Artifacts/learnings/`, `/clean` execution |
+| **geometry-validator** | Geometric auditing, manifold verification | **Write**: geometry audit reports; dispatched subagent (no standalone TODO/Plan authority) |
 
 ## Model Routing (Mandatory)
 
@@ -64,7 +65,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `data` | strategist, coder, auditor | dax-modeling, powerbi-report, python-patterns | `enabledPlugins` |
 | `hybrid` | concierge, strategist | All applicable (per detected files) | `enabledPlugins` |
 
-**All project types** also have access to foundational skills: `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate`, `project-planner`, `project-journal`, `doc-updater`.
+**All project types** also have access to foundational skills: `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate`, `test-driven-development`, `receiving-code-review`, `project-planner`, `project-journal`, `doc-updater`.
 
 
 ## Command Fleet (Operational Layer)
@@ -85,6 +86,14 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `/learn` | concierge | Capture a persistent project lesson | Writes to `Artifacts/learnings/` |
 | `/graduate` | concierge | Move project lessons to global OS settings | Writes to Global Registry |
 | `/skill-graph` | strategist | Visualize skill dependencies and identify clusters | Generates routing recommendations |
+| `/docs` | scribe | Documentation generation/update | Writes README, `Artifacts/ARCH.md`, tiered docs |
+| `/explain` | scribe | Walk through / teach a codebase | Read-only |
+| `/triage` | coder | Bug investigation and fix planning | Investigation only — no source edits until plan approved |
+| `/ideate` | strategist | YouTube video conceptualization | Writes `Artifacts/VIDEO_PLAN.md` |
+| `/deck` | concierge / coder / auditor | PowerPoint project scaffolding & validation | Scaffolds project / writes deck files per action |
+| `/claude-md` | auditor | Audit/update a CLAUDE.md against `claude-md-standards.md` | Report-first; edits only on confirmation |
+| `/script` | scribe | YouTube script creation from `Artifacts/VIDEO_PLAN.md` | Writes `Artifacts/SCRIPT.md` |
+| `/pack` | scribe | YouTube upload metadata and SEO | Generates metadata; no SCRIPT/VIDEO_PLAN edits |
 
 ---
 
@@ -104,7 +113,7 @@ For minor edits that meet all criteria:
 ## Automatic Routing
 
 1. **Planning, scoping, "should we"** → **strategist** (`/blueprint`)
-2. **Plan stress-testing, "grill me", shared understanding** → **strategist** or **council** (`/grill`)
+2. **Plan stress-testing, "grill me", shared understanding** → **strategist** (`/grill`; escalate to **council** only via `/council`)
 3. **Skill landscape, dependencies, routing optimization** → **strategist** (`/skill-graph`)
 4. **Codebase discovery, tech-debt mapping, redundancy scans** → **strategist** (`/sweep`)
 5. **Bug investigation, root-cause analysis, fix planning** → **coder** (`/triage`)

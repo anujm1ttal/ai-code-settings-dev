@@ -1,10 +1,9 @@
 ---
 name: glossary-extraction
-description: Extract a DDD-style ubiquitous language glossary from the current conversation, flagging ambiguities and proposing canonical terms. Saves to Artifacts/GLOSSARY.md.
-tags: ["glossary", "terminology", "ddd", "ubiquitous-language", "concierge"]
-auto_activate: false
+description: Extract a DDD-style ubiquitous language glossary from the current conversation, flagging ambiguities and proposing canonical terms. Saves to Artifacts/GLOSSARY.md. Do NOT use for general documentation maintenance or staleness audits — use doc-updater instead; do NOT use for architecture or ADR content — use ARCH.md/DECISION_LOG.md conventions instead.
 metadata:
   version: "1.0.1"
+  tags: ["glossary", "terminology", "ddd", "ubiquitous-language", "concierge"]
 ---
 
 # Glossary Extraction (Ubiquitous Language)

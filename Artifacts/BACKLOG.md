@@ -5,6 +5,24 @@ Reference-on-demand (not boot-loaded). ID format: `<phase>_<component>_<n>`.
 
 ---
 
+## `osh_docs-count_1` — Stale "17 skills" count in out-of-scope docs
+
+**Filed:** 2026-07-07 (OSH-4) · **Severity:** LOW · **Needs:** doc pass
+
+OSH-4 moved `business-analyst` from the manuscript plugin to core, dropping the
+optional-plugin skill count 17 → 16. Two files still say "17 skills" but were
+**not** in OSH-4's approved file list, so they were left untouched per Hard Rule 2
+(deletions/edits enumerated-only):
+
+- `README.md` (3 occurrences)
+- `Artifacts/MEMORY_ANCHORS.md` (2 occurrences)
+
+Fix: update both to 16 (or point them at `optional_plugins/index.md` as the single
+source of truth for the count, matching the `skills.overview.md:5` DRY fix applied
+in OSH-4). Trivial; batch into any future doc-sync pass.
+
+---
+
 ## `osh_hooks-gaps_1..4` — New hook features (deferred from OSH-1)
 
 **Filed:** 2026-07-07 (OSH-1) · **Severity:** LOW–MEDIUM · **Needs:** separate Step 0

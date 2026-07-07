@@ -1,12 +1,11 @@
 ---
 name: business-analyst
-description: Specialist standards for requirement elicitation, stakeholder impact analysis, and ROI validation. Used by the strategist to justify project resources and validate the "Right to Exist."
-tags: ["business-analysis", "requirements", "strategy", "roi", "stakeholder-analysis"]
-auto_activate: false
+description: Use this skill whenever you are eliciting requirements, mapping stakeholder impact, or validating ROI to justify a project's resources and "Right to Exist." Trigger when the strategist needs quantifiable cost-benefit justification, is stress-testing assumed benefits, or is preparing a Step 0 business case. Do NOT use for narrative/editorial review — use manuscript-review for developmental editing tasks instead.
 argument-hint: "<problem statement or project idea>"
 metadata:
   version: "1.0.1"
-verbosity_control: "STRICT. Focus on quantifiable business value and operational risk. No buzzwords."
+  tags: ["business-analysis", "requirements", "strategy", "roi", "stakeholder-analysis"]
+  verbosity_control: "STRICT. Focus on quantifiable business value and operational risk. No buzzwords."
 ---
 
 

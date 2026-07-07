@@ -1,9 +1,12 @@
 ---
 description: PowerPoint deck lifecycle — scaffold projects, build slides, audit compliance, and discover template layouts. Routes to concierge (init), coder (build), auditor (audit).
 argument-hint: "<init|build|audit|layouts> [options]"
+model: claude-sonnet-5
 ---
 
 # Command: /deck
+
+**Target**: `$1` → action (`init`|`build`|`audit`|`layouts`); remaining args are action-specific `[options]`.
 
 Manages PowerPoint deck generation via `python-pptx`. All actions follow `pptx` conventions.
 

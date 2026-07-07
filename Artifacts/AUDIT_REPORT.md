@@ -255,3 +255,112 @@ Inventory: 14 core skills (not 17), 17 plugin skills across 7 plugins. No SKILL.
 | Token-economy diet + precedence | RU-D1..D10, RU-T1..T4, RU-P2..P5, RU-S2..S4, RU-F11,F12 | **OSH-5** |
 | Tooling & repo hygiene | TL-H1,H2,H4,H5, TL-M1..M9, TL-L1..L8, HK-M5 | **OSH-6** |
 | New hook features (deferred) | HK-G1..G4 | BACKLOG |
+
+---
+
+## Phase Gate: OSH-4 (Registry Reconciliation & Skill Hygiene)
+
+**Date:** 2026-07-07 · **Branch:** `phase-osh-4-registry-skills` · **Auditor:** single-pass, fresh evidence
+**Scope of this gate:** `Artifacts/Plans/OSH-4-Plan.md` Success Metrics, Hard Rules 1–3, and `/registry-audit`
+run against the current working tree (staged + unstaged, no commit made).
+**Verdict: FAIL** — no CRITICAL, but 3 HIGH findings block a clean gate; 2 MEDIUM + 1 LOW/INFO also filed.
+**Counts:** 0 CRITICAL · 3 HIGH · 2 MEDIUM · 1 LOW/INFO
+**Not evaluated (explicitly out of scope for this gate):** deploy, commit, TODO `[x]` marking — all withheld per instructions.
+
+### Strengths (verified, not asserted)
+
+- **Hard Rule 1 (no description weakening) — PASS.** Diffed all 4 rewritten descriptions
+  (business-analyst, manuscript-review, codebase-navigator, glossary-extraction) against `git show HEAD`.
+  Every trigger/boundary phrase in the original survives in the rewrite; only Do-NOT clauses and
+  house-pattern structure were added. Zero drops.
+- **Hard Rule 2 (deletions enumerated-only) — effectively PASS.** `git diff --stat` confirms the only
+  deletions are the 17 `METADATA.yaml` files, `skills/skill-creator/` (13 files), and the described
+  content trims (project-planner ROI/Interface-First → pointers, testing-strategy §4 → pointer,
+  skill-graph approval fix). One file (`Artifacts/Temp/scratch_test.md`) is deleted outside the
+  enumerated list — see G4-06, filed LOW as it predates this session and sits in the designated
+  scratch directory.
+- **Hard Rule 3 (registry rows name on-disk entities) — PASS.** Glob-verified every added row:
+  `geometry-validator` (agents/CLAUDE-global/orchestration/model-routing), all 22 command files exist
+  for orchestration.md's Command Fleet table, `skills/business-analyst/`, `pptx-slide-design`,
+  `test-driven-development`, `receiving-code-review` all resolve on disk.
+- **METADATA.yaml / skill-creator cleanup — clean.** `find optional_plugins -iname METADATA.yaml` → 0.
+  `skills/skill-creator/` → does not exist. Ghost plugin names (`ms-office-core`,
+  `visual-storytelling-core`) → 0 matches repo-wide.
+- **Plugin manifests — correct.** All 7 `plugin.json` parse and carry a `version`. `marketplace.json`'s
+  manuscript description byte-matches `plugin.json`'s (both drop "and glossary extraction").
+  `optional_plugins/index.md` no longer lists business-analyst under manuscript; its skill count
+  (1) is correct there.
+- **Frontmatter — 100% valid.** `yaml.safe_load` on all 30 edited `SKILL.md` + all 22 `commands/*.md`
+  → 0 parse failures.
+- **Non-spec key migration — clean.** Zero remaining top-level `tags:`/`globs:`/`verbosity_control:`
+  outside `metadata:`; zero remaining `auto_activate:` anywhere in `skills/` or `optional_plugins/`.
+- **Abstracts — all 6 written, house-style.** dax-modeling, python-patterns, doc-updater,
+  rhino-e2e-testing, pptx-slide-design, powerbi-report abstracts all present, all follow the
+  Purpose/Core Logic/Constraint template, all well under 300 tokens.
+- **Command hygiene — strong.** All 22 commands carry `model:`; the 3 designated read-only commands
+  (`/explain`, `/snapshot`, `/sync`) carry `allowed-tools: Read, Grep, Glob`; exactly 13 commands carry
+  a `$ARGUMENTS`/`$1` consumption anchor (the free-text/positional-arg commands — the 3 remaining
+  arg-taking commands, `/blueprint --team`, `/handoff --lite|--phase`, `/skill-graph --export`, use
+  named-flag dispatch instead, a defensible split since they branch on fixed exclusive flags rather
+  than free text). `blueprint.md` correctly adds Phase-N-Plan/TODO creation and the ≥50-line `/grill`
+  gate. `graduate.md` destination fixed to `CLAUDE-global.md` with GEMINI.md mirror note.
+  `handoff.md`'s `IsArtifact` step correctly marked Gemini-only no-op. `council.md` has the missing-
+  `COUNCIL_PROTOCOLS.md` fallback. Owner strings in `grill.md`/`registry-audit.md` match the registries.
+- **PROJECT_TYPE enum — consistent** across `strategist.md`, `project-planner/SKILL.md`,
+  `orchestration.md`, `CLAUDE-global.md` (8 types, identical order).
+
+### Findings
+
+| ID | Sev | Location | Defect → Fix |
+|:--|:--|:--|:--|
+| G4-01 | HIGH | `commands/ideate.md:4`, `commands/sweep.md:4`, `commands/skill-graph.md:4`, `commands/graduate.md:4` | CM-10's model assignment ("opus: blueprint/council/grill; sonnet: rest") contradicts `model-routing.md`'s **Hard Rule** ("Strategist always uses Opus — no exceptions"; "Concierge always uses Haiku — no exceptions"). `/ideate` and `/sweep` (strategist-owned) and `/skill-graph` (strategist-owned, and explicitly named under strategist's mandatory Opus `use_for` list in `model-routing.md:25`) are all set to `sonnet`. `/graduate` (concierge-owned) is set to `sonnet` instead of `haiku`. Fix: `/ideate`, `/sweep`, `/skill-graph` → `claude-opus-4-8`; `/graduate` → `claude-haiku-4-5`, or explicitly amend `model-routing.md`'s Hard Rules to carve out named exceptions (with rationale) before the command frontmatter can legitimately diverge. |
+| G4-02 | HIGH | `skills/codebase-navigator/SKILL.md` (160 lines), `skills/project-journal/SKILL.md` (156 lines), `skills/visual-composition/SKILL.md` (193 lines) | SK-5 amended `TOKEN-ECONOMICS.md` to make an L0 abstract **mandatory** for any skill exceeding 150 lines, then wrote abstracts for only the 6 skills named in the plan. These 3 skills exceed 150 lines and were not audited against the new threshold — the rule is non-compliant in the same commit that introduces it. Fix: write `abstract.md` for all 3, or lower none of the risk by re-scoping SK-5's "6 largest lacking one" language to be threshold-driven, not a fixed list. |
+| G4-03 | HIGH | `rules/common/orchestration.md:68` vs `CLAUDE-global.md:105` | CLAUDE-global.md's foundational-skills sentence was extended with `test-driven-development, receiving-code-review` (SK-12/CM-5's binding instruction); orchestration.md carries the identical-purpose sentence and was left untouched — the two files now assert different "always-on for all project types" skill sets. Since both files are positioned as canonical (CLAUDE-global.md §Architecture explicitly points to orchestration.md for "routing, lifecycle"), an agent reading orchestration.md alone will not activate TDD/receiving-code-review as foundational. Fix: add the same two skills to orchestration.md:68, or explicitly note in orchestration.md that CLAUDE-global.md is authoritative for this specific line pending OSH-5 dedup (the plan only deferred the *Command Fleet table* to OSH-5, not this sentence). |
+| G4-04 | MEDIUM | `agents/strategist.md:16` | Plan's binding Technical-Approach decision (line 19) explicitly lists `strategist.md` among the files to update for the business-analyst core promotion ("'when available' → required, now core"). The file still reads: *"business-analyst — ... (core skill after OSH-4; until then available only when the manuscript plugin is installed)"* — a conditional that is now factually wrong (business-analyst is core as of this diff) and was never touched by any wave. Fix: drop the "until then" conditional entirely — business-analyst is unconditionally required. |
+| G4-05 | MEDIUM | `optional_plugins/index.md:25` vs `:85` | Line 25 (Total) correctly reads "7 plugins, 16 skills" (post business-analyst move). Line 85 (Token Impact prose) still reads "instead of all **17** skills across all 7 plugins" — an internal self-contradiction introduced by this phase's own edit to line 25 without a corresponding fix to line 85. Fix: 17 → 16 on line 85. |
+| G4-06 | LOW | `Artifacts/Temp/scratch_test.md` (deleted, unstaged) | Deletion falls outside Hard Rule 2's enumerated list (17 METADATA.yaml, skill-creator/, auto_activate keys, named content trims). Predates this session (present in the initial git-status snapshot before this audit began) and sits in the designated scratch directory, so risk is negligible — filed for completeness, not blocking. Fix: restore via `git checkout -- Artifacts/Temp/scratch_test.md` if unintentional, or let a `/clean` pass account for it explicitly. |
+
+### Gate Disposition
+
+Do **not** mark any OSH-4-TODO.md task `[x]`, do **not** deploy, do **not** commit. Return to coder for:
+1. G4-01 (model-routing Hard Rule violations — 4 files)
+2. G4-02 (3 skills over the new 150-line threshold lack abstracts)
+3. G4-03 (orchestration.md foundational-skills line desync)
+
+G4-04 and G4-05 are one-line fixes bundled with the same follow-up pass. G4-06 is informational only.
+Re-run this gate (Hard Rules 1–3 + `/registry-audit` cross-reference) after the fix pass before
+requesting deploy/commit approval.
+
+---
+
+## Phase Gate: OSH-4 — Final Sign-Off (post-fix re-verification)
+
+**Date:** 2026-07-07 · **Branch:** `phase-osh-4-registry-skills` · **Auditor:** fresh evidence, this pass
+
+**Note on provenance:** this session was briefed that "a prior scoped re-gate PASSed G4-01…G4-06,
+leaving only G4-07 open." No such re-gate section existed in this file at the start of this pass —
+only the FAIL gate above. Per Verification Discipline (claims are not evidence), G4-01 through G4-06
+were independently re-verified here with fresh reads/greps rather than accepted on assertion:
+
+| Finding | Fresh evidence this pass | Result |
+|:--|:--|:--|
+| G4-01 (model Hard Rule) | `grep model: commands/ideate.md,sweep.md,skill-graph.md` → `claude-opus-4-8`; `commands/graduate.md` → `claude-haiku-4-5` | FIXED |
+| G4-02 (missing abstracts) | Read `skills/codebase-navigator/abstract.md`, `skills/project-journal/abstract.md`, `skills/visual-composition/abstract.md` — all present, house Purpose/Core Logic/Constraint template | FIXED |
+| G4-03 (foundational-skills desync) | `rules/common/orchestration.md:68` now lists `test-driven-development`, `receiving-code-review` alongside CLAUDE-global.md's set | FIXED |
+| G4-04 (strategist.md stale conditional) | `agents/strategist.md:16` reads `business-analyst — requirements, stakeholder mapping, ROI` — "until then available only when..." conditional removed | FIXED |
+| G4-05 (index.md 17→16 self-contradiction) | `optional_plugins/index.md:25` and `:85` both now read 16 | FIXED |
+| G4-06 (scratch_test.md deletion) | Unblocking per original gate (predates session, designated scratch dir) — no change needed | Unchanged, non-blocking |
+| **G4-07** (skills.overview.md stale "17 skills") | Read `skills/skills.overview.md:5` — now reads "14 core skills... see `optional_plugins/index.md`" (DRY pointer, no count duplication). Repo-wide grep for "17 skills" → 0 hits in `skills.overview.md`, `optional_plugins/index.md`, `CLAUDE-global.md`, `rules/`. Remaining "17" hits confirmed confined to `README.md`, `Artifacts/MEMORY_ANCHORS.md` (filed `osh_docs-count_1` in BACKLOG, correctly out of OSH-4's approved file list), `Artifacts/history/Reports/Phase-OSA-Report.md` (historical), and `Artifacts/anthropic_skills_analysis.md` (unrelated — Anthropic's own skill repo, not this OS) | FIXED |
+
+**Deploy verification:** `Artifacts/Temp/osh-4_deploy.txt` read in full — all 6 steps report success
+(`[1/6]` source validation, `[2/6]` test suite — no test files, correctly skipped, `[3/6]` destination
+check, `[4/6]` backup created at `~/.claude.backup-20260707-153104`, `[5/6]` production artifacts
+copied, `[6/6]` deployment validation passed) ending in `✓ DEPLOYMENT COMPLETE`.
+
+**Verdict: PASS.** 0 CRITICAL, 0 HIGH, 0 MEDIUM open. G4-06 (LOW) remains filed as informational/
+non-blocking, consistent with the original gate's disposition. Deploy evidence fresh and complete.
+
+**Not evaluated (still out of this gate's scope):** commit, merge to `main` — withheld pending the
+user's explicit `approved, proceed with commit` per `high-rigor-engineering.md` §6.
+
+**OSH-4: PASS — signed off, deployed.**

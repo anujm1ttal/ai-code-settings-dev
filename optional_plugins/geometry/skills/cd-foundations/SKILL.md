@@ -1,10 +1,9 @@
 ---
 name: cd-foundations
 description: Use this skill whenever you are working on a Computational Design (CD) project involving Rhino, Grasshopper, or geometric modeling. It enforces universal constraints like Model Units (mm), Tolerance (0.001mm), and Z-Up orientation, ensuring coordination across teams and software. Trigger this skill automatically at the start of any geometry-related task to establish the coordinate system and precision baseline. Do NOT use for data-only projects (like Power BI) or pure text manipulation unless they interface with a geometric model.
-tags: [geometry, rhino, grasshopper, standards, coordination]
-auto_activate: true
 metadata:
   version: "1.0.0"
+  tags: [geometry, rhino, grasshopper, standards, coordination]
 ---
 
 # Skill: CD Foundations

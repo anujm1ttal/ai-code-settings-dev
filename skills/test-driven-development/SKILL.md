@@ -1,11 +1,10 @@
 ---
 name: test-driven-development
 description: Use this skill whenever writing or modifying production code — new features, bug fixes, refactors, or schema changes. Trigger before the first line of implementation is written, when an implementer subagent is dispatched, or when reviewing whether completed work followed the TDD mandate. Do NOT use for pure documentation, configuration, or planning tasks with no testable surface.
-tags: [testing, tdd, red-green-refactor, verification, quality]
-auto_activate: false
 argument-hint: "<feature or fix about to be implemented>"
 metadata:
   version: "1.0.0"
+  tags: [testing, tdd, red-green-refactor, verification, quality]
 ---
 
 # Skill: Test-Driven Development

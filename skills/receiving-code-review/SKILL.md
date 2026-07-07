@@ -1,11 +1,10 @@
 ---
 name: receiving-code-review
 description: Use this skill whenever code review feedback arrives — from the auditor, a reviewer subagent, a human reviewer, or an external tool (PR comments, /audit FAIL reports, lint reports). Trigger before responding to or acting on any review finding. Do NOT use when producing a review; that is the reviewer's role (see implementation-dispatch reviewer-prompt).
-tags: [code-review, feedback, auditor-loop, quality]
-auto_activate: false
 argument-hint: "<review feedback to process>"
 metadata:
   version: "1.0.0"
+  tags: [code-review, feedback, auditor-loop, quality]
 ---
 
 # Skill: Receiving Code Review

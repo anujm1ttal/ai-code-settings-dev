@@ -1,11 +1,10 @@
 ---
 name: implementation-dispatch
 description: Use this skill when executing a roadmap with 3+ independent tasks or when the conversation context length is at 70% or higher. It allows the main agent to delegate specific, bounded tasks to fresh subagents, preserving the primary context for coordination and high-level strategy. Trigger when you identify parallelizable work in the TODO list or when you feel "context poisoning" affecting your performance. Do NOT use for tasks that require deep, real-time coordination across multiple files that haven't been modified yet.
-tags: [subagent, delegation, orchestration, parallel, task-execution, context-management]
-auto_activate: false
 argument-hint: "[--dispatch <agent_type> | --status]"
 metadata:
   version: "2.2.0"
+  tags: [subagent, delegation, orchestration, parallel, task-execution, context-management]
 ---
 
 

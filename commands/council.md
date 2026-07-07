@@ -1,16 +1,19 @@
 ---
 description: Launches a high-rigor multi-persona deliberation session. Owned by the council agent. Optimized for sequential local model processing.
 argument-hint: "<topic>"
+model: claude-opus-4-8
 ---
 
 # Command: /council
+
+**Target**: `$ARGUMENTS` → `<topic>` under deliberation.
 
 Owned by the **council** agent (orchestrated by the concierge/strategist). The "Conflict Resolution Engine" — forces multiple perspectives on a single decision.
 
 ## Execution Sequence
 
 1.  **Scope Definition**: Read `Artifacts/TODO.md` or `.agent/current_task.md` to identify the target decision.
-2.  **Protocol Load**: Reference `Artifacts/COUNCIL_PROTOCOLS.md` for workflow rules.
+2.  **Protocol Load**: Reference `Artifacts/COUNCIL_PROTOCOLS.md` for workflow rules. If the file does not exist, skip to the Default Fleet (below) and proceed without a custom protocol.
 3.  **Member Setup**: 
     - Auto-select 3 roles based on task tags (e.g., `security`, `ux`, `performance`).
     - Default Fleet: `The Skeptic`, `The Maintainer`, `The Optimizer`.

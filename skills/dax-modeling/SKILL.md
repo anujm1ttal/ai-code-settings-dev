@@ -1,12 +1,11 @@
 ---
 name: dax-modeling
 description: Use this skill whenever you are designing data models, authoring DAX measures, or optimizing performance in Power BI. It enforces a "Star Schema" architecture, mandatory VAR/RETURN patterns, and strict division safety (DIVIDE). Trigger when creating a new metric, fixing a circular dependency, or optimizing a slow report page. Do NOT use for front-end visual styling (theme JSON); use powerbi-report for visual layout and formatting tasks.
-tags: ["dax", "power-bi", "data-modeling", "star-schema", "analytics", "business-intelligence"]
-auto_activate: false
 argument-hint: "<DAX measure requirement or modeling question>"
 metadata:
   version: "1.0.1"
-verbosity_control: "CONCISE. Use VAR/RETURN patterns in all examples. Avoid explaining basic BI concepts."
+  tags: ["dax", "power-bi", "data-modeling", "star-schema", "analytics", "business-intelligence"]
+  verbosity_control: "CONCISE. Use VAR/RETURN patterns in all examples. Avoid explaining basic BI concepts."
 ---
 
 # Skill: DAX & Power BI Modeling

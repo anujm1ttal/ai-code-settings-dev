@@ -1,9 +1,12 @@
 ---
 description: Codebase-wide discovery for tech debt, redundancy, deprecations, and missing docs. Orchestrated by the strategist.
 argument-hint: "[--registry] [scope]"
+model: claude-opus-4-8
 ---
 
 # Command: /sweep
+
+**Target**: `$ARGUMENTS` → optional `--registry` flag + optional `[scope]`.
 
 Invokes the **strategist** agent (or acts as an orchestrator) to coordinate a multi-agent deep dive into the codebase. The purpose is to map out tech debt, identify unused or highly redundant logic, and surface missing documentation, resulting in a roadmap for cleanup.
 

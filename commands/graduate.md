@@ -1,6 +1,7 @@
 ---
 description: Triage cross-project learnings from GLOBAL_INBOX.md into global rules, skills, or standards.
 argument-hint: ""
+model: claude-haiku-4-5
 ---
 
 # Command: /graduate
@@ -27,7 +28,7 @@ argument-hint: ""
    | Agent routing / lifecycle | `rules/common/orchestration.md` |
    | Security | `rules/common/security.md` |
    | Domain-specific (Rhino, PBI, DAX) | Relevant `skills/*/SKILL.md` → gotchas section |
-   | Tool-wide (CLAUDE.md / GEMINI.md) | Root `CLAUDE.md` or `GEMINI.md` |
+   | Tool-wide (global OS behavior) | `CLAUDE-global.md` (the deployable global; deploy.sh pushes it to `~/.claude/CLAUDE.md`) — mirror the same entry into `GEMINI.md` since it is not auto-deployed |
 
 3. **Present** each entry to the user with the proposed destination and wording
 4. **User decides**: `accept` | `edit` | `skip` | `delete`
@@ -42,7 +43,7 @@ argument-hint: ""
 Entries should be integrated naturally into the target file's existing format:
 - **Rules files**: Add as a bullet point in the relevant section
 - **Skills files**: Add under a `## Known Gotchas` or `## Common Pitfalls` section
-- **CLAUDE.md/GEMINI.md**: Add as a bullet in the relevant section
+- **CLAUDE-global.md/GEMINI.md**: Add as a bullet in the relevant section (mirror into both — GEMINI.md is not deployed automatically)
 
 ## Edge Cases
 - **Empty inbox**: Report "No entries to graduate" and exit

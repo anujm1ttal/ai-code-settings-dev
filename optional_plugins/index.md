@@ -16,13 +16,13 @@ Each functional category (youtube, geometry, manuscript, etc.) is a **real nativ
 |:---|:---|:---|
 | `code-mcp` | MCP tool development for Python and TypeScript. Schemas, JSON-RPC patterns, async boundary standards. | python-mcp, typescript-mcp (2) |
 | `geometry` | Rhinoceros/Grasshopper geometry modeling and computation. RhinoCommon APIs, E2E testing, manifoldness verification. | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing (4) |
-| `manuscript` | Manuscript and academic writing support. Review workflows and glossary extraction. | business-analyst, manuscript-review (2) |
+| `manuscript` | Manuscript and academic writing support. Developmental review workflows. | manuscript-review (1) |
 | `ms-office` | OOXML file manipulation for Microsoft Office documents (pptx, docx, xlsx) via a shared office engine. | docx, pptx, xlsx (3) |
 | `pbi-report` | Power BI report development and modeling. Visual composition, DAX design, performance optimization. | powerbi-report (1) |
 | `visual-storytelling` | Copy-paste-ready prompt generation for external AI renderers (thumbnails, decks, visual assets). | banana-prompt, pptx-slide-design (2) |
 | `youtube` | YouTube content creation pipeline (strategy, scriptwriting, retention). Enables `/ideate`, `/script`, `/pack`. | youtube-retention, youtube-scriptwriting, youtube-strategy (3) |
 
-**Total**: 7 plugins, 17 skills.
+**Total**: 7 plugins, 16 skills.
 
 ---
 
@@ -63,7 +63,7 @@ optional_plugins/
 │   └── skills/{cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing}/
 ├── manuscript/
 │   ├── .claude-plugin/plugin.json
-│   └── skills/{business-analyst, manuscript-review}/
+│   └── skills/manuscript-review/
 ├── ms-office/
 │   ├── .claude-plugin/plugin.json
 │   └── skills/{docx, pptx, xlsx}/
@@ -82,7 +82,7 @@ optional_plugins/
 
 ## Token Impact
 
-Enabling only the plugins a project needs avoids loading unused skill metadata into context. A project that only needs `geometry` installs and enables that one plugin instead of all 17 skills across all 7 plugins.
+Enabling only the plugins a project needs avoids loading unused skill metadata into context. A project that only needs `geometry` installs and enables that one plugin instead of all 16 skills across all 7 plugins.
 
 ---
 

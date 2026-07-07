@@ -32,6 +32,7 @@ Orchestration layer for Claude Code sessions.
 | council | High-rigor deliberation & consensus |
 | creative-director | Visual spec & composition planning |
 | concierge | Session orchestration, state management, intake |
+| geometry-validator | Geometric auditing (dispatched by auditor) |
 
 ## Commands
 
@@ -45,7 +46,7 @@ Orchestration layer for Claude Code sessions.
 | `systematic-debugging` | `coder, auditor` | 4-phase root-cause investigation process |
 | `implementation-dispatch` | `coder` | Subagent orchestration and two-stage review workflow |
 | `visual-composition` | `creative-director, auditor` | Hierarchy, layout, brand governance, and accessibility |
-| `/deck` | strategist / creative-director | PowerPoint project scaffolding & validation |
+| `/deck` | concierge / coder / auditor | PowerPoint project scaffolding & validation |
 | `/audit` | auditor | Quality review, gate validation (Logic, Style, and Hard Rules) |
 | `/snapshot` | auditor | Factual codebase snapshot for external review |
 | `/docs` | scribe | Documentation generation/update |
@@ -57,6 +58,7 @@ Orchestration layer for Claude Code sessions.
 | `doc-updater` | `scribe, auditor` | Automated documentation updates and staleness audits |
 | `business-analyst` | strategist | Requirement elicitation, stakeholder mapping, and ROI validation |
 | `banana-prompt` | creative-director | Optimized AI image prompts for thumbnails and decks (`optional_plugins/visual-storytelling/`) |
+| `pptx-slide-design` | creative-director | Copy-paste-ready PowerPoint slide design prompts for Copilot (`optional_plugins/visual-storytelling/`) |
 | `rhino-unit-testing` | `coder, auditor` | Lane B (Pure Python) testing for geometry-agnostic logic |
 | `/ideate` | strategist | YouTube video conceptualization |
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
@@ -98,7 +100,9 @@ Default skills per project type (strategist/concierge routing guidance; per-proj
 | `manuscript`| manuscript-review, glossary-extraction |
 | `hybrid` | All applicable (per detected files) |
 
-**All types** also have foundational skills: codebase-navigator, systematic-debugging, implementation-dispatch, verification-gate, project-planner, project-journal, doc-updater.
+> `docx`/`xlsx` live alongside `pptx` in `optional_plugins/ms-office/`. See `optional_plugins/index.md`.
+
+**All types** also have foundational skills: codebase-navigator, systematic-debugging, implementation-dispatch, verification-gate, test-driven-development, receiving-code-review, project-planner, project-journal, doc-updater.
 
 ## YouTube Pipeline
 
@@ -183,10 +187,6 @@ Claude Code accumulates project-specific knowledge in the `Artifacts/learnings/`
 
 **Entry format:**
 Refer to `Artifacts/learnings/index.md` for category-specific templates.
-
-| Command | Owner | Purpose |
-|:---|:---|:---|
-| `/learn` | concierge | Capture a lesson into the learnings registry |
 
 ## Hooks (Enforcement Layer)
 

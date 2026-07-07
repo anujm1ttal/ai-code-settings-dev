@@ -43,12 +43,9 @@ Evidence is the currency of the **Verification Gate**.
 
 ## 4. TDD Loop & Bug Triage
 
-For bug fixes and feature development:
-1. **Failing Test**: Write the failing test in the lowest valid lane.
-2. **Confirm Failure**: Confirm the failure matches the bug/requirement.
-3. **Surgical Fix**: Implement the minimum fix.
-4. **Confirm Pass**: Confirm the test passes.
-5. **Runtime Check**: Add E2E only if the bug involves runtime behavior.
+The RED-GREEN-REFACTOR cycle itself is owned by the `test-driven-development` skill — see that
+skill for the mandatory loop. This section covers bug-triage concerns specific to testing strategy
+(lane selection for the failing test is per §2 above).
 
 ### Deferred Defects: Strict Xfail
 Encode every known-but-deferred defect as an executable marker asserting the **correct** behavior that currently fails:

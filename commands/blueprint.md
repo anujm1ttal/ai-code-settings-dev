@@ -1,6 +1,7 @@
 ---
 description: Triggers the strategist to initialize a new project, append a phase, or re-plan after a pivot. Enforces Step 0 and creates the Implementation Plan.
 argument-hint: "[--team]"
+model: claude-opus-4-8
 ---
 
 # Command: /blueprint
@@ -20,8 +21,9 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 1. Analyze user's project idea.
 2. **Requirements Interview**: Ask 3–5 targeted questions to uncover hidden constraints and goals (see `strategist.md`). Ask them **one at a time** — wait for each answer before asking the next; earlier answers should shape later questions. Prefer multiple-choice (AskUserQuestion) when the options are enumerable.
 3. **Step 0 Challenge**: PROJECT_TYPE, VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS.
+   - **Gate 1 Trigger**: If the drafted plan exceeds 50 lines, run `/grill` before proceeding — mandatory stress-test for plans at this scale (see `grill.md` Relationships).
 4. **Phased Roadmap**: 3–4 phases with numeric success metrics.
-5. **Create files**: `Artifacts/IMPLEMENTATION_PLAN.md`, `Artifacts/TODO.md`, `Artifacts/ARCH.md`.
+5. **Create files**: `Artifacts/IMPLEMENTATION_PLAN.md`, `Artifacts/TODO.md`, `Artifacts/ARCH.md`, `Artifacts/Plans/Phase-1-Plan.md`, `Artifacts/Plans/Phase-1-TODO.md`.
 6. **Git Init**: Create new branch `phase-1-[description]`.
 7. **Handoff**: Identify first agent + task.
 
@@ -29,7 +31,8 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 1. Run `/sync` via concierge to validate current state.
 2. Confirm prior phase success metrics met (auditor-verified).
 3. Step 0 for new phase only (VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS).
-4. Append to `Artifacts/IMPLEMENTATION_PLAN.md` and `Artifacts/TODO.md`. Update `Artifacts/ARCH.md` if needed.
+   - **Gate 1 Trigger**: If the appended phase spec exceeds 50 lines, run `/grill` before proceeding.
+4. Append to `Artifacts/IMPLEMENTATION_PLAN.md` and `Artifacts/TODO.md`. Update `Artifacts/ARCH.md` if needed. Create `Artifacts/Plans/Phase-N-Plan.md` and `Artifacts/Plans/Phase-N-TODO.md` for the new phase.
 5. **Git Init**: Create new branch `phase-[N]-[description]`.
 
 ## Re-Plan

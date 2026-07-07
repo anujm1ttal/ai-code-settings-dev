@@ -1,12 +1,12 @@
 ---
 name: python-rhino-grasshopper
 description: "Expert in RhinoCommon API, GhPython, and computational design scripting for Rhino 8. Mandates the use of 'Rhino.Geometry', high-rigor patterns, and strict CPython 3.9 compliance. Use this skill whenever writing, refactoring, or reviewing Python code that interacts with the Rhino runtime or Grasshopper SDK. Trigger when the user mentions 'Rhino', 'Grasshopper', 'geometry', or 'brep'. Use whenever implementing structural logic or data tree management. Do NOT use for pure Python math or logic that doesn't depend on Rhino (use rhino-unit-testing instead)."
-tags: [rhino, grasshopper, rhinocommon, ghpython, geometry, computational-design, architecture]
-auto_activate: false
 argument-hint: "[stadium|facade|landscape|furniture|general] <geometric goal>"
+model: claude-sonnet-5
 metadata:
   version: "1.0.1"
   author: "Agent OS"
+  tags: [rhino, grasshopper, rhinocommon, ghpython, geometry, computational-design, architecture]
 ---
 
 # Skill: Python for Rhino & Grasshopper

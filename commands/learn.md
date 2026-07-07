@@ -1,9 +1,12 @@
 ---
 description: Capture a project-specific or global lesson into Artifacts/learnings/ or GLOBAL_INBOX.md.
 argument-hint: "[--global] <lesson>"
+model: claude-haiku-4-5
 ---
 
 # Command: /learn
+
+**Target**: `$ARGUMENTS` → optional `--global` flag + `<lesson>` text.
 
 **Owner:** concierge
 **Purpose:** Capture a project-specific or global lesson into the hierarchical knowledge registry in `Artifacts/learnings/` or `GLOBAL_INBOX.md`.
@@ -38,15 +41,18 @@ argument-hint: "[--global] <lesson>"
 
 ```
 User: /learn always run `npm run build` before tests in this repo
-→ ### [2025-01-15] gotcha: Run build before tests
+→ Category: execution-rules
+  ### [2025-01-15] execution-rules: Run build before tests
     This repo requires `npm run build` before `npm test` — tests import from dist/.
 
 User: /learn I prefer early returns over nested if blocks
-→ ### [2025-01-15] preference: Early returns over nesting
+→ Category: patterns
+  ### [2025-01-15] patterns: Early returns over nesting
     Use early return pattern. Avoid deeply nested conditionals.
 
 User: don't do that again, the API needs snake_case not camelCase
-→ ### [2025-01-15] mistake: API uses snake_case
+→ Category: anti-patterns
+  ### [2025-01-15] anti-patterns: API uses snake_case
     All API request/response fields use snake_case. Do not convert to camelCase.
 ```
 
@@ -54,6 +60,10 @@ User: don't do that again, the API needs snake_case not camelCase
 - **No input provided**: Ask user what they want to remember.
 - **Duplicate detected**: Show existing entry, ask if user wants to update or skip.
 - **Artifacts/learnings/ doesn't exist**: Create the directory structure with an `index.md`.
+- **Artifacts/learnings/HOT.md doesn't exist**: Create it (bootstrap) the first time an entry is
+  referenced 3+ times across sessions, or on first `/handoff` Hot-Cache Refresh — seed with an
+  empty table under a `# Hot Cache` heading. `/sync` reads this file first and falls back to
+  category indexes if it is still missing.
 
 ## Artifacts/learnings/ index.md Template
 ```markdown

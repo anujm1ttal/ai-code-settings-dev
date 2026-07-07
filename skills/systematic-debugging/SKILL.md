@@ -1,11 +1,11 @@
 ---
 name: systematic-debugging
 description: Use this skill whenever investigating bugs, test failures, inconsistent behavior, or performance bottlenecks. It mandates a rigorous 4-phase process (Data Gathering, Root Cause, Hypothesis, Implementation) before any fix is proposed. Trigger when a user reports an error, a command fails with a traceback, or when tests are failing. Do NOT use for general feature implementation or architectural planning unless a specific failure is being triaged.
-tags: [debugging, troubleshooting, root-cause, testing, verification]
-auto_activate: false
 argument-hint: "<error message or failing test description>"
+model: claude-sonnet-5
 metadata:
   version: "1.1.0"
+  tags: [debugging, troubleshooting, root-cause, testing, verification]
 ---
 
 

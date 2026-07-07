@@ -1,5 +1,6 @@
 {
   "name": "manuscript",
-  "description": "Manuscript and academic writing support. Provides manuscript review workflows and glossary extraction for domain-specific terminology.",
+  "version": "1.0.1",
+  "description": "Manuscript and academic writing support. Provides manuscript review workflows for domain-specific terminology.",
   "author": { "name": "Anuj Mittal" }
 }

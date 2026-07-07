@@ -1,6 +1,7 @@
 ---
 description: Triggers the concierge to execute a clean session end. Compresses context, snapshots state, and prepares a brief for the next session.
 argument-hint: "[--lite|--phase]"
+model: claude-haiku-4-5
 ---
 
 # Command: /handoff
@@ -46,7 +47,7 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
    - `Artifacts/DECISION_LOG.md` — stable
 4. **Context Compression**: Summarize resolved threads. Preserve active tasks/open questions. Discard superseded plans and verbose outputs.
 5. **TODO Hygiene**: Scrub completed micro-tasks. Archive to `Artifacts/History/` if >200 lines.
-6. **Generate Brief**: Follow the **Mirroring Rule [HARD-GATE]**: Write to the brain/shadow directory with `IsArtifact: true` AND to `Artifacts/HANDOFF_BRIEF.md` in the workspace with `IsArtifact: false` using the absolute path.
+6. **Generate Brief**: Write `Artifacts/HANDOFF_BRIEF.md` in the workspace (source of truth) using the absolute path. **Gemini/Antigravity only**: also mirror to the brain/shadow directory with `IsArtifact: true` per the Mirroring Rule [HARD-GATE] — Claude Code has no shadow-directory write path, so this sub-step is a no-op here.
 7. **Hygiene Phase**: 
    - **Purge** (L2/L3): Delete all files in `Artifacts/Temp/`.
    - **Flag** (L1/L2/L3): Identify and propose deletion of stray transient files (e.g., `*.tmp`, `debug.log`, uncommitted scratch files not in `.gitignore`).

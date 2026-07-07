@@ -16,7 +16,7 @@
     {
       "name": "manuscript",
       "source": "./optional_plugins/manuscript",
-      "description": "Manuscript and academic writing support. Provides manuscript review workflows and glossary extraction for domain-specific terminology."
+      "description": "Manuscript and academic writing support. Provides manuscript review workflows for domain-specific terminology."
     },
     {
       "name": "ms-office",
