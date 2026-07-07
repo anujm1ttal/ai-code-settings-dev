@@ -5,6 +5,27 @@ Reference-on-demand (not boot-loaded). ID format: `<phase>_<component>_<n>`.
 
 ---
 
+## `osh_hooks-gaps_1..4` — New hook features (deferred from OSH-1)
+
+**Filed:** 2026-07-07 (OSH-1) · **Severity:** LOW–MEDIUM · **Needs:** separate Step 0
+
+OSH-1 fixed the five existing hooks (output schemas, guard coverage, deploy
+integration). These are *new capabilities* the audit (HK-G1..G4) recommended but
+that are out of OSH-1's fix-only scope — each is a feature, not a repair:
+
+1. **`osh_hooks-gaps_1` — Stop/SubagentStop hook**: nudge `/handoff` when a session
+   ends with uncommitted TODO changes (CLAUDE-global mandates the handoff).
+2. **`osh_hooks-gaps_2` — PreCompact hook**: enforce the "context >60% → `/handoff`"
+   emergency protocol at the natural compaction boundary.
+3. **`osh_hooks-gaps_3` — Scratch-dir hard-gate**: extend `guard-paths.js` to block
+   writes to shadow `~/.claude/projects/**` state and `scratch/`, which
+   orchestration.md declares a HARD-GATE.
+4. **`osh_hooks-gaps_4` — Commit-trailer guard**: PreToolUse Bash/PowerShell pattern
+   rejecting commits carrying `Co-Authored-By: Claude` / "Generated with Claude Code"
+   (standing deny-list rule, currently unenforced).
+
+---
+
 ## ~~`osa_model-routing_1` — Runtime bypasses assigned model tiers~~ — RESOLVED (not a bug)
 
 **Filed:** 2026-07-06 · **Resolved:** 2026-07-06 · **Severity:** ~~HIGH~~ → none

@@ -122,7 +122,7 @@ echo -e "${YELLOW}[5/6]${NC} Copying production artifacts..."
 # Copy directories.
 # Remove the destination first so `cp -r` creates a fresh copy instead of
 # nesting the source inside an existing dir (e.g. optional_plugins/optional_plugins).
-for dir in agents rules skills optional_plugins templates commands; do
+for dir in agents rules skills optional_plugins templates commands hooks; do
   rm -rf "$DEST/$dir"
   cp -r "$SOURCE/$dir" "$DEST/$dir"
 done
@@ -143,7 +143,7 @@ echo ""
 echo -e "${YELLOW}[6/6]${NC} Validating deployment..."
 
 # Check all required directories exist
-for dir in agents rules skills optional_plugins templates commands; do
+for dir in agents rules skills optional_plugins templates commands hooks; do
   if [ ! -d "$DEST/$dir" ]; then
     echo -e "${RED}✗ Missing directory: $DEST/$dir${NC}"
     exit 1
@@ -151,7 +151,7 @@ for dir in agents rules skills optional_plugins templates commands; do
 done
 
 # Check critical files exist
-for file in CLAUDE.md cheatsheet.md README.md commands/claude-md.md; do
+for file in CLAUDE.md cheatsheet.md README.md commands/claude-md.md hooks/session-boot.js hooks/guard-commands.js; do
   if [ ! -f "$DEST/$file" ]; then
     echo -e "${RED}✗ Missing file: $DEST/$file${NC}"
     exit 1

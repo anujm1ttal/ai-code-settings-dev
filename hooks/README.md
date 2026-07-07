@@ -4,18 +4,26 @@ Claude Code hooks that enforce security guardrails, auto-lint, inject session st
 
 ## Installation
 
-### 1. Copy the hooks config into your global Claude Code settings
+### 1. Deploy the hook scripts
 
-Open (or create) `~/.claude/settings.json` and merge the contents of `settings-template.json` into it.
+`bash scripts/deploy.sh` copies `hooks/` to `~/.claude/hooks/` (along with the rest
+of the OS). The live `settings.json` command paths point at `~/.claude/hooks/*.js`,
+**not** the dev repo — so a broken working-tree edit does not break production hooks
+until you deploy. (This was fixed in Phase OSH-1; previously settings pointed at the
+repo working copy.)
 
-**On Windows**, the file is at:
+### 2. Point settings.json at the deployed hooks
+
+Open (or create) `~/.claude/settings.json` and merge the `hooks` block from
+`settings-template.json` into it. The template points at `C:/Users/44547/.claude/hooks/…`
+— adjust the absolute path to your own home if different.
+
+**On Windows**, the settings file is at:
 ```
 C:\Users\<your-username>\.claude\settings.json
 ```
 
-If `settings.json` already exists, merge the `hooks` block into the existing JSON. If it doesn't exist, copy `settings-template.json` as-is.
-
-### 2. Verify hooks are active
+### 3. Verify hooks are active
 
 In any Claude Code session, type:
 ```
@@ -25,9 +33,15 @@ In any Claude Code session, type:
 You should see all 5 hooks listed:
 - `SessionStart` → `session-boot.js`
 - `PreToolUse (Edit|MultiEdit|Write)` → `guard-paths.js`
-- `PreToolUse (Bash)` → `guard-commands.js`
+- `PreToolUse (Bash|PowerShell)` → `guard-commands.js`
 - `PostToolUse (Edit|MultiEdit|Write)` → `auto-lint.js`
 - `PostToolUse (*)` → `audit-trail.js`
+
+> **Note on output schemas.** Guards deny via the documented PreToolUse schema
+> (`hookSpecificOutput.permissionDecision: "deny"` + `permissionDecisionReason`,
+> exit 0), and context hooks inject via `hookSpecificOutput.additionalContext` — a
+> bare top-level `additionalContext` or an exit-2 deny is silently dropped/reason-less.
+> Hook `timeout` values in `settings-template.json` are in **seconds** (not ms).
 
 ## Hook Reference
 
@@ -49,21 +63,32 @@ The `auto-lint.js` hook reports lint violations back to Claude as context, but d
 
 ### Blocked Paths
 `guard-paths.js` blocks writes to:
-- **Binaries**: `.pbix`, `.3dm`, `.pptx`, `.xlsx`, `.exe`, `.dll`
-- **Secrets**: `.env`, `*secrets*`, `*credentials*`
-- **Build artifacts**: `dist/`, `build/`, `bin/`, `obj/`
+- **Binaries**: `.pbix`, `.3dm`, `.pptx`, `.xlsx`, `.docx`, `.exe`, `.dll`, archives
+- **Secrets**: `.env` (+ common variants; `.env.example` is allowed), and any
+  `secrets/`, `credentials/`, `private_keys/` **path segment** (full-segment match —
+  `src/secretsauce.py` and `docs/credentials-guide.md` are *not* blocked)
+- **Build artifacts**: `dist/`, `build/`, `node_modules/`, and `bin/`/`obj/` **only**
+  in the compiled-output layout (`bin/Debug`, `obj/Release`, …) — a bare `bin/`
+  scripts dir is allowed
 - **VCS internals**: `.git/`
 
 To customize, edit the `BLOCKED_*` constants in `guard-paths.js`.
 
 ### Blocked Commands
-`guard-commands.js` blocks:
-- `rm -rf /`, `rm -rf ~`, `del /s /q`
-- `git push --force` (allows `--force-with-lease`)
+`guard-commands.js` matches both the Bash and PowerShell tools and blocks:
+- `rm -rf /`, `rm -rf ~`, `rm -rf C:/` (drive root), `rm -r .`
+- Windows: `del`/`rd`/`rmdir … /s`, `format X:`
+- PowerShell: `Remove-Item -Recurse -Force`, `Format-Volume`, `Clear-Disk`
+- `git push --force` / `git push -f` (allows `--force-with-lease`), `git reset --hard`, `git clean -fd`
 - `DROP TABLE`, `DELETE FROM` (without WHERE), `TRUNCATE TABLE`
-- Fork bombs, disk format commands, piped curl-to-shell
+- Fork bombs, block-device writes, piped curl-to-shell
 
 To customize, edit the `BLOCKED_PATTERNS` array in `guard-commands.js`.
+
+### Audit-trail hygiene
+`audit-trail.js` only logs inside repos that already contain an `Artifacts/`
+directory (it never scaffolds `Artifacts/` into a foreign repo) and rotates
+`audit_trail.jsonl` once it exceeds 5 MB.
 
 ## Troubleshooting
 

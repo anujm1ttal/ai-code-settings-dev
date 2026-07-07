@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/session-boot.js\"",
-            "timeout": 5000
+            "command": "node \"C:/Users/44547/.claude/hooks/session-boot.js\"",
+            "timeout": 5
           }
         ]
       }
@@ -18,18 +18,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/guard-paths.js\"",
-            "timeout": 3000
+            "command": "node \"C:/Users/44547/.claude/hooks/guard-paths.js\"",
+            "timeout": 3
           }
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Bash|PowerShell",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/guard-commands.js\"",
-            "timeout": 3000
+            "command": "node \"C:/Users/44547/.claude/hooks/guard-commands.js\"",
+            "timeout": 3
           }
         ]
       }
@@ -40,8 +40,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/auto-lint.js\"",
-            "timeout": 20000
+            "command": "node \"C:/Users/44547/.claude/hooks/auto-lint.js\"",
+            "timeout": 20
           }
         ]
       },
@@ -50,8 +50,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/source/repos/ai-code-settings/hooks/audit-trail.js\"",
-            "timeout": 3000
+            "command": "node \"C:/Users/44547/.claude/hooks/audit-trail.js\"",
+            "timeout": 5
           }
         ]
       }

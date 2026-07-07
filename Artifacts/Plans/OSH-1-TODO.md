@@ -2,6 +2,13 @@
 
 See `Artifacts/Plans/OSH-1-Plan.md` for technical design. Findings: AUDIT_REPORT.md §1.
 
+> **Coder status (2026-07-07):** all 7 file fixes complete + verified locally (31/31 piped-JSON
+> harness green + session-boot 5/5 sections + audit-trail scaffold guard). Evidence:
+> `Artifacts/Temp/osh-1_evidence.txt`. **Deferred by user choice:** deploy + live settings
+> repoint + live-session smoke test (branch-only for now). **Awaiting auditor** for `[x]`.
+> **Deviation flagged:** kept session-boot head-slice (files are newest-first) instead of the
+> plan's tail-slice; fixed comments only — auditor to confirm.
+
 ## Tasks
 
 - [ ] [coder] Create branch `phase-osh-1-hooks-enforcement` — Success: no work on main
@@ -22,6 +29,8 @@ See `Artifacts/Plans/OSH-1-Plan.md` for technical design. Findings: AUDIT_REPORT
 ## Status
 
 - [x] Strategist approval (Step 0 passed — user accepted audit findings + plan 2026-07-07)
-- [ ] Git branch created
-- [ ] Implementation complete
+- [x] Git branch created (`phase-osh-1-hooks-enforcement`)
+- [x] Implementation complete + local evidence green (coder)
+- [ ] Deployed to `~/.claude/` + live settings repointed (deferred — user chose branch-only)
+- [ ] Live-session smoke test (next session)
 - [ ] Auditor verification complete

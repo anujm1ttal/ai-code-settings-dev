@@ -1,37 +1,39 @@
 #!/usr/bin/env node
 /**
  * Claude Code — PostToolUse Hook: Auto-Lint (Report Only)
- * 
+ *
  * Detects the file type after an edit and runs the appropriate linter.
- * Reports violations back to Claude as additionalContext.
+ * Reports violations back to Claude via the documented PostToolUse schema: stdout
+ *   { hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext } }
+ * with exit 0. A bare top-level additionalContext is dropped by the harness.
  * Does NOT auto-fix — the user must approve fixes.
- * 
+ *
  * Fail-open: linter failures are reported, never block work.
  */
 
-const { execSync } = require('child_process');
+const { execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
 const LINTER_MAP = {
   '.py': {
     name: 'ruff',
-    check: (file) => `ruff check "${file}"`,
+    build: (file) => ({ cmd: 'ruff', args: ['check', file] }),
     detect: () => commandExists('ruff'),
   },
   '.ts': {
     name: 'tsc',
-    check: (_file, cwd) => `npx tsc --noEmit`,
+    build: () => ({ cmd: 'npx', args: ['tsc', '--noEmit'] }),
     detect: (cwd) => fs.existsSync(path.join(cwd, 'tsconfig.json')),
   },
   '.tsx': {
     name: 'tsc',
-    check: (_file, cwd) => `npx tsc --noEmit`,
+    build: () => ({ cmd: 'npx', args: ['tsc', '--noEmit'] }),
     detect: (cwd) => fs.existsSync(path.join(cwd, 'tsconfig.json')),
   },
   '.js': {
     name: 'eslint',
-    check: (file) => `npx eslint "${file}"`,
+    build: (file) => ({ cmd: 'npx', args: ['eslint', file] }),
     detect: (cwd) => (
       fs.existsSync(path.join(cwd, '.eslintrc.json')) ||
       fs.existsSync(path.join(cwd, '.eslintrc.js')) ||
@@ -42,16 +44,17 @@ const LINTER_MAP = {
 
 function commandExists(cmd) {
   try {
-    execSync(`where ${cmd}`, { stdio: 'ignore' });
+    const which = process.platform === 'win32' ? 'where' : 'which';
+    execFileSync(which, [cmd], { stdio: 'ignore' });
     return true;
   } catch {
     return false;
   }
 }
 
-function runLinter(command, cwd) {
+function runLinter(cmd, args, cwd) {
   try {
-    const output = execSync(command, {
+    const output = execFileSync(cmd, args, {
       cwd,
       encoding: 'utf-8',
       timeout: 15000, // 15s max
@@ -101,18 +104,21 @@ function main() {
       process.exit(0); // Linter tool not available
     }
 
-    const command = linter.check(filePath, cwd);
-    const result = runLinter(command, cwd);
+    const { cmd, args } = linter.build(filePath, cwd);
+    const result = runLinter(cmd, args, cwd);
 
     if (!result.success && result.output) {
       const output = {
-        additionalContext: [
-          `🔍 Claude Code Auto-Lint (${linter.name}) — Issues Found:`,
-          '```',
-          result.output.substring(0, 2000), // Cap output length
-          '```',
-          'Report these to the user and wait for approval before fixing.',
-        ].join('\n'),
+        hookSpecificOutput: {
+          hookEventName: 'PostToolUse',
+          additionalContext: [
+            `Claude Code Auto-Lint (${linter.name}) — issues found:`,
+            '```',
+            result.output.substring(0, 2000), // Cap output length
+            '```',
+            'Report these to the user and wait for approval before fixing.',
+          ].join('\n'),
+        },
       };
       process.stdout.write(JSON.stringify(output));
     }
@@ -120,7 +126,7 @@ function main() {
     process.exit(0);
 
   } catch (err) {
-    process.stderr.write(`[claude-code/audit-trail] Error: ${err.message}\n`);
+    process.stderr.write(`[claude-code/auto-lint] Error: ${err.message}\n`);
     process.exit(0);
   }
 }

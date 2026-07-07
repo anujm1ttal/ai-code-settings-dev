@@ -42,12 +42,31 @@ function main() {
 
     const cwd = data.cwd || process.cwd();
     const root = findProjectRoot(cwd);
-    const agentDir = path.join(root, 'Artifacts', '.agent');
+    const artifactsDir = path.join(root, 'Artifacts');
+
+    // Only log in repos that already follow the Artifacts discipline. Never
+    // scaffold Artifacts/ into a foreign repo just because it has a .git dir.
+    if (!fs.existsSync(artifactsDir)) {
+      process.exit(0);
+    }
+
+    const agentDir = path.join(artifactsDir, '.agent');
     const logFile = path.join(agentDir, 'audit_trail.jsonl');
 
-    // Create directory if needed
+    // Create the .agent subdir if needed (Artifacts/ is already present)
     if (!fs.existsSync(agentDir)) {
       fs.mkdirSync(agentDir, { recursive: true });
+    }
+
+    // Size-based rotation: keep the live log under 5 MB.
+    try {
+      const MAX_BYTES = 5 * 1024 * 1024;
+      if (fs.existsSync(logFile) && fs.statSync(logFile).size > MAX_BYTES) {
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+        fs.renameSync(logFile, logFile.replace(/\.jsonl$/, `.${stamp}.jsonl`));
+      }
+    } catch {
+      // Rotation is best-effort; never block logging on it.
     }
 
     const entry = {
