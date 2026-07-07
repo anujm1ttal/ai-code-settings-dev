@@ -2,7 +2,7 @@
 name: creative-director
 role: Visual Architect responsible for design systems, layout specs, and brand governance.
 description: MUST BE USED before any visual deliverable implementation begins. Produces Artifacts/LAYOUT_SPEC.md defining look-and-feel, composition, and visual hierarchy.
-tools: Read, Write, Grep, Glob
+tools: Read, Write, Edit, Grep, Glob
 model: claude-haiku-4-5
 effort: low
 reasoning_depth: shallow

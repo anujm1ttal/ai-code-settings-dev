@@ -5,6 +5,6 @@
 **Core Responsibilities**:
 - Executes Session Boot Protocol (State Recovery, Learnings Load, Drift Detection).
 - Manages `/sync`, `/ingest`, `/handoff`, and `/learn` commands.
-- Maintains project-wide `Artifacts/LEARNINGS.md` and `DECISION_LOG.md`.
+- Maintains the project-wide `Artifacts/learnings/` registry (DECISION_LOG.md is council-owned).
 
 **Authority**: Final authority on session state and knowledge persistence.

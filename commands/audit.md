@@ -18,7 +18,7 @@ Invokes the **auditor** agent for cross-domain quality check against `coding-sty
 3. **Constraint Review**: Evaluate against Minimalism and Risks from `Artifacts/IMPLEMENTATION_PLAN.md`.
 4. **Domain Scan**: Equip skill per `orchestration.md` routing. Run checks per `coding-style.md` + relevant skill file.
 5. **Gap Analysis**: Identify what is **completely missing** (not just done poorly) — missing tests, validation, error handling, docs, config, etc.
-6. **Generate Report**: **CRITICAL:** Do not just output the report in the chat. You MUST save the enclosed report format into a file named `Artifacts/AUDIT_REPORT.md` in the project root. You MUST also append any generated Action Items directly into the existing `Artifacts/TODO.md` file.
+6. **Generate Report**: **CRITICAL:** Do not just output the report in the chat. You MUST save the enclosed report format into a file named `Artifacts/AUDIT_REPORT.md` in the project root. Action Items live in that report (loose findings → `Artifacts/BACKLOG.md`) and are flagged for the **strategist** to schedule — the auditor MUST NOT add tasks to `Artifacts/TODO.md` (TODO authority table, `orchestration.md`).
 
 ### `/audit --pre`: Plan Review
 1. Read target task from `Artifacts/TODO.md` + parent phase in `Artifacts/IMPLEMENTATION_PLAN.md`.
@@ -31,14 +31,14 @@ Invokes the **auditor** agent for cross-domain quality check against `coding-sty
 Leverages Claude Agent Teams to perform a significantly faster and deeper code review. If token context limits are hit, automatically fall back to standard execution.
 1. Instruct the `auditor` to spawn a parallel team:
    - **Compliance Reviewer**: Focuses only on `coding-style.md` standard compliance, PEP 8, and structure.
-   - **Domain Specialist**: Executes the domain-specific scan (e.g., `csharp-grasshopper` or `dax-modeling`).
+   - **Domain Specialist**: Executes the domain-specific scan (e.g., `python-rhino-grasshopper` or `dax-modeling`).
    - **Risk Reviewer**: Audits for security, edge cases, and math correctness.
-2. The lead `auditor` waits for teammates to finish and aggregates findings into `Artifacts/AUDIT_REPORT.md` and appends to `Artifacts/TODO.md`.
+2. The lead `auditor` waits for teammates to finish and aggregates findings into `Artifacts/AUDIT_REPORT.md` (Action Items flagged for the strategist, not written to `Artifacts/TODO.md`).
 
 ### `/audit --reader-test`: Clean-Room Verification
 Protocol for validating that documentation is self-contained and ambiguity-free.
 1. Read target document (Plan, Spec, or Arch doc).
-2. Spawn a `scribe` subagent with `subagent_type: auditor`.
+2. Spawn a subagent with `subagent_type: scribe` (fresh reader, no conversation history).
 3. Provide ONLY the target document as context.
 4. Collect questions and ambiguities identified by the "fresh" agent.
 5. Report findings as gaps in `Artifacts/AUDIT_REPORT.md`.
@@ -138,8 +138,5 @@ When the `auditor` marks the final task of a phase as `[x]`:
 
 ## Skill Registry Consistency
 
-During `/audit` or `/sweep`, verify skill registry integrity:
-- All skills listed in `GEMINI.md` / user rules have corresponding `skills/*/SKILL.md` directories
-- All `skills/*/SKILL.md` files are listed in `GEMINI.md`
-- Command owners in `GEMINI.md` match agent definitions in `agents/*.md`
-- Flag orphaned skills or phantom registry entries as `MEDIUM` severity
+Registry integrity is owned by `/registry-audit` (invoked by `/sweep --registry`). Do not
+duplicate that logic here — run `/registry-audit` when a registry consistency check is needed.

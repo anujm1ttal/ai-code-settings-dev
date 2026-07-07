@@ -25,7 +25,16 @@ See `Artifacts/Plans/OSH-2-Plan.md`. Findings: AUDIT_REPORT.md §2 (AG-*) + §3 
 
 ## Status
 
+> **Coder status (2026-07-07):** all agent + command edits complete. Verification grep matrix
+> clean (visual-auditor / csharp-grasshopper / grep_search / list_dir / global_workflows /
+> Artifacts-PLAN.md / file:/// all 0); 8/8 agent frontmatters parse with correct tool grants
+> (auditor +Edit,Write; council +Write,Edit; coder/concierge/scribe/strategist/creative-director
+> +Edit). Stacked on the OSH-1 branch (OSH-1 not yet merged). Deploy + audit pending.
+> **Note:** `/deck` ownership in registries left for OSH-4 (CM-5); here only the stale
+> concierge routing note was corrected (dropped `/deck` from the strategist-owned list).
+
 - [x] Strategist approval (Step 0 — user accepted 2026-07-07)
-- [ ] Git branch created
-- [ ] Implementation complete
+- [x] Git branch created (`phase-osh-2-agent-gates`, stacked on OSH-1)
+- [x] Implementation complete (coder) — grep matrix + frontmatter verified
+- [ ] Deployed to `~/.claude/` (deferred with OSH-1)
 - [ ] Auditor verification complete

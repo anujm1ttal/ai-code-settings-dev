@@ -39,6 +39,10 @@ Defaults:
 - `--data`: none (script handles its own data).
 - `--output`: `output/<project_name>.pptx`.
 
+### /deck audit [--team]
+
+**Agent**: Auditor
+
 Runs two-pass audit against source files and generated output. If `--team` is passed, spawn a `creative-director` teammate to perform Pass 2 (visual compliance) simultaneously while the lead `auditor` computes Pass 1. If token context limits are hit, fallback to standard execution.
 
 **Pass 1 — Source code** (per `pptx`):

@@ -16,8 +16,8 @@ argument-hint: ""
 
 1. **Context Intake**: Read the `Artifacts/VIDEO_PLAN.md` to understand the pacing, angle, and core message.
 2. **Drafting the Script**: 
-   - Create or update `script.md`.
+   - Create or update `Artifacts/SCRIPT.md`.
    - Write exactly as it will be spoken (active voice, short punchy sentences, conversational tone).
    - Apply the A/V format using `[VISUAL CUE]` tags for every visual change (B-roll, text, cuts).
    - Ensure the Hook (first 30 seconds) immediately pays off the title/thumbnail promise.
-3. **Review Recommendation**: Once the draft is complete, prompt the user to run `/review` (or `/audit`) to have the Auditor grade the script against retention metrics.
+3. **Review Recommendation**: Once the draft is complete, prompt the user to run `/audit` to have the Auditor grade the script against retention metrics.

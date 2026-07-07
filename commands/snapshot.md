@@ -9,7 +9,7 @@ Owned by the **auditor**. The "Black Box" flight recorder — extracts raw techn
 
 ## Section Logic
 
-Follow these sections exactly. Use `grep_search` and `list_dir` for data extraction.
+Follow these sections exactly. Use Grep (content search) and Glob (directory listing) for data extraction.
 
 ### 1. Project Metadata
 - Name, version, last updated
