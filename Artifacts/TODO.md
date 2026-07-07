@@ -5,9 +5,9 @@
 **Plans:** `Artifacts/Plans/OSH-[1-6]-Plan.md` + `OSH-[1-6]-TODO.md` (detailed per-phase tasks live there — this is the thin index)
 **Sequencing:** 1 → 2 → 3 → 4 → 5 → 6 (each phase on its own branch, merged before the next starts)
 
-- [ ] **OSH-1 — Restore the Hooks Enforcement Layer** (branch `phase-osh-1-hooks-enforcement`) — Success: all 5 hooks emit documented-schema output with runtime evidence; PowerShell covered; hooks deployed + settings repointed; fail-open intact
-- [ ] **OSH-2 — Fix Broken Gates & Capability Mismatches** (branch `phase-osh-2-agent-gates`) — Success: zero phantom refs (visual-auditor, csharp-grasshopper, stale paths); every agent write-mandate has matching tools; /audit respects TODO authority
-- [ ] **OSH-3 — One Name for Every State File** (branch `phase-osh-3-naming-unification`) — Success: grep matrix zero for retired names; single tracked `Artifacts/History/` casing; DECISION_LOG at root
+- [x] **OSH-1 — Restore the Hooks Enforcement Layer** (`cedf673`) — auditor PASS; **deployed + live settings repointed 2026-07-07**; deployed-hook smoke tests green (PowerShell deny, force-push deny, false-positive allow, SessionStart wrapper, fail-open). Live-session firing confirmed on next restart.
+- [x] **OSH-2 — Fix Broken Gates & Capability Mismatches** (`87ba8e9`) — auditor PASS; phantom-ref matrix zero; all 8 agent tool-grants correct; deployed 2026-07-07.
+- [x] **OSH-3 — One Name for Every State File** (`9e060c2` + `2147dd8`) — auditor PASS (one residual found + fixed: project-journal archive scheme); single `History/` casing; DECISION_LOG at root; deployed 2026-07-07.
 - [ ] **OSH-4 — Registry Reconciliation & Skill Hygiene** (branch `phase-osh-4-registry-skills`) — Success: `/registry-audit` passes clean; 0 METADATA.yaml; skill-creator single-sourced; business-analyst core; 22/22 commands with model/tools frontmatter
 - [ ] **OSH-5 — Token-Economy Diet & Precedence** (branch `phase-osh-5-token-diet`) — Success: always-loaded corpus ≤ ~1,300 lines with zero-loss map; `/claude-md CLAUDE-global.md` ≥ 10/12 no zeros; high-rigor demoted to on-demand skill
 - [ ] **OSH-6 — Tooling & Repo Hygiene** (branch `phase-osh-6-tooling-hygiene`) — Success: router returns correct plugin-skill models; pytest ≥ 8 real tests exit 0; deploy.sh ↔ docs agree; Artifacts root schema-clean
