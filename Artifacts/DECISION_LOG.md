@@ -4,6 +4,18 @@ Historical architectural decisions and pivots. Newest first.
 
 ---
 
+## 2026-07-07 — Ship OSH-1/2/3: merged to main + deployed live [OSH]
+
+**Decision:** After independent auditor PASS on all three phases, merged the 4-commit stack fast-forward to `main` (`2147dd8`), deleted the phase branches, ran `bash scripts/deploy.sh` (backup `~/.claude.backup-20260707-125501`), and repointed live `~/.claude/settings.json` to the deployed `~/.claude/hooks/*.js` (matcher `Bash|PowerShell`, timeouts in seconds).
+
+**Rationale:** User approved "merge + deploy + go live" at the checkpoint. The hooks-deploy integration (OSH-1) means editing the repo no longer changes live hook behavior until deploy — settings now point at `~/.claude/hooks/`, not the dev repo. This closes HK-H2/TL-H3 (hooks bypassing the deploy gate).
+
+**Evidence:** deployed-hook smoke tests 5/5 green (`Artifacts/Temp/osh-1_deployed_evidence.txt`). The live guard-commands hook blocked its own deploy-session commands 3× when they contained literal dangerous syntax — end-to-end proof the deny path reaches the model. **Residual:** true live-session hook firing (session-boot injection, guards on real tool calls) confirmable only after a session restart.
+
+**Auditor note:** OSH-3 shipped with one residual the auditor caught — `project-journal/SKILL.md` retained the retired archive rename scheme after the casing pass — fixed forward in `2147dd8` before merge.
+
+---
+
 ## 2026-07-07 — Launch OSH (OS Hardening) initiative from full-setup audit [OSH]
 
 **Decision:** Accept the 2026-07-07 read-only best-practices audit (6 parallel subagents over agents/commands/skills/hooks/rules/templates/scripts) and remediate via a 6-phase OSH initiative. Findings persisted with stable IDs in `Artifacts/AUDIT_REPORT.md`; phases planned in `Artifacts/Plans/OSH-[1-6]-*`. Step 0 approved by user.
