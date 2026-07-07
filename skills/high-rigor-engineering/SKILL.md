@@ -1,4 +1,19 @@
-# High-Rigor Engineering Workflow
+---
+name: high-rigor-engineering
+description: Use when a phase declares high-rigor mode — geometry validation, production deploys, regulatory work, or anything requiring an auditable evidence trail and zero tolerance for rework. Do NOT use for exploratory prototyping or documentation.
+model: claude-sonnet-5
+metadata:
+  version: "1.0.0"
+  tags: [high-rigor, evidence, gate-cadence, patch-protocol, geometry, production]
+---
+
+# Skill: High-Rigor Engineering Workflow
+
+**Owners**: coder (execution), auditor (gate verification), strategist (declares high-rigor mode at phase start).
+
+> **Precedence**: In high-rigor mode this protocol overrides `orchestration.md` where they
+> conflict (commit cadence, approval phrases); everything not addressed here follows
+> `orchestration.md`.
 
 **When to use**: Geometry-heavy work, production deployments, security-critical phases, regulatory compliance, anything requiring an auditable evidence trail and zero tolerance for rework.
 
@@ -339,11 +354,7 @@ Step 5 [auditor]:
 
 ## References
 
-- `orchestration.md` — Standard workflow (for comparison)
-- `testing-strategy.md` — Evidence rules for test lanes
-- `coding-style.md` — Code quality gates
+- `rules/common/orchestration.md` — Standard workflow (for comparison)
+- `rules/common/testing-strategy.md` — Evidence rules for test lanes
+- `rules/common/coding-style.md` — Code quality gates
 - Project-specific CLAUDE.md files for domain adaptations
-
-**Last updated**: July 3, 2026  
-**Applies to**: Geometry, production, high-stakes, regulatory work  
-**Superseded by**: None (foundational)

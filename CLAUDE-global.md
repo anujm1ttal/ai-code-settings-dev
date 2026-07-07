@@ -17,9 +17,21 @@ Orchestration layer for Claude Code sessions.
   - `standards.md` — interaction, formatting, token economy
   - `security.md` — secrets, defenses, incident response
   - `claude-md-standards.md` — CLAUDE.md quality bar, global-vs-project split, size caps
+  - `model-routing.md` — agent-model tier assignments, hard rules, fallback chain (canonical)
+  - `TOKEN-ECONOMICS.md` — context layering, slicing thresholds, handoff triggers
+  - `testing-strategy.md` — test lane selection, evidence rules, TDD loop
+  - `architecture.md` — deep-vs-shallow module design principles
 - **Agents** (`agents/`): Role definitions + boundaries. Refer to `agents/agents.overview.md` (L1) for routing.
 - **Commands** (`commands/`): Slash-command procedures. Owned by specific agents.
 - **Skills** (`skills/`): Domain expertise. Refer to `skills/skills.overview.md` (L1) for a mapped registry.
+
+## Precedence
+
+On any overlap, `rules/common/*` wins over this file (this file is routing + pointers, not
+the ruleset). A project's own `CLAUDE.md` wins over this global file for that repo. On
+conflicts between rules files, the named owner file wins: routing → `model-routing.md`;
+interaction → `standards.md`; implementation → `coding-style.md`; orchestration/lifecycle →
+`orchestration.md`.
 
 ## Agents
 
@@ -60,17 +72,18 @@ Orchestration layer for Claude Code sessions.
 | `banana-prompt` | creative-director | Optimized AI image prompts for thumbnails and decks (`optional_plugins/visual-storytelling/`) |
 | `pptx-slide-design` | creative-director | Copy-paste-ready PowerPoint slide design prompts for Copilot (`optional_plugins/visual-storytelling/`) |
 | `rhino-unit-testing` | `coder, auditor` | Lane B (Pure Python) testing for geometry-agnostic logic |
+| `high-rigor-engineering` | `coder, auditor, strategist` | Synchronous gate-passing, evidence, and patch protocol for geometry/production/regulatory phases (variant of standard orchestration) |
 | `/ideate` | strategist | YouTube video conceptualization |
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
-| `/pack` | scribe | YouTube upload metadata and SEO |
+| `/pack` | scribe | YouTube upload metadata and SEO — no edits to `SCRIPT.md`/`VIDEO_PLAN.md` |
 | `/sync` | concierge | Reconcile filesystem state with plan artifacts |
 | `/registry-audit` | auditor | Cross-reference integrity check for the OS registry |
-| `/ingest` | concierge | Register manual/external changes into project state |
+| `/ingest` | concierge | Register manual/external changes into project state — formalizes `Artifacts/LAYOUT_SPEC.md` |
 | `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation |
 | `/clean` | concierge | Manually trigger project hygiene and cleanup |
 | `/graduate` | concierge | Move project lessons to global OS settings |
 | `/council` | council | High-rigor deliberation & consensus |
-| `/triage` | coder | Bug investigation and fix planning |
+| `/triage` | coder | Bug investigation and fix planning — investigation only, no source edits until plan approved |
 | `/learn` | concierge | Capture a lesson into the learnings registry |
 | `/claude-md` | auditor | Audit/update a CLAUDE.md against `claude-md-standards.md` (report-first) |
 
@@ -87,22 +100,8 @@ Orchestration layer for Claude Code sessions.
 
 ## Project Type Routing
 
-Default skills per project type (strategist/concierge routing guidance; per-project selection is via native `enabledPlugins`):
-
-| Project Type | Default Skills |
-|:---|:---|
-| `youtube` | youtube-strategy, youtube-scriptwriting, youtube-retention |
-| `pptx` | pptx, visual-composition, python-patterns |
-| `pbi-report` | powerbi-report, visual-composition, dax-modeling |
-| `geometry` | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, python-patterns |
-| `code` | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp |
-| `data` | dax-modeling, powerbi-report, python-patterns |
-| `manuscript`| manuscript-review, glossary-extraction |
-| `hybrid` | All applicable (per detected files) |
-
-> `docx`/`xlsx` live alongside `pptx` in `optional_plugins/ms-office/`. See `optional_plugins/index.md`.
-
-**All types** also have foundational skills: codebase-navigator, systematic-debugging, implementation-dispatch, verification-gate, test-driven-development, receiving-code-review, project-planner, project-journal, doc-updater.
+Canonical table (project types, core agents, default skills, foundational skills, docx/xlsx
+note): `rules/common/orchestration.md` §Project Type Routing.
 
 ## YouTube Pipeline
 
@@ -114,56 +113,13 @@ Default skills per project type (strategist/concierge routing guidance; per-proj
 
 ## Project State Persistence
 
-All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository), never in the Claude Code shadow directory (`~/.claude/`).
+All state files MUST live in the **Artifacts/** directory within the true logical project root, never in the Claude Code shadow directory (`~/.claude/`), at the workspace's absolute path.
+Root Files, phase/archive layout, Interface-First Pattern, and ROI Escalation: see
+`rules/common/orchestration.md` §Persistence.
 
-When creating or updating these files, you MUST use the absolute path of the workspace and place them in the `Artifacts/` folder.
+## Mirroring Rule
 
-### Root Files (Always at Artifacts/)
-
-- **IMPLEMENTATION_PLAN.md** — High-level roadmap spanning all phases and milestones
-- **TODO.md** — High-level task tracking and project execution status
-- **ARCH.md** — System architecture and design principles
-- **MEMORY_ANCHORS.md** — Project constants, constraints, and non-negotiables (Persistent — never archived)
-- **learnings/** — Categorized knowledge registry (Persistent — never archived)
-- **DECISION_LOG.md** — Historical decisions and pivots (live, append-only; newest first — never archived wholesale)
-- **HANDOFF_BRIEF.md** — Session transition and next steps summary
-
-### Active Phase Files (Artifacts/Plans/)
-
-- **Phase-N-Plan.md** — Detailed phase technical design, objectives, file changes, dependencies, and success metrics (created at phase start)
-- **Phase-N-TODO.md** — Phase-level task tracking and status (created at phase start; managed during phase execution)
-
-### Phase Completion (Artifacts/Reports/)
-
-- **Phase-N-Report.md** — Phase completion summary, metrics, and outcomes (created at phase end)
-
-### Archive (Artifacts/History/)
-
-- **Plans/** — Archived Phase-N-Plan.md files (moved after phase completion)
-- **Reports/** — Archived Phase-N-Report.md files (moved after phase completion)
-- **Other ad-hoc artifacts** (except Temp/)
-
-### Transient Storage (Artifacts/Temp/)
-
-- One-off diagrams, scratch scripts, and temporary analysis (MANDATORY for all scratch files; shadow `scratch/` is FORBIDDEN)
-
-### Context Files
-
-- **Artifacts/.agent/current_task.md** — Session focus and current task pointer
-- **Artifacts/LOCAL_AGENT_PROFILES.json** — Sub-agent role definitions
-
-> [!IMPORTANT]
-> **Interface-First Pattern**: For any data exchange or tool-building task, Phase 1 MUST define the "Contract" (JSON Schema/Outline) and obtain explicit user approval before implementation.
-
-> [!TIP]
-> **ROI Escalation**: Prioritize Tier 1 Metadata (Counts/Names) and Tier 2 Logic (Schemas/JSON) before escalating to Tier 3 Content (Full Source/Renders). Use the cheapest context that proves the claim.
-
-## 🪞 Mirroring Rule
-
-If you create or update a system-level artifact in the brain directory (using `IsArtifact: true`), you **MUST** simultaneously write a mirrored copy to the workspace `Artifacts/` directory (using `IsArtifact: false`). 
-
-The workspace `Artifacts/` folder is the **Canonical Source of Truth**. The brain directory copy is for UI rendering purposes only. 
-If drift occurs, the workspace version wins.
+See `rules/common/standards.md` §Artifact Protocol (Mirroring Rule [HARD-GATE]) — canonical.
 
 ## Error Handling
 
@@ -174,19 +130,9 @@ If drift occurs, the workspace version wins.
 
 ## Persistent Learnings
 
-Claude Code accumulates project-specific knowledge in the `Artifacts/learnings/` directory.
-
-**Lifecycle:**
-- **Read**: Concierge loads `Artifacts/learnings/index.md` during session boot.
-- **Write**: Concierge appends new entries during `/handoff`.
-- **Manual**: `/learn` command captures lessons mid-session.
-
-**Boundaries:**
-- Max 50 active entries per category. When exceeded, oldest entries archive to `Artifacts/History/`.
-- No task status (use `Artifacts/TODO.md`), no architecture decisions (use `Artifacts/DECISION_LOG.md`), no temporary context.
-
-**Entry format:**
-Refer to `Artifacts/learnings/index.md` for category-specific templates.
+Categorized project knowledge in `Artifacts/learnings/`. Lifecycle (read at boot, write at
+`/handoff`, manual via `/learn`, 50-entry prune, scope exclusions) owned by concierge — see
+`agents/concierge.md` and `rules/common/orchestration.md` persistence table.
 
 ## Hooks (Enforcement Layer)
 

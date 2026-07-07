@@ -4,6 +4,18 @@ Historical architectural decisions and pivots. Newest first.
 
 ---
 
+## 2026-07-07 — Kick off OSH-5 (Token-Economy Diet) consolidation [OSH]
+
+**Decision:** Launched OSH-5 on branch `phase-osh-5-token-diet` with a single consolidation coder (zero-loss Hard Rule prevents parallelization). Consolidated 19 duplicated blocks across 8 rules files + CLAUDE-global into single-canonical homes with pointers; demoted high-rigor-engineering.md (349 ln) → on-demand skill; cut model-routing.md (272→~40 ln, docs to scripts/README.md); trimmed TOKEN-ECONOMICS.md; added 3 precedence statements.
+
+**Result:** Always-loaded corpus 1,827 → 1,160 lines (−36.5%, exceeds ~1,300 target). Coder produced zero-loss block map (19 entries, each with canonical home verified). Zero-loss + `/claude-md` gate in flight; verdicts will determine remediation or deploy approval.
+
+**Evidence:** `Artifacts/Temp/osh-5_linecounts.txt` (before/after), `Artifacts/Temp/osh-5_zeroloss.txt` (block map).
+
+**Residual risk:** Coder self-flagged 15 "Context Boundary" cells from orchestration's Command Fleet as potentially non-behavioral drops (e.g., "/council follows COUNCIL_PROTOCOLS.md"). Auditor gate must verify each survives in the command's own file or elsewhere — if any is lost, that is a zero-loss CRITICAL violation.
+
+---
+
 ## 2026-07-07 — Ship OSH-1/2/3: merged to main + deployed live [OSH]
 
 **Decision:** After independent auditor PASS on all three phases, merged the 4-commit stack fast-forward to `main` (`2147dd8`), deleted the phase branches, ran `bash scripts/deploy.sh` (backup `~/.claude.backup-20260707-125501`), and repointed live `~/.claude/settings.json` to the deployed `~/.claude/hooks/*.js` (matcher `Bash|PowerShell`, timeouts in seconds).

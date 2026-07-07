@@ -1,35 +1,47 @@
-# Handoff Brief
+# Handoff Brief — L1 Checkpoint
 
-**Tier:** L2 (Session) · **Date:** 2026-07-07 · **Branch:** `main` @ `bc80817` (deployed; not pushed to origin)
+**Tier:** Checkpoint (`--lite`) · **Date:** 2026-07-07 · **Branch:** `phase-osh-5-token-diet` (uncommitted, in-flight)
 
 ## Session Summary
-Executed the first half of the OSH (OS Hardening) initiative end-to-end: implemented, verified, audited, merged, and **deployed live** phases OSH-1/2/3. Roles active: coder (implementation), auditor (independent verification), concierge (this handoff). Followed by the go-live sequence to production `~/.claude/`.
 
-## Completed
-- **OSH-1 — hooks enforcement** (`cedf673`): fixed the 3 dead output-schema channels (guards deny via `hookSpecificOutput`; session-boot injects via SessionStart wrapper; auto-lint via PostToolUse wrapper), added `Bash|PowerShell` coverage + missing dangerous patterns, fixed false positives, audit-trail rotation + no-foreign-scaffold, deploy.sh copies hooks. 31/31 harness.
-- **OSH-2 — agent/command gates** (`87ba8e9`): auditor/council gained Edit/Write; 4 maintainers gained Edit; removed phantom refs (visual-auditor, csharp-grasshopper, moved paths, grep_search/list_dir, global_workflows); /audit + auditor no longer add TODO tasks; YouTube pipeline paths fixed; /deck audit heading. Phantom-ref matrix zero.
-- **OSH-3 — naming unification** (`9e060c2` + `2147dd8`): `learnings/` everywhere, findings→BACKLOG@handoff, single `History/` casing (git mv collapsed the collision), DECISION_LOG at root, Approval Rubric name, relative links. Repo-wide grep matrix zero.
-- **Auditor**: independent PASS on all three (re-ran every check); caught one residual (project-journal archive scheme) → fixed forward before merge.
-- **Go-live**: merged FF to main, deleted phase branches, `deploy.sh` clean (backup `~/.claude.backup-20260707-125501`), live `settings.json` repointed to `~/.claude/hooks/` with all other keys preserved. Deployed-hook smoke tests 5/5.
+**Completed phases (this session):**
+- **OSH-4 (Registry Reconciliation & Skill Hygiene)**: auditor FAIL (3H/2M) → remediation (G4-01…07) → final sign-off PASS; merged to main (`23565e7`), deployed to `~/.claude/`, branch deleted. 119 files, +454/−5880 (17 METADATA.yaml gone, skill-creator single-sourced, business-analyst promoted to core, 22 commands routed to owning-agent tier, 9 L0 abstracts, frontmatter normalized).
 
-## In Progress
-None. OSH-1/2/3 shipped. Initiative continues at OSH-4 (not started).
+**In-flight (awaiting verdict):**
+- **OSH-5 (Token-Economy Diet & Precedence)**: Consolidation complete on branch `phase-osh-5-token-diet`. Always-loaded corpus 1,827 → 1,160 lines (−36.5%). 19 blocks moved/deleted, 3 precedence statements added, high-rigor demoted to on-demand skill, model-routing cut 272→~40 ln. Zero-loss block map produced. **Auditor gate running** (zero-loss verification + `/claude-md` CLAUDE-global.md ≥10/12 + repo still 12/12). **Coder flagged risk:** 15 "Context Boundary" cells from Command Fleet dropped as non-behavioral — auditor must verify each behavior survives elsewhere.
 
-## Blockers / Open Questions
-- **Live-session hook firing** unverified until a **session restart** (deployed scripts + settings are correct; can't self-test session start).
-- **origin/main is 6 commits ahead** — deployed locally, not pushed. Push is a separate decision.
+## Agents Active This Session
+- **Concierge** (me, state management)
+- **Coder** (OSH-4 Section A+B, remediation, OSH-5 consolidation)
+- **Scribe** (OSH-4 descriptions + abstracts)
+- **Auditor** (OSH-4 gate, remediation re-gate, OSH-5 zero-loss gate — still running)
 
-## Decisions (also in DECISION_LOG.md)
-- Ship OSH-1/2/3: merge FF + deploy + repoint live settings (user-approved at checkpoint).
-- Stack dependent phase branches while deploy is deferred (phases share files like orchestration.md; avoids divergence).
-- Kept session-boot head-slice against the plan's tail-slice — this repo's state files are newest-first (evidence-backed plan override, auditor-confirmed).
+## Blockers / In-Flight
+- **OSH-5 auditor gate verdict** — awaiting PASS/FAIL on zero-loss + `/claude-md` scores. If FAIL on lost rule(s), remediation required before deploy.
+- **origin/main unpushed** — local `main` ahead by 8 commits (OSH-1…4 + docs). Ready to push when user approves.
 
 ## State File Health
-- `.agent/current_task.md` — ✅ updated (next = OSH-4; open threads listed)
-- `Artifacts/TODO.md` — ✅ OSH-1/2/3 `[x]` + deployed; OSH-4/5/6 `[ ]`
-- `Artifacts/IMPLEMENTATION_PLAN.md` — ✅ OSH roadmap intact (no change needed)
-- `Artifacts/DECISION_LOG.md` — ✅ ship+deploy entry appended (newest first)
-- `Artifacts/ARCH.md` — stable (untouched)
 
-## Next Session
-**coder → `Artifacts/Plans/OSH-4-TODO.md`** — branch from `main` (`phase-osh-4-registry-skills`). Largest phase: delete 17 METADATA.yaml, `git mv` business-analyst → core `skills/`, delete `skills/skill-creator/`, add frontmatter (model/allowed-tools/$ARGUMENTS) to 22 commands, write 6 L0 abstracts, register geometry-validator + orphan skills, fix python-patterns 3.9 error. Run `/registry-audit` as the phase gate. Read `OSH-4-Plan.md` first — the §Technical Approach decisions are binding.
+| File | Status |
+|:---|:---|
+| `.agent/current_task.md` | ✅ Updated (OSH-5 in-flight state) |
+| `Artifacts/TODO.md` | ✅ OSH-4 marked `[x]`, OSH-5 still `[ ]` |
+| `Artifacts/IMPLEMENTATION_PLAN.md` | ✅ Stable (OSH-4 technically done, OSH-5 not yet committed) |
+| `Artifacts/ARCH.md` | ✅ Stable |
+| `Artifacts/DECISION_LOG.md` | ✅ Updated (OSH-4 shipped, OSH-5 kicked off) |
+
+## Next Session — Critical Context
+
+1. **Check OSH-5 gate verdict** — auditor task `a93fc685fe6f02ea7` will have completed by then.
+   - If **PASS**: auditor will have appended "OSH-5 content gate: PASS" to `Artifacts/AUDIT_REPORT.md`. Proceed to deploy approval.
+   - If **FAIL**: auditor will have listed lost rule(s) with fixes. Route to remediation coder (same branch).
+2. **After OSH-5 gate passes** → deploy approval → `bash scripts/deploy.sh` → final sign-off → commit approval → merge to `main` → OSH-6.
+3. **OSH-6 is the terminal phase** (tooling & repo hygiene, smallest): delete scratch_test.md, ensure pytest ≥8 real tests, validate deploy.sh ↔ docs agreement, schema-clean Artifacts/.
+
+## Deferred to BACKLOG (next doc pass)
+- `osh_docs-count_1`: README.md / MEMORY_ANCHORS.md stale "17 skills" → fix to 16 or pointer-to-index.md.
+- `osh_hooks-gaps_1..4`: new hook features (PreCompact, Stop, commit-trailer), separate Step 0.
+
+---
+
+**When resuming:** Read this brief, then check the auditor gate task result. If PASS, request deploy approval and I'll run validation. If FAIL, remediation is a quick coder pass on the lost rules.

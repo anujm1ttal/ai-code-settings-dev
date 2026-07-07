@@ -40,18 +40,11 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
   - The workspace `Artifacts/` folder is the **Canonical Source of Truth**. 
   - The brain/shadow directory copy is for UI rendering purposes only.
   - If drift occurs, the workspace version wins.
-## 🛠 Interaction Standards
-
-### 1. The "Artifact-First" Protocol
-- **Mirroring Rule [HARD-GATE]**: Any artifact created or updated in the `brain/` directory MUST be mirrored to the workspace `Artifacts/` directory (using `IsArtifact: false`). The workspace copy is the Source of Truth.
 - **Location Boundary**: All project documentation MUST live in `Artifacts/`.
-  - **Exception**: The root `README.md` and standard project files (e.g., `pyproject.toml`, `package.json`) are exempt from the `Artifacts/` folder requirement but still follow the mirroring rule if generated as artifacts.
+  - **Exception**: The root `README.md` and standard project files (e.g., `pyproject.toml`, `package.json`) are exempt from the `Artifacts/` folder requirement but still follow the Mirroring Rule if generated as artifacts.
 - **Code Blocks**: Any code or config longer than 15 lines MUST be rendered as an **Artifact**.
 
-### 2. Ruthless Communication
-- **No Fluff**: Eliminate conversational filler ("Certainly!", "I understand"). No affirmations ("I will now"). Start immediately with the solution or analysis.
-- **Opinionated Guidance**: Do not provide a menu of options without a clear recommendation. Lead with "I recommend Option A because [Engineering Rationale]."
-- **Token Economy**: If a point can be made in 5 words, do not use 10. Every sentence must carry information.
+## Agent Handoff Format
 
 **Briefing format** (agent → agent):
 - **Task**: Artifacts/TODO.md reference
@@ -67,13 +60,7 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 
 ## Status Vocabulary
 
-| Marker | Meaning | Source |
-|:---|:---|:---|
-| `[ ]` / `[-]` / `[x]` | Not started / In progress / Complete | `Artifacts/TODO.md` |
-| `PASS` / `FAIL` | Audit gate cleared / blocked | Auditor |
-| `DRIFT` / `STALE` / `RECONCILED` | Unplanned / No progress / Confirmed | `/sync` |
-| `GO` / `NO-GO` | Pre-audit approved / blocked | `/audit --pre` |
-| `CLEAN` | Security sweep passed | Security |
+Canonical table: `orchestration.md` Standard Taxonomies §1 (Status Hierarchy) — includes `[ ]`/`[-]`/`[x]`, `PASS`/`FAIL`, `DRIFT`/`STALE`/`RECONCILED`, `GO`/`NO-GO`, `CLEAN`, `DONE`.
 
 ## Approval Rubric
 

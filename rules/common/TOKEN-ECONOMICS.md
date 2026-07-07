@@ -20,11 +20,8 @@ To minimize bootstrap costs, the system uses a tiered loading strategy:
 
 ## 💰 Token Budgeting
 
-### Bootstrap Costs (Estimated)
-
-- **Standard Load** (All Rules + L1 Overviews): ~15,000 tokens.
-- **Deep Load** (Standard + 2 Active L2 Skills): ~25,000 tokens.
-- **Legacy Load** (Pre-Layering): ~50,000+ tokens.
+Standard bootstrap load (all rules + L1 overviews): ~15,000 tokens (referenced by
+`claude-md-standards.md` §3 as the budget a CLAUDE.md is one line item within).
 
 ### Slicing Thresholds
 

@@ -12,41 +12,19 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 | **strategist** | Architecture, ROI, roadmaps | **Write**: `IMPLEMENTATION_PLAN.md`, `TODO.md` |
 | **coder** | Implementation, refactoring | **Write**: Source code, test files, `[-]` status |
 | **auditor** | QA, technical review | **Write**: `AUDIT_REPORT.md`, `Artifacts/TODO.md` (`[x]`) |
-| **scribe** | Documentation, teaching | **Write**: All Markdown docs in `Artifacts/` (exception: `README.md`) |
+| **scribe** | Documentation, teaching | **Write**: Artifacts docs not owned by another agent (exception: `README.md`) |
 | **council** | Synthesis, stress-testing | **Write**: `DECISION_LOG.md` |
 | **creative-director** | Visual spec, hierarchy | **Write**: `Artifacts/LAYOUT_SPEC.md` |
 | **concierge** | State, sync, intake | **Write**: `Artifacts/learnings/`, `/clean` execution |
 | **geometry-validator** | Geometric auditing, manifold verification | **Write**: geometry audit reports; dispatched subagent (no standalone TODO/Plan authority) |
 
-## Model Routing (Mandatory)
+## Model Routing
 
-Every agent has an assigned Claude model. This is NON-NEGOTIABLE and optimizes for cost and quality.
-
-| Agent | Model | Tier | Use When |
-|:---|:---|:---|:---|
-| **strategist** | Opus 4.8 | Tier 1 | Strategic decisions, architecture, planning |
-| **coder** | Sonnet 5 | Tier 2 | Implementation, refactoring, debugging |
-| **auditor** | Sonnet 5 | Tier 2 | Code review, compliance, gate validation |
-| **scribe** | Haiku 4.5 | Tier 3 | Documentation, state management |
-| **concierge** | Haiku 4.5 | Tier 3 | Routine sync, state management |
-| **council** | Opus 4.8 | Tier 1 | Deliberation, conflict resolution |
-| **creative-director** | Haiku 4.5 | Tier 3 | Layout specs, design scaffolding |
-| **geometry-validator** | Sonnet 5 | Tier 2 | Geometric auditing, manifold verification |
-
-**Skills can override their agent's model** if reasoning complexity demands it (e.g., `manuscript-review` uses Sonnet even though owned by Scribe/Haiku). See `rules/common/model-routing.md` for full table.
-
-**Cost Impact**:
-- Typical balanced session: ~$1.07 (Opus: planning, Sonnet: code, Haiku: docs)
-- All-Opus baseline: $3.00 (180% cost increase)
-- Cost savings: 60% vs. all-Opus without quality loss
-
-**Routing Lookup**:
-```bash
-python scripts/model_router.py --table                    # Print routing table
-python scripts/model_router.py --lookup agent coder       # Look up agent model
-python scripts/model_router.py --lookup skill typescript-mcp coder  # Look up skill model
-python scripts/model_routing_audit.py --violations-only   # Verify runtime honored assignments
-```
+`rules/common/model-routing.md` is canonical for agent-model tier assignments, hard rules,
+skill-level overrides, and the fallback chain — **on divergence it wins**. The Fleet table
+above owns roles/capability boundaries; model-routing.md owns which model runs each role.
+Dev-only lookup commands (`scripts/model_router.py`, `model_routing_audit.py`) live in the
+repo's own `CLAUDE.md` and `scripts/README.md`, not here.
 
 ---
 
@@ -67,33 +45,13 @@ The `strategist` classifies every project during Step 0. This determines active 
 
 **All project types** also have access to foundational skills: `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate`, `test-driven-development`, `receiving-code-review`, `project-planner`, `project-journal`, `doc-updater`.
 
+> `docx`/`xlsx` live alongside `pptx` in `optional_plugins/ms-office/`. See `optional_plugins/index.md`.
 
 ## Command Fleet (Operational Layer)
 
-| Command | Owner | Purpose | Context Boundary |
-|:---|:---|:---|:---|
-| `/blueprint` | strategist | Initialize or pivot the project roadmap | Writes to `IMPLEMENTATION_PLAN.md` |
-| `/audit` | auditor | Gate-based quality review | Writes to `AUDIT_REPORT.md` |
-| `/sync` | concierge | Reconcile filesystem drift with plan | Validates `Artifacts/` vs source |
-| `/ingest` | concierge | Import manual CAD/BI work into AI context | Formalizes `Artifacts/LAYOUT_SPEC.md` |
-| `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation | Writes `Artifacts/HANDOFF_BRIEF.md`; archives to `Artifacts/History/` |
-| `/registry-audit`| auditor | Cross-reference integrity check for the OS registry | Validates links/enums |
-| `/council` | council | High-rigor multi-persona deliberation | Follows `COUNCIL_PROTOCOLS.md` |
-| `/grill` | strategist | Stress-test a plan for hidden risks | Active interview mode |
-| `/sweep` | strategist | Global tech-debt and redundancy scan | Registry-wide discovery |
-| `/snapshot` | auditor | Factual codebase dump for external review | Purely descriptive |
-| `/clean` | concierge | Purge `Artifacts/Temp/` and transient files | Maintenance mode |
-| `/learn` | concierge | Capture a persistent project lesson | Writes to `Artifacts/learnings/` |
-| `/graduate` | concierge | Move project lessons to global OS settings | Writes to Global Registry |
-| `/skill-graph` | strategist | Visualize skill dependencies and identify clusters | Generates routing recommendations |
-| `/docs` | scribe | Documentation generation/update | Writes README, `Artifacts/ARCH.md`, tiered docs |
-| `/explain` | scribe | Walk through / teach a codebase | Read-only |
-| `/triage` | coder | Bug investigation and fix planning | Investigation only — no source edits until plan approved |
-| `/ideate` | strategist | YouTube video conceptualization | Writes `Artifacts/VIDEO_PLAN.md` |
-| `/deck` | concierge / coder / auditor | PowerPoint project scaffolding & validation | Scaffolds project / writes deck files per action |
-| `/claude-md` | auditor | Audit/update a CLAUDE.md against `claude-md-standards.md` | Report-first; edits only on confirmation |
-| `/script` | scribe | YouTube script creation from `Artifacts/VIDEO_PLAN.md` | Writes `Artifacts/SCRIPT.md` |
-| `/pack` | scribe | YouTube upload metadata and SEO | Generates metadata; no SCRIPT/VIDEO_PLAN edits |
+`CLAUDE-global.md` Commands table is canonical for the full command registry (owner +
+purpose per command). This file owns the routing *logic* (below) and command-adjacent
+protocols (MTP, Task Lifecycle, Git Phase Branching) — not the registry itself.
 
 ---
 
@@ -134,20 +92,13 @@ For minor edits that meet all criteria:
 
 ## High-Rigor Engineering Workflow (Variant)
 
-For geometry-heavy work, production deployments, security-critical phases, or anything requiring **zero-rework tolerance** and an auditable evidence trail:
-
-**See**: [`high-rigor-engineering.md`](high-rigor-engineering.md)
-
-This variant adds synchronous gate-passing, runtime verification of every claim, and explicit approval at each step. It enforces:
-- **Evidence protocol**: All output to `Artifacts/Temp/<phase>_<step>_<command>.txt`
-- **Gate cadence**: One step per response, explicit approval only
-- **Patch protocol**: Audit → Propose → Approve → Apply → Verify (no synthetic diffs)
-- **Anti-patterns taxonomy**: Named violations (Ship-and-defer, Summary-substitution, Synthetic-diff, etc.)
-- **Scope lockdown**: Explicit approved file list, halt-immediately on violation
-
-**Use for**: Geometry validation, production systems, regulatory compliance, manifold verification, high-precision calculations.
-
-**Not for**: Exploratory prototyping, documentation, low-stakes bug fixes.
+For geometry-heavy work, production deployments, security-critical phases, or anything requiring
+**zero-rework tolerance** and an auditable evidence trail, equip the on-demand
+`high-rigor-engineering` skill (`skills/high-rigor-engineering/SKILL.md`). It is a variant of
+this file's standard workflow — same agents/commands apply; implementation and verification
+become synchronous with explicit gates (evidence protocol, patch protocol, anti-patterns
+taxonomy, scope lockdown) instead of async. The skill's own header states its precedence over
+this file where the two conflict (commit cadence, approval phrases).
 
 ---
 
@@ -203,12 +154,19 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 - **Project State Persistence [HARD-GATE]**: All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository). 
 - **No Shadow-Only State**: Never write project-specific state ONLY to global AI directories (e.g., `~/.claude/projects/` or `~/.gemini/`). 
 - **Absolute Path Requirement**: Always use the **absolute file path** of the current code workspace and the `Artifacts/` folder when writing or reading state files to prevent shadow directory collisions.
-- **Platform Redirection Warning**: Platforms may automatically redirect `IsArtifact: true` calls to shadow folders. To ensure persistence, you MUST manually perform a mirrored write with `IsArtifact: false` to the absolute workspace path.
+- **Platform Redirection Warning**: Platforms may automatically redirect `IsArtifact: true` calls to shadow folders — see `standards.md` Mirroring Rule [HARD-GATE] for the required mirrored-write behavior; it applies to all Artifacts/ persistence writes.
+
+> [!IMPORTANT]
+> **Interface-First Pattern**: For any data exchange or tool-building task, Phase 1 MUST define the "Contract" (JSON Schema/Outline) and obtain explicit user approval before implementation.
+
+> [!TIP]
+> **ROI Escalation**: Prioritize Tier 1 Metadata (Counts/Names) and Tier 2 Logic (Schemas/JSON) before escalating to Tier 3 Content (Full Source/Renders). Use the cheapest context that proves the claim.
 
 | File | Owner (Create) | Owner (Maintain) | Purpose |
 |:---|:---|:---|:---|
 | `Artifacts/MEMORY_ANCHORS.md` | Strategist | Strategist | **Cold Storage**: Project-wide constants, constraints, and non-negotiables. (Persistent — never archived) |
 | `Artifacts/Temp/` | All | Concierge (Cleanup) | **Transient Storage**: One-off diagrams, scratch scripts, and temporary analysis. |
+| `Artifacts/AUDIT_REPORT.md` | Auditor | Auditor | Gate-based quality review findings (Logic, Style, Hard Rules); see `/audit`. |
 | `.agent/current_task.md` | Concierge | Concierge | Session focus |
 | `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
 | `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist | **The "How & Why"**: Technical design and rationale. |
@@ -218,7 +176,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 | `Artifacts/COUNCIL_PROTOCOLS.md` | Strategist | Strategist | Deliberation rules for high-rigor decisions |
 | `Artifacts/DECISION_LOG.md` | Council | Council | Pivot tracking & high-stakes resolutions |
 | `Artifacts/HANDOFF_BRIEF.md` | Concierge | Concierge | Session transition & next steps |
-| `Artifacts/learnings/` | Concierge | Concierge | Categorized knowledge registry (Persistent — never archived) |
+| `Artifacts/learnings/` | Concierge | Concierge | Categorized knowledge registry (Persistent — never archived). Excludes task status (→ TODO.md) and architecture decisions (→ DECISION_LOG.md); entry-format templates live in `learnings/index.md`. |
 | `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director | Visual specs |
 | `Artifacts/Plans/Phase-N-Plan.md` | Strategist | Strategist | **The "How & Why"**: Detailed phase technical design. |
 | `Artifacts/Plans/Phase-N-TODO.md` | Strategist | Coder/Auditor | Phase-level task tracking and status. |
@@ -293,11 +251,13 @@ The `council` agent orchestrates a parallel "debate" between the Strategist, Cod
 ### 1. Status Hierarchy
 | Marker | Level | Authority | Meaning |
 |:---|:---|:---|:---|
+| `[ ]` / `[-]` / `[x]` | Task | Strategist/Coder/Auditor | Not started / In progress / Complete (see TODO Authority above). |
 | `DONE` | Claim | Coder | Work finished, ready for audit. |
-| `PASS` | Result | Auditor | Audit gate cleared (Logic/Style). |
+| `PASS` / `FAIL` | Result | Auditor | Audit gate cleared / blocked (Logic/Style). |
 | `[x]` | Final | Auditor | Task complete in `TODO.md`. **The ONLY terminal state.** |
+| `GO` / `NO-GO` | Pre-audit | Auditor | `/audit --pre` approved / blocked. |
+| `DRIFT` / `STALE` / `RECONCILED` | Sync | Concierge | Unplanned change / no progress / filesystem matches artifact state (`/sync`). |
 | `CLEAN` | Security | Auditor | Security sweep passed (No secrets/vulnerabilities). |
-| `RECONCILED`| Sync | Concierge | Filesystem matches artifact state. |
 
 ### 2. Severity Scale
 - **CRITICAL**: Breaking change, security breach, or data loss risk.

@@ -4,7 +4,7 @@ See `Artifacts/Plans/OSH-5-Plan.md` (canonical-home table is binding). Findings:
 
 ## Tasks
 
-- [ ] [coder] Create branch `phase-osh-5-token-diet` — Success: no work on main
+- [x] [coder] Create branch `phase-osh-5-token-diet` — Success: no work on main
 - [ ] [coder] Baseline line counts of the 12 always-loaded files → Artifacts/Temp/osh-5_linecounts.txt — Success: before-snapshot captured
 - [ ] [coder] standards.md: single Mirroring Rule; merge duplicate communication sections; status vocab → pointer (RU-D5, D7, D8) — Success: no rule lost (zero-loss map entry)
 - [ ] [coder] orchestration.md: routing → pointer+precedence; command table → pointer; high-rigor → pointer-only; script commands out; scribe grant narrowed; +AUDIT_REPORT row (RU-D1, D2, D9, D10, F11, P3) — Success: no duplicated table remains
@@ -21,6 +21,6 @@ See `Artifacts/Plans/OSH-5-Plan.md` (canonical-home table is binding). Findings:
 ## Status
 
 - [x] Strategist approval (Step 0 — user accepted 2026-07-07)
-- [ ] Git branch created
+- [x] Git branch created (`phase-osh-5-token-diet`, 2026-07-07)
 - [ ] Implementation complete
 - [ ] Auditor verification complete

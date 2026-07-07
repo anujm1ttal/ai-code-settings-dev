@@ -46,6 +46,101 @@ Typical session: $1.07 (vs. $3.00 all-Opus).
 
 ---
 
+## Model-Routing Reference
+
+Supporting material for `rules/common/model-routing.md` (the canonical ~60-line rule). This
+section holds the cost analysis, decision tree, and config examples that don't need to be
+loaded on every session — reference on demand.
+
+### Routing Decision Tree
+
+```
+Task received
+  │
+  ├─ Is this strategic/architectural? → YES → Use Opus (strategist)
+  │
+  ├─ Is this implementation/code/review? → YES → Use Sonnet
+  │
+  ├─ Is this documentation/state/routine? → YES
+  │   ├─ Complex narrative/structure (manuscript, layout)? → YES → Use Sonnet
+  │   └─ Otherwise → Use Haiku
+  │
+  └─ Ambiguous → Concierge asks clarifying question
+```
+
+### Cost Impact Analysis
+
+**Typical Session Breakdown**
+
+| Phase | Agent | Model | Tokens | Cost |
+|:---|:---|:---|:---|:---|
+| Planning | strategist | Opus | 45,000 | $0.68 |
+| Implementation | coder | Sonnet | 120,000 | $0.36 |
+| Documentation | scribe | Haiku | 25,000 | $0.02 |
+| State management | concierge | Haiku | 10,000 | $0.01 |
+| **Total** | — | — | **200,000** | **$1.07** |
+
+vs. All-Opus: $3.00 (180% cost increase). vs. All-Haiku: ~$0.16 (quality/correctness failures).
+
+**Savings opportunity**: Haiku-only projects (docs, small scripts) ~90% reduction vs. Opus;
+balanced projects (code + docs) ~60% reduction vs. all-Opus; thinking-heavy projects
+(architecture, design) — Opus justified, minimal overhead.
+
+### Config Examples
+
+```yaml
+# Agent frontmatter (agents/*.md) — canonical source for effort/reasoning_depth
+strategist:
+  model: claude-opus-4-8
+  effort: high
+  reasoning_depth: deep
+
+# Skill frontmatter override
+---
+name: skill-name
+model: claude-sonnet-5  # override from owning agent
+effort: high
+---
+```
+
+```python
+# Agent tool invocation
+agent(
+  description="Task description",
+  prompt="...",
+  model=agent_model,   # from model-routing.md
+  effort=agent_effort  # from model-routing.md
+)
+```
+
+### Cost Monitoring Template
+
+Add to `/handoff` report:
+
+```markdown
+## Model Usage Summary
+
+| Model | Invocations | Total Tokens | Cost |
+|:---|:---|:---|:---|
+| Opus | 2 | 85,000 | $1.28 |
+| Sonnet | 3 | 150,000 | $0.45 |
+| Haiku | 4 | 65,000 | $0.05 |
+| **Total** | **9** | **300,000** | **$1.78** |
+
+Cost efficiency: 41% vs. all-Opus baseline ($4.50).
+```
+
+### Verified Routing Compliance
+
+> ✅ **Routing is honored (verified 2026-07-06).** An initial audit *appeared* to show
+> 21/45 runs bypassing their tier, but scoping to post-config transcripts
+> (`--since 2026-07-05`) yields **0 violations**. The apparent bypasses were all
+> pre-config sessions (before routing existed) or deliberate alternate-model runs
+> (a full Fable session, early Qwen experiments) — not runtime failures. Always
+> pass `--since` when auditing so historical sessions don't cry wolf.
+
+---
+
 ## `skill_graph_analyzer.py`
 
 Analyzes and visualizes skill dependencies based on tags, project type associations, and cross-references.
