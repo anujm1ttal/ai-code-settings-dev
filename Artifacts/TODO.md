@@ -9,7 +9,7 @@
 - [x] **OSH-2 — Fix Broken Gates & Capability Mismatches** (`87ba8e9`) — auditor PASS; phantom-ref matrix zero; all 8 agent tool-grants correct; deployed 2026-07-07.
 - [x] **OSH-3 — One Name for Every State File** (`9e060c2` + `2147dd8`) — auditor PASS (one residual found + fixed: project-journal archive scheme); single `History/` casing; DECISION_LOG at root; deployed 2026-07-07.
 - [x] **OSH-4 — Registry Reconciliation & Skill Hygiene** (branch `phase-osh-4-registry-skills`, not yet committed) — auditor PASS (initial gate found 3 HIGH + 2 MEDIUM, all fixed and re-verified; final MEDIUM G4-07 stale "17 skills" count fixed); deployed 2026-07-07. Awaiting explicit user approval for commit/merge.
-- [ ] **OSH-5 — Token-Economy Diet & Precedence** (branch `phase-osh-5-token-diet`) — Success: always-loaded corpus ≤ ~1,300 lines with zero-loss map; `/claude-md CLAUDE-global.md` ≥ 10/12 no zeros; high-rigor demoted to on-demand skill
+- [x] **OSH-5 — Token-Economy Diet & Precedence** (`9174be5`) — auditor PASS (Content Gate, 19/19 zero-loss blocks + 20/20 Context Boundary cells confirmed, 1 remediation cycle); corpus 1,827→1,160 lines (−36.5%); CLAUDE-global.md 12/12 `/claude-md` score; deployed 2026-07-07, verified live (`~/.claude/rules/common/` excludes high-rigor, skill present, line counts match). Merge to `main` still pending explicit user approval.
 - [ ] **OSH-6 — Tooling & Repo Hygiene** (branch `phase-osh-6-tooling-hygiene`) — Success: router returns correct plugin-skill models; pytest ≥ 8 real tests exit 0; deploy.sh ↔ docs agree; Artifacts root schema-clean
 
 ### Housekeeping (pre-kickoff)
