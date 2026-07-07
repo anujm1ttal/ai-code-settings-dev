@@ -23,6 +23,24 @@
 
 ---
 
+# Queued Initiative: VSE — Visual Storytelling Enhancement
+
+**Status:** PLANNED — do not execute until OSH closes (user directive 2026-07-07) · **Step 0:** approved 2026-07-07
+**Plans:** `Artifacts/Plans/VSE-[1-2]-Plan.md` + `VSE-[1-2]-TODO.md` (detailed tasks live there)
+**Origin:** ui-ux-pro-max-skill architecture pattern (data-fied design knowledge + executable output validation), applied to `pptx-slide-design` only. banana-prompt out of scope. No search engine (deferred until library >25 entries).
+**Sequencing:** VSE-1 → VSE-2 (VSE-2 requires `/grill` + Interface-First `[user-approval]` before kickoff)
+
+- [ ] **VSE-1 — Executable Quality Gates** (branch `phase-vse-1-quality-gates`, cut from `main` post-OSH) — Success: validate_prompt.py 2/2 gold pass + 3/3 seeded-bad fail; contrast_check.py pass/fail pair correct; pytest exit 0; zero new deps
+- [ ] **VSE-2 — Design-Data Library + Draft Generator** (branch `phase-vse-2-design-data`) — Success: ≥8 vetted palettes + ≥6 vetted font pairs (100% attributed, contrast-gated); intake draft LAYOUT_SPEC passes VSE-1 validators first try; archetypes defined in exactly 1 file
+
+### Initiative Hard Rules (Auditor Rejects on Violation)
+1. Validators check invariants only — no coupling to 13-part section wording/order (Copilot render test still pending)
+2. Skill never generates files or invokes renderers; validation is text-only
+3. No entry marked `vetted` without contrast_check evidence; generator output always bannered DRAFT
+4. Phase close = plugin re-install + live verification (plugin scripts do NOT ship via deploy.sh)
+
+---
+
 # Prior Initiative: CMD — CLAUDE.md Discipline
 
 **Status:** Phase CMD-1 in progress · **Branch:** `phase-cmd-1-claude-md-standard`
