@@ -1,4 +1,29 @@
-# Active Initiative: CMD — CLAUDE.md Discipline
+# Active Initiative: OSH — OS Hardening
+
+**Status:** Planned — ready for coder · **Step 0:** approved 2026-07-07 (user accepted audit findings + 6-phase plan)
+**Evidence base:** `Artifacts/AUDIT_REPORT.md` (stable finding IDs: HK/AG/CM/RU/SK/TL-*)
+**Plans:** `Artifacts/Plans/OSH-[1-6]-Plan.md` + `OSH-[1-6]-TODO.md` (detailed per-phase tasks live there — this is the thin index)
+**Sequencing:** 1 → 2 → 3 → 4 → 5 → 6 (each phase on its own branch, merged before the next starts)
+
+- [ ] **OSH-1 — Restore the Hooks Enforcement Layer** (branch `phase-osh-1-hooks-enforcement`) — Success: all 5 hooks emit documented-schema output with runtime evidence; PowerShell covered; hooks deployed + settings repointed; fail-open intact
+- [ ] **OSH-2 — Fix Broken Gates & Capability Mismatches** (branch `phase-osh-2-agent-gates`) — Success: zero phantom refs (visual-auditor, csharp-grasshopper, stale paths); every agent write-mandate has matching tools; /audit respects TODO authority
+- [ ] **OSH-3 — One Name for Every State File** (branch `phase-osh-3-naming-unification`) — Success: grep matrix zero for retired names; single tracked `Artifacts/History/` casing; DECISION_LOG at root
+- [ ] **OSH-4 — Registry Reconciliation & Skill Hygiene** (branch `phase-osh-4-registry-skills`) — Success: `/registry-audit` passes clean; 0 METADATA.yaml; skill-creator single-sourced; business-analyst core; 22/22 commands with model/tools frontmatter
+- [ ] **OSH-5 — Token-Economy Diet & Precedence** (branch `phase-osh-5-token-diet`) — Success: always-loaded corpus ≤ ~1,300 lines with zero-loss map; `/claude-md CLAUDE-global.md` ≥ 10/12 no zeros; high-rigor demoted to on-demand skill
+- [ ] **OSH-6 — Tooling & Repo Hygiene** (branch `phase-osh-6-tooling-hygiene`) — Success: router returns correct plugin-skill models; pytest ≥ 8 real tests exit 0; deploy.sh ↔ docs agree; Artifacts root schema-clean
+
+### Housekeeping (pre-kickoff)
+- [ ] [concierge] Reconcile stale CMD "Merge branch → main" line — already merged at `a7f8bb3`; mark done or clear via `/sync` before OSH-1 starts
+
+### Initiative Hard Rules (Auditor Rejects on Violation)
+1. Every fix traces to a finding ID in `AUDIT_REPORT.md` — no unlisted "improvements" (Scope-creep-via-cleanup)
+2. Zero behavioral loss during dedup/demotion (OSH-5 zero-loss map is mandatory evidence)
+3. Hooks remain fail-open after every OSH-1 edit
+4. Each phase deploys (`bash scripts/deploy.sh`) and passes validation before its auditor gate — repo-only changes are not "done"
+
+---
+
+# Prior Initiative: CMD — CLAUDE.md Discipline
 
 **Status:** Phase CMD-1 in progress · **Branch:** `phase-cmd-1-claude-md-standard`
 **Plan Reference:** `Artifacts/Plans/CMD-Plan.md`

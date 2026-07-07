@@ -4,6 +4,16 @@ Historical architectural decisions and pivots. Newest first.
 
 ---
 
+## 2026-07-07 — Launch OSH (OS Hardening) initiative from full-setup audit [OSH]
+
+**Decision:** Accept the 2026-07-07 read-only best-practices audit (6 parallel subagents over agents/commands/skills/hooks/rules/templates/scripts) and remediate via a 6-phase OSH initiative. Findings persisted with stable IDs in `Artifacts/AUDIT_REPORT.md`; phases planned in `Artifacts/Plans/OSH-[1-6]-*`. Step 0 approved by user.
+
+**Rationale:** Audit surfaced 3 CRITICAL + ~27 HIGH issues clustering into: (1) hooks enforcement layer emitting invalid output schemas — session-boot injects nothing, guards block without reason, PowerShell tool uncovered; (2) agents mandated to write files without Write tools + hard gates citing a nonexistent `visual-auditor` and moved skill paths; (3) systemic state-file naming drift (`LEARNINGS.md` vs `learnings/`, both `History/` casings git-tracked); (4) registries out of sync + 17 vestigial METADATA.yaml; (5) ~30% always-loaded token waste; (6) model_router returning wrong models for plugin-hosted skills. Sequenced 1→6 by dependency (fix enforcement first, names before registries, registries before dedup).
+
+**Binding sub-decisions** (recorded in phase plans, coder does not re-litigate): auditor gains Write/Edit; guards use `hookSpecificOutput` deny form; `Artifacts/History/` casing wins; CLAUDE-global = command-registry master; high-rigor-engineering.md demoted to on-demand skill; skills/skill-creator/ deleted (plugin duplicate); business-analyst moved to core. New hook *features* (PreCompact/Stop/commit-trailer) deferred to BACKLOG, separate Step 0.
+
+---
+
 ## 2026-07-06 — Split CLAUDE.md into global + project tiers [CMD]
 
 **Decision:** Introduce `CLAUDE-global.md` as the deployable global (→ `~/.claude/CLAUDE.md`) and slim the repo's own `CLAUDE.md` (195→65 lines) to repo-specific guidance. Governed by new `rules/common/claude-md-standards.md`; audited by new `/claude-md` command.

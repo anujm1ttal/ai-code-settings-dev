@@ -15,6 +15,8 @@ This registry contains project-wide, persistent knowledge captured across sessio
 
 ## Recent Entries
 
+- [2026-07-07] Anti-Pattern: Enforcement Config Never Runtime-Verified
+- [2026-07-07] Anti-Pattern: Refactors Leave Cross-Registry Drift
 - [2026-04-30] Mistake: Artifact Path Validation (Anti-Pattern)
 - [2026-03-18] Pattern: Scan Exclusions (Pattern)
 - [2026-03-18] Gotcha: PowerShell Redirection Encoding (Pattern)

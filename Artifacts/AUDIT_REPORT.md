@@ -1,270 +1,257 @@
-# Audit Report - Phase 0: Office/Storytelling Restructure
+# Audit Report — OS Setup Best-Practices Audit (Initiative OSH)
 
-**Branch:** `phase-0-office-storytelling-restructure` - **State:** working-tree only, no commit made
-**Auditor:** auditor (Sonnet 5) - **Date:** 2026-07-04
-**Scope:** `Artifacts/IMPLEMENTATION_PLAN.md` Section 4, `Artifacts/TODO.md` Phase 0
+**Date:** 2026-07-07 · **Auditor:** 6 parallel read-only subsystem audits + synthesis
+**Scope:** agents/, commands/, skills/, optional_plugins/, hooks/, rules/common/, templates/, scripts/, CLAUDE-global.md, CLAUDE.md, Artifacts/ hygiene, repo↔`~/.claude` drift
+**Verdict:** Architecture sound; enforcement layer largely non-functional; systemic naming drift; ~30% always-loaded token waste.
+**Counts:** 3 CRITICAL · 27 HIGH · ~40 MEDIUM · ~30 LOW/INFO
+**Remediation:** `Artifacts/Plans/OSH-1..6` (see `Artifacts/TODO.md` → Initiative OSH)
 
----
-
-## Project Profile
-
-- **Language:** Python (manifest_validator.py, tests), YAML (plugin.yaml/METADATA.yaml), JSON Schema, Markdown (docs/registry)
-- **Domain:** Skill/plugin registry restructuring (`code` project type - AI OS meta-repo)
-- **Frameworks:** pytest, jsonschema (draft-07)
-- **Build:** none (no packaging step)
-- **Test/Lint:** pytest tests/
+Finding IDs are stable references used by the OSH phase plans. Do not renumber.
 
 ---
 
-## Strengths
+## 1. Hooks (HK) — Enforcement Layer
 
-- **Clean move discipline:** All 4 skill relocations landed at the correct new paths with byte-identical content (verified SKILL.md/METADATA.yaml headers per skill - no cross-contamination despite git misreporting some renames, see Gate 1 note).
-- **Test-first registry sync:** Both tests/test_manifest_validator_v2.py and tests/test_v1_v2_migration.py were updated in the same pass as the registry change - Hard Rule 3 respected.
-- **Zero scope creep:** commands/deck.md, agents/*.md, hooks/*, scripts/phase_11_2_update_templates.py, scripts/migrate_skills_to_plugins.py - all confirmed untouched, exactly as the plan's "Verify-only / DO NOT EDIT" list specifies.
-- **No dedup side quest:** Triplicated scripts/office/ in pptx/docx/xlsx left alone, correctly deferred per plan Section 2.
-- **TODO authority respected:** coder marked all 6 owned tasks [-], did not touch the [auditor] task or mark anything [x].
-- **Templates match plan spec exactly:** project-pptx.json (both plugins), project-youtube.json, project-data.json, project-manuscript.json diffs are minimal and precisely match Section 4.2 table E.
+API facts verified against official Claude Code hooks documentation.
 
----
+| ID | Sev | Location | Defect → Fix |
+|:--|:--|:--|:--|
+| HK-C1 | CRITICAL | `hooks/guard-paths.js:92-98`, `hooks/guard-commands.js:60-67` | Deny reason printed to **stdout** with exit 2; on exit 2 only **stderr** reaches Claude, and the JSON shape (`decision`/`message`) is not a recognized schema. Blocks work but Claude never sees why → blind retries. Fix: write reason to stderr + exit 2, **or** emit `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"..."}}` + exit 0. One mechanism, not a hybrid. |
+| HK-C2 | CRITICAL | `hooks/session-boot.js:128-133` | Emits top-level `additionalContext` — dropped by harness. SessionStart context requires the `hookSpecificOutput.hookEventName: "SessionStart"` wrapper. The flagship state-recovery hook currently injects **nothing**. |
+| HK-C3 | CRITICAL | `hooks/auto-lint.js:107-117` | Same wrapper defect on PostToolUse; lint reports never reach Claude. Fix: `hookSpecificOutput.hookEventName: "PostToolUse"` wrapper. |
+| HK-H1 | HIGH | `hooks/settings-template.json:27` + live settings | guard-commands matcher is `"Bash"` only — the separate **PowerShell tool** (primary shell on this machine) bypasses the guard. Fix: matcher `"Bash|PowerShell"` + PowerShell-native patterns (`Remove-Item -Recurse -Force`, `rd /s /q`, `Format-Volume`). |
+| HK-H2 | HIGH | `scripts/deploy.sh` (no hooks step); `~/.claude/hooks/` empty | Hooks are never deployed; live `settings.json` executes the **dev working copy** directly — contradicts CLAUDE.md's "no edit is live until deploy" law. Fix: deploy `hooks/` to `~/.claude/hooks/` and repoint settings.json. (= TL-H3) |
+| HK-H3 | HIGH | `hooks/session-boot.js:59` | Reads dead path `Artifacts/LEARNINGS.md`; registry is `Artifacts/learnings/index.md`. Learnings never injected even after HK-C2 fix. Fix: read `learnings/index.md`, fall back to legacy file. |
+| HK-H4 | HIGH | `hooks/guard-commands.js:21` | `--force(?!-with-lease)` misses `git push -f`; `git reset --hard` absent despite security.md mandating confirmation for it. |
+| HK-M1 | MED | `hooks/settings-template.json:10,23,33,44,54` | `timeout` values are milliseconds-style (`5000`, `20000`) but the field is **seconds** — `20000` ≈ 5.5 h. Fix: `5`, `3`, `20`. |
+| HK-M2 | MED | `hooks/guard-commands.js:30` | Fork-bomb regex has unescaped `()` (empty capture group) — never matches an actual fork bomb. Escape the parens. |
+| HK-M3 | MED | `hooks/guard-commands.js:13-16` | rm-guard gaps: root-glob variants, Windows drive roots (`rm -rf C:/`), `rd /s /q`, reversed `del /q /s` unmatched. Anchor on semantic target, not one literal spelling. |
+| HK-M4 | MED | `hooks/guard-paths.js:54,61-64` | Substring false positives: `/${segment}` prefix-match blocks `src/secretsauce.py`, `docs/credentials-guide.md`; `parts.includes('bin')` blocks any legit `bin/` scripts dir. Require full segment match; scope bin/obj to compiled contexts. |
+| HK-M5 | MED | `hooks/audit-trail.js:14-25,49-51,60` | No rotation (475 KB already); creates `Artifacts/.agent/` in ANY git repo (litters foreign repos). Fix: size-based rotation (~5 MB); only log when `Artifacts/` already exists. |
+| HK-M6 | MED | template vs live settings | audit-trail matcher `"*"` (template) vs `""` (live) — functionally same, but source/production drift. Solved by HK-H2 deploy step. |
+| HK-L1 | LOW | `hooks/auto-lint.js:123` | catch label says `[claude-code/audit-trail]` — copy-paste; misdirects debugging. |
+| HK-L2 | LOW | `hooks/session-boot.js:15-25` vs comments :52,58,64 | `lines.slice(0, maxLines)` takes FIRST N lines of append-at-bottom files — injects the *oldest* content while comments claim "last N". Tail, not head. |
+| HK-L3 | LOW | `hooks/auto-lint.js:45` | `where ${cmd}` is Windows-only; silently disables ruff on macOS/Linux. Use platform switch. |
+| HK-L4 | LOW | `hooks/settings-template.json` (all 5 commands) | `node` assumed on PATH; if absent, all guards fail open silently. Consider absolute path or wrapper. |
+| HK-L5 | LOW | `hooks/auto-lint.js:19,34` | Unquoted-safe but shell-interpolated file path in execSync; use `execFileSync` args. |
+| HK-I1 | INFO | `hooks/session-boot.js:107` | `AGENT_ROLE` branch is dead code — nothing sets it. |
+| HK-I2 | INFO | `hooks/session-boot.js:19` | `split('\n')` leaves trailing `\r` (CRLF) in injected briefs. |
+| HK-I3 | INFO | `hooks/session-boot.js:65` | Reads `Artifacts/DECISION_LOG.md` root — breaks if archived per CLAUDE-global's (wrong) placement. See RU-F3. |
+| HK-I4 | INFO | session-boot.js | Doesn't read `Artifacts/HANDOFF_BRIEF.md` — arguably the highest-value boot file. |
+| HK-G1..G4 | BACKLOG | coverage gaps | No Stop/SubagentStop hook (nudge /handoff); no PreCompact hook (60%-context protocol); no scratch-dir hard-gate enforcement; no commit-trailer guard (`Co-Authored-By: Claude`). New features → separate Step 0; filed to BACKLOG. |
 
-## Gate Verdicts
-
-### Gate 1 - Move integrity: PASS (with a benign git-cosmetic caveat)
-
-- `git status --short` shows 212 changed paths. `git diff -M95 --diff-filter=M --stat` isolates exactly 17 genuinely modified files - all are on the expected worklist (CLAUDE.md, GEMINI.md, cheatsheet.md, optional_plugins/index.md, optional_plugins/plugin_manifest_schema.json, scripts/manifest_validator.py, skills/skills.overview.md, templates/project-{data,manuscript,pptx,youtube}.json, tests/test_manifest_validator_v2.py, tests/test_v1_v2_migration.py, Artifacts/IMPLEMENTATION_PLAN.md, Artifacts/TODO.md, plus 2 tracked .pyc files - see pre-existing hygiene note below). No skill-content file appears in the Modified set.
-- **Caveat (not a defect):** git status mislabels some cross-skill renames (e.g. a pptx schema file shown as "renamed" into ms-office/docx/scripts/office/...) because the triplicated scripts/office/ XSD/py files are byte-identical across pptx/docx/xlsx, so git's similarity heuristic pairs deletions from one skill with additions in another. This is cosmetic - verified by direct content read of SKILL.md/METADATA.yaml in all 4 new locations; each skill's identity content is correct and unmixed.
-- Physical path check: optional_plugins/ms-office/{pptx,docx,xlsx} (65/64/58 files) and optional_plugins/visual-storytelling/banana-prompt (4 files) exist. optional_plugins/pptx/, skills/docx/, skills/xlsx/, skills/banana-prompt/ are all confirmed gone (find -> 0 results / dir absent).
-
-### Gate 2 - Tests pass: PASS
-
-Regenerated myself (not accepting coder's numbers):
-
-```
-============================= test session starts =============================
-platform win32 -- Python 3.14.6, pytest-9.1.1, pluggy-1.6.0
-collected 46 items
-...
-============================= 46 passed in 0.35s ==============================
-```
-Exit code: 0.
-
-### Gate 3 - Registry correctness: PASS
-
-`python scripts/manifest_validator.py --list-plugins`:
-```
-- youtube-core (youtube): youtube-strategy, youtube-scriptwriting, youtube-retention
-- ms-office-core (ms-office): pptx, docx, xlsx
-- visual-storytelling-core (visual-storytelling): banana-prompt
-- pbi-core (pbi-report): powerbi-report
-- code-mcp-tools (code-mcp): python-mcp, typescript-mcp
-- geometry-rhino (geometry): cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing
-- manuscript-tools (manuscript): business-analyst, manuscript-review
-```
-ms-office-core = 3 skills, visual-storytelling-core = 1 skill, no pptx-core. Matches success metric.
-
-Schema validation of new plugin.yaml files against plugin_manifest_schema.json (programmatic, via jsonschema.validate): both fail on compatibility.min_model_version: null - but this is a pre-existing, repo-wide schema/data mismatch, not introduced by this coder. Confirmed by validating optional_plugins/pbi-report/plugin.yaml (untouched, pre-existing file) against the same schema - it fails identically. The schema declares min_model_version as {"type": "string"} (no null allowed) while every plugin.yaml in the repo sets it to null. Not a Phase 0 regression. Out of scope. Flagged for a separate schema-fix task (LOW severity, pre-existing).
-
-3 new METADATA.yaml files (docx, xlsx, banana-prompt) structurally match the pptx/METADATA.yaml template exactly (same keys, same shape) - no dedicated METADATA JSON schema exists in the repo to validate against, consistent with "model on pptx/METADATA.yaml" instruction.
-
-### Gate 4 - No orphaned references: PASS
-
-```
-grep -rn "pptx-core" . [excludes: .git, __pycache__, Artifacts/, scripts/phase_11_2_update_templates.py]
--> 0 hits
-```
-skills/skills.overview.md correctly annotates docx/xlsx/banana-prompt as moved (blockquote pointers to optional_plugins/...), not left dangling.
-
-### Gate 5 - Hard Rules: PASS, with one MEDIUM finding (below)
-
-- Behavior-preserving move confirmed - no scripts/office/ dedup, no skill-content edits (Gate 1).
-- Confirmed untouched: commands/deck.md, agents/*.md, hooks/*.
+**Verified good:** fail-open is real in all 5 scripts (try/catch → exit 0, incl. stdin/JSON-parse); guard-paths normalizes backslashes + case; `.env.example` correctly not blocked; `--force-with-lease` carve-out correct; audit-trail logs lengths not contents; auto-lint honestly report-only.
 
 ---
 
-## MEDIUM Finding - Required fix before commit
+## 2. Agents (AG)
 
-**optional_plugins/plugin_manifest_schema.json category enum: "pptx" was REMOVED, not preserved.**
+| ID | Sev | Location | Defect → Fix |
+|:--|:--|:--|:--|
+| AG-1 | HIGH | `agents/auditor.md:4-5` vs `:14` | Self-contradiction: "Read-only" agent (tools: Read, Grep, Glob, Bash) is mandated to write `AUDIT_REPORT.md` + mark `TODO.md [x]` (orchestration fleet table agrees it writes). Fix: add `Edit, Write` and drop "Read-only" phrasing (recommended), aligning description, body, and orchestration.md. |
+| AG-2 | HIGH | `agents/council.md:5` vs `:45` | Council owns `Artifacts/DECISION_LOG.md` but has no Write tool. Fix: add `Write, Edit`, or reword ownership to "produces entry text; concierge persists". Recommended: add Write. |
+| AG-3 | HIGH | `agents/auditor.md:22` | Mandatory dispatch of nonexistent `visual-auditor` subagent, with a hard "forbidden to approve without its PASS" gate. Fix: dispatch `subagent_type: auditor` equipped with `visual-composition` skill. |
+| AG-4 | HIGH | `agents/coder.md:44`, `agents/auditor.md:30` | Hard gates reference `skills/python-rhino-grasshopper/resources/` — moved to `optional_plugins/geometry/skills/python-rhino-grasshopper/resources/`. Also `grep_search` is not a Claude Code tool name (use Grep). Fix both paths + note plugin-presence condition. |
+| AG-5 | MED | `agents/strategist.md:4` | Router-facing description names nonexistent `Artifacts/PLAN.md`; canonical is `IMPLEMENTATION_PLAN.md` (strategist.md:69 itself agrees). |
+| AG-6 | MED | `agents/auditor.md:40` | "Dispatch a `scribe` subagent using `subagent_type: auditor`" — contradictory. Pick `subagent_type: scribe` (matches clean-room goal), delete the other half. |
+| AG-7 | MED | `agents/auditor.md:95` | Phantom skill `csharp-grasshopper` (also in commands/audit.md:34, business-analyst SKILL.md:111). Point at `python-rhino-grasshopper`. |
+| AG-8 | MED | `agents/council.md:14`, abstract :6,:10 | Claims "final architectural authority"; orchestration + CLAUDE-global give that to strategist. Fix: council produces *consensus recommendation*; strategist retains authority. |
+| AG-9 | MED | `agents/concierge.abstract.md:8` | Says concierge maintains `Artifacts/LEARNINGS.md` + `DECISION_LOG.md` — both wrong (learnings/ dir; DECISION_LOG is council's). |
+| AG-10 | MED | `agents/concierge.md:42-47` | Owned Commands omits `/clean` and `/graduate`. |
+| AG-11 | MED | `agents/strategist.md:16` | "Required Skill" `business-analyst` lives in the manuscript plugin — unavailable unless an unrelated plugin is installed. Fix: promote to core `skills/` (see SK-9) or mark "when available". |
+| AG-12 | MED | fleet registries | `geometry-validator` in orchestration Model Routing + agents.overview, but absent from orchestration Fleet table, CLAUDE-global Agents table, model-routing YAML. Add rows or label "dispatched subagent, not routed fleet". |
+| AG-13 | MED | scribe/strategist/concierge/creative-director `:5` | Maintainer agents have `Write` but not `Edit` — every update is a full rewrite, violating standards.md Diff Protocol. Add `Edit` to all four. |
+| AG-14 | LOW | `agents/auditor.md:55-57`, `agents/concierge.md:13-15` | Orphaned one-row fleet-table copy-paste fragments. Delete. |
+| AG-15 | LOW | `agents/agents.overview.md:7-14` | Hardcoded `file:///c:/Users/44547/...` links — break after deploy and on other machines. Use relative links. |
+| AG-16 | LOW | `agents/auditor.md:127-129` | Severity scale truncated (missing LOW/INFO); reference orchestration's scale instead of redefining subset. |
+| AG-17 | LOW | `agents/coder.md:59` | Code-change subagents routed to `general-purpose`; use `subagent_type: coder` (keeps model binding + boundaries). |
+| AG-18 | LOW | `agents/concierge.md:34` | `/deck` ownership drift (see CM-5/RU-F7). |
+| AG-19 | LOW | `agents/geometry-validator.md:19,25` | "the resource directory" unnamed (give plugin path); "closed (is_manifold)" conflates `Brep.IsSolid` (closure) vs `IsManifold`. Split the checks. |
+| AG-20 | LOW | `agents/scribe.md:25` vs :27,:45 | "All .md MUST be in Artifacts/" stated without the root-README exception scribe itself owns. Append exception. |
+| AG-21 | INFO | all 8 frontmatters | Non-standard keys `role:`, `effort:`, `reasoning_depth:` are ignored by the harness — self-documentation only; effort must come from caller. |
+| AG-22 | INFO | model IDs | 8/8 agents on correct tier vs model-routing.md (verified). Consider harness aliases (`opus`/`sonnet`/`haiku`) for rotation resilience. |
 
-Plan Section 4.2 table A instructs, for this exact file: "L17 category enum: add \"ms-office\", \"visual-storytelling\"" - additive only. For scripts/manifest_validator.py's PluginCategory Literal, the plan explicitly says "leave pptx - now unused-as-category, harmless". The coder applied that "leave pptx" treatment to the Python Literal (correct - pptx still present) but silently dropped pptx from the JSON schema enum instead of leaving it, creating a drift between the two category sources:
-
-```
-# scripts/manifest_validator.py (Python Literal) - pptx KEPT
-- PluginCategory = Literal["youtube", "pptx", "pbi-report", "code-mcp", "geometry", "manuscript"]
-+ PluginCategory = Literal["youtube", "pptx", "pbi-report", "code-mcp", "geometry", "manuscript", "ms-office", "visual-storytelling"]
-
-# optional_plugins/plugin_manifest_schema.json (JSON enum) - pptx REMOVED
-- "enum": ["youtube", "pptx", "pbi-report", "code-mcp", "geometry", "manuscript"]
-+ "enum": ["youtube", "pbi-report", "code-mcp", "geometry", "manuscript", "ms-office", "visual-storytelling"]
-```
-
-**Impact:** No test currently checks parity between these two sources, so this passes CI silently. Not a runtime break today (no plugin.yaml declares category: pptx anymore). But it's a real, unrequested deviation from the plan's explicit instruction, and it plants a schema/type-system trap: a future plugin.yaml with category: pptx would pass Python-side type-checking but fail JSON-schema validation.
-
-**Minimal fix (1 line):**
-```
-- "enum": ["youtube", "pbi-report", "code-mcp", "geometry", "manuscript", "ms-office", "visual-storytelling"],
-+ "enum": ["youtube", "pptx", "pbi-report", "code-mcp", "geometry", "manuscript", "ms-office", "visual-storytelling"],
-```
-This restores additive-only parity with the Python Literal and with the plan's literal instruction. No test will break (nothing currently asserts the JSON enum excludes pptx).
-
----
-
-## Adjudication of Coder-Flagged Discrepancies
-
-1. **Skill-count conflict (visual-storytelling-core = 1 vs. plan prose "2 skills"):** Ruling: code is correct, doc is stale. pptx-slide-design does not exist until Phase 2 - registering it now would reference a nonexistent skill dir and fail. --list-plugins confirms 1 skill registered; tests/test_manifest_validator_v2.py::test_registry_skill_counts confirms "visual-storytelling-core": 1. This is a documentation discrepancy only - Artifacts/IMPLEMENTATION_PLAN.md Section 1 and Artifacts/TODO.md still say "2 skills" in prose tables. Does not block commit. Flagged below as a strategist doc-sync TODO item.
-
-2. **cheatsheet.md edit (not in original worklist):** Verified legitimate and minimal. Single-line change: pptx-core -> ms-office-core, visual-storytelling-core in the plugin-lookup table (line ~253). Directly required to satisfy Gate 4 (grep-zero for pptx-core). Correctly scoped - no other line in the file touched.
-
-3. **Tracked .pyc files showing as modified:** Confirmed pre-existing hygiene issue, not coder-introduced. No __pycache__/.pyc entry exists in .gitignore; git ls-files shows 4+ .pyc files are tracked in the repo today, predating this branch. Coder's pytest runs regenerated 2 of them (scripts/__pycache__/manifest_validator.cpython-314.pyc, tests/__pycache__/test_manifest_validator_v2.cpython-314-pytest-9.1.1.pyc) plus one untracked new one (tests/__pycache__/test_v1_v2_migration.cpython-314-pytest-9.1.1.pyc). Must be excluded from the eventual commit - these are test-run byproducts, not intentional Phase 0 changes. Recommend adding __pycache__/ and *.pyc to .gitignore as a follow-up (separate, non-blocking task).
+**Verified good:** router-grade descriptions ("Use PROACTIVELY"/"MUST BE USED") on all 8; model routing 100% consistent; abstracts genuinely L0 (~10 lines); overview complete; geometry-validator's explicit output format is a pattern worth copying.
 
 ---
 
-## Verdict: CONDITIONAL PASS
+## 3. Commands (CM)
 
-All 5 gates pass. One MEDIUM finding (schema enum drift) requires the 1-line fix above before commit. This is the 1st rejection on this specific point (per Conflict Resolution escalation ladder) - a targeted fix, not a full rework.
+| ID | Sev | Location | Defect → Fix |
+|:--|:--|:--|:--|
+| CM-1 | HIGH | `commands/audit.md:21,36` | /audit instructs auditor to append Action Items to `TODO.md` — orchestration authority table forbids auditor adding tasks. Fix: write to `AUDIT_REPORT.md`/`BACKLOG.md`, flag for strategist. |
+| CM-2 | HIGH | `rules/common/orchestration.md:72-87` | Command Fleet table lists 14/22 commands (missing /deck, /ideate, /script, /pack, /claude-md; /docs, /explain, /triage only in prose). Fix via registry consolidation (see RU-D2). |
+| CM-3 | HIGH | `commands/script.md:20`, `commands/pack.md:12,26` | Write `script.md`/`metadata.md` at repo root; gates require `Artifacts/SCRIPT.md`. /pack's precondition can never match its own registry gate. Standardize `Artifacts/SCRIPT.md` + `Artifacts/METADATA.md`. |
+| CM-4 | HIGH | `commands/learn.md:2` (+ orchestration :18,:85, concierge.abstract) | Dead `Artifacts/LEARNINGS.md` in frontmatter description (shown to every session); body correctly uses `learnings/`. Fix all refs (see RU-F1). |
+| CM-5 | HIGH | `commands/deck.md` vs CLAUDE-global:48 | Owner mismatch: registry "strategist / creative-director" vs file "concierge (init), coder (build), auditor (audit)". Align registry to file. |
+| CM-6 | HIGH | `commands/audit.md:34` | Phantom skill `csharp-grasshopper` (= AG-7). |
+| CM-7 | HIGH | `commands/deck.md:42` | `/deck audit` body has no heading — orphaned under `/deck build`. Insert `### /deck audit [--team]` + Agent: auditor. |
+| CM-8 | HIGH | `commands/registry-audit.md:17,22,40` | References nonexistent `global_workflows/`; never audits CLAUDE-global.md; writes report to CWD (violates Artifacts hard-gate). Fix all three. |
+| CM-9 | MED | all 22 files | No `$ARGUMENTS`/`$1` anchors despite 13 commands declaring `argument-hint`. Add explicit `Target: $ARGUMENTS` consumption line. |
+| CM-10 | MED | all 22 files | No `allowed-tools`/`model` frontmatter; read-only promises (/explain, /snapshot, /sync) unenforced; model-routing tiers unexpressed. Add `allowed-tools: Read, Grep, Glob` to read-only commands; add `model:` per routing table. |
+| CM-11 | MED | `commands/audit.md:41` | "Spawn a `scribe` subagent with `subagent_type: auditor`" (= AG-6 twin). Pick one. |
+| CM-12 | MED | `commands/snapshot.md:12`, `registry-audit.md:37-38` | Non-Claude-Code tool names `grep_search`/`list_dir` (Windsurf/Gemini carryover). Rename to Grep/Glob or tool-neutral wording. |
+| CM-13 | MED | `commands/skill-graph.md:12,89` | Scans only `skills/` (misses 17 plugin skills → drops youtube/geometry/pptx clusters); "requires `/graduate` approval" is wrong command. Scan both roots; replace with user approval. |
+| CM-14 | MED | `commands/graduate.md:30` | Tier-bleed destination "Root CLAUDE.md or GEMINI.md" — global changes go to `CLAUDE-global.md`. |
+| CM-15 | MED | `commands/handoff.md:48,54` vs CLAUDE-global:135-139 | Two competing archive schemes (`history/TODO_phase_[n].md` vs `History/Plans/Phase-N-Plan.md`). Standardize (see RU-F4). |
+| CM-16 | MED | `commands/blueprint.md:24,32` | /blueprint never creates the `Phase-N-Plan.md`/`Phase-N-TODO.md` files CLAUDE-global mandates at phase start. Add creation steps. |
+| CM-17 | MED | `commands/grill.md:50` | "Mandatory Gate 1 for any blueprint over 50 lines" — blueprint.md has no such trigger. Add the gate to blueprint.md (recommended) or soften. |
+| CM-18 | MED | `commands/sync.md:12` | Depends on `Artifacts/learnings/HOT.md` that nothing creates. Define bootstrap in /learn, or "if missing, skip" in sync. |
+| CM-19 | MED | `commands/audit.md:139-145` | Stale "Skill Registry Consistency" section (checks GEMINI.md only; duplicates /registry-audit). Delete; reference /registry-audit. |
+| CM-20 | LOW | `commands/learn.md:25` | Hardcoded `c:\Users\44547\...GLOBAL_INBOX.md` machine path. |
+| CM-21 | LOW | `commands/learn.md:22` vs :41-50 | Category enum (`patterns|anti-patterns|project-notes|execution-rules`) vs example labels (`gotcha:`/`preference:`/`mistake:`) mismatch. Align. |
+| CM-22 | LOW | `commands/clean.md:12` vs :17 | Temp purge unconditional before confirmation step; collides with high-rigor evidence namespace. Fold into propose-then-delete + active-phase guard. |
+| CM-23 | LOW | `registry-audit.md:8`, `grill.md:8` | Owner strings drift from registries (Auditor/Strategist vs auditor; strategist/council vs strategist). |
+| CM-24 | LOW | `commands/handoff.md:49` | `IsArtifact: true` / brain-directory mirroring is a non-Claude-Code (Windsurf/Gemini) concept — token-costing no-op here. Mark Gemini-only or drop. |
+| CM-25 | LOW | `commands/script.md:23` | References nonexistent `/review` command. Use /audit. |
+| CM-26 | LOW | `commands/council.md:13` | Hard dependency on per-project `COUNCIL_PROTOCOLS.md` with no missing-file fallback. State default-fleet fallback. |
+| CM-27 | INFO | grill/triage/registry-audit | Emoji-header style split vs 19 plain-header files. Pick house style. |
+| CM-28 | INFO | `commands/skill-graph.md:97-129` | Example Output restates Report Format (~30 lines). Trim. |
+| CM-29 | INFO | pack/script/ideate | Owner named in prose only, no frontmatter — consistent but implicit. |
 
-**Not yet authorized to proceed with commit.** Apply the 1-line fix to optional_plugins/plugin_manifest_schema.json, then commit is authorized without further audit (fix is mechanical, doesn't touch tested surface, doesn't require re-running the full gate sequence - a git diff optional_plugins/plugin_manifest_schema.json confirming the single line and a fresh pytest exit-0 is sufficient before commit).
-
-### Staging guidance for the eventual commit
-
-- **Stage:** all 212 changes EXCEPT the items below, plus the 1-line schema fix once applied.
-- **Exclude from commit:**
-  - scripts/__pycache__/manifest_validator.cpython-314.pyc (modified, tracked - pre-existing hygiene debt, unrelated to Phase 0 intent)
-  - tests/__pycache__/test_manifest_validator_v2.cpython-314-pytest-9.1.1.pyc (modified, tracked)
-  - tests/__pycache__/test_manifest_validator_v2.cpython-314.pyc (tracked - verify no unintended change; if unchanged, harmless either way)
-  - tests/__pycache__/test_v1_v2_migration.cpython-314-pytest-9.1.1.pyc (untracked, new - do not git add)
-  - optional_plugins/ms-office/pptx/scripts/office/__pycache__/soffice.cpython-313.pyc (renamed - follows the skill move, low-risk to include, but ideally excluded too if .gitignore gets fixed first)
-- **Recommend (non-blocking, separate task):** add __pycache__/ + *.pyc to .gitignore and git rm --cached the currently tracked ones. Log as a new backlog item - not Phase 0 scope.
-
----
-
-## TODO.md Update Authority Exercised
-
-Given the CONDITIONAL PASS, I am not marking Phase 0 tasks [x] yet - the "Register categories (2 files)" task has an outstanding MEDIUM defect (schema enum drift). Per orchestration.md TODO authority, only the auditor marks [x], and only after all gates clear cleanly.
-
-**Action taken:** Added the fix as an explicit sub-item under the affected task in Artifacts/TODO.md, and appended a doc-sync note for the strategist regarding the "2 skills" prose discrepancy. See Artifacts/TODO.md diff.
-
-**Re-audit needed:** No - once the 1-line schema fix lands, re-run pytest tests/ -v (must still show 46 passed) and git diff optional_plugins/plugin_manifest_schema.json (must show only the pptx re-addition). If both hold, all 6 coder tasks + the auditor task may be marked [x] without a further full-gate re-audit, since no other surface changes.
-
-
----
-
-## ADDENDUM [2026-07-04] — Fix Verified, Final Verdict
-
-The coordinator applied the MEDIUM fix: `optional_plugins/plugin_manifest_schema.json` line 17 category enum now reads `["youtube", "pbi-report", "code-mcp", "geometry", "manuscript", "pptx", "ms-office", "visual-storytelling"]` (order differs from the Python Literal but enum membership is order-independent, so parity holds).
-
-**Independently re-verified (not accepting coordinator's numbers):**
-- `git diff optional_plugins/plugin_manifest_schema.json` -> exactly the 1-line enum change, `"pptx"` restored, nothing else touched.
-- `./.venv/Scripts/python.exe -m pytest tests/ -q` -> **46 passed, exit 0** (run via project `.venv`, not global interpreter).
-- `./.venv/Scripts/python.exe scripts/manifest_validator.py --list-plugins` -> `ms-office-core` (pptx, docx, xlsx), `visual-storytelling-core` (banana-prompt), no `pptx-core`.
-- `git status --short` -> confirmed only the schema file changed beyond the prior audited diff; no scope creep introduced by the fix.
-
-**Gate 3: now PASS (no residual finding).** All 5 gates clean.
-
-### FINAL VERDICT: PASS
-
-All 6 coder-owned Phase 0 tasks and the auditor task are marked `[x]` in `Artifacts/TODO.md`. Phase 0 is terminal per `Artifacts/IMPLEMENTATION_PLAN.md` Section 8 merge gate (all tasks `[x]` + pytest exit 0 on both validator test files).
-
-### Commit Staging Plan (final)
-
-**Stage (git add) — all Phase 0 substantive changes:**
-- All renamed/moved skill files under `optional_plugins/ms-office/` and `optional_plugins/visual-storytelling/` (git will record as renames/adds)
-- Deleted `optional_plugins/pptx/plugin.yaml` (and the now-empty `optional_plugins/pptx/` dir, which git removes implicitly once contents are gone)
-- New: `optional_plugins/ms-office/plugin.yaml`, `optional_plugins/visual-storytelling/plugin.yaml`, `optional_plugins/ms-office/docx/METADATA.yaml`, `optional_plugins/ms-office/xlsx/METADATA.yaml`, `optional_plugins/visual-storytelling/banana-prompt/METADATA.yaml`
-- Modified: `scripts/manifest_validator.py`, `optional_plugins/plugin_manifest_schema.json`, `tests/test_manifest_validator_v2.py`, `tests/test_v1_v2_migration.py`, `optional_plugins/index.md`, `skills/skills.overview.md`, `CLAUDE.md`, `GEMINI.md`, `cheatsheet.md`, `templates/project-{pptx,youtube,data,manuscript}.json`
-- `Artifacts/IMPLEMENTATION_PLAN.md`, `Artifacts/TODO.md`, `Artifacts/AUDIT_REPORT.md` (plan/TODO/audit trail for this phase)
-
-**EXCLUDE from commit — recommend `git rm --cached` + `.gitignore` fix, not just unstaging:**
-
-Simply not staging the `.pyc` files is the *weaker* option — they will keep reappearing as "modified" noise on every future `pytest` run since they're still tracked. The clean fix:
-1. Add to `.gitignore`: `__pycache__/` and `*.pyc` (repo currently has neither).
-2. `git rm --cached` the 4 tracked pycache artifacts:
-   - `scripts/__pycache__/manifest_validator.cpython-314.pyc`
-   - `tests/__pycache__/test_manifest_validator_v2.cpython-314-pytest-9.1.1.pyc`
-   - `tests/__pycache__/test_manifest_validator_v2.cpython-314.pyc`
-   - `optional_plugins/ms-office/pptx/scripts/office/__pycache__/soffice.cpython-313.pyc` (was already tracked pre-move; now sits at its new renamed path)
-3. Leave the untracked `tests/__pycache__/test_v1_v2_migration.cpython-314-pytest-9.1.1.pyc` alone — once `.gitignore` is fixed it will never be staged.
-
-**Recommendation:** Treat the `.gitignore` + `git rm --cached` cleanup as a **separate, tiny follow-up commit** (or a pre-Phase-0-commit hygiene commit) rather than folding it into the Phase 0 restructure commit — keeps the Phase 0 diff purely about the plugin restructure (Surgical Precision: no unrelated changes in the same commit). If the user prefers a single commit, it is acceptable to include the `.gitignore` change + `git rm --cached` in the same commit as Phase 0, since it's mechanically trivial and doesn't touch any tested surface — but do not silently fold it in without calling it out in the commit message.
-
-**Commit still requires explicit user authorization — not triggered by this audit.**
+**Verified good:** uniform description+argument-hint frontmatter; registry complete on owners 21/22; explicit "Does NOT" boundaries in sync/handoff/explain/skill-graph (mandate for the rest); real gates where they matter; crisp audit-family separation; consistent severity vocabulary.
 
 ---
 
-# Audit Report — Phase 1: Contract
+## 4. Rules corpus (RU) — 1,875 always-loaded lines
 
-**Branch:** `phase-1-pptx-slide-design-contract` — **State:** working-tree only, no commit made
-**Auditor:** auditor (Sonnet 5) — **Date:** 2026-07-04
-**Scope:** `optional_plugins/visual-storytelling/pptx-slide-design/references/design-tokens.md` (new), `Artifacts/IMPLEMENTATION_PLAN.md` (doc-sync), `Artifacts/TODO.md` (doc-sync)
+### Contradictions & naming drift
 
-## Project Profile
+| ID | Sev | Defect → Fix |
+|:--|:--|:--|
+| RU-F1 | HIGH | `LEARNINGS.md` vs `learnings/`: orchestration.md self-contradicts (:18,:85,:257 vs :212,:329). Also concierge.abstract.md:8, learn.md:2 frontmatter. Fix: `Artifacts/learnings/` everywhere. |
+| RU-F2 | HIGH | Two incompatible Findings protocols: TOKEN-ECONOMICS:50-53 (`Artifacts/findings.md`, promoted at `/sync`) vs orchestration:327-329 + high-rigor:99 (`BACKLOG.md`, promoted at `/handoff`). Fix: rewrite TOKEN-ECONOMICS section to point at BACKLOG + /handoff. |
+| RU-F3 | HIGH | CLAUDE-global:135-137 files `DECISION_LOG.md` under Archive (`History/`); orchestration:210, security.md:66, corruption-recovery treat it as live root. Fix: move to Root Files list. |
+| RU-F4 | MED | `Artifacts/History/` vs `history/` casing (CLAUDE-global:135 vs :181, orchestration ×4, CLAUDE.md:65) + conflicting archive naming (`History/Plans/Phase-N-Plan.md` vs `history/PLAN_Phase_[N].md`). **Both casings are git-tracked** (TL-H5). Fix: standardize `History/` + one scheme; `git mv`. |
+| RU-F5 | MED | `Artifacts/PLAN.md` stale in strategist description (= AG-5). |
+| RU-F6 | MED | geometry-validator missing from fleet tables (= AG-12). |
+| RU-F7 | MED | `/deck` ownership three ways (= CM-5). |
+| RU-F8 | LOW | `/grill` owner: strategist vs "strategist or council". |
+| RU-F9 | LOW | orchestration:161 cites "Approval Label Rubric"; standards.md heading is "Approval Rubric". |
+| RU-F10 | LOW | `/handoff` write target ambiguous: "Writes to `Artifacts/history/`" vs HANDOFF_BRIEF at root. |
+| RU-F11 | INFO | Fleet says scribe writes "All Markdown in Artifacts/" — over-broad vs persistence table (HANDOFF_BRIEF/LAYOUT_SPEC/DECISION_LOG owned elsewhere); `AUDIT_REPORT.md` has no persistence-table row. |
+| RU-F12 | INFO | TOKEN-ECONOMICS.md odd ALL-CAPS filename; typo "token Estimate" at :9. |
 
-- **Language:** Markdown (contract document only — no source code in this phase)
-- **Domain:** Skill-authoring meta-repo (`skill-authoring` project type); target skill domain is `pptx`/visual-storytelling
-- **Frameworks:** None invoked — this is a documentation contract, not implementation
-- **Build/Test:** N/A for this phase (no code, no schema, nothing to `pytest`)
+### Duplication (RU-D) — ≈230–280 duplicated lines (12–15% of corpus)
 
-This is the **final independent gate** on top of an already-completed two-stage review (strategist authored → coder verified 5/5 items, including 2 re-verified after fixes). My job is not to repeat that pass but to check it wasn't rubber-stamped.
+| ID | Content | Copies | Canonical home |
+|:--|:--|:--|:--|
+| RU-D1 | Model/agent routing + cost figures | model-routing §1-2, orchestration:24-52, CLAUDE-global | model-routing.md; orchestration keeps 1-line pointer |
+| RU-D2 | Command registry | CLAUDE-global table + orchestration:72-87 + Concierge-Ops re-descriptions + duplicate `/learn` row inside CLAUDE-global | One registry (CLAUDE-global); orchestration keeps routing prose |
+| RU-D3 | Project-type routing table | CLAUDE-global + orchestration (near-identical) | orchestration.md |
+| RU-D4 | Artifacts persistence layout | CLAUDE-global:113-155 + orchestration:192-232 | orchestration.md; CLAUDE-global 3-line pointer |
+| RU-D5 | Mirroring Rule | **twice within standards.md (:39, :46)** + CLAUDE-global:157-162 + orchestration:197 | once, standards.md |
+| RU-D6 | Learnings lifecycle | CLAUDE-global:171-186 + orchestration row + concierge.md | one place |
+| RU-D7 | No-Fluff bullets | standards.md Behavioral-Personality vs Ruthless-Communication | merge |
+| RU-D8 | Status vocabulary | standards.md vs orchestration Taxonomies §1 | one table |
+| RU-D9 | High-rigor summary | orchestration:127-146 restates high-rigor bullets | pointer only |
+| RU-D10 | Routing-lookup script commands | orchestration:45-51 + model-routing + CLAUDE.md | repo CLAUDE.md only (dev commands = tier-bleed in global) |
+
+### Token economy (RU-T)
+
+| ID | File | Assessment |
+|:--|:--|:--|
+| RU-T1 | model-routing.md (263 ln) | ~40 lines behavioral; cost tables, decision tree, YAML pseudo-config, cost-monitoring template, dated verification anecdote = documentation. Cut to ~40-line rule; docs → `scripts/README.md`. |
+| RU-T2 | high-rigor-engineering.md (349 ln) | Conditional workflow, always loaded. Convert to on-demand skill; orchestration's 15-line pointer suffices. |
+| RU-T3 | TOKEN-ECONOMICS.md | Bootstrap-cost tables are self-referential narration; actionable content ~20 lines. |
+| RU-T4 | Combined | Realistic reduction ~550–650 lines (~30–35%) with no behavioral loss. |
+
+### Precedence (RU-P)
+
+| ID | Pair | Status |
+|:--|:--|:--|
+| RU-P1 | coding-style vs standards | ✅ stated bidirectionally — the model to copy |
+| RU-P2 | high-rigor vs orchestration | ⚠️ "variant of" but no conflict-winner (e.g. phase-branch merge vs one-commit-per-phase) |
+| RU-P3 | orchestration vs model-routing | ❌ silent (both carry "mandatory" tables) |
+| RU-P4 | CLAUDE-global vs rules/common/* | ❌ silent — fails its own D6 |
+| RU-P5 | Global vs project CLAUDE.md | ❌ general rule stated nowhere |
+
+### Staleness & compliance (RU-S)
+
+| ID | Finding |
+|:--|:--|
+| RU-S1 | Manifest system: CLEAN — zero lingering references. All referenced scripts/pointers exist; model IDs consistent incl. `model_router.py`. |
+| RU-S2 | high-rigor footer ("Last updated… Superseded by: None") + model-routing 2026-07-06 anecdote = changelog content in always-loaded rules. |
+| RU-S3 | Hardcoded `file:///c:/Users/44547/...` links in coding-style.md (testing-strategy link) + agents.overview.md; `c:\Users\...GLOBAL_INBOX.md` in orchestration:256. Deployed copies point back at dev repo. Use relative refs. |
+| RU-S4 | **CLAUDE-global.md scores 6/12 with two zeros** vs claude-md-standards §4 (D2=0 rule-echo, D6=0 no precedence; D4=1 missing geometry-validator + lists 5/10 rules; D5=1 duplicate /learn row). 203 lines (D1 ✅). Repo CLAUDE.md: **12/12** — the model. |
+| RU-S5 | Repo↔deployed rules in sync except CRLF-only diff in claude-md-standards.md. |
 
 ---
 
-## Strengths
+## 5. Skills & plugins (SK)
 
-- **Explicit read-contract framing:** Lines 3 and 5 of `design-tokens.md` state up front — twice, in different words — that this document is a contract/vocabulary map, not a token source, and that values come from `LAYOUT_SPEC.md`/`style_constants.py`. This directly satisfies Hard Rule 2 without requiring inference.
-- **Every field cites a real source section.** Spot-checked against `skills/visual-composition/SKILL.md` (not against the coder's prior verification): `palette.accent` → "one accent element per screen max" (SKILL.md L107) ✓; `grid.density_limit` → 5 blocks / 2 charts / 6 lines (SKILL.md L74, exact numbers) ✓; accessibility contrast 4.5:1 / 3:1 at 18pt+ (SKILL.md L90) ✓; banned-defaults list (Inter, Roboto, Arial, Segoe UI; centered-everything; accent-line-under-title) matches SKILL.md L143–149 verbatim in substance. No fabricated section names — all 12 cited `§`-headers (`Grid Rules`, `Spacing`, `Reading Flow`, `Density Control`, `Pacing`, `Accessibility`, `Color Rules`, `Typography Rules`, `Repeating Patterns`, `Anti-Slop Deny List`, `Concrete Palette Options`, `Typography Pairings`) exist verbatim in `SKILL.md`.
-- **Taxonomy closure is exact, not approximate.** The 6 archetypes listed in `design-tokens.md` §2 Types 2–7 (Hero+Evidence, Two-Column Compare, Grid of Cards, Top Summary+Detail, Left Narrative+Right Visual, Full-Bleed Visual) match `SKILL.md`'s "Repeating Patterns" table (L129–134) 1:1, same names, same order. No invented 8th type; Type 1 (Title/Section) is correctly called out as the one type outside the visual-composition archetype set.
-- **Fallback section correctly marks its own uncertainty.** L114 flags "no source-specified default — inference" for the 2-column fallback choice, rather than silently presenting an inference as a sourced fact. This is the kind of intellectual honesty the interaction standards require.
-- **Zero scope creep.** `git status` shows exactly one new file (the contract doc) plus two doc-sync-only diffs in `Artifacts/`. No `.pptx`, no renderer code, no JSON schema, nothing touching Phase 0's already-merged-pending surface.
+Inventory: 14 core skills (not 17), 17 plugin skills across 7 plugins. No SKILL.md > 337 lines; all descriptions < 1024 chars.
 
----
+| ID | Sev | Location | Defect → Fix |
+|:--|:--|:--|:--|
+| SK-1 | HIGH | `skills/python-patterns/SKILL.md:3` | Description says Rhino-internal scripts "follow Python 3.12 syntax" — coding-style matrix + sibling skill mandate CPython **3.9**. Wrong-lane trigger risk, in always-loaded picker text. Fix: "…run CPython ~3.9 with stdlib only; refer to python-rhino-grasshopper." |
+| SK-2 | HIGH | all 17 `optional_plugins/*/skills/*/METADATA.yaml` | Vestigial retired-manifest layer; plugin README says the layer doesn't exist; nothing loads them; confirmed version drift ×3 (rhino-e2e-testing 1.1.0 vs 1.0.1; pptx-slide-design 2.0.0 vs 1.0.0 + stale pre-v2 description; banana-prompt 1.0.1 vs 1.0.0); dead `min_os_version` field. Fix: delete all 17 (add `version` to plugin.json — SK-14). |
+| SK-3 | HIGH | `skills/skills.overview.md:29,41` | Ghost plugin names `ms-office-core` / `visual-storytelling-core` — actual plugin.json names are `ms-office` / `visual-storytelling`; these are the exact `enabledPlugins` values a user would copy. |
+| SK-4 | MED | `skills/skills.overview.md:31-34` | Empty "Domain: Geometry" table with no redirect note (unlike the other moved sections). Add pointer to `optional_plugins/geometry/`. |
+| SK-5 | MED | 9/14 core + 17/17 plugin skills | Missing L0 `abstract.md` mandated by TOKEN-ECONOMICS "Mandatory Query Flow" — OS violates own standard 26/31 times. Fix: amend the rule (L0 optional below size threshold) + write abstracts for the largest skills. |
+| SK-6 | MED | `skills/project-planner/SKILL.md:120,194` | Duplicate `### Task Briefing Patterns` heading, different content. Rename second (e.g. "Task Type Vocabulary"). |
+| SK-7 | MED | `skills/project-planner/SKILL.md:22-28,56-59` | Rule-echo of CLAUDE-global's ROI Escalation + Interface-First verbatim. Replace with pointers. |
+| SK-8 | MED | verification-gate + test-driven-development + testing-strategy.md | Three-way overlap on evidence rules + TDD loop. Fix: testing-strategy owns lanes + evidence taxonomy; skills own behavioral loops; cross-reference. |
+| SK-9 | MED | `optional_plugins/manuscript/` | `business-analyst` is a strategist ROI skill with zero manuscript content, gated behind the manuscript plugin (manuscript routing never includes it). Move to core `skills/` (= AG-11); update rosters. |
+| SK-10 | MED | `manuscript/.claude-plugin/plugin.json:3` + marketplace | Claims "glossary extraction" — that skill is core, not in this plugin. Drop the claim. |
+| SK-11 | MED | `skills/skill-creator/` | Byte-identical duplicate of the installed `skill-creator` plugin (Apache-2.0 vendored copy) — loaded twice, ambiguous triggering, drifts stale. Delete core copy; update overview + CLAUDE-global row. |
+| SK-12 | MED | CLAUDE-global registry | Unregistered skills: `test-driven-development`, `receiving-code-review` (belong in foundational list), `pptx-slide-design`, `docx`, `xlsx`. Add. |
+| SK-13 | MED | business-analyst + manuscript-review SKILL.md:3 | Weakest descriptions in fleet: passive voice, no trigger conditions, no Do-NOT boundary. Rewrite in house pattern. |
+| SK-14 | LOW | all 7 `plugin.json` | No `version` field (versioning lived only in doomed METADATA.yaml). Add `"version"`. |
+| SK-15 | LOW | `skills/skill-creator/SKILL.md:1-4` | Nonconforming frontmatter, no `license:` key despite bundled LICENSE.txt. Moot if SK-11 delete taken. |
+| SK-16 | LOW | `pptx-slide-design/SKILL.md:139` | Self-referencing path omits `skills/` segment. Make relative (`references/`). |
+| SK-17 | LOW | codebase-navigator + glossary-extraction :3 | Only core skills lacking "Do NOT use" boundaries; glossary-extraction shortest description in fleet. Append boundaries. |
+| SK-18 | LOW | model-routing override table | Of 4 "maintain" overrides only typescript-mcp carries explicit `model:`; upgrades wired correctly. All four or none. |
+| SK-19 | LOW | 37 occurrences | Non-spec frontmatter keys (`auto_activate`, `verbosity_control`, `tags`, `globs`) have no runtime effect; `cd-foundations` `auto_activate: true` falsely implies implementation. Move under `metadata:` or delete; document as aspirational. |
+| SK-20 | INFO | inventory | Core skill count is 14 (registries citing 17 conflate plugin count). |
+| SK-21 | INFO | verified | All referenced support/reference files exist (implementation-dispatch prompts, 11 plugin skills' references/, etc.). |
+| SK-22 | INFO | verified | marketplace.json fully current (7/7, paths resolve, descriptions match); index.md matches filesystem exactly. |
 
-## Gate Verdicts
-
-### Gate 1 — Success metric (7 types, 0 schema files): PASS
-
-- `design-tokens.md` §2 table enumerates exactly 7 rows (Title/Section Opener + 6 archetypes); explicit coverage line 89: "Type 1 = title; Types 2–7 = the 6 visual-composition archetypes... 7 total."
-- `find optional_plugins/visual-storytelling/pptx-slide-design -type f` → **one file**: `references/design-tokens.md`. `find ... -name "*.json"` → **0 results**. Metric satisfied exactly as stated in `Artifacts/IMPLEMENTATION_PLAN.md` §5 and `Artifacts/TODO.md` Phase 1.
-
-### Gate 2 — Source integrity spot-check (independent, not re-trusting coder's pass): PASS
-
-Read `skills/visual-composition/SKILL.md` directly (not the coder's notes) and cross-checked 5 fields plus all 12 section citations — see Strengths. No fabricated field, no invented section, no numeric drift (density limits, contrast ratios, and column-count max all match source exactly, not "close enough").
-
-### Gate 3 — Hard Rules: PASS
-
-1. No `.pptx`/renderer logic present — confirmed by reading the full file; it is markdown tables and prose only, zero executable content, zero file-generation instructions.
-2. Frames itself as a **read** contract, not a new source of truth — confirmed via L3, L5, and the "Source of truth precedence" list (L7–10), which explicitly subordinates this doc to `LAYOUT_SPEC.md` → `style_constants.py` → `visual-composition/SKILL.md` fallback, in that order.
-
-### Gate 4 — Scope: PASS
-
-```
-git status --short
- M Artifacts/IMPLEMENTATION_PLAN.md
- M Artifacts/TODO.md
-?? optional_plugins/visual-storytelling/pptx-slide-design/
-```
-Both `Artifacts/*.md` diffs are doc-sync only (correcting stale "2 skills" prose from a Phase 0 audit finding to "1 now, 2 after Phase 2" — no code touched, no Phase 2 work pulled forward). Nothing outside Phase 1's declared file list.
+**Verified good:** 26/31 descriptions follow house trigger pattern with paired-skill boundaries; progressive disclosure genuinely practiced (Deep-Load Protocol tables); verification-gate/TDD/receiving-code-review form a coherent enforcement triad; doc-updater vs /docs is a model command/knowledge split.
 
 ---
 
-## Adjudication: `grid.columns=1` citation (§1.3)
+## 6. Tooling & hygiene (TL)
 
-**Finding:** The `columns=1` exception in §1.3 cites only `(§Grid Rules)`, but `SKILL.md`'s Grid Rules section (L27–33) says only "Slides: 2–3 columns max" — it contains **no** exception language. The actual grounding for permitting a single-column/stacked layout comes from the archetype *structures* themselves: "Hero + Evidence" (large stat top, detail below — implicitly stacked) and "Full-Bleed Visual" (single image, minimal text) in `SKILL.md`'s **Repeating Patterns** section (L119–137), which `design-tokens.md` §1.5 already cites for `archetypes.chosen`.
+| ID | Sev | Location | Defect → Fix |
+|:--|:--|:--|:--|
+| TL-H1 | HIGH | `scripts/model_router.py:52,184` | Only scans `skills/` — plugin-hosted overrides invisible. **Verified wrong answer**: `manuscript-review` returns haiku; mandated override is sonnet. Fix: second lookup root `optional_plugins/*/skills/`, or parse frontmatter live like model_routing_audit.py. |
+| TL-H2 | HIGH | `scripts/deploy.sh:125` vs CLAUDE.md + DEPLOY.md:39 | deploy.sh **does** copy `optional_plugins/` to `~/.claude/optional_plugins/` (dead weight; real installs live in `~/.claude/plugins/`); three docs claim it doesn't. Fix: drop from copy loop + remove deployed copy, or correct docs. Recommended: drop. |
+| TL-H3 | HIGH | live settings + deploy.sh | Hooks bypass deploy gate entirely (= HK-H2). |
+| TL-H4 | HIGH | `Artifacts/` root | ~14 files violate the OS's own archive policy: PHASE_11_* ×3, SKILL_AUDIT/REGISTRY/OPTIMIZATION ×3, REGISTRY_HEALTH_REPORT, NEXT_SESSION_*, SNAPSHOT, WALKTHROUGH ×2, anthropic_skills_analysis, ROLLBACK_PROCEDURE, task.md (stale since May 1; rules place pointer at `.agent/current_task.md`); unrecognized empty `SESSIONS/`. Archive sweep → `Artifacts/History/`. |
+| TL-H5 | HIGH | git index | **Both `Artifacts/History/` and `Artifacts/history/` are tracked** — merges on NTFS, splits on case-sensitive checkouts. `git mv` to one casing (pairs with RU-F4). |
+| TL-M1 | MED | `tests/` | Zero test files (pytest collects 0, exit 5) while CLAUDE.md + cheatsheet.md advertise the suite. Restore minimal suite or stop advertising. |
+| TL-M2 | MED | `Artifacts/Temp/scratch_test.md` | Git-tracked despite `.gitignore` (predates rule); currently uncommitted `D`. `git rm --cached` + commit. |
+| TL-M3 | MED | `scripts/deploy.sh:20` | `--force` parsed, never read — dead flag documented in CLAUDE.md. Implement or remove. |
+| TL-M4 | MED | `scripts/deploy.sh:109` | Backup copies ALL of `~/.claude` incl. 71 MB transcripts; 8 × ~115 MB on disk; rollback would clobber newer transcripts. Back up only deployed paths; prune to last N. |
+| TL-M5 | MED | `DEPLOY.md:26-30,49-50` | References deleted `migrate_skills_to_plugins.py` / `phase_11_*.py`; manual-copy snippet reproduces the nesting bug deploy.sh fixed. Refresh to mirror deploy.sh. |
+| TL-M6 | MED | `cheatsheet.md:169-183,293` | Dead migration-script ref; pytest section targets empty suite; intent table missing 9/22 commands. Refresh. |
+| TL-M7 | MED | `scripts/skill_graph_analyzer.py:11,18,40,157,212` | False type annotations (`dict[...]` vs actual nested defaultdict), dead identical-branch conditional, unused imports — fails repo's own pyright-strict mandate. Also scans only `skills/` (pairs with CM-13). |
+| TL-M8 | MED | CLAUDE.md commands table | `python scripts/skill_graph_analyzer.py` errors (requires root arg). Document `... .`. |
+| TL-M9 | MED | `scripts/model_router.py:67-68` | `except Exception: pass` violates repo error-handling rule; AGENT_MODELS/MODEL_PRICING hardcode-duplicate model-routing.md (already drifting re geometry-validator). Parse live config (benchmark: model_routing_audit.py). |
+| TL-L1 | LOW | `deploy.sh:5,61-67` | `set -e` makes the friendly pytest-failure hint unreachable. |
+| TL-L2 | LOW | `deploy.sh:88-90` | Creates `$DEST/scripts` never populated — vestigial. |
+| TL-L3 | LOW | disk | `__pycache__` NOT committed (gitignore correct); local ghosts of retired manifest system delete-at-will. |
+| TL-L4 | LOW | `templates/Phase-N-Plan.md.template` | No Hard Rules section despite standards.md requiring 2–3 per phase. Add. |
+| TL-L5 | LOW | `templates/README.md` | Omits CLAUDE.md.template. Add row. |
+| TL-L6 | LOW | deploy drift | CRLF-only diffs ×2 (claude-md-standards.md, claude-md.md); content in sync 96/98 byte-identical. Consider `.gitattributes`. |
+| TL-L7 | LOW | scripts | Non-frozen mutated dataclasses; `Optional[...]` vs mandated `T \| None`; two `# type: ignore`. |
+| TL-L8 | LOW | `Artifacts/Plans/CMD-Plan.md` | CMD closed/merged → belongs in History/Plans/; name breaks Phase-N convention. |
+| TL-I1 | INFO | env | ruff not installed though templates recommend it. |
+| TL-I2 | INFO | deploy.sh step 6 | Validation is existence-only, never content-verifies (DEPLOY.md's diff spot-check is stronger). |
 
-**Ruling: Non-blocking, LOW severity — citation-precision defect, not a sourcing defect.** The underlying claim (columns=1 permitted for hero/full-bleed layouts) is legitimately traceable to real source content — it is not invented. The defect is that §1.3 under-cites by omitting a second reference to `§Repeating Patterns` alongside `§Grid Rules`. This does not misrepresent the source, invent a rule, or violate a Hard Rule; it is a cross-reference completeness gap. Deferred as a polish item rather than routed back to strategist for a 3rd rejection cycle on the same document — escalating a citation-precision nit to a blocking fix here would violate Scope Control (proportionality) and the "Seniority Filter" check in `coding-style.md`.
-
-**Action:** Logged below as a deferred TODO item for the next doc-touch (Phase 2 SKILL.md authoring), not a Phase 1 blocker.
+**Verified good:** model_routing_audit.py is the in-repo quality benchmark; deploy.sh correctness fixes landed (rm-before-cp, correct global mapping, timestamped backup); deployment genuinely in sync; CLAUDE.md.template exemplary; .gitignore correct; learnings/ + MEMORY_ANCHORS.md follow the rules.
 
 ---
 
-## Verdict: PASS
+## Cross-cutting themes → phase mapping
 
-All 4 gates clean. The one open item (grid.columns citation precision) is non-blocking per the ruling above.
-
-**Authorized to proceed with commit.**
-
-### Staging list for the eventual commit
-
-- `optional_plugins/visual-storytelling/pptx-slide-design/references/design-tokens.md` (new)
-- `Artifacts/IMPLEMENTATION_PLAN.md` (doc-sync: "2 skills" → "1 now, 2 after Phase 2" prose correction)
-- `Artifacts/TODO.md` (Phase 1 status + task marks)
-
-Commit itself remains gated on the user's explicit `approved, proceed with commit` — this audit authorizes readiness, it does not trigger the commit.
+| Theme | Findings | Phase |
+|:--|:--|:--|
+| Enforcement layer broken | HK-C1..C3, HK-H1..H4, HK-M1..M6, HK-L*, TL-H3 | **OSH-1** |
+| Broken gates / capability mismatches / dead refs | AG-1..11,13..20, CM-1,3,6..8,11,12,25 | **OSH-2** |
+| State-file naming drift | RU-F1..F5,F9,F10, CM-4,15, AG-9 | **OSH-3** |
+| Registry reconciliation + skill hygiene | AG-12, CM-2,5,9,10,13,14,16..23,26..28, RU-F6..F8, SK-1..19 | **OSH-4** |
+| Token-economy diet + precedence | RU-D1..D10, RU-T1..T4, RU-P2..P5, RU-S2..S4, RU-F11,F12 | **OSH-5** |
+| Tooling & repo hygiene | TL-H1,H2,H4,H5, TL-M1..M9, TL-L1..L8, HK-M5 | **OSH-6** |
+| New hook features (deferred) | HK-G1..G4 | BACKLOG |

@@ -1,4 +1,36 @@
-# Implementation Plan: `pptx-slide-design` Skill + `ms-office` / `visual-storytelling` Plugins
+# Implementation Plan — Active Initiative: OSH — OS Hardening
+
+**Project type:** `code` (AI OS meta-repo) · **Owner:** strategist · **Status:** planned, ready for coder · **Step 0 approved:** 2026-07-07
+
+## Purpose
+
+Remediate the 2026-07-07 full-setup audit (`Artifacts/AUDIT_REPORT.md`): non-functional hook
+enforcement, unexecutable agent mandates, phantom references, state-file naming drift,
+registry gaps, ~30% always-loaded token waste, and tooling that returns wrong answers.
+
+## Phase Roadmap (detail lives in Artifacts/Plans/OSH-N-Plan.md — this is the index)
+
+| Phase | Scope | Key findings | Depends on |
+|:---|:---|:---|:---|
+| OSH-1 | Hooks: output schemas, guard coverage, deploy integration | HK-C1..C3, H1..H4, M1..M6 | — |
+| OSH-2 | Agent/command gates: tools vs mandates, dead refs, authority | AG-1..20, CM-1,3,6-8,11,12,19,25 | OSH-1 |
+| OSH-3 | Naming unification: learnings/, BACKLOG, History/ casing, DECISION_LOG | RU-F1..F5,F9,F10; TL-H5 | OSH-2 |
+| OSH-4 | Registries + skill hygiene: METADATA.yaml purge, ghost names, descriptions, command frontmatter | SK-1..19, CM-2,5,9,10,13-28, RU-F6-F8 | OSH-3 |
+| OSH-5 | Token diet: dedup to canonical homes, demote docs, precedence blocks | RU-D1..D10, T1..T4, P2..P5 | OSH-4 |
+| OSH-6 | Tooling: model_router plugin lookup, deploy.sh truth, real tests, Artifacts sweep | TL-H1,H2,H4,M1..M9 | OSH-1,3,5 |
+
+**Binding decisions** are recorded in each phase plan's "Technical Approach" (e.g., auditor
+gains Write/Edit; hookSpecificOutput deny form; `History/` casing; CLAUDE-global = command
+registry master; high-rigor → skill). Coder implements, does not re-litigate; disagreement
+routes to strategist with evidence.
+
+**Deferred (BACKLOG, separate Step 0):** new hook features HK-G1..G4 (Stop/PreCompact hooks,
+scratch-gate, commit-trailer guard); GEMINI.md parity.
+
+---
+---
+
+# Parked Plan: `pptx-slide-design` Skill + `ms-office` / `visual-storytelling` Plugins
 
 **Project type:** `skill-authoring` · **Owner:** strategist · **Status:** Phase 0 pending branch init
 
