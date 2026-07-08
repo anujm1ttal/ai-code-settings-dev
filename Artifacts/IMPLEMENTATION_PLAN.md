@@ -1,29 +1,39 @@
-# Implementation Plan — Active Initiative: LH — Loop Hardening
+# Implementation Plan
 
-**Project type:** `code` (AI OS meta-repo) · **Owner:** strategist · **Status:** LH-1 ready for coder · **Step 0 approved:** 2026-07-08 · **Grill:** [REFACTORED] 2026-07-08
+_No active initiative. LH closed 2026-07-08 (below). Queued: VSE — see `Artifacts/TODO.md`._
 
-## Purpose
+---
+---
 
-Convert the OS's prose-enforced gates into harness-enforced loops where the runtime actually
-permits it, then reclaim the always-loaded prose those hooks replace. Successor to OSH;
-absorbs the deferred HK-G backlog items. Grounding: loop-engineering assessment 2026-07-08 —
-a rule the harness enforces beats a rule the model chooses to obey.
+# Completed Initiative: LH — Loop Hardening (2026-07-08)
 
-## Phase Roadmap (detail lives in Artifacts/Plans/LH-N-Plan.md — this is the index)
+All 3 phases shipped, deployed, merged to `main` (terminal commit `2cee6eb`). Converted the
+OS's prose-enforced gates into harness-enforced loops where the runtime permits. Successor to
+OSH; absorbed the deferred HK-G backlog items. Grounding: loop-engineering assessment
+2026-07-08 — a rule the harness enforces beats one the model chooses to obey.
 
-| Phase | Scope | Feasibility | Depends on |
-|:---|:---|:---|:---|
-| LH-1 | Mechanical hooks + spike: auto-lint → loud additionalContext feedback; scratch-gate (HK-G3) + commit-trailer guard (HK-G4) as PreToolUse hard-denies; handoff nudge (HK-G1) on Stop; empirical Stop-block spike | Doc-verified 2026-07-08 | — |
-| LH-2 | Evidence gate: Iron Law mechanized — hard-deny turn-end on unevidenced "done" claims if the spike proves Stop can block, else auto-injected evidence-nag. Trigger: completion-claim regex AND source edits this session | Gated on LH-1 T5 spike verdict | LH-1 |
-| LH-3 | Deploy-guard + telemetry + doc-sync (terminal, **re-scoped 2026-07-08**): `enforced-rules.json` + deploy.sh FAILs on an unwired enforced hook; hooks instrumented to emit decision events → `gate_telemetry.py` surfaced at `/handoff`; correctness doc-sync. **Prose-split + gemini-only.md DROPPED** (payoff ≈1 line; see DECISION_LOG) | — | LH-1, LH-2 |
+| Phase | Shipped | Commit |
+|:---|:---|:---|
+| LH-1 | Mechanical hooks: auto-lint fix-before-proceeding feedback; scratch-gate + commit-trailer PreToolUse denies; handoff-nudge Stop hook; empirical Stop-block spike (all 3 block variants prevent turn-end but unsafely → LH-2 uses feedback) | `14716e4` |
+| LH-2 | Evidence gate: Stop-hook Iron-Law nag on completion claims lacking fresh test evidence (Branch B — additionalContext only, per spike). Detection = claim lexicon + source-edit + tool_use_id-correlated fresh-evidence | `541362c` |
+| LH-3 | Deploy-guard (`enforced-rules.json` + deploy.sh FAILs on an unwired enforced hook); gate telemetry (instrument → `gate_telemetry.py` → `/handoff`); correctness doc-sync | `99ae67b`/`2cee6eb` |
 
-**Binding decisions** (grill verdicts, recorded in `Plans/LH-1-Plan.md` §Binding decisions;
-coder does not re-litigate): no PostToolUse blocking exists (state machine CUT); hard-deny
-only at PreToolUse; TODO-authority hook KILLED (no caller identity in hook input — prose
-stays); HK-G2/PreCompact unimplementable (event no longer exists); all gates fail-open on
-script error; Gemini-side prose lives in exactly one file.
+**Live-fire confirmed this session**: the handoff nudge and the evidence gate both fired on the
+orchestrator's own turns; the deploy-guard reported "all 7 enforced hooks wired" on its first
+production run.
 
-**Cut at grill:** blocking-lint state machine; guard-todo-authority.js; HK-G2.
+**Binding decisions** (grill + recon, in `Plans/LH-*-Plan.md` + `DECISION_LOG.md` [LH]): no
+PostToolUse blocking exists (state machine CUT); hard-deny only at PreToolUse; TODO-authority
+hook KILLED (no caller identity in hook input); HK-G2/PreCompact unimplementable; Stop CAN
+block but unsafely (LH-2 uses feedback); all gates fail-open on script error.
+
+**Consciously dropped** (recorded, not overlooked): the initiative's original headline —
+reclaim always-loaded prose via hook enforcement. Post-grill the delete-eligible set shrank to
+~1 line (only 2 deny-hooks survived), below the cost of a `gemini-only.md` drift surface. The
+enforcement wins stand; the token-diet win did not materialize at this scale.
+**Cut at grill:** blocking-lint state machine; guard-todo-authority.js; HK-G2. **Deferred
+(BACKLOG):** global gate-telemetry deployment (`lh3_telemetry-deploy_1`); GEMINI.md parity.
+Phase plans → archive to `Artifacts/History/Plans/LH-[1-3]-*` at handoff.
 
 ---
 ---

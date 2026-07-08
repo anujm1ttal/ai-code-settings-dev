@@ -9,6 +9,16 @@ not yet committed) · **Authority:** `Artifacts/Plans/LH-3-Plan.md` (re-scoped) 
 (non-blocking, not a live defect). One LOW process nit (TODO status-marker drift). No
 CRITICAL/HIGH findings.
 
+> **POST-PASS UPDATE (2026-07-08):** The MEDIUM finding below (`lh3_gate-log_1`) was fixed by the
+> coder post-PASS and independently re-verified by the auditor — against both repo source and the
+> **deployed** `~/.claude/hooks/lib/gate-log.js` — before ship. `Artifacts/BACKLOG.md`'s entry is
+> now marked RESOLVED. Two additional changes landed post-PASS (graceful `commands/handoff.md`
+> telemetry skip; `deploy.sh` `pytest.exe`→`python -m pytest` fix, itself surfaced by the
+> `pytest.exe` launcher quirk this report's Gate 7 first documented) and were independently
+> verified. Full closure narrative, shipped commits (`99ae67b` + `2cee6eb`), and live-deploy
+> evidence: `Artifacts/Reports/LH-3-Report.md`. The gate-by-gate findings below remain the
+> unmodified 1st-pass record.
+
 ---
 
 ## Strengths

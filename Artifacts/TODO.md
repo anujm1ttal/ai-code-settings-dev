@@ -1,15 +1,17 @@
-# Active Initiative: LH — Loop Hardening
+# Completed Initiative: LH — Loop Hardening
 
-**Status:** LH-3 in progress (LH-1 + LH-2 complete/deployed/merged) · **Step 0:** approved 2026-07-08 · **Grill:** [REFACTORED] 2026-07-08 (4→3 phases); **LH-3 re-scoped** 2026-07-08 (prose-split dropped, see DECISION_LOG)
+**LH INITIATIVE COMPLETE** (2026-07-08) — all 3 phases shipped, auditor-verified, deployed, merged to `main`.
+
+**Status:** COMPLETE — LH-1 + LH-2 + LH-3 all complete/deployed/merged · **Step 0:** approved 2026-07-08 · **Grill:** [REFACTORED] 2026-07-08 (4→3 phases); **LH-3 re-scoped** 2026-07-08 (prose-split dropped, see DECISION_LOG)
 **Plans:** `Artifacts/Plans/LH-[1-3]-Plan.md` + `LH-[1-3]-TODO.md` (all three authored 2026-07-08; LH-2 §Design Fork resolves at kickoff from the LH-1 spike verdict)
 **Sequencing:** LH-1 → LH-2 (shaped by LH-1 spike verdict) → LH-3 (terminal)
 
 - [x] **LH-1 — Mechanical Hooks + Stop-Block Spike** (branch `phase-lh-1-mechanical-hooks`, merged + deleted) — Success: T1–T6 metrics per `Plans/LH-1-Plan.md`; deploy validation passes; spike verdict filed in `Reports/LH-1-stop-spike.md`. Auditor-verified 2026-07-08 (2-pass gate, 1 HIGH + 2 MEDIUM findings fixed and re-confirmed live); commit `14716e4`; deployed and live-wired 2026-07-08 (see `Plans/LH-1-TODO.md` auditor-gate line for full evidence). One LOW carried forward: `CLAUDE-global.md`/`coding-style.md` auto-lint doc-sync not yet filed to BACKLOG — tracked for LH-3.
 - [x] **LH-2 — Evidence Gate** (branch `phase-lh-2-evidence-gate`, merged + deleted) — Success: seeded unevidenced-done transcript triggers gate; doc-only session does not (false-positive test); design matches spike verdict. Auditor-verified 2026-07-08 (2-pass gate: pass 1 found 2 HIGH false positives in the claim lexicon via adversarial transcripts beyond the shipped 6 fixtures, fixed and re-confirmed live in pass 2 with no regressions); commit `541362c`; deployed and live-wired 2026-07-08 (live-fire-confirmed against the deployed hook, not just an exit-0 smoke check — see `Plans/LH-2-TODO.md` auditor-gate line for full evidence).
-- [ ] **LH-3 — Deploy-Guard + Telemetry + Doc-Sync** (branch `phase-lh-3-telemetry-prose`) — **re-scoped 2026-07-08** (prose-split DROPPED) — Success: deploy FAILs on unwired enforced hook (test); hooks emit decision events, `/handoff` prints per-gate deny/nag counts; CLAUDE-global hooks table describes all 7 hooks; every instrumented hook still fails open
-  - [-] [scribe] **T3 — Doc-sync** — fix CLAUDE-global.md hooks table (auto-lint description, add nudge-handoff + evidence-gate rows); fix coding-style.md auto-lint mention; update hooks/README.md coverage
+- [x] **LH-3 — Deploy-Guard + Telemetry + Doc-Sync** (branch `phase-lh-3-telemetry-prose`, merged fast-forward + deleted) — **re-scoped 2026-07-08** (prose-split DROPPED) — Success: deploy FAILs on unwired enforced hook (test); hooks emit decision events, `/handoff` prints per-gate deny/nag counts; CLAUDE-global hooks table describes all 7 hooks; every instrumented hook still fails open. Auditor-verified 2026-07-08 (1-pass gate, 8/8 gates PASS via adversarial re-testing; 1 MEDIUM found and fixed post-PASS, independently re-verified live against the deployed hook — see `Plans/LH-3-TODO.md` auditor-gate line for full evidence); commits `99ae67b` + `2cee6eb`; deployed and live-wired 2026-07-08 (deploy-guard's first production run: `OK: all 7 enforced hook(s) present and wired`, independently re-confirmed by the auditor).
+  - [x] [scribe] **T3 — Doc-sync** — fix CLAUDE-global.md hooks table (auto-lint description, add nudge-handoff + evidence-gate rows); fix coding-style.md auto-lint mention; update hooks/README.md coverage
 
-### Initiative Hard Rules (Auditor Rejects on Violation)
+### Initiative Hard Rules (Auditor Rejects on Violation) — all 4 held across LH-1–LH-3
 1. Hook malfunction always exits 0 — blocking reserved for evaluated conditions
 2. Every deny message states its exact unblock condition
 3. No prose leaves always-loaded context before its hook is verified AND deploy-guarded (LH-3: prose-split dropped — payoff ≈1 line; no prose removed)
