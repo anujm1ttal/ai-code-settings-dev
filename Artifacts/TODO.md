@@ -13,8 +13,8 @@
 - [x] **OSH-6 — Tooling & Repo Hygiene** (branch `phase-osh-6-tooling-hygiene`, not yet committed) — auditor PASS (Final Sign-Off 2026-07-08; pre-deploy gate found 1 hollow test + 1 rollback-safety gap, both remediated and mutation-re-verified); router returns correct plugin-skill models (manuscript-review → sonnet); 30/30 tests pass exit 0; deploy.sh ↔ DEPLOY.md ↔ CLAUDE.md spot-audited consistent; Artifacts root schema-clean, single `History/` casing (0 files tracked under lowercase path); production deploy DONE 2026-07-08 (`osh-6_verify.txt`, backup pruned to 5); `~/.claude/optional_plugins/` deleted + confirmed absent. **Initiative-complete — awaiting commit + merge approval.**
 
 ### Post-OSH Finalization
-- [ ] [concierge] **git push origin main** — 13 commits (OSH-1..6 + VSE planning), all auditor-verified · Success: commits appear on origin/main
-- [ ] [strategist] **Archive OSH-1..6 phase plans** (Plans/ → History/Plans/) — Plan-Pruning HARD-GATE; only current + upcoming phases in active Plans/ · Success: OSH-N-Plan.md + OSH-N-TODO.md files moved to Artifacts/History/Plans/
+- [x] [concierge] **git push origin main** — DONE 2026-07-08 (`/sync`): fetch confirms `origin/main` == local `main` == `a803aec`; the 13 commits were already pushed by the prior session's L2 handoff. No-op; task line was stale.
+- [x] [concierge] **Archive OSH-1..6 phase plans** (Plans/ → History/Plans/) — DONE 2026-07-08 (`/sync`): 12 files `git mv`'d (rename-preserved) to `Artifacts/History/Plans/`; active `Plans/` now holds only VSE-[1-2]-* . Plan-Pruning HARD-GATE satisfied. *(Concierge is authorized to archive to History/ per TODO Authority table.)*
 
 ### Housekeeping (pre-kickoff)
 - [ ] [concierge] Reconcile stale CMD "Merge branch → main" line — already merged at `a7f8bb3`; mark done or clear via `/sync` before OSH-1 starts
