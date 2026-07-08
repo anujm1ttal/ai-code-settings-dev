@@ -31,6 +31,33 @@ telemetry worth the deploy-policy change, or is repo-local dev observability suf
 
 ---
 
+## `cmd_gemini-parity_1` — GEMINI.md holds old combined (pre-split) content
+
+**Filed:** 2026-07-06 (CMD, deferred out of scope) · **Severity:** LOW · **Needs:** product decision
+
+When CLAUDE.md was split into `CLAUDE-global.md` (deployable) + lean repo `CLAUDE.md` (CMD
+initiative, `a393e2b`), `GEMINI.md` was left holding the old combined content — it is a manual
+parallel mirror for Gemini/Antigravity and is **not** deployed. Out of scope per CMD Step 0.
+Also surfaced by LH closure ("Deferred: GEMINI.md parity"). **Decision needed:** is Gemini
+parity still wanted? If yes, re-sync GEMINI.md to the split structure; if no, close this and
+note GEMINI.md as intentionally-divergent/unmaintained.
+
+---
+
+## `osa_subagent-tier_1` — Subagents may run on the wrong model tier
+
+**Filed:** 2026-07-06 (OSA B5) · **Severity:** MEDIUM · **Needs:** separate Step 0 + runtime probe
+
+OSA finding: subagents appeared to run on a default tier (haiku) rather than the tier their
+`model:` frontmatter declares (sonnet/opus) — i.e. the runtime may ignore per-agent `model:`.
+Not fixed in OSA (needs its own Step 0). Related: `rules/common/model-routing.md` §Verification
+(`scripts/model_routing_audit.py --violations-only`) and the `statusline-model-visibility`
+memory (subagentStatusLine schema pending post-restart verify). **Next:** run the routing audit
+from live subagent transcripts to confirm/refute before scoping a fix — config being correct
+does not prove the runtime honors it.
+
+---
+
 ## `osh_docs-count_1` — Stale "17 skills" count in out-of-scope docs
 
 **Filed:** 2026-07-07 (OSH-4) · **Severity:** LOW · **Needs:** doc pass
