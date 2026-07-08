@@ -1,6 +1,10 @@
-# Implementation Plan
+# Implementation Plan — Active Initiative: DLR — DECISION_LOG Rotation
 
-_No active initiative. LH closed 2026-07-08 (below). Queued: VSE — see `Artifacts/TODO.md`._
+**Type:** `code` (meta-repo policy) · **Owner:** strategist · **Status:** Step 0 approved 2026-07-08, T1 ready for coder
+**Detail:** `Artifacts/Plans/DLR-Plan.md`. One phase: add the missing DECISION_LOG lifecycle rule
+(size-threshold rotation to a rolling `History/` archive; never prune), read-discipline in
+`/sync` + `/handoff`, and an archive scaffold. This repo stays put (115 lines < 400 threshold).
+Queued next: VSE — see `Artifacts/TODO.md`.
 
 ---
 ---

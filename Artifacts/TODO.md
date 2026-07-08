@@ -1,9 +1,26 @@
 # TODO — Active & Queued Work
 
-**Updated:** 2026-07-08 · **Branch:** `main` (clean, pushed)
+**Updated:** 2026-07-08 · **Branch:** `phase-dlr-decision-log-rotation`
 
 Completed initiatives (LH, OSH, CMD, OSA) archived → `Artifacts/History/COMPLETED_INITIATIVES.md`.
 Deferred findings live in `Artifacts/BACKLOG.md`.
+
+---
+
+# Active Initiative: DLR — DECISION_LOG Rotation
+
+**Status:** IN PROGRESS (1 phase) · **Step 0:** approved 2026-07-08 · **Plan:** `Artifacts/Plans/DLR-Plan.md` + `DLR-TODO.md`
+**Goal:** Bound the ever-growing DECISION_LOG via size-threshold rotation to a rolling `History/` archive — never prune (it's an audit trail). Adds the lifecycle rule the OS was missing.
+
+- [ ] [coder] T1 — Rotation policy in `orchestration.md` (>400 lines/40 entries → oldest resolved to `History/DECISION_LOG-archive.md`; never delete) — Success: M1
+- [ ] [coder] T2 — Read-discipline (newest-first head) in `sync.md` + `handoff.md` — Success: M2
+- [ ] [coder] T3 — Archive scaffold + forward-pointer; no move (repo under threshold) — Success: M3
+- [ ] [auditor] T4 — Gate M1–M4 + deploy + merge — Success: deployed, closed
+
+### Initiative Hard Rules (Auditor Rejects on Violation)
+1. Rotation NEVER deletes — entries only move to History/; archive is append-only
+2. UNRESOLVED entries never rotate, regardless of age
+3. No behavioral loss — head-read still surfaces unresolved; under-threshold entries not force-moved
 
 ---
 
