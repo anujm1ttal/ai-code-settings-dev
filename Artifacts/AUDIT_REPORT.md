@@ -1,9 +1,9 @@
 # AUDIT_REPORT.md — LH-3 (Deploy-Guard + Telemetry + Doc-Sync, initiative-terminal)
 
-**Auditor pass:** 2026-07-08 · **Branch:** `phase-lh-3-telemetry-prose` (uncommitted working
-tree — `main` and the phase branch share the same HEAD `920577e`; this is a working-tree diff,
-not yet committed) · **Authority:** `Artifacts/Plans/LH-3-Plan.md` (re-scoped) +
-`Artifacts/Plans/LH-3-TODO.md`
+**Auditor pass:** 2026-07-08 · **Status:** SHIPPED — commits `99ae67b` + `2cee6eb`, merged
+fast-forward to `main`, deployed 2026-07-08 (audit was performed on the then-uncommitted working
+tree; header updated post-ship 2026-07-08) · **Authority:** `Artifacts/Plans/LH-3-Plan.md`
+(re-scoped) + `Artifacts/Plans/LH-3-TODO.md`
 
 **Verdict: PASS — deploy-ready on user approval.** One MEDIUM finding filed to BACKLOG
 (non-blocking, not a live defect). One LOW process nit (TODO status-marker drift). No

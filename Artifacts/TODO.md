@@ -29,16 +29,16 @@
 - [x] **OSH-1 — Restore the Hooks Enforcement Layer** (`cedf673`) — auditor PASS; **deployed + live settings repointed 2026-07-07**; deployed-hook smoke tests green (PowerShell deny, force-push deny, false-positive allow, SessionStart wrapper, fail-open). Live-session firing confirmed on next restart.
 - [x] **OSH-2 — Fix Broken Gates & Capability Mismatches** (`87ba8e9`) — auditor PASS; phantom-ref matrix zero; all 8 agent tool-grants correct; deployed 2026-07-07.
 - [x] **OSH-3 — One Name for Every State File** (`9e060c2` + `2147dd8`) — auditor PASS (one residual found + fixed: project-journal archive scheme); single `History/` casing; DECISION_LOG at root; deployed 2026-07-07.
-- [x] **OSH-4 — Registry Reconciliation & Skill Hygiene** (branch `phase-osh-4-registry-skills`, not yet committed) — auditor PASS (initial gate found 3 HIGH + 2 MEDIUM, all fixed and re-verified; final MEDIUM G4-07 stale "17 skills" count fixed); deployed 2026-07-07. Awaiting explicit user approval for commit/merge.
-- [x] **OSH-5 — Token-Economy Diet & Precedence** (`9174be5`) — auditor PASS (Content Gate, 19/19 zero-loss blocks + 20/20 Context Boundary cells confirmed, 1 remediation cycle); corpus 1,827→1,160 lines (−36.5%); CLAUDE-global.md 12/12 `/claude-md` score; deployed 2026-07-07, verified live (`~/.claude/rules/common/` excludes high-rigor, skill present, line counts match). Merge to `main` still pending explicit user approval.
-- [x] **OSH-6 — Tooling & Repo Hygiene** (branch `phase-osh-6-tooling-hygiene`, not yet committed) — auditor PASS (Final Sign-Off 2026-07-08; pre-deploy gate found 1 hollow test + 1 rollback-safety gap, both remediated and mutation-re-verified); router returns correct plugin-skill models (manuscript-review → sonnet); 30/30 tests pass exit 0; deploy.sh ↔ DEPLOY.md ↔ CLAUDE.md spot-audited consistent; Artifacts root schema-clean, single `History/` casing (0 files tracked under lowercase path); production deploy DONE 2026-07-08 (`osh-6_verify.txt`, backup pruned to 5); `~/.claude/optional_plugins/` deleted + confirmed absent. **Initiative-complete — awaiting commit + merge approval.**
+- [x] **OSH-4 — Registry Reconciliation & Skill Hygiene** (`23565e7`, merged to `main`) — auditor PASS (initial gate found 3 HIGH + 2 MEDIUM, all fixed and re-verified; final MEDIUM G4-07 stale "17 skills" count fixed); deployed 2026-07-07.
+- [x] **OSH-5 — Token-Economy Diet & Precedence** (`9174be5`, merged to `main`) — auditor PASS (Content Gate, 19/19 zero-loss blocks + 20/20 Context Boundary cells confirmed, 1 remediation cycle); corpus 1,827→1,160 lines (−36.5%); CLAUDE-global.md 12/12 `/claude-md` score; deployed 2026-07-07, verified live (`~/.claude/rules/common/` excludes high-rigor, skill present, line counts match).
+- [x] **OSH-6 — Tooling & Repo Hygiene** (`38db2c9`, merged to `main`) — auditor PASS (Final Sign-Off 2026-07-08; pre-deploy gate found 1 hollow test + 1 rollback-safety gap, both remediated and mutation-re-verified); router returns correct plugin-skill models (manuscript-review → sonnet); 30/30 tests pass exit 0; deploy.sh ↔ DEPLOY.md ↔ CLAUDE.md spot-audited consistent; Artifacts root schema-clean, single `History/` casing (0 files tracked under lowercase path); production deploy DONE 2026-07-08 (`osh-6_verify.txt`, backup pruned to 5); `~/.claude/optional_plugins/` deleted + confirmed absent. **Initiative COMPLETE — merged + pushed.**
 
 ### Post-OSH Finalization
 - [x] [concierge] **git push origin main** — DONE 2026-07-08 (`/sync`): fetch confirms `origin/main` == local `main` == `a803aec`; the 13 commits were already pushed by the prior session's L2 handoff. No-op; task line was stale.
 - [x] [concierge] **Archive OSH-1..6 phase plans** (Plans/ → History/Plans/) — DONE 2026-07-08 (`/sync`): 12 files `git mv`'d (rename-preserved) to `Artifacts/History/Plans/`; active `Plans/` now holds only VSE-[1-2]-* . Plan-Pruning HARD-GATE satisfied. *(Concierge is authorized to archive to History/ per TODO Authority table.)*
 
 ### Housekeeping (pre-kickoff)
-- [ ] [concierge] Reconcile stale CMD "Merge branch → main" line — already merged at `a7f8bb3`; mark done or clear via `/sync` before OSH-1 starts
+- [x] [concierge] Reconcile stale CMD "Merge branch → main" line — RECONCILED 2026-07-08: CMD merged (`a393e2b` on `main`); this pre-OSH-1 housekeeping item is moot.
 
 ### Initiative Hard Rules (Auditor Rejects on Violation)
 1. Every fix traces to a finding ID in `AUDIT_REPORT.md` — no unlisted "improvements" (Scope-creep-via-cleanup)
@@ -50,7 +50,7 @@
 
 # Queued Initiative: VSE — Visual Storytelling Enhancement
 
-**Status:** UNBLOCKED (OSH closed 2026-07-08) — ready for `/blueprint VSE-1` · **Step 0:** approved 2026-07-07
+**Status:** UNBLOCKED (OSH + LH both closed 2026-07-08) — ready for `/blueprint VSE-1` · **Step 0:** approved 2026-07-07
 **Plans:** `Artifacts/Plans/VSE-[1-2]-Plan.md` + `VSE-[1-2]-TODO.md` (detailed tasks live there)
 **Origin:** ui-ux-pro-max-skill architecture pattern (data-fied design knowledge + executable output validation), applied to `pptx-slide-design` only. banana-prompt out of scope. No search engine (deferred until library >25 entries).
 **Sequencing:** VSE-1 → VSE-2 (VSE-2 requires `/grill` + Interface-First `[user-approval]` before kickoff)
@@ -78,13 +78,13 @@
 - [x] [scribe] Author `templates/CLAUDE.md.template` starter skeleton (~45 lines)
 - [x] [scribe] Register new rule in `CLAUDE.md` + `README.md` rules index (2 spots in README)
 - [x] [user-approval] Sign off on the rubric before CMD-2 — approved (caps 150/250 project, 250/400 global; full global-tier split)
-- [ ] [auditor] Mark CMD-1 terminal — Success: all tasks `[x]`, hard rules clean (no rules/ duplication; caps self-consistent)
+- [x] [auditor] Mark CMD-1 terminal — RECONCILED 2026-07-08: CMD merged (`a393e2b` on `main`); initiative closed per OSH-6 sweep. Hard rules clean.
 
 ### Phase CMD-2 — The Split
 - [x] [coder] Create `CLAUDE-global.md` (deployable global) — diff vs live global = additive-only (header + rule registration); zero content dropped
 - [x] [coder] Slim repo `CLAUDE.md` to repo-specific guidance — 65 lines (≤150 target)
 - [x] [coder] Repoint `scripts/deploy.sh:127` → copy `CLAUDE-global.md`; update `DEPLOY.md` (3 spots) — `bash -n` clean
-- [ ] [auditor] Mark CMD-2 terminal — Success: no global content dropped; deploy dry-run clean
+- [x] [auditor] Mark CMD-2 terminal — RECONCILED 2026-07-08: CMD merged (`a393e2b` on `main`); no global content dropped.
 
 ### Phase CMD-3 — The Command
 - [x] [auditor] Author `commands/claude-md.md` (thin `/claude-md` wrapper over `claude-md-improver`, graded on our standard, report-first)
@@ -96,8 +96,8 @@
 - [x] Commit CMD initiative — `a393e2b` on `phase-cmd-1-claude-md-standard`
 - [x] Repair `deploy.sh` (OSA-2 regression: referenced 3 deleted manifest files → unrunnable) — `1801e24`
 - [x] Deploy to `~/.claude/` — success; backup `~/.claude.backup-20260706-125644`; global + 22 commands + new rule/template live; `/claude-md` confirmed in live command list
-- [ ] Merge `phase-cmd-1-claude-md-standard` → `main` and delete branch (after any final review)
-- [ ] GEMINI.md still holds old combined content (out of scope per Step 0; not deployed) — revisit if Gemini parity wanted
+- [x] Merge `phase-cmd-1-claude-md-standard` → `main` and delete branch — DONE (`a393e2b` on `main`; branch deleted)
+- [ ] GEMINI.md still holds old combined content (out of scope per Step 0; not deployed) — revisit if Gemini parity wanted *(genuinely deferred — not stale)*
 
 ### Hard Rules (Auditor Rejects on Violation)
 1. Standard MUST NOT duplicate `rules/common/*` content — reference, never restate
@@ -109,9 +109,9 @@
 
 # Completed Initiative: Phase OSA — OS Self-Audit
 
-**Status:** DRAFT — awaiting Step 0 approval · **Branch:** `phase-os-audit` (not yet created)
-**Plan Reference:** `Artifacts/Plans/Phase-OSA-Plan.md`
-**Absorbs:** model-routing audit tool + plugin-registry gap (both were uncommitted drift on `main`)
+**Status:** COMPLETE — all workstreams merged (`6bdd944`, branch deleted); follow-ups resolved (see below)
+**Plan Reference:** `Artifacts/History/Plans/Phase-OSA-Plan.md`
+**Absorbed:** model-routing audit tool + plugin-registry gap (both were uncommitted drift on `main`)
 
 ### Workstream A — Model-Routing Verification (built; verify + commit) ✅
 - [x] [auditor] Verify `model_routing_audit.py` — table renders; exit 1 on mismatch (15 honored / 21 violated / 45 runs); evidence `Artifacts/Temp/osa_A1_audit_*.txt`

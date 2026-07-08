@@ -1,5 +1,10 @@
 # Sync Report — 2026-07-08 Session Start
 
+> **⚠️ SUPERSEDED (2026-07-08 session close):** This is a session-**start** snapshot. Its
+> "pending" items (CMD merge, 13-commit push) were resolved during the session — CMD is merged
+> (`a393e2b`), LH shipped (`b847770`), and `main` is pushed to origin. Current state:
+> `Artifacts/.agent/current_task.md` + `Artifacts/HANDOFF_BRIEF.md`. Kept as a historical record.
+
 **Time:** Session start · **Branch:** `main` · **Previous sync:** 2026-07-07 (OSH-6 auditor sign-off)
 
 ---
