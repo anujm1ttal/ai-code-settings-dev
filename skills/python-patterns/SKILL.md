@@ -3,7 +3,7 @@ name: python-patterns
 description: Use this skill whenever you are writing, refactoring, or reviewing Python 3.12+ code. It mandates Pythonic idioms (PEP 8), strict type hinting, loguru for logging, and immutability by default. Trigger when you are starting a new Python project, fixing a linting error from ruff, or adding a pydantic model for validation. Do NOT use for Rhino-internal scripts which must follow CPython ~3.9 with stdlib only; refer to python-rhino-grasshopper for specialized Rhino runtime constraints.
 argument-hint: "<Python logic requirement or code style question>"
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   tags: ["python", "development", "standards", "backend", "coding-style"]
   globs: ["*.py", "pyproject.toml", "setup.cfg"]
   verbosity_control: "TECHNICAL. Prioritize code blocks over prose. Use high-density bullet points for logic rules."
@@ -105,7 +105,7 @@ metadata:
 
 ## 🔨 Preferred Toolchain
 - **Linting/Formatting**: `ruff` (replaces `flake8`, `black`, `isort`).
-- **Package Management**: `uv` (replaces `pip`, `poetry`).
+- **Package Management**: `uv` (replaces `pip`, `poetry`, `pyenv`, `pipx`) — commands and lockfile discipline in §uv Workflow below.
 - **Testing**: `pytest` (replaces `unittest`).
 - **Type Checking**: `pyright` in strict mode (replaces `mypy`).
 - **Logging**: Use `loguru` for all application code. (Note: `loguru` is not available inside internal Rhino Python; use `print()` there).
@@ -115,6 +115,18 @@ metadata:
   - Avoid `list[T]` lowercase generics.
 - **Validation**: `pydantic` v2 at system boundaries.
 - **Data Classes**: `dataclasses` with `frozen=True, slots=True` for internal value objects.
+
+## ⚡ uv Workflow
+`uv` owns the full project lifecycle — interpreter, venv, deps, tool invocation. Never mix in `pip install`, `python -m venv`, or bare tool `.exe` launchers.
+
+- **New project**: `uv init --package` (creates `src/` layout per §Project Structure) → edit `pyproject.toml` → `uv sync`.
+- **Dependencies**: `uv add <pkg>` / `uv add --dev <pkg>` / `uv remove <pkg>`. `pyproject.toml` is the source of truth — never hand-install into the venv.
+- **Lockfile discipline**: `uv.lock` is machine-generated and MUST be committed. Upgrade deliberately via `uv lock --upgrade-package <pkg>`; never delete the lockfile to "fix" resolution.
+- **Reproduce**: `uv sync` locally; `uv sync --frozen` in CI — fails loudly on a stale lockfile instead of silently re-resolving.
+- **Interpreter**: pin per-project in `.python-version` (e.g. `3.12`); `uv python install` fetches it. No pyenv, no manual installers.
+- **Run everything via `uv run`**: `uv run python -m pytest`, `uv run python -m ruff check .`, `uv run python script.py`. Guarantees the project venv without activation AND satisfies `coding-style.md` §Windows Shell & Paths — no `.exe` launchers, no `WinError 6`.
+- **One-off tools**: `uvx <tool>` (e.g. `uvx pip-audit`) for tools that shouldn't be project deps; audit per `security.md`.
+- **Rhino boundary**: `uv` manages Host-side (CPython 3.12+) projects only. Rhino-internal scripts have no package manager — stdlib only (see Dialect Boundary above).
 
 ## ⚠️ Known Gotchas
 - **pytest.ini `[tool:pytest]` header is silently inert**: pytest.ini requires the `[pytest]` section header; `[tool:pytest]` is valid only in setup.cfg. With the wrong header, pytest ignores the ENTIRE file — markers, addopts, strict flags — and emits no warning. After any pytest-config change, prove it is live: `pytest --markers` must list your custom markers, and a deliberately unregistered marker must error under `--strict-markers`.
