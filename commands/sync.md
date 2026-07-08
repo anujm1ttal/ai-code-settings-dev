@@ -14,7 +14,7 @@ Owned by the **concierge**. The "Truth Engine" — reconciles manual work with t
 1. **Learnings Load**: Read `Artifacts/learnings/HOT.md` first for fast-access context. If `Artifacts/learnings/HOT.md` is missing, skip directly to category indexes in `Artifacts/learnings/`. Otherwise, fall back to category indexes only when HOT.md doesn't cover the need.
 2. **Inventory Delta**: `git status --short`, `git diff --name-only HEAD~1`, recent file modifications.
 3. **Domain Recon**: Rhino/GH (`.gh`, `.py` in CAD dirs) | Power BI (`.dax`, `.sql`) | MCP/Dev (`src/`, `package.json`, configs) | C# (`.cs`, `.csproj`, NuGet) | Docs (stale README, ARCH).
-4. **State File Validation**: `Artifacts/TODO.md` ↔ `Artifacts/IMPLEMENTATION_PLAN.md` sync. `Artifacts/.agent/current_task.md` freshness. `Artifacts/DECISION_LOG.md` unresolved entries.
+4. **State File Validation**: `Artifacts/TODO.md` ↔ `Artifacts/IMPLEMENTATION_PLAN.md` sync. `Artifacts/.agent/current_task.md` freshness. `Artifacts/DECISION_LOG.md` unresolved entries — the log is newest-first: read the **head** (recent entries) and scan for unresolved, not the whole file.
 5. **Reconciliation**: Cross-reference changes against `Artifacts/TODO.md` → categorize.
 6. **State Refresh**: Update `Artifacts/.agent/current_task.md` with validated next step.
 7. **Output**: Sync Report.

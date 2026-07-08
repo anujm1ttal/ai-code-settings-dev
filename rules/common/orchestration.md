@@ -174,7 +174,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 | `Artifacts/BACKLOG.md` | Strategist/Coder (first deferral) | All | **Deferred-work registry**: unscheduled deferred work, filed findings, pending product decisions. Reference-on-demand (NOT boot-loaded). Lazy-created on first deferral, never scaffolded at init. Scoped/phase-shaped work → PLAN; loose item/finding/product-decision → BACKLOG; scheduled/status → TODO; decisions → DECISION_LOG. |
 | `Artifacts/ARCH.md` | Strategist | Scribe (formatting) | Long-term system architecture |
 | `Artifacts/COUNCIL_PROTOCOLS.md` | Strategist | Strategist | Deliberation rules for high-rigor decisions |
-| `Artifacts/DECISION_LOG.md` | Council | Council | Pivot tracking & high-stakes resolutions |
+| `Artifacts/DECISION_LOG.md` | Council | Council | Pivot tracking & high-stakes resolutions. Rotates (never prunes) past threshold — see **DECISION_LOG Rotation** below. |
 | `Artifacts/HANDOFF_BRIEF.md` | Concierge | Concierge | Session transition & next steps |
 | `Artifacts/learnings/` | Concierge | Concierge | Categorized knowledge registry (Persistent — never archived). Excludes task status (→ TODO.md) and architecture decisions (→ DECISION_LOG.md); entry-format templates live in `learnings/index.md`. |
 | `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director | Visual specs |
@@ -187,6 +187,16 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 - After a phase is completed, its Plans/ and Reports/ files MUST be moved to History/
 - `learnings/` and `MEMORY_ANCHORS.md` are permanent fixtures and are never archived
 - All other artifacts follow the Archive policy once their active period ends
+
+**DECISION_LOG Rotation** (never prune — rotate):
+- **Trigger**: active `Artifacts/DECISION_LOG.md` exceeds **>400 lines OR >40 entries**.
+- **Action**: move the **oldest RESOLVED** entries to `Artifacts/History/DECISION_LOG-archive.md`
+  (prepend, preserving newest-first order) until the active log is back under threshold.
+- **Keep**: all unresolved entries regardless of age, plus recent entries. **UNRESOLVED entries
+  never rotate.**
+- **Never delete** — the archive is append-only; rotation only moves entries, it does not prune them.
+- Maintain a forward-pointer line at the top of the active log → the archive.
+- **Trigger owner**: concierge at `/handoff`; manual via `/clean`.
 
 > [!NOTE]
 > **Transient State Exception**: Platform-level logs for background commands (e.g., in system Temp directories) are managed by the host binary and are inherently transient. They are exempt from the `Artifacts/` persistence requirement.

@@ -39,7 +39,7 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
    ```
    User confirms which to add to `Artifacts/TODO.md`. Never auto-add.
 2. **Session Summary**: Tasks worked on, agents active, decisions/pivots made.
-3. **State Snapshot**: Update `Artifacts/.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md`. Then run the **State File Health Check** — all five must be healthy and synchronized before the session ends (prevents context loss):
+3. **State Snapshot**: Update `Artifacts/.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md` (log is newest-first: read the head, not the whole file, when checking prior entries). **Rotation check**: after appending, if the active log exceeds **>400 lines OR >40 entries**, rotate the oldest RESOLVED entries to `Artifacts/History/DECISION_LOG-archive.md` (prepend, newest-first preserved; unresolved entries never rotate; never delete). Then run the **State File Health Check** — all five must be healthy and synchronized before the session ends (prevents context loss):
    - `Artifacts/.agent/current_task.md` — updated with current task status
    - `Artifacts/TODO.md` — active task markers correct
    - `Artifacts/IMPLEMENTATION_PLAN.md` — no unnecessary changes

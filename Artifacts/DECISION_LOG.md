@@ -2,6 +2,8 @@
 
 Historical architectural decisions and pivots. Newest first.
 
+Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
+
 ---
 
 ## 2026-07-08 — Re-scope LH-3 (terminal): drop prose-split, keep deploy-guard + telemetry + doc-sync [LH]
