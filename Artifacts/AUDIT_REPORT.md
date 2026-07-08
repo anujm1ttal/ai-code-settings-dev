@@ -136,6 +136,10 @@ architecture/deep-module review.
 
 ## Sign-off
 
-Phase is **deploy-ready** pending explicit user approval. Recommended next steps (not performed by
-this audit): `bash scripts/deploy.sh`, live-fire verification (M5), then auditor marks T1/T2/T3/T5
-`[x]` in `Artifacts/Plans/LH-2-TODO.md` per TODO authority.
+**Update (post-deploy, same date):** phase shipped on this PASS verdict — commit `541362c`,
+deployed, merged fast-forward to `main`, branch deleted. Deploy artifacts (live hook files,
+`settings.json` wiring, backup) and a direct live-fire test against the deployed hook were
+independently re-verified by the auditor, not accepted from the deploy-completion claim alone.
+Full evidence: `Artifacts/Reports/LH-2-Report.md` §Deploy + Live-Wiring Evidence. T0/T1/T2/T3/T5
+and the auditor-gate line are marked `[x]` in `Artifacts/Plans/LH-2-TODO.md` (T4 remains `[~]`
+DESCOPED); the top-level `LH-2 — Evidence Gate` line is marked `[x]` in `Artifacts/TODO.md`.
