@@ -194,5 +194,32 @@ Plugin's skills/<skill>/ surfaced to the agent
 
 ---
 
-**Last Updated**: 2026-07-06
-**Next Review**: After Phase 12 completion (estimated 2026-09-15)
+## 🛡️ OSH-6 Deployment & Rollback Constraints (NEW 2026-07-08)
+
+### Guard Hook Enforcement (Load-Bearing)
+
+- Guard hook scans **entire command string** for dangerous syntax
+- Syntax like `rm -rf`, `git reset --hard`, `git push --force` (even in grep patterns or commit messages) triggers deny
+- Recursive force-deletes CANNOT be auto-approved — require **manual user execution outside Claude**
+- This is intentional (fail-safe); prevents accidental data destruction
+- **Impact**: Cleanup scripts with recursive deletes must be split (safe ops via Claude, recursive via user)
+
+### Deploy.sh Rollback Semantics (Load-Bearing)
+
+- Rollback uses **scoped-item replace**, NOT full wipe
+- Per-item scope: `rules/`, `skills/`, `commands/`, `hooks/`, `settings.json` backed up separately
+- Untracked state (plugins/, projects/, custom settings.json extensions) preserved during rollback
+- Pre-OSH-6 full-wipe semantics were a footgun (would destroy user data); current scoping is critical
+- **Impact**: Rollback is safe for extended-repo scenarios; do not assume data wipe on restore
+
+### Test & Deploy Pipeline (Real Tests Required)
+
+- Deploy.sh step 2 now runs 30 real tests (pytest exit 0 verification)
+- Mutation-testing catches hollow tests (fixture issues missed by spot-check)
+- Pre-deploy gate MUST include full test suite + mutation variants (not spot-check only)
+- **Impact**: Tooling validates OSH-1..5 fixes on every deploy; regression-locked
+
+---
+
+**Last Updated**: 2026-07-08 (OSH-6 complete + deployed)
+**Next Review**: Before next major initiative (VSE), or if deploy.sh changes

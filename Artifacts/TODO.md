@@ -12,6 +12,10 @@
 - [x] **OSH-5 — Token-Economy Diet & Precedence** (`9174be5`) — auditor PASS (Content Gate, 19/19 zero-loss blocks + 20/20 Context Boundary cells confirmed, 1 remediation cycle); corpus 1,827→1,160 lines (−36.5%); CLAUDE-global.md 12/12 `/claude-md` score; deployed 2026-07-07, verified live (`~/.claude/rules/common/` excludes high-rigor, skill present, line counts match). Merge to `main` still pending explicit user approval.
 - [x] **OSH-6 — Tooling & Repo Hygiene** (branch `phase-osh-6-tooling-hygiene`, not yet committed) — auditor PASS (Final Sign-Off 2026-07-08; pre-deploy gate found 1 hollow test + 1 rollback-safety gap, both remediated and mutation-re-verified); router returns correct plugin-skill models (manuscript-review → sonnet); 30/30 tests pass exit 0; deploy.sh ↔ DEPLOY.md ↔ CLAUDE.md spot-audited consistent; Artifacts root schema-clean, single `History/` casing (0 files tracked under lowercase path); production deploy DONE 2026-07-08 (`osh-6_verify.txt`, backup pruned to 5); `~/.claude/optional_plugins/` deleted + confirmed absent. **Initiative-complete — awaiting commit + merge approval.**
 
+### Post-OSH Finalization
+- [ ] [concierge] **git push origin main** — 13 commits (OSH-1..6 + VSE planning), all auditor-verified · Success: commits appear on origin/main
+- [ ] [strategist] **Archive OSH-1..6 phase plans** (Plans/ → History/Plans/) — Plan-Pruning HARD-GATE; only current + upcoming phases in active Plans/ · Success: OSH-N-Plan.md + OSH-N-TODO.md files moved to Artifacts/History/Plans/
+
 ### Housekeeping (pre-kickoff)
 - [ ] [concierge] Reconcile stale CMD "Merge branch → main" line — already merged at `a7f8bb3`; mark done or clear via `/sync` before OSH-1 starts
 
@@ -25,11 +29,12 @@
 
 # Queued Initiative: VSE — Visual Storytelling Enhancement
 
-**Status:** PLANNED — do not execute until OSH closes (user directive 2026-07-07) · **Step 0:** approved 2026-07-07
+**Status:** UNBLOCKED (OSH closed 2026-07-08) — ready for `/blueprint VSE-1` · **Step 0:** approved 2026-07-07
 **Plans:** `Artifacts/Plans/VSE-[1-2]-Plan.md` + `VSE-[1-2]-TODO.md` (detailed tasks live there)
 **Origin:** ui-ux-pro-max-skill architecture pattern (data-fied design knowledge + executable output validation), applied to `pptx-slide-design` only. banana-prompt out of scope. No search engine (deferred until library >25 entries).
 **Sequencing:** VSE-1 → VSE-2 (VSE-2 requires `/grill` + Interface-First `[user-approval]` before kickoff)
 
+- [ ] [strategist] **VSE Initiative Kickoff (/blueprint VSE-1)** — decompose Phase 1 tasks, create git branch · Success: phase-vse-1-quality-gates branch created, Tasks decomposed to Artifacts/Plans/VSE-1-TODO.md
 - [ ] **VSE-1 — Executable Quality Gates** (branch `phase-vse-1-quality-gates`, cut from `main` post-OSH) — Success: validate_prompt.py 2/2 gold pass + 3/3 seeded-bad fail; contrast_check.py pass/fail pair correct; pytest exit 0; zero new deps
 - [ ] **VSE-2 — Design-Data Library + Draft Generator** (branch `phase-vse-2-design-data`) — Success: ≥8 vetted palettes + ≥6 vetted font pairs (100% attributed, contrast-gated); intake draft LAYOUT_SPEC passes VSE-1 validators first try; archetypes defined in exactly 1 file
 

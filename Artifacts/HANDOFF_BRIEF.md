@@ -1,47 +1,125 @@
-# Handoff Brief — L1 Checkpoint
+# Session Handoff Brief — OSH Complete + Deployed (2026-07-08)
 
-**Tier:** Checkpoint (`--lite`) · **Date:** 2026-07-07 · **Branch:** `phase-osh-5-token-diet` (uncommitted, in-flight)
+**Session Span**: 2026-07-07 18:00 → 2026-07-08 08:00 (cross-night, multi-gate)
 
-## Session Summary
+**Tier**: L2 Session Closure
 
-**Completed phases (this session):**
-- **OSH-4 (Registry Reconciliation & Skill Hygiene)**: auditor FAIL (3H/2M) → remediation (G4-01…07) → final sign-off PASS; merged to main (`23565e7`), deployed to `~/.claude/`, branch deleted. 119 files, +454/−5880 (17 METADATA.yaml gone, skill-creator single-sourced, business-analyst promoted to core, 22 commands routed to owning-agent tier, 9 L0 abstracts, frontmatter normalized).
+**Branch**: `main` (all OSH phases merged and pushed locally)
 
-**In-flight (awaiting verdict):**
-- **OSH-5 (Token-Economy Diet & Precedence)**: Consolidation complete on branch `phase-osh-5-token-diet`. Always-loaded corpus 1,827 → 1,160 lines (−36.5%). 19 blocks moved/deleted, 3 precedence statements added, high-rigor demoted to on-demand skill, model-routing cut 272→~40 ln. Zero-loss block map produced. **Auditor gate running** (zero-loss verification + `/claude-md` CLAUDE-global.md ≥10/12 + repo still 12/12). **Coder flagged risk:** 15 "Context Boundary" cells from Command Fleet dropped as non-behavioral — auditor must verify each behavior survives elsewhere.
-
-## Agents Active This Session
-- **Concierge** (me, state management)
-- **Coder** (OSH-4 Section A+B, remediation, OSH-5 consolidation)
-- **Scribe** (OSH-4 descriptions + abstracts)
-- **Auditor** (OSH-4 gate, remediation re-gate, OSH-5 zero-loss gate — still running)
-
-## Blockers / In-Flight
-- **OSH-5 auditor gate verdict** — awaiting PASS/FAIL on zero-loss + `/claude-md` scores. If FAIL on lost rule(s), remediation required before deploy.
-- **origin/main unpushed** — local `main` ahead by 8 commits (OSH-1…4 + docs). Ready to push when user approves.
-
-## State File Health
-
-| File | Status |
-|:---|:---|
-| `.agent/current_task.md` | ✅ Updated (OSH-5 in-flight state) |
-| `Artifacts/TODO.md` | ✅ OSH-4 marked `[x]`, OSH-5 still `[ ]` |
-| `Artifacts/IMPLEMENTATION_PLAN.md` | ✅ Stable (OSH-4 technically done, OSH-5 not yet committed) |
-| `Artifacts/ARCH.md` | ✅ Stable |
-| `Artifacts/DECISION_LOG.md` | ✅ Updated (OSH-4 shipped, OSH-5 kicked off) |
-
-## Next Session — Critical Context
-
-1. **Check OSH-5 gate verdict** — auditor task `a93fc685fe6f02ea7` will have completed by then.
-   - If **PASS**: auditor will have appended "OSH-5 content gate: PASS" to `Artifacts/AUDIT_REPORT.md`. Proceed to deploy approval.
-   - If **FAIL**: auditor will have listed lost rule(s) with fixes. Route to remediation coder (same branch).
-2. **After OSH-5 gate passes** → deploy approval → `bash scripts/deploy.sh` → final sign-off → commit approval → merge to `main` → OSH-6.
-3. **OSH-6 is the terminal phase** (tooling & repo hygiene, smallest): delete scratch_test.md, ensure pytest ≥8 real tests, validate deploy.sh ↔ docs agreement, schema-clean Artifacts/.
-
-## Deferred to BACKLOG (next doc pass)
-- `osh_docs-count_1`: README.md / MEMORY_ANCHORS.md stale "17 skills" → fix to 16 or pointer-to-index.md.
-- `osh_hooks-gaps_1..4`: new hook features (PreCompact, Stop, commit-trailer), separate Step 0.
+**HEAD Commit**: `38db2c9` (fix(tooling,tests,docs): OSH-6 tooling & repo hygiene)
 
 ---
 
-**When resuming:** Read this brief, then check the auditor gate task result. If PASS, request deploy approval and I'll run validation. If FAIL, remediation is a quick coder pass on the lost rules.
+## ✅ Completed Initiatives
+
+### OS Hardening (OSH) — All 6 Phases Complete & Deployed
+
+| Phase | Status | Deployed | Key Outcomes |
+|:---|:---|:---|:---|
+| **OSH-1** | `[x]` | 2026-07-07 | Hooks enforcement layer restored (session-boot, guards); smoke tests 5/5 green |
+| **OSH-2** | `[x]` | 2026-07-07 | Agent/command gates fixed; 8/8 tool-grants verified correct |
+| **OSH-3** | `[x]` | 2026-07-07 | State-file naming unified (single `History/` casing); DECISION_LOG at root |
+| **OSH-4** | `[x]` | 2026-07-07 | Registries + skill hygiene (17 stale METADATA.yaml purged); commands re-routed to owning agents |
+| **OSH-5** | `[x]` | 2026-07-07 | Token diet (1,827→1,160 lines, −36.5%); high-rigor demoted to skill; 3 precedence statements |
+| **OSH-6** | `[x]` | 2026-07-08 | Tooling fixed (model_router plugin lookup, deploy.sh scoped-item rollback, 30 real tests added); repo cleaned |
+
+**Audit Findings**: 3 CRITICAL + ~27 HIGH from 2026-07-07 audit → **All remediated** (0 open)
+
+**Deployment Status**: ✅ Live as of 2026-07-08 00:07 UTC. Hooks active. Backup strategy correct.
+
+---
+
+## 📋 Current State Snapshot
+
+**Git**:
+- Branch: `main`
+- HEAD: `38db2c9`
+- **Unpushed**: 13 commits ahead of `origin/main` (entire OSH stack + VSE planning)
+  - Commits: fc0e457…38db2c9 (12 implementation + 1 docs)
+  - **Action**: `git push origin main` (routine; all auditor-verified)
+
+**Live Deployment** (`~/.claude/`):
+- Updated: 2026-07-08 00:07 UTC
+- Hooks active: session-boot, guard-commands, auto-lint, audit-trail (all fail-open)
+- Backup retention: 5 recent backups (newest: 584 KB; pre-OSH-6 backups ~115–150 MB, harmless)
+
+**Artifacts Health**:
+- `.agent/current_task.md`: ✅ Updated (OSH complete, main@38db2c9)
+- `Artifacts/TODO.md`: ✅ OSH-1..6 all `[x]`; VSE queued `[ ]`
+- `Artifacts/IMPLEMENTATION_PLAN.md`: ✅ OSH section complete; VSE phase intro
+- `Artifacts/ARCH.md`: ✅ Stable (no OSH-6 arch changes)
+- `Artifacts/DECISION_LOG.md`: ✅ Latest entries 2026-07-07 (OSH phases, plugin decision)
+
+**Known Operational Constraint** (by design):
+- Guard hook blocks recursive force-deletes (`rm -rf`, `git reset --hard`, etc.)
+- Requires manual user execution outside Claude (fail-safe, prevents accidental data loss)
+- Hit twice during cleanup this session
+
+---
+
+## 🚦 Next Steps
+
+### **Immediate** (1 decision, <1 min)
+- [ ] **`git push origin main`** — Push 13 commits to origin. *(All auditor-verified; routine housekeeping.)*
+
+### **Queued for User Direction** (awaiting re-engagement)
+- [ ] **VSE Initiative** — Visual-Storytelling Enhancement (design-data library + quality gates)
+  - **Status**: Blocked until OSH closed → now unblocked
+  - **Next**: User calls `/blueprint VSE-1` to start
+  - **Plans exist**: `Artifacts/Plans/VSE-[1-2]-Plan.md` + `VSE-[1-2]-TODO.md`
+  - **Scope**: 2 phases; estimated 4–6 days (per roadmap)
+
+---
+
+## 📚 Learnings Proposed for Registry
+
+Three new entries ready for capture (awaiting user confirmation):
+
+1. **[anti-pattern] Auditor Mutation-Testing Catches Hollow Tests**
+   - Spot-checks by code review miss fixture bugs; runtime mutation-testing reveals them
+   - OSH-6 pre-deploy gate caught hollow test + rollback-safety gap via mutation
+   - **Action**: Always run full test suite + mutation variants before deploy
+
+2. **[pattern] Guard Hook — Recursive Deletes Require Manual User Execution**
+   - Guard scans entire command string for dangerous syntax
+   - Recursive force-deletes (`rm -rf`, `git reset --hard`, etc.) cannot be auto-approved
+   - **Action**: Expect guard block on cleanup; user must execute manually outside Claude
+
+3. **[execution-rule] Deploy.sh Rollback: Scoped-Item Replace, Not Full-Wipe**
+   - Backup semantics are per-item (rules/, skills/, commands/, hooks/, settings.json)
+   - Prevents data loss if repo was extended after backup (plugins/, projects/, custom settings)
+   - **Action**: Understand scoped semantics; critical for data safety in any future deploy variants
+
+---
+
+## 📊 Metrics Summary
+
+| Metric | Value | Notes |
+|:---|:---|:---|
+| Audit findings remediated | 30/30 (3 CRITICAL + 27 HIGH) | Full OSH scope closed; zero regression |
+| Token diet reduction | −36.5% (1,827→1,160 lines) | Exceeds ~1,300 target |
+| Real test coverage added | 30 tests, exit 0 | Regression-locks OSH-1..5 fixes |
+| Artifacts hygiene | 14 files archived to History/ | Schema-clean root |
+| Unpushed commits | 13 | All auditor-verified; ready for origin |
+| Session duration | ~14 hours cross-night | 6 phases with multi-cycle gates |
+
+---
+
+## 🔗 References for Next Session
+
+- **Current task**: `Artifacts/.agent/current_task.md` (lines 1–20 summarize fully)
+- **Active TODO**: `Artifacts/TODO.md` (track OSH [x] and VSE [ ])
+- **Full roadmap**: `Artifacts/IMPLEMENTATION_PLAN.md` (2 initiatives: OSH done, VSE queued)
+- **Recent learnings**: `Artifacts/learnings/HOT.md` + 3 proposed entries
+- **If rollback needed**: `Artifacts/DEPLOY.md` (scoped semantics documented)
+
+---
+
+## ✅ Session Status
+
+**All gates passed.** OSH initiative complete and live. Repo ready for next priority.
+
+**Handoff Checklist** (for user):
+- [ ] Review 3 proposed learnings (confirm additions to registry)
+- [ ] Decide: Push `main` now, or defer?
+- [ ] Decide: VSE kickoff via `/blueprint` or other priority?

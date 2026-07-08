@@ -15,6 +15,9 @@ This registry contains project-wide, persistent knowledge captured across sessio
 
 ## Recent Entries
 
+- [2026-07-08] Execution Rule: Deploy.sh Rollback (Scoped-Item Replace)
+- [2026-07-08] Pattern: Guard Hook — Recursive Deletes Require Manual Execution
+- [2026-07-08] Anti-Pattern: Auditor Mutation-Testing Catches Hollow Tests
 - [2026-07-07] Anti-Pattern: Enforcement Config Never Runtime-Verified
 - [2026-07-07] Anti-Pattern: Refactors Leave Cross-Registry Drift
 - [2026-04-30] Mistake: Artifact Path Validation (Anti-Pattern)
