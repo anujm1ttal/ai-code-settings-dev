@@ -56,9 +56,11 @@ if [ "$SKIP_TESTS" = false ]; then
   echo -e "${YELLOW}[2/6]${NC} Running test suite..."
   # Only run pytest if the suite actually contains test files.
   if ls "$SOURCE"/tests/test_*.py >/dev/null 2>&1; then
-    # `if pytest ...` (not `pytest ...; rc=$?`) so a nonzero exit is caught by
-    # the conditional instead of triggering `set -e` before the hint prints.
-    if pytest "$SOURCE/tests/" --tb=short; then
+    # `if python -m pytest ...` (not `pytest ...; rc=$?`) so a nonzero exit is
+    # caught by the conditional instead of triggering `set -e` before the hint
+    # prints. `python -m pytest` (not the bare `pytest.exe` launcher) — the
+    # launcher raises WinError 6 on subprocess-spawning tests on Windows.
+    if python -m pytest "$SOURCE/tests/" --tb=short; then
       echo -e "${GREEN}✓ Tests passed${NC}"
     else
       echo -e "${RED}✗ Tests failed. Deploy aborted.${NC}"
