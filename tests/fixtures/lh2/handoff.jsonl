@@ -1,0 +1,6 @@
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"/handoff"}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_41","name":"Edit","input":{"file_path":"Artifacts/TODO.md","old_string":"[-] LH-2 T3","new_string":"[x] LH-2 T3"}}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_41","content":"The file Artifacts/TODO.md has been updated."}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_42","name":"Write","input":{"file_path":"Artifacts/HANDOFF_BRIEF.md","content":"Session summary..."}}]}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_42","content":"The file Artifacts/HANDOFF_BRIEF.md has been written."}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Handoff complete — TODO archived and HANDOFF_BRIEF.md written for the next session."}]}}

@@ -1,0 +1,2 @@
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"How does the retry logic in the HTTP client work?"}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"The client wraps each request in a retry loop: it catches transient network errors, waits with exponential backoff, and retries up to three times before raising to the caller."}]}}

@@ -15,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = REPO_ROOT / "hooks"
 ALL_HOOKS = [
     "guard-paths.js", "guard-commands.js", "auto-lint.js", "audit-trail.js",
-    "session-boot.js", "nudge-handoff.js",
+    "session-boot.js", "nudge-handoff.js", "evidence-gate.js",
 ]
 
 
