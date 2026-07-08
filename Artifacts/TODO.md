@@ -4,7 +4,7 @@
 **Plans:** `Artifacts/Plans/LH-[1-3]-Plan.md` + `LH-[1-3]-TODO.md` (all three authored 2026-07-08; LH-2 §Design Fork resolves at kickoff from the LH-1 spike verdict)
 **Sequencing:** LH-1 → LH-2 (shaped by LH-1 spike verdict) → LH-3 (terminal)
 
-- [ ] **LH-1 — Mechanical Hooks + Stop-Block Spike** (branch `phase-lh-1-mechanical-hooks`) — Success: T1–T6 metrics per `Plans/LH-1-Plan.md`; deploy validation passes; spike verdict filed in `Reports/LH-1-stop-spike.md`
+- [x] **LH-1 — Mechanical Hooks + Stop-Block Spike** (branch `phase-lh-1-mechanical-hooks`, merged + deleted) — Success: T1–T6 metrics per `Plans/LH-1-Plan.md`; deploy validation passes; spike verdict filed in `Reports/LH-1-stop-spike.md`. Auditor-verified 2026-07-08 (2-pass gate, 1 HIGH + 2 MEDIUM findings fixed and re-confirmed live); commit `14716e4`; deployed and live-wired 2026-07-08 (see `Plans/LH-1-TODO.md` auditor-gate line for full evidence). One LOW carried forward: `CLAUDE-global.md`/`coding-style.md` auto-lint doc-sync not yet filed to BACKLOG — tracked for LH-3.
 - [ ] **LH-2 — Evidence Gate** — Success: seeded unevidenced-done transcript triggers gate; doc-only session does not (false-positive test); design matches spike verdict
 - [ ] **LH-3 — Telemetry + Prose Split** — Success: deploy FAILs on removed enforced-by hook (test); `/handoff` prints per-gate fire/block counts; net always-loaded lines removed ≥ 20; `rules/gemini-only.md` is the single Gemini-side home, registry-audited
 
