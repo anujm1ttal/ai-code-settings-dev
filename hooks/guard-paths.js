@@ -41,6 +41,18 @@ const ALWAYS_BLOCKED_DIRECTORIES = [
 const COMPILED_OUTPUT_DIRS = new Set(['bin', 'obj']);
 const COMPILED_OUTPUT_CHILDREN = new Set(['debug', 'release', 'x64', 'x86']);
 
+// Project-state basenames (orchestration.md TODO Authority table) that must
+// live under <workspace>/Artifacts/, never under the ~/.claude/projects/
+// shadow directory (LH-1 T2 — orchestration.md Persistence HARD-GATE).
+const STATE_FILE_BASENAMES = new Set([
+  'todo.md', 'implementation_plan.md', 'handoff_brief.md', 'decision_log.md',
+  'backlog.md', 'arch.md', 'audit_report.md', 'layout_spec.md',
+]);
+
+// Native Claude Code features that legitimately write inside the
+// ~/.claude/projects/ shadow tree — never gate these or the harness breaks.
+const SHADOW_ALLOWLIST_SEGMENTS = new Set(['memory', 'tool-results']);
+
 function isBlocked(filePath) {
   if (!filePath) return null;
 
@@ -48,6 +60,26 @@ function isBlocked(filePath) {
   const ext = path.extname(normalized);
   const basename = path.basename(normalized);
   const parts = normalized.split('/').filter(Boolean);
+  const allowlisted = parts.some((p) => SHADOW_ALLOWLIST_SEGMENTS.has(p));
+
+  // State file written under the ~/.claude/projects/ shadow tree — project
+  // state belongs in the workspace, not the AI-brain directory.
+  if (!allowlisted && STATE_FILE_BASENAMES.has(basename)) {
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (parts[i] === '.claude' && parts[i + 1] === 'projects') {
+        return `State file (${basename}) written under a shadow path (.claude/projects/) — ` +
+          `project state belongs in <workspace>/Artifacts/ (orchestration.md HARD-GATE). ` +
+          `Write it to Artifacts/ in the project workspace instead.`;
+      }
+    }
+  }
+
+  // Bare scratch/ directory (distinct from the harness's own scratchpad/
+  // temp dirs) — one-off scripts and temp data belong in Artifacts/Temp/.
+  if (!allowlisted && parts.includes('scratch')) {
+    return `Bare scratch/ directory segment — one-off scripts and temp data belong in ` +
+      `<workspace>/Artifacts/Temp/ (orchestration.md Scratch Strategy HARD-GATE).`;
+  }
 
   // Check extension
   if (BLOCKED_EXTENSIONS.has(ext)) {
@@ -114,9 +146,9 @@ function main() {
       process.exit(0); // Bad JSON, fail-open
     }
 
-    // Extract file path from tool input
+    // Extract file path from tool input (notebook_path covers NotebookEdit)
     const toolInput = data.tool_input || {};
-    const filePath = toolInput.file_path || toolInput.path || toolInput.filePath || '';
+    const filePath = toolInput.file_path || toolInput.path || toolInput.filePath || toolInput.notebook_path || '';
 
     const reason = isBlocked(filePath);
 

@@ -45,6 +45,23 @@ const BLOCKED_PATTERNS = [
   { pattern: />\s*\/dev\/sd[a-z]/i, reason: 'Direct write to block device.' },
   { pattern: /chmod\s+(-[a-zA-Z]*\s+)?777\s+\//i, reason: 'Recursive permission change at root.' },
   { pattern: /curl\s+.*\|\s*(ba)?sh/i, reason: 'Piping remote script to shell (supply chain risk).' },
+
+  // AI attribution trailer in a commit — deny-list per standards.md. `git commit`
+  // and the trailer text are checked as two INDEPENDENT conditions (not one
+  // positional regex) so the deny still fires regardless of which substring
+  // comes first in the command string — e.g. `echo "Co-Authored-By: Claude"
+  // >> msg.txt && git commit -F msg.txt` puts the trailer before `git commit`
+  // and would slip past a single ordered regex. Raw string containment (not
+  // shell-parsed) means heredoc (`<<'EOF' ... EOF`) and PowerShell here-string
+  // (`@" ... "@`) message bodies are already part of the command string.
+  {
+    pattern: {
+      test: (command) =>
+        /git\s+commit\b/i.test(command) &&
+        /co-authored-by:\s*claude|generated with[\s\S]*?claude code/i.test(command),
+    },
+    reason: 'Commit message contains an AI attribution trailer (Co-Authored-By: Claude / Generated with Claude Code) — strip the attribution trailer and re-run (deny-list, standards.md).',
+  },
 ];
 
 function deny(command, reason) {

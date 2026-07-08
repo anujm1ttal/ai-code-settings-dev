@@ -23,24 +23,21 @@ in OSH-4). Trivial; batch into any future doc-sync pass.
 
 ---
 
-## `osh_hooks-gaps_1..4` — New hook features (deferred from OSH-1)
+## ~~`osh_hooks-gaps_1..4` — New hook features (deferred from OSH-1)~~ — GRADUATED to LH (3 of 4)
 
-**Filed:** 2026-07-07 (OSH-1) · **Severity:** LOW–MEDIUM · **Needs:** separate Step 0
+**Filed:** 2026-07-07 (OSH-1) · **Graduated:** 2026-07-08 → LH initiative (`Plans/LH-1-Plan.md`)
 
-OSH-1 fixed the five existing hooks (output schemas, guard coverage, deploy
-integration). These are *new capabilities* the audit (HK-G1..G4) recommended but
-that are out of OSH-1's fix-only scope — each is a feature, not a repair:
+Separate Step 0 completed 2026-07-08 (LH blueprint + grill). Disposition:
 
-1. **`osh_hooks-gaps_1` — Stop/SubagentStop hook**: nudge `/handoff` when a session
-   ends with uncommitted TODO changes (CLAUDE-global mandates the handoff).
-2. **`osh_hooks-gaps_2` — PreCompact hook**: enforce the "context >60% → `/handoff`"
-   emergency protocol at the natural compaction boundary.
-3. **`osh_hooks-gaps_3` — Scratch-dir hard-gate**: extend `guard-paths.js` to block
-   writes to shadow `~/.claude/projects/**` state and `scratch/`, which
-   orchestration.md declares a HARD-GATE.
-4. **`osh_hooks-gaps_4` — Commit-trailer guard**: PreToolUse Bash/PowerShell pattern
-   rejecting commits carrying `Co-Authored-By: Claude` / "Generated with Claude Code"
-   (standing deny-list rule, currently unenforced).
+1. **`osh_hooks-gaps_1` — Stop/SubagentStop handoff nudge** → **LH-1 T4** (nudge-only;
+   additionalContext, never blocks).
+2. **`osh_hooks-gaps_2` — PreCompact hook** → **STRUCK — unimplementable.** PreCompact
+   is absent from the current hook-events list (SessionStart, SessionEnd,
+   UserPromptSubmit, Stop, StopFailure, PreToolUse, PostToolUse — official docs check
+   2026-07-08 via claude-code-guide). Re-file only if the event returns to the harness.
+3. **`osh_hooks-gaps_3` — Scratch-dir hard-gate** → **LH-1 T2** (state-basename deny
+   under shadow paths; memory/ allowlisted).
+4. **`osh_hooks-gaps_4` — Commit-trailer guard** → **LH-1 T3** (Bash + PowerShell forms).
 
 ---
 

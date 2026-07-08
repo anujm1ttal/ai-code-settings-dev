@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /**
- * Claude Code — PostToolUse Hook: Auto-Lint (Report Only)
+ * Claude Code — PostToolUse Hook: Auto-Lint (Loud Feedback, No Auto-Fix)
  *
  * Detects the file type after an edit and runs the appropriate linter.
  * Reports violations back to Claude via the documented PostToolUse schema: stdout
  *   { hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext } }
  * with exit 0. A bare top-level additionalContext is dropped by the harness.
- * Does NOT auto-fix — the user must approve fixes.
+ * The hook itself never modifies files — it injects a loop-closing directive
+ * telling Claude to fix the reported issues before proceeding (LH-1 T1).
  *
  * Fail-open: linter failures are reported, never block work.
  */
@@ -50,6 +51,13 @@ function commandExists(cmd) {
   } catch {
     return false;
   }
+}
+
+// Ruff/eslint/tsc diagnostics are one per line in the form `path:line:col: ...`.
+// Cheap heuristic count — not authoritative, just a loop-closing signal.
+function countIssues(output) {
+  const matches = output.match(/^\S+:\d+:\d+:/gm);
+  return matches ? matches.length : null;
 }
 
 function runLinter(cmd, args, cwd) {
@@ -108,15 +116,17 @@ function main() {
     const result = runLinter(cmd, args, cwd);
 
     if (!result.success && result.output) {
+      const count = countIssues(result.output);
+      const countLabel = count !== null ? `, ${count} issue${count === 1 ? '' : 's'}` : '';
       const output = {
         hookSpecificOutput: {
           hookEventName: 'PostToolUse',
           additionalContext: [
-            `Claude Code Auto-Lint (${linter.name}) — issues found:`,
+            `Claude Code Auto-Lint (${linter.name}${countLabel}) — issues found:`,
             '```',
             result.output.substring(0, 2000), // Cap output length
             '```',
-            'Report these to the user and wait for approval before fixing.',
+            'Fix before proceeding.',
           ].join('\n'),
         },
       };

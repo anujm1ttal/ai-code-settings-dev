@@ -1,31 +1,42 @@
-# Implementation Plan — Active Initiative: OSH — OS Hardening
+# Implementation Plan — Active Initiative: LH — Loop Hardening
 
-**Project type:** `code` (AI OS meta-repo) · **Owner:** strategist · **Status:** planned, ready for coder · **Step 0 approved:** 2026-07-07
+**Project type:** `code` (AI OS meta-repo) · **Owner:** strategist · **Status:** LH-1 ready for coder · **Step 0 approved:** 2026-07-08 · **Grill:** [REFACTORED] 2026-07-08
 
 ## Purpose
 
-Remediate the 2026-07-07 full-setup audit (`Artifacts/AUDIT_REPORT.md`): non-functional hook
-enforcement, unexecutable agent mandates, phantom references, state-file naming drift,
-registry gaps, ~30% always-loaded token waste, and tooling that returns wrong answers.
+Convert the OS's prose-enforced gates into harness-enforced loops where the runtime actually
+permits it, then reclaim the always-loaded prose those hooks replace. Successor to OSH;
+absorbs the deferred HK-G backlog items. Grounding: loop-engineering assessment 2026-07-08 —
+a rule the harness enforces beats a rule the model chooses to obey.
 
-## Phase Roadmap (detail lives in Artifacts/Plans/OSH-N-Plan.md — this is the index)
+## Phase Roadmap (detail lives in Artifacts/Plans/LH-N-Plan.md — this is the index)
 
-| Phase | Scope | Key findings | Depends on |
+| Phase | Scope | Feasibility | Depends on |
 |:---|:---|:---|:---|
-| OSH-1 | Hooks: output schemas, guard coverage, deploy integration | HK-C1..C3, H1..H4, M1..M6 | — |
-| OSH-2 | Agent/command gates: tools vs mandates, dead refs, authority | AG-1..20, CM-1,3,6-8,11,12,19,25 | OSH-1 |
-| OSH-3 | Naming unification: learnings/, BACKLOG, History/ casing, DECISION_LOG | RU-F1..F5,F9,F10; TL-H5 | OSH-2 |
-| OSH-4 | Registries + skill hygiene: METADATA.yaml purge, ghost names, descriptions, command frontmatter | SK-1..19, CM-2,5,9,10,13-28, RU-F6-F8 | OSH-3 |
-| OSH-5 | Token diet: dedup to canonical homes, demote docs, precedence blocks | RU-D1..D10, T1..T4, P2..P5 | OSH-4 |
-| OSH-6 | Tooling: model_router plugin lookup, deploy.sh truth, real tests, Artifacts sweep | TL-H1,H2,H4,M1..M9 | OSH-1,3,5 |
+| LH-1 | Mechanical hooks + spike: auto-lint → loud additionalContext feedback; scratch-gate (HK-G3) + commit-trailer guard (HK-G4) as PreToolUse hard-denies; handoff nudge (HK-G1) on Stop; empirical Stop-block spike | Doc-verified 2026-07-08 | — |
+| LH-2 | Evidence gate: Iron Law mechanized — hard-deny turn-end on unevidenced "done" claims if the spike proves Stop can block, else auto-injected evidence-nag. Trigger: completion-claim regex AND source edits this session | Gated on LH-1 T5 spike verdict | LH-1 |
+| LH-3 | Telemetry + prose split (terminal): `audit_trail.jsonl` read side surfaced at `/handoff`; deploy.sh asserts enforced-by hooks present in live settings or FAILs; enforced prose → pointer in Claude context + full text in single `rules/gemini-only.md`; /registry-audit covers it | — | LH-1, LH-2 |
 
-**Binding decisions** are recorded in each phase plan's "Technical Approach" (e.g., auditor
-gains Write/Edit; hookSpecificOutput deny form; `History/` casing; CLAUDE-global = command
-registry master; high-rigor → skill). Coder implements, does not re-litigate; disagreement
-routes to strategist with evidence.
+**Binding decisions** (grill verdicts, recorded in `Plans/LH-1-Plan.md` §Binding decisions;
+coder does not re-litigate): no PostToolUse blocking exists (state machine CUT); hard-deny
+only at PreToolUse; TODO-authority hook KILLED (no caller identity in hook input — prose
+stays); HK-G2/PreCompact unimplementable (event no longer exists); all gates fail-open on
+script error; Gemini-side prose lives in exactly one file.
 
-**Deferred (BACKLOG, separate Step 0):** new hook features HK-G1..G4 (Stop/PreCompact hooks,
-scratch-gate, commit-trailer guard); GEMINI.md parity.
+**Cut at grill:** blocking-lint state machine; guard-todo-authority.js; HK-G2.
+
+---
+---
+
+# Completed Initiative: OSH — OS Hardening (2026-07-07 → 2026-07-08)
+
+All 6 phases shipped, deployed, merged to `main` (terminal commit `38db2c9`). Remediated the
+2026-07-07 full-setup audit: hooks enforcement restored, agent gates fixed, state-file naming
+unified, registries reconciled, always-loaded corpus −36.5%, tooling + real test suite (30
+tests). Phase plans archived → `Artifacts/History/Plans/OSH-[1-6]-*`; findings base
+`Artifacts/AUDIT_REPORT.md`; decisions in `DECISION_LOG.md` [OSH] entries.
+**Deferred → LH:** HK-G1/G3/G4 (scheduled LH-1); HK-G2 struck (unimplementable). **Still
+deferred:** GEMINI.md parity (partially addressed by LH-3's gemini-only file).
 
 ---
 ---

@@ -1,6 +1,24 @@
-# Active Initiative: OSH — OS Hardening
+# Active Initiative: LH — Loop Hardening
 
-**Status:** Planned — ready for coder · **Step 0:** approved 2026-07-07 (user accepted audit findings + 6-phase plan)
+**Status:** LH-1 ready for coder · **Step 0:** approved 2026-07-08 · **Grill:** [REFACTORED] 2026-07-08 (4→3 phases; state machine, TODO-authority hook, HK-G2 cut on doc evidence)
+**Plans:** `Artifacts/Plans/LH-[1-3]-Plan.md` + `LH-[1-3]-TODO.md` (all three authored 2026-07-08; LH-2 §Design Fork resolves at kickoff from the LH-1 spike verdict)
+**Sequencing:** LH-1 → LH-2 (shaped by LH-1 spike verdict) → LH-3 (terminal)
+
+- [ ] **LH-1 — Mechanical Hooks + Stop-Block Spike** (branch `phase-lh-1-mechanical-hooks`) — Success: T1–T6 metrics per `Plans/LH-1-Plan.md`; deploy validation passes; spike verdict filed in `Reports/LH-1-stop-spike.md`
+- [ ] **LH-2 — Evidence Gate** — Success: seeded unevidenced-done transcript triggers gate; doc-only session does not (false-positive test); design matches spike verdict
+- [ ] **LH-3 — Telemetry + Prose Split** — Success: deploy FAILs on removed enforced-by hook (test); `/handoff` prints per-gate fire/block counts; net always-loaded lines removed ≥ 20; `rules/gemini-only.md` is the single Gemini-side home, registry-audited
+
+### Initiative Hard Rules (Auditor Rejects on Violation)
+1. Hook malfunction always exits 0 — blocking reserved for evaluated conditions
+2. Every deny message states its exact unblock condition
+3. No prose leaves always-loaded context before its hook is verified AND deploy-guarded
+4. Gemini-side prose lives in exactly one file (`rules/gemini-only.md`), covered by `/registry-audit`
+
+---
+
+# Completed Initiative: OSH — OS Hardening
+
+**Status:** COMPLETE — all 6 phases shipped, deployed, merged (`38db2c9`, 2026-07-08) · **Step 0:** approved 2026-07-07 (user accepted audit findings + 6-phase plan)
 **Evidence base:** `Artifacts/AUDIT_REPORT.md` (stable finding IDs: HK/AG/CM/RU/SK/TL-*)
 **Plans:** `Artifacts/Plans/OSH-[1-6]-Plan.md` + `OSH-[1-6]-TODO.md` (detailed per-phase tasks live there — this is the thin index)
 **Sequencing:** 1 → 2 → 3 → 4 → 5 → 6 (each phase on its own branch, merged before the next starts)

@@ -4,6 +4,18 @@ Historical architectural decisions and pivots. Newest first.
 
 ---
 
+## 2026-07-08 — Launch LH (Loop Hardening) initiative; grill cuts 4 phases → 3 [LH]
+
+**Decision:** Launch LH as OSH's successor: convert prose gates to harness-enforced hooks where the runtime permits, then reclaim the replaced prose. Step 0 + `/grill` completed same session; user approved the hardened 3-phase roadmap (LH-1 mechanical hooks + spike → LH-2 evidence gate → LH-3 telemetry + prose split). Absorbs deferred BACKLOG items HK-G1/G3/G4.
+
+**Rationale:** Loop-engineering assessment (2026-07-08): the OS scores ~90% on loop *philosophy* (TDD loop, auditor rejection loop, semantic loop detection) but ~50% on *mechanism* — most gates are prose the model must choose to obey. Highest-leverage fix is mechanical enforcement plus token payoff from deleting enforced prose.
+
+**Grill verdicts (binding, evidence: official hook-docs check 2026-07-08 via claude-code-guide):** (1) PostToolUse cannot block — blocking-lint state machine CUT; auto-lint upgrades to loud additionalContext feedback instead. (2) Stop-block semantics undocumented — LH-1 carries an empirical spike; LH-2's design branches on its verdict. (3) Hook input carries no agent identity — TODO-authority hook KILLED, prose stays. (4) PreCompact event no longer exists — HK-G2 struck from BACKLOG. (5) User override on prose disposition: split-by-consumer — Claude context gets pointers, full text moves to a single `rules/gemini-only.md` (strategist constraint: exactly one file, registry-audited, to bound drift).
+
+**Hard Rules:** hooks fail-open on script error; every deny states its unblock condition; no prose leaves context before its hook is verified + deploy-guarded; one Gemini-side file only.
+
+---
+
 ## 2026-07-07 — Kick off OSH-5 (Token-Economy Diet) consolidation [OSH]
 
 **Decision:** Launched OSH-5 on branch `phase-osh-5-token-diet` with a single consolidation coder (zero-loss Hard Rule prevents parallelization). Consolidated 19 duplicated blocks across 8 rules files + CLAUDE-global into single-canonical homes with pointers; demoted high-rigor-engineering.md (349 ln) → on-demand skill; cut model-routing.md (272→~40 ln, docs to scripts/README.md); trimmed TOKEN-ECONOMICS.md; added 3 precedence statements.

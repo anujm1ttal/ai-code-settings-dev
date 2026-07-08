@@ -14,7 +14,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Edit|MultiEdit|Write",
+        "matcher": "Edit|MultiEdit|Write|NotebookEdit",
         "hooks": [
           {
             "type": "command",
@@ -51,6 +51,18 @@
           {
             "type": "command",
             "command": "node \"C:/Users/44547/.claude/hooks/audit-trail.js\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:/Users/44547/.claude/hooks/nudge-handoff.js\"",
             "timeout": 5
           }
         ]
