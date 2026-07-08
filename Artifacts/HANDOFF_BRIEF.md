@@ -1,106 +1,62 @@
-# Session Handoff Brief — AI OS State Reconciliation + DLR Closure (2026-07-08)
+# Session Handoff Brief — uv Workflow Operationalization (2026-07-08)
 
-**Session Tier**: L2 Session Closure  
-**Date**: 2026-07-08 (continuation from context-compacted session)  
-**Branch**: `main` (LH-3 merged fast-forward, all LH work complete)  
-**HEAD Commit**: `92f398a` (docs(lh): LH-3 + initiative closure)
-
----
-
-## ✅ Completed: LH (Loop Hardening) Initiative
-
-**Status**: COMPLETE — all 3 phases shipped, deployed to `~/.claude/`, merged to `main`, auditor-closed
-
-| Phase | Commits | Outcome |
-|:---|:---|:---|
-| **LH-1** | `14716e4` | Mechanical hooks (auto-lint, guard-paths, guard-commands) + empirical Stop-block spike (verdict: unsafely blocks) |
-| **LH-2** | `541362c` | Evidence gate (Iron Law nag on unevidenced "done" claims); design shaped by LH-1 spike verdict |
-| **LH-3** | `99ae67b` / `2cee6eb` | Deploy-guard (enforced-rules.json + deploy.sh validation), gate telemetry (instrument hooks → `/handoff`), doc-sync (7-hook table) |
-
-**Initiative Hard Rules — All 4 Held:**
-1. ✅ Hook malfunction always exits 0 — blocking reserved for evaluated conditions
-2. ✅ Every deny message states its exact unblock condition
-3. ✅ No prose leaves always-loaded context before its hook is verified AND deploy-guarded
-4. ✅ Gate-logging is fail-open within fail-open (never alters hook decision/exit); deploy-guard fails CLOSED
-
-**Live-Fire Evidence**:
-- Both Stop hooks (`nudge-handoff`, `evidence-gate`) fired on orchestrator's own turns
-- Guard hooks blocked 120+ file/command operations across LH-1 + LH-2
-- Deploy-guard's first production run: "OK: all 7 enforced hook(s) present and wired" (independently re-confirmed by auditor)
+**Session Tier**: L1 Checkpoint (`--lite`) — mid-task pause, work uncommitted
+**Date**: 2026-07-08
+**Branch**: `main` · **Tree**: uv edit committed + deployed same session (see Blockers — resolved)
 
 ---
 
-## 🚀 Deployment Status
+## Session Summary
 
-**Deployed**: 2026-07-08 via `bash scripts/deploy.sh`
-- 7 hooks live in `~/.claude/hooks/`
-- `settings.json` wired for all 7 (no patch needed; LH-3 adds no new hooks)
-- Backup: `~/.claude.backup-20260708-124520`
-- Tests: 105/105 passed exit 0 (fixed Windows `pytest.exe` launcher quirk via `python -m pytest`)
+Single micro-task (MTP) session. User invoked `/blueprint` with a question ("what do you think of uv? i don't think i have it in any of my skills") — routed as a claim to pressure-test, not a project to plan.
 
----
+- **Claim disproven**: `uv` already named in 4 OS files (`python-patterns/SKILL.md:108`, `coding-style.md`, `security.md:33`, `auditor.md:76`).
+- **Real gap found**: named but never operationalized — no commands, no lockfile discipline, no `uv run` guidance.
+- **Fix drafted and applied** (user approved draft, declined a phase).
 
-## 📋 Current State Snapshot
+## In Progress (uncommitted)
 
-**Git**:
-- Branch: `main`
-- HEAD: `92f398a`
-- Clean working tree
-- Latest 3 commits (LH-3 terminal phase)
+**`skills/python-patterns/SKILL.md`** (v1.1.0 → 1.2.0): new **§⚡ uv Workflow** section + toolchain-bullet pointer:
 
-**Live Deployment** (`~/.claude/`):
-- Updated: 2026-07-08 ~12:45 UTC
-- Hooks active: 7 registered (session-boot, guard-paths, guard-commands, auto-lint, audit-trail, nudge-handoff, evidence-gate)
-- All fail-open on script error; 2 deny hooks (guard-paths, guard-commands) hard-block on conditions; 3 nag hooks feedback-only
+- `uv init --package` / `uv add` / `uv add --dev` / `uv remove`; `pyproject.toml` is source of truth
+- Lockfile discipline: commit `uv.lock`; `uv lock --upgrade-package`; never delete-to-fix; `uv sync --frozen` in CI
+- `.python-version` pinning + `uv python install` (replaces pyenv/manual installers)
+- **`uv run python -m <tool>`** for all invocation — cross-referenced to `coding-style.md` §Windows Shell & Paths (clean fix for the `.exe` launcher `WinError 6` class)
+- `uvx` for one-off tools (`uvx pip-audit`, per `security.md`); Rhino boundary: uv is Host-side (3.12+) only
 
-**Artifacts Health**:
-- `.agent/current_task.md`: ✅ Session close (no active task)
-- `Artifacts/TODO.md`: ✅ LH-3 + top-level LH marked `[x]`; **LH INITIATIVE COMPLETE** header added
-- `Artifacts/IMPLEMENTATION_PLAN.md`: ✅ LH moved to completed section; no active initiative
-- `Artifacts/ARCH.md`: ✅ Stable
-- `Artifacts/DECISION_LOG.md`: ✅ LH closure decisions recorded (2026-07-08 entries capture both pivots: pytest launcher fix, graceful telemetry)
+## Blockers / Next Session
 
----
+1. ~~User decision pending: commit + deploy~~ **RESOLVED same session** — user approved; `deploy.sh` passed 6/6 (105/105 tests, "all 7 enforced hook(s) present and wired", backup `.claude.backup-20260708-210619`), deployed copy verified, SKILL.md committed.
+2. **VSE initiative** queued — `/blueprint VSE-1` ready, Step 0 approved 2026-07-07.
+3. **`my_mcp_rhino` CLAUDE.md** — broken `GBLOX.md` link (D4) + precedence gap (D6); user fixing manually under that repo's protocol.
 
-## 🎯 Key Decisions (Recorded in DECISION_LOG)
+## Decisions
 
-1. **Re-scoped LH-3** (2026-07-08) — prose-split DROPPED (payoff ≈1 line, not ≥20); kept deploy-guard + telemetry + doc-sync (the real wins)
-2. **Resolved LH-1 spike fork** — Stop CAN block but unsafely (exit-2 hang, decision:block empty output); LH-2 uses Branch B (feedback-only evidence-nag)
-3. **Post-PASS null-guard fix** (auditor gate) — `logGateEvent(params)` destructures inside try body; independently verified live and against deployed hook
+- **uv endorsed as the standard for all Python projects** — operationalize the existing reference rather than add new rule surface (deep-vs-shallow: same interface, more behavior). MTP scope; no DECISION_LOG entry appended (log is reserved for pivots/high-stakes resolutions — this is neither).
 
----
+## State File Health
 
-## 📊 Gate Telemetry
+| File | Status |
+|:---|:---|
+| `Artifacts/.agent/current_task.md` | ✅ Updated (checkpoint state, stale HEAD pointer `ca03928` → `70c2cbe` corrected) |
+| `Artifacts/TODO.md` | ✅ Stable — MTP work correctly absent (below TODO granularity); VSE still queued at top |
+| `Artifacts/IMPLEMENTATION_PLAN.md` | ✅ Untouched |
+| `Artifacts/ARCH.md` | ✅ Stable |
+| `Artifacts/DECISION_LOG.md` | ✅ Stable — no append (MTP, no pivot); under rotation threshold |
+
+## Gate Telemetry
 
 | Hook | Deny | Nag | Last Fired |
 |:---|---:|---:|:---|
-| evidence-gate | 0 | 60 | 2026-07-08T11:47:53.334Z |
-| guard-commands | 48 | 0 | 2026-07-08T11:48:10.523Z |
-| guard-paths | 60 | 0 | 2026-07-08T11:48:09.941Z |
+| evidence-gate | 0 | 85 | 2026-07-08T14:17:15.883Z |
+| guard-commands | 68 | 0 | 2026-07-08T14:17:31.959Z |
+| guard-paths | 85 | 0 | 2026-07-08T14:17:31.200Z |
+| nudge-handoff | 0 | 1 | 2026-07-08T20:03:05.734Z |
+| unknown | 0 | 0 | 2026-07-08T11:46:59.712Z |
 
-**Total: 108 deny, 60 nag.** _(Test harness; Stop hooks fire once per true session.)_
+**153 deny, 86 nag across 5 hook(s).**
 
----
+## Next Session
 
-## 📚 Learnings Captured
-
-1. **windows-pytest-launcher** (execution-rules) — Bare `pytest.exe` launcher fails on subprocess-spawning tests (WinError 6 handle inheritance); use `python -m pytest` in automated contexts. Deployed in LH-3 commit `2cee6eb`.
-
----
-
-## 🔜 Next Steps
-
-**Queued (awaiting user direction):**
-- Two OSH phases (OSH-4, OSH-6) await explicit user approval to commit + merge (already auditor-verified, deployed)
-- VSE (Visual Storytelling Excellence) initiative queued in `Artifacts/TODO.md` housekeeping
-
-**Critical for Next Agent:**
-- LH is complete and live; all 7 hooks deployed, enforced, instrumented
-- Deploy-guard production-tested; running `bash scripts/deploy.sh` now validates hook wiring end-to-end
-- Telemetry is opt-in at `/handoff` (graceful skip if reader absent); global deployment deferred to BACKLOG
-
----
-
-## No Uncommitted Changes
-
-`git status` clean. All work committed and merged to `main`
+**Agent**: strategist → `/blueprint VSE-1` (uv work fully closed: committed + deployed).
+**Critical context**: the uv section deliberately cross-references the Windows Shell & Paths HARD-GATE — `uv run` supersedes bare `python -m` as the preferred invocation *in uv-managed projects only*; the global rule text in `coding-style.md` was intentionally left untouched.
