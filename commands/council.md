@@ -12,7 +12,7 @@ Owned by the **council** agent (orchestrated by the concierge/strategist). The "
 
 ## Execution Sequence
 
-1.  **Scope Definition**: Read `Artifacts/TODO.md` or `.agent/current_task.md` to identify the target decision.
+1.  **Scope Definition**: Read `Artifacts/TODO.md` or `Artifacts/.agent/current_task.md` to identify the target decision.
 2.  **Protocol Load**: Reference `Artifacts/COUNCIL_PROTOCOLS.md` for workflow rules. If the file does not exist, skip to the Default Fleet (below) and proceed without a custom protocol.
 3.  **Member Setup**: 
     - Auto-select 3 roles based on task tags (e.g., `security`, `ux`, `performance`).

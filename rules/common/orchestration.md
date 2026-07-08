@@ -167,7 +167,7 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 | `Artifacts/MEMORY_ANCHORS.md` | Strategist | Strategist | **Cold Storage**: Project-wide constants, constraints, and non-negotiables. (Persistent — never archived) |
 | `Artifacts/Temp/` | All | Concierge (Cleanup) | **Transient Storage**: One-off diagrams, scratch scripts, and temporary analysis. |
 | `Artifacts/AUDIT_REPORT.md` | Auditor | Auditor | Gate-based quality review findings (Logic, Style, Hard Rules); see `/audit`. |
-| `.agent/current_task.md` | Concierge | Concierge | Session focus |
+| `Artifacts/.agent/current_task.md` | Concierge | Concierge | Session focus |
 | `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
 | `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist | **The "How & Why"**: Technical design and rationale. |
 | `Artifacts/TODO.md` | Strategist | All (see authority) | **The "Who & When"**: High-level execution status. |

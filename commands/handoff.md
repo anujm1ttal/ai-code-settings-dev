@@ -39,8 +39,8 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
    ```
    User confirms which to add to `Artifacts/TODO.md`. Never auto-add.
 2. **Session Summary**: Tasks worked on, agents active, decisions/pivots made.
-3. **State Snapshot**: Update `.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md`. Then run the **State File Health Check** — all five must be healthy and synchronized before the session ends (prevents context loss):
-   - `.agent/current_task.md` — updated with current task status
+3. **State Snapshot**: Update `Artifacts/.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md`. Then run the **State File Health Check** — all five must be healthy and synchronized before the session ends (prevents context loss):
+   - `Artifacts/.agent/current_task.md` — updated with current task status
    - `Artifacts/TODO.md` — active task markers correct
    - `Artifacts/IMPLEMENTATION_PLAN.md` — no unnecessary changes
    - `Artifacts/ARCH.md` — stable
@@ -62,7 +62,7 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
 - **In Progress**: Task → current state.
 - **Blockers**: Open questions or dependencies.
 - **Decisions**: Decision → rationale (also in `Artifacts/DECISION_LOG.md`).
-- **State File Health**: Status of `.agent/current_task.md`, `Artifacts/TODO.md`, and `Artifacts/IMPLEMENTATION_PLAN.md`.
+- **State File Health**: Status of `Artifacts/.agent/current_task.md`, `Artifacts/TODO.md`, and `Artifacts/IMPLEMENTATION_PLAN.md`.
 - **Gate Telemetry**: `scripts/gate_telemetry.py` output — per-hook deny/nag counts and last-fired timestamp.
 - **Next Session**: Agent → task → 1-2 sentences critical context.
 
