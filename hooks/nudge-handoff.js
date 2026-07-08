@@ -33,6 +33,18 @@ function alreadyNudged(sessionId) {
   }
 }
 
+// Lazy-required and independently try/catch-wrapped (not a top-level
+// require) so a bug in the logger can only ever be swallowed here — it can
+// never crash this file before the additionalContext output above it is
+// written (LH-3 T1b, Hard Rule 1).
+function logGateSafe(params) {
+  try {
+    require('./lib/gate-log').logGateEvent(params);
+  } catch {
+    // Logging must never affect this hook's decision or exit code.
+  }
+}
+
 function markNudged(sessionId) {
   try {
     fs.mkdirSync(MARKER_DIR, { recursive: true });
@@ -116,6 +128,14 @@ function main() {
       },
     };
     process.stdout.write(JSON.stringify(output));
+    logGateSafe({
+      hook: 'nudge-handoff',
+      event: 'Stop',
+      decision: 'nag',
+      tool: null,
+      ruleId: 'nudge-handoff',
+      cwd,
+    });
     markNudged(sessionId);
     process.exit(0);
 

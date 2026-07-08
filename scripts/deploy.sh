@@ -169,6 +169,21 @@ for file in CLAUDE.md cheatsheet.md README.md commands/claude-md.md hooks/sessio
   fi
 done
 
+# Hook-wiring guard (LH-3 T2b): every hooks/enforced-rules.json entry must be
+# both deployed AND referenced under its declared event in the live
+# settings.json. Fails CLOSED, unlike the runtime hooks — a wiring gap that
+# ships silently is the exact failure mode this guard exists to prevent
+# (hit manually in LH-1 and LH-2). Exception: a completely absent
+# settings.json (fresh machine, before hooks/README.md Step 2's manual merge)
+# only WARNs and exits 0 — that's expected bootstrap state, not a regression.
+if ! python "$SOURCE/scripts/verify_hook_wiring.py" \
+  --manifest "$SOURCE/hooks/enforced-rules.json" \
+  --hooks-dir "$DEST/hooks" \
+  --settings-file "$DEST/settings.json"; then
+  echo -e "${RED}✗ Hook-wiring guard failed. Deploy aborted.${NC}"
+  exit 1
+fi
+
 echo -e "${GREEN}✓ Deployment validation passed${NC}"
 echo ""
 

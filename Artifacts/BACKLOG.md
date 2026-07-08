@@ -5,6 +5,32 @@ Reference-on-demand (not boot-loaded). ID format: `<phase>_<component>_<n>`.
 
 ---
 
+## ~~`lh3_gate-log_1` — `logGateEvent(null)` throws before entering its own try/catch~~ — RESOLVED
+
+**Filed:** 2026-07-08 (LH-3 audit) · **Resolved:** 2026-07-08 (LH-3, strategist ruled fix-now) · **Severity:** ~~MEDIUM~~ → none
+
+**Resolution:** `logGateEvent(params)` now does `const { ... } = params || {}` INSIDE the try body — the
+function is structurally incapable of throwing for any argument (`null`/`undefined`/`42`/`str`/array/
+no-arg all verified no-throw). 2 regression tests added; suite 105 passed exit 0. The helper's
+self-contained fail-open claim is now true in isolation, not just via call-site wrapping.
+
+---
+
+## `lh3_telemetry-deploy_1` — Gate telemetry reader is repo-local; hooks log everywhere
+
+**Filed:** 2026-07-08 (LH-3 ship) · **Severity:** LOW · **Needs:** product decision
+
+`hooks/lib/gate-log.js` deploys with the hooks, so `gate_events.jsonl` is written in EVERY project.
+But `scripts/gate_telemetry.py` (the reader) is not deployed (`deploy.sh` excludes `scripts/` by
+design; see repo CLAUDE.md). So `/handoff`'s telemetry step only produces a table inside the
+ai-code-settings repo. Made graceful in LH-3 (`commands/handoff.md:50` now skips the sub-step when
+the script is absent rather than erroring). **Enhancement (deferred):** to close the telemetry loop
+globally, either deploy `gate_telemetry.py` to `~/.claude/` (policy change — scripts currently not
+deployed) or fold a minimal reader into a deployed location. Product call: is per-project gate
+telemetry worth the deploy-policy change, or is repo-local dev observability sufficient?
+
+---
+
 ## `osh_docs-count_1` — Stale "17 skills" count in out-of-scope docs
 
 **Filed:** 2026-07-07 (OSH-4) · **Severity:** LOW · **Needs:** doc pass

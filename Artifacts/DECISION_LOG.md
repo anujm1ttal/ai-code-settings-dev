@@ -4,6 +4,22 @@ Historical architectural decisions and pivots. Newest first.
 
 ---
 
+## 2026-07-08 — Re-scope LH-3 (terminal): drop prose-split, keep deploy-guard + telemetry + doc-sync [LH]
+
+**Decision:** At LH-3 kickoff, recon of the two load-bearing assumptions failed both. Re-scoped the terminal phase to its real value and dropped the "prose payoff" that named it. User approved (Lean + valuable).
+
+**Evidence that forced it:**
+1. **Telemetry data source wrong.** `audit_trail.jsonl` logs `{ts,session,tool,input}` = tool invocations, not hook decisions; a *denied* action leaves no entry (blocked pre-exec → PostToolUse audit hook never fires). "How often did gate X block" is unanswerable from it. → Telemetry now requires instrumenting the hooks to emit their own decision events first (`hooks/lib/gate-log.js` → `gate_events.jsonl`).
+2. **Prose payoff ≈ 0.** Delete-eligible prose (hard-blocking hooks only, per grill) = commit-trailer (`standards.md:128`, 1 line, fully enforced) + scratch-gate (`orchestration.md` §Scratch Strategy, ~3 lines but only *partially* hook-enforced — the hook doesn't cover the positive "MUST use Artifacts/Temp/" rule). Safely-removable ≈ 1 line, not the ≥20 the old M3 claimed (my metric error — unachievable once the grill killed blocking-lint + TODO-authority). Building `gemini-only.md` + registry-audit drift management to reclaim ~1 line is a bad trade.
+
+**Kept:** deploy-guard (`enforced-rules.json` + deploy.sh FAILs on an unwired enforced hook — closes the exact "deployed .js but forgot settings.json" gap hit manually in LH-1 and LH-2); instrumented telemetry surfaced at `/handoff`; correctness doc-sync (stale auto-lint description + missing nudge-handoff/evidence-gate rows).
+
+**Cut:** prose-split, `rules/gemini-only.md`, `/registry-audit` drift extension. The split-by-consumer decision from the grill is moot — with nothing worth deleting, there is no Claude/Gemini divergence to manage.
+
+**Honesty note:** this drops the initiative's original headline (reclaim always-loaded prose via hook enforcement). That thesis held when 4 blocking hooks were planned; after the grill correctly reduced enforcement to 2 deny-hooks + 3 feedback-hooks, the reclaimable prose shrank below the cost of reclaiming it. The enforcement wins (LH-1/LH-2) stand; the token-diet win does not materialize at this scale, and pretending otherwise would be the rationalization the initiative exists to prevent.
+
+---
+
 ## 2026-07-08 — Launch LH (Loop Hardening) initiative; grill cuts 4 phases → 3 [LH]
 
 **Decision:** Launch LH as OSH's successor: convert prose gates to harness-enforced hooks where the runtime permits, then reclaim the replaced prose. Step 0 + `/grill` completed same session; user approved the hardened 3-phase roadmap (LH-1 mechanical hooks + spike → LH-2 evidence gate → LH-3 telemetry + prose split). Absorbs deferred BACKLOG items HK-G1/G3/G4.

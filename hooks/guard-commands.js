@@ -64,7 +64,19 @@ const BLOCKED_PATTERNS = [
   },
 ];
 
-function deny(command, reason) {
+// Lazy-required and independently try/catch-wrapped (not a top-level
+// require) so a bug in the logger can only ever be swallowed here — it can
+// never crash this file before the deny() output above it is written
+// (LH-3 T1b, Hard Rule 1).
+function logGateSafe(params) {
+  try {
+    require('./lib/gate-log').logGateEvent(params);
+  } catch {
+    // Logging must never affect this hook's decision or exit code.
+  }
+}
+
+function deny(command, reason, context = {}) {
   const output = {
     hookSpecificOutput: {
       hookEventName: 'PreToolUse',
@@ -75,6 +87,14 @@ function deny(command, reason) {
     },
   };
   process.stdout.write(JSON.stringify(output));
+  logGateSafe({
+    hook: 'guard-commands',
+    event: 'PreToolUse',
+    decision: 'deny',
+    tool: context.toolName,
+    ruleId: 'guard-commands',
+    cwd: context.cwd,
+  });
   process.exit(0);
 }
 
@@ -103,7 +123,7 @@ function main() {
 
     for (const { pattern, reason } of BLOCKED_PATTERNS) {
       if (pattern.test(command)) {
-        deny(command, reason);
+        deny(command, reason, { toolName: data.tool_name, cwd: data.cwd });
         return;
       }
     }

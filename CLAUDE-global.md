@@ -142,9 +142,11 @@ Claude Code hooks provide **hard guardrails** that cannot be rationalized away.
 | Hook | Event | Purpose |
 |:---|:---|:---|
 | `session-boot.js` | `SessionStart` | Injects Artifacts state (TODO, Learnings, Current Task) into context |
-| `guard-paths.js` | `PreToolUse` | **Blocks** writes to binaries (`.pbix`, `.3dm`), secrets (`.env`), build artifacts |
-| `guard-commands.js` | `PreToolUse` | **Blocks** dangerous commands (`rm -rf`, force push, SQL drops) |
-| `auto-lint.js` | `PostToolUse` | Reports lint violations after file edits (report-only, no auto-fix) |
+| `guard-paths.js` | `PreToolUse` | **Blocks** writes to binaries (`.pbix`, `.3dm`), secrets (`.env`), build artifacts, project state files in shadow paths (scratch-gate), bare scratch/ |
+| `guard-commands.js` | `PreToolUse` | **Blocks** dangerous commands (`rm -rf`, force push, SQL drops) and commits with AI attribution trailers (`Co-Authored-By: Claude`, `Generated with Claude Code`) |
+| `auto-lint.js` | `PostToolUse` | Reports lint violations and injects "fix before proceeding" directive (not auto-fixing) |
 | `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
+| `nudge-handoff.js` | `Stop` | Nudges to run `/handoff` if git tree is dirty and no handoff this session (feedback only) |
+| `evidence-gate.js` | `Stop` | Nags when completion claims made without fresh test evidence this session (feedback only) |
 
 **Design**: All hooks are fail-open — script errors exit 0. See `hooks/README.md` for setup and customization.

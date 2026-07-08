@@ -60,6 +60,18 @@ function countIssues(output) {
   return matches ? matches.length : null;
 }
 
+// Lazy-required and independently try/catch-wrapped (not a top-level
+// require) so a bug in the logger can only ever be swallowed here — it can
+// never crash this file before the additionalContext output above it is
+// written (LH-3 T1b, Hard Rule 1).
+function logGateSafe(params) {
+  try {
+    require('./lib/gate-log').logGateEvent(params);
+  } catch {
+    // Logging must never affect this hook's decision or exit code.
+  }
+}
+
 function runLinter(cmd, args, cwd) {
   try {
     const output = execFileSync(cmd, args, {
@@ -131,6 +143,14 @@ function main() {
         },
       };
       process.stdout.write(JSON.stringify(output));
+      logGateSafe({
+        hook: 'auto-lint',
+        event: 'PostToolUse',
+        decision: 'nag',
+        tool: data.tool_name,
+        ruleId: 'auto-lint',
+        cwd,
+      });
     }
 
     process.exit(0);

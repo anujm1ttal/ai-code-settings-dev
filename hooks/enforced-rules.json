@@ -1,0 +1,54 @@
+{
+  "_comment": "Source of truth for scripts/verify_hook_wiring.py (deploy.sh guard, LH-3 T2a/T2b). Enumerated from hooks/settings-template.json — keep in sync with that file, not the other way around.",
+  "rules": [
+    {
+      "rule_id": "session-boot",
+      "hook_file": "session-boot.js",
+      "event": "SessionStart",
+      "matcher": "",
+      "blocking": false
+    },
+    {
+      "rule_id": "guard-paths",
+      "hook_file": "guard-paths.js",
+      "event": "PreToolUse",
+      "matcher": "Edit|MultiEdit|Write|NotebookEdit",
+      "blocking": true
+    },
+    {
+      "rule_id": "guard-commands",
+      "hook_file": "guard-commands.js",
+      "event": "PreToolUse",
+      "matcher": "Bash|PowerShell",
+      "blocking": true
+    },
+    {
+      "rule_id": "auto-lint",
+      "hook_file": "auto-lint.js",
+      "event": "PostToolUse",
+      "matcher": "Edit|MultiEdit|Write",
+      "blocking": false
+    },
+    {
+      "rule_id": "audit-trail",
+      "hook_file": "audit-trail.js",
+      "event": "PostToolUse",
+      "matcher": "*",
+      "blocking": false
+    },
+    {
+      "rule_id": "nudge-handoff",
+      "hook_file": "nudge-handoff.js",
+      "event": "Stop",
+      "matcher": "",
+      "blocking": false
+    },
+    {
+      "rule_id": "evidence-gate",
+      "hook_file": "evidence-gate.js",
+      "event": "Stop",
+      "matcher": "",
+      "blocking": false
+    }
+  ]
+}

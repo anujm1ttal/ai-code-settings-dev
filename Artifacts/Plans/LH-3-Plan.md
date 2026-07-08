@@ -1,83 +1,89 @@
-# LH-3 Plan — Telemetry Loop + Prose Split (Terminal)
+# LH-3 Plan — Deploy-Guard + Telemetry + Doc-Sync (Terminal)
 
-**Initiative:** LH — Loop Hardening · **Owner:** strategist · **Implementer:** coder (+ scribe for prose moves) · **Gate:** auditor
-**Depends on:** LH-1 and LH-2 merged + deployed (prose may only replace *verified, deploy-guarded* hooks)
-**Branch:** `phase-lh-3-telemetry-prose` (cut from `main` after LH-2 merges)
+**Initiative:** LH — Loop Hardening · **Owner:** strategist · **Implementer:** coder (+ scribe for doc-sync) · **Gate:** auditor
+**Depends on:** LH-1 + LH-2 merged + deployed (both done 2026-07-08)
+**Branch:** `phase-lh-3-telemetry-prose`
+**Re-scoped 2026-07-08** after recon (see DECISION_LOG): the original prose-split payoff measured
+~1 safely-removable line (not ≥20), and telemetry's data source doesn't hold gate decisions.
+Prose-split + `gemini-only.md` + registry-audit drift checks **DROPPED**. See §Cut.
 
 ## Purpose
 
-Close the initiative's two remaining loops: (1) make the write-only `audit_trail.jsonl`
-readable so gate behavior is observed, not assumed; (2) collect the token payoff — enforced
-prose shrinks to pointers in Claude's always-loaded context, with full text preserved for the
-hook-less Gemini consumer in exactly one file.
+Close the initiative on its two real wins: (1) make hook-enforcement **safe to rely on** — a
+deploy that leaves an enforced rule's hook unwired FAILs instead of silently shipping a dead
+gate (the exact gap hit manually in LH-1 and LH-2); (2) make the gates **observable** — hooks
+log their own fire/deny decisions, surfaced at `/handoff`. Plus a correctness doc-sync.
 
-## Binding decisions (carried from grill — coder does not re-litigate)
+## Binding decisions (recon + re-scope — coder does not re-litigate)
 
-| # | Decision |
-|:--|:---|
-| B1 | **Split by consumer (user override at grill):** Claude context keeps a one-line "enforced by <hook>" pointer; full rule text moves to `rules/gemini-only.md` — ONE file, never a tree (strategist constraint to bound drift). |
-| B2 | **Delete-eligible = verified hard-blocking hooks only.** As of planning: commit-trailer (standards.md deny-list bullet) and scratch-gate (orchestration.md Scratch Strategy + shadow-state paragraphs). Evidence-gate prose joins ONLY if LH-2 shipped Branch A (hard deny). Advisory hooks (lint feedback, handoff nudge) earn NO prose deletion — feedback is not enforcement. |
-| B3 | **Ordering inside the phase is a hard rule:** deploy-guard (T2) lands and passes BEFORE any prose moves (T3). |
-| B4 | Telemetry must have a consumer ritual or it's another write-only artifact — `/handoff` surfaces it (T1b). |
+| # | Decision | Evidence |
+|:--|:---|:---|
+| B1 | **Telemetry needs hook instrumentation first.** `audit_trail.jsonl` records `{ts,session,tool,input}` = tool invocations, NOT hook decisions; denied actions produce NO entry (blocked pre-exec, PostToolUse never fires). So hooks must emit their own decision events. | `audit-trail.js` + live trail sample, 2026-07-08 |
+| B2 | **Prose-split DROPPED.** Delete-eligible prose (hard-blocking hooks only) = commit-trailer (`standards.md:128`, 1 line) + scratch-gate (`orchestration.md` §Scratch Strategy, ~3 lines but only *partially* hook-enforced — the hook doesn't enforce the positive "MUST use Artifacts/Temp/" rule). Removing ~1 safe line for a new `gemini-only.md` drift surface is a bad trade. | grep measurement 2026-07-08 |
+| B3 | **Doc-sync is correctness-only** — fix stale/missing hook descriptions; NOT prose deletion. No always-loaded line-count target (the old M3 ≥20 was never achievable post-grill). | — |
+| B4 | Gate-logging must be **fail-open within fail-open**: a logging error is swallowed and NEVER alters a hook's exit code or decision. | Initiative Hard Rule 1 |
 
 ## Tasks — Technical Approach
 
-### T1 — Telemetry read side (coder)
-- **T1a** `scripts/gate_telemetry.py`: parse `Artifacts/.agent/audit_trail.jsonl` → per-hook
-  fire/allow/deny counts + last-fired timestamp; `--since YYYY-MM-DD` (reuse the
-  model_routing_audit pattern); table to stdout. Pure stdlib + repo conventions (3.12,
-  typed, ruff-clean).
-- **T1b** `commands/handoff.md`: add a step — run the telemetry script, include the gate
-  summary table in `HANDOFF_BRIEF.md`. This is the consumer ritual (B4).
+### T1 — Gate telemetry (instrument → read → surface) (coder)
+- **T1a — `hooks/lib/gate-log.js`**: one shared helper, `logGateEvent({hook, event, decision, tool, ruleId})`,
+  that appends a line to `gate_events.jsonl` next to `audit_trail.jsonl` (reuse `audit-trail.js`'s
+  exact path resolution — workspace `Artifacts/.agent/`). Entirely wrapped in try/catch: any
+  failure (path, permission, disk) is swallowed silently. It performs its own `fs.appendFileSync`
+  (NOT a Claude tool call), so the scratch-gate does not intercept it.
+- **T1b — call sites**: each firing hook calls `logGateEvent` at the moment it acts —
+  `guard-paths.js` + `guard-commands.js` on deny (`decision:'deny'`); `auto-lint.js`,
+  `nudge-handoff.js`, `evidence-gate.js` when they inject (`decision:'nag'`). Log ONLY when the
+  hook fires (deny/nag) — not every allow (that duplicates audit_trail as noise). The call must
+  sit AFTER the decision is made and be incapable of changing it.
+- **T1c — `scripts/gate_telemetry.py`**: parse `gate_events.jsonl` → per-hook fire counts split
+  by decision (deny vs nag), last-fired ts, `--since YYYY-MM-DD` (reuse the model_routing_audit
+  pattern). Stdlib only, typed, ruff-clean. Table to stdout.
+- **T1d — `commands/handoff.md`**: add a step running the telemetry script; include the gate
+  summary table in `HANDOFF_BRIEF.md`. This is the consumer ritual (a read-side with no reader
+  is just another write-only file).
 
-### T2 — Deploy-guard: enforced-rules manifest + deploy.sh assertion (coder)
-- **T2a** `hooks/enforced-rules.json` — single source of truth mapping each mechanically
-  enforced rule: `{ rule_id, prose_pointer (file §), hook_file, event, blocking: true|false }`.
-- **T2b** `scripts/deploy.sh` new step: for every manifest entry with `blocking: true`,
-  assert the hook file exists in `~/.claude/hooks/` AND is referenced in live
-  `~/.claude/settings.json` — any miss = deploy **FAIL** (non-zero exit, named rule in the
-  error). This is the guard that makes prose deletion safe.
+### T2 — Deploy-guard (coder)
+- **T2a — `hooks/enforced-rules.json`**: manifest of the deployed hook layer (source of truth for
+  the deploy-guard). One entry per registered hook: `{ rule_id, hook_file, event, matcher,
+  blocking }`. Cover all **7** registrations in `settings-template.json` (session-boot,
+  guard-paths, guard-commands, auto-lint, audit-trail, nudge-handoff, evidence-gate) with
+  `blocking:true` only for the two PreToolUse deny hooks. Enumerate from `settings-template.json`
+  — do not hand-list.
+- **T2b — `scripts/deploy.sh` new step (before or within step 6 validation)**: for every manifest
+  entry, assert (a) `~/.claude/hooks/<hook_file>` exists AND (b) it is referenced in live
+  `~/.claude/settings.json` under the declared `event`. Any miss = deploy **FAIL**, non-zero exit,
+  naming the specific rule_id + what's missing. This is the guardrail that makes enforcement
+  trustworthy. Keep it fail-CLOSED (deploy should abort) — this is a deploy gate, not a runtime
+  hook, so the fail-open rule does NOT apply here; a deploy that can't verify wiring must stop.
 
-### T3 — Prose split (scribe, after T2 passes)
-- For each `blocking: true` manifest entry: shrink the Claude-side prose to a 1-line
-  invariant + `(mechanically enforced: <hook>.js)`; move the full text verbatim into
-  `rules/gemini-only.md` under a `## <rule_id>` heading.
-- `rules/gemini-only.md` header states its contract: "Rules mechanically enforced for
-  Claude Code by hooks; full text retained here for hook-less consumers (Gemini). Claude
-  sessions: do not load; pointers live in the owning rule files."
-- `GEMINI.md` gains a pointer to the file. Deploy must NOT ship `gemini-only.md` to
-  `~/.claude/rules/common/` (it would defeat the token payoff) — deploy.sh exclusion + test.
-- Line accounting recorded in `Artifacts/Reports/LH-3-Report.md`: per-rule before/after,
-  net always-loaded delta.
+### T3 — Doc-sync (scribe) — correctness only, NO deletion
+- Fix `CLAUDE-global.md` hooks table: `auto-lint.js` description "report-only, no auto-fix" →
+  reflects the LH-1 fix-before-proceeding directive; ADD rows for `nudge-handoff.js` (Stop
+  handoff nudge) and `evidence-gate.js` (Stop evidence gate) — both currently undocumented there.
+- Fix `coding-style.md` auto-lint "report-only" mention (carried from LH-1 T1 note / LH-3 §T3b).
+- Update `hooks/README.md` to describe the LH hooks (guard-paths scratch-gate, commit-trailer,
+  nudge-handoff, evidence-gate, gate-log) so it no longer understates the layer.
 
-### T3b — Doc-sync: stale hook descriptions (scribe, with T3)
-- Carried from LH-1 T1: `auto-lint.js` changed from report-only → fix-before-proceeding.
-  Update the description in `CLAUDE-global.md` hooks table and the `coding-style.md`
-  "report-only, no auto-fix" mention. Not a prose *move* — a correctness fix to stale text.
+## Cut (was in the original LH-3 plan)
 
-### T4 — `/registry-audit` extension (coder)
-- New checks: every `enforced-rules.json` entry's hook file exists; every `gemini-only.md`
-  section maps 1:1 to a manifest entry; every Claude-side pointer targets an existing
-  manifest rule_id. Orphans in any direction = FAIL.
-
-### T5 — Tests + deploy (coder → auditor)
-- Tests: deploy-guard FAILs when a manifest hook is absent (simulated); telemetry counts
-  correct on a fixture jsonl; deploy excludes gemini-only.md; registry-audit catches a
-  seeded orphan. `bash scripts/deploy.sh` passes end-to-end.
+- **Prose-split** (Claude pointer + full text move) — dropped (B2).
+- **`rules/gemini-only.md`** — not created (no drift surface introduced).
+- **`/registry-audit` extension** for manifest↔gemini-only.md↔pointer 1:1 — dropped (nothing to
+  audit without the split). The `enforced-rules.json`↔hooks check lives in T2b's deploy-guard instead.
 
 ## Success Metrics (auditor gate)
 
 | # | Metric |
 |:--|:---|
-| M1 | Deploy FAILs on a removed enforced-by hook, naming the rule (test) |
-| M2 | `gate_telemetry.py` produces correct per-gate counts on a fixture (test); `/handoff` brief includes the table |
-| M3 | Net always-loaded lines removed ≥ 20, evidenced by per-rule accounting in `LH-3-Report.md` |
-| M4 | `rules/gemini-only.md` is the only Gemini-side home; registry-audit passes; deploy excludes it (test) |
-| M5 | Zero-loss check: every moved rule's full text survives verbatim in gemini-only.md (diff evidence, OSH-5 discipline) |
-| M6 | `pytest tests/ -v` exit 0; deploy 6+ step validation passes |
+| M1 | Deploy FAILs (non-zero, names the rule) when a manifest hook is absent from `~/.claude/hooks/` OR unreferenced in live settings — proven by a simulated-missing test |
+| M2 | `gate_telemetry.py` produces correct per-hook deny/nag counts on a fixture `gate_events.jsonl` (test); `/handoff` brief includes the table |
+| M3 | `CLAUDE-global.md` hooks table accurately describes all 7 deployed hooks (auto-lint corrected; nudge-handoff + evidence-gate rows added — table currently lists 5) |
+| M4 | Every instrumented hook still fails open on forced crash (test); gate-logging disabled/broken leaves each hook's decision + exit code byte-identical (test proves logging can't alter behavior) |
+| M5 | `pytest tests/ -v` exit 0; `bash scripts/deploy.sh` passes its own new guard end-to-end |
 
 ## Hard Rules (phase-local, plus initiative rules 1–4)
 
-1. T3 may not start until T2's deploy-guard is merged and passing (B3) — sequencing violation = automatic FAIL.
-2. No advisory-hook prose may be deleted (B2) — feedback is not enforcement.
-3. Zero behavioral loss on every prose move (OSH-5 standard: block map + verbatim survival evidence).
+1. Gate-logging is fail-open within fail-open — a logging error NEVER changes a hook's exit code or decision.
+2. The deploy-guard fails CLOSED and names the missing rule — a wiring gap must stop the deploy, never pass silently.
+3. No prose deleted this phase — doc-sync corrects stale/missing text only (a removed line must be a factual correction, not a coverage cut).

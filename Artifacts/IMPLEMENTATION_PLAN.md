@@ -15,7 +15,7 @@ a rule the harness enforces beats a rule the model chooses to obey.
 |:---|:---|:---|:---|
 | LH-1 | Mechanical hooks + spike: auto-lint → loud additionalContext feedback; scratch-gate (HK-G3) + commit-trailer guard (HK-G4) as PreToolUse hard-denies; handoff nudge (HK-G1) on Stop; empirical Stop-block spike | Doc-verified 2026-07-08 | — |
 | LH-2 | Evidence gate: Iron Law mechanized — hard-deny turn-end on unevidenced "done" claims if the spike proves Stop can block, else auto-injected evidence-nag. Trigger: completion-claim regex AND source edits this session | Gated on LH-1 T5 spike verdict | LH-1 |
-| LH-3 | Telemetry + prose split (terminal): `audit_trail.jsonl` read side surfaced at `/handoff`; deploy.sh asserts enforced-by hooks present in live settings or FAILs; enforced prose → pointer in Claude context + full text in single `rules/gemini-only.md`; /registry-audit covers it | — | LH-1, LH-2 |
+| LH-3 | Deploy-guard + telemetry + doc-sync (terminal, **re-scoped 2026-07-08**): `enforced-rules.json` + deploy.sh FAILs on an unwired enforced hook; hooks instrumented to emit decision events → `gate_telemetry.py` surfaced at `/handoff`; correctness doc-sync. **Prose-split + gemini-only.md DROPPED** (payoff ≈1 line; see DECISION_LOG) | — | LH-1, LH-2 |
 
 **Binding decisions** (grill verdicts, recorded in `Plans/LH-1-Plan.md` §Binding decisions;
 coder does not re-litigate): no PostToolUse blocking exists (state machine CUT); hard-deny
