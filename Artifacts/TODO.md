@@ -1,6 +1,6 @@
 # TODO — Active & Queued Work
 
-**Updated:** 2026-07-08 · **Branch:** `phase-dlr-decision-log-rotation`
+**Updated:** 2026-07-08 · **Branch:** `main` (clean, pushed)
 
 Completed initiatives (LH, OSH, CMD, OSA) archived → `Artifacts/History/COMPLETED_INITIATIVES.md`.
 Deferred findings live in `Artifacts/BACKLOG.md`.
