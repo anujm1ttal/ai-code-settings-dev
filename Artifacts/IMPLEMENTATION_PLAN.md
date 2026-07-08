@@ -1,10 +1,20 @@
-# Implementation Plan — Active Initiative: DLR — DECISION_LOG Rotation
+# Implementation Plan
 
-**Type:** `code` (meta-repo policy) · **Owner:** strategist · **Status:** Step 0 approved 2026-07-08, T1 ready for coder
-**Detail:** `Artifacts/Plans/DLR-Plan.md`. One phase: add the missing DECISION_LOG lifecycle rule
-(size-threshold rotation to a rolling `History/` archive; never prune), read-discipline in
-`/sync` + `/handoff`, and an archive scaffold. This repo stays put (115 lines < 400 threshold).
-Queued next: VSE — see `Artifacts/TODO.md`.
+_No active initiative. DLR closed 2026-07-08 (`6e989eb`). Queued: VSE — see `Artifacts/TODO.md`._
+
+---
+---
+
+# Completed Initiative: DLR — DECISION_LOG Rotation (2026-07-08)
+
+Single phase, shipped + deployed + merged (`d36cfbd`/`6e989eb`). Added the DECISION_LOG
+lifecycle rule the OS was missing: **size-threshold rotation** (>400 lines OR >40 entries) of
+oldest **resolved** entries to a rolling `Artifacts/History/DECISION_LOG-archive.md` — **never
+prune** (it's an audit trail); unresolved entries never rotate. Plus newest-first head-read
+discipline in `/sync` + `/handoff`, and the archive scaffold. This repo stayed put (115 lines
+< threshold — the policy correctly no-op'd on its own first application). Auditor first-pass
+PASS (M1–M4), all 3 Hard Rules held. Detail: `Artifacts/Plans/DLR-Plan.md`,
+`Artifacts/Reports/DLR-Report.md`.
 
 ---
 ---
