@@ -3,7 +3,7 @@ name: pptx-slide-design
 description: Use this skill to emit copy-paste-ready prompts that Copilot Premium can execute directly inside PowerPoint to render beautifully designed slides. The skill reads a deck profile (palette, fonts, furniture, tone, forbidden list) from `Artifacts/LAYOUT_SPEC.md` and a per-slide brief (purpose, layout choice, content, speaker note), then expands them into a **13-part prompt** that ensures deck-wide consistency while preserving the per-slide narrative. Trigger when a user has a LAYOUT_SPEC.md or asks to design individual slides. Do NOT use for authoring presentation content, generating `.pptx` files, or invoking any renderer — this skill emits text prompts only.
 argument-hint: "<slide intent, layout choice, and content>"
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
   tags: [powerpoint, slide-design, copilot, prompts, presentation, design-system]
 ---
 
@@ -23,7 +23,7 @@ metadata:
 
 **Output:** A single, self-contained **13-part prompt** that auto-injects the deck profile (parts 3–5, 9-styling, 10, 11, 12) and user content (parts 1, 2, 6, 7-content, 8, 9-text, 13). The user copy-pastes this into Copilot and gets a renderable slide.
 
-**CRITICAL INVERSION (v1 fix):** The emitted prompt uses **concrete hex and named fonts** (e.g., `#C84A1E`, "Cascadia Code", "18–20pt"), NOT abstract token names (e.g., `palette.primary`, `type.scale.body`). Token names live only in this skill's internal contract (`design-tokens.md`); Copilot needs concrete values and user-facing prose.
+**CRITICAL INVERSION (v1 fix):** The emitted prompt uses **concrete hex and named fonts** (e.g., `#B8431B`, "Cascadia Code", "18–20pt"), NOT abstract token names (e.g., `palette.primary`, `type.scale.body`). Token names live only in this skill's internal contract (`design-tokens.md`); Copilot needs concrete values and user-facing prose.
 
 ---
 
@@ -40,7 +40,7 @@ Load reference files ONLY when the following conditions are met:
 
 ---
 
-## 🔢 The 4-Step Pipeline
+## 🔢 The 5-Step Pipeline
 
 Follow this pipeline for EVERY slide brief you receive:
 
@@ -83,6 +83,20 @@ Emit as a single, complete markdown code block. Add a 1-2 sentence rationale exp
 
 If fallback defaults were used: `[fallback: visual-composition defaults]`
 
+### Step 5: Enforcement
+Before presenting the prompt to the user, validate it machine-first:
+1. **Run `validate_prompt.py`** on the emitted prompt text:
+   - `python optional_plugins/visual-storytelling/skills/pptx-slide-design/scripts/validate_prompt.py <prompt_file>` [--no-layout-spec]`
+   - Pass `--no-layout-spec` if no `LAYOUT_SPEC.md` was available (fallback was used)
+   - **Exit 0 = clean** → proceed. **Exit 1 = violations** → fix the prompt and re-run until exit 0.
+   - Violations printed to stdout as `RULE-ID: message` (e.g., `VP-02: abstract token leakage: 'palette.primary'`)
+
+2. **Run `contrast_check.py`** if a `LAYOUT_SPEC.md` was loaded:
+   - `python optional_plugins/visual-storytelling/skills/pptx-slide-design/scripts/contrast_check.py <path/to/LAYOUT_SPEC.md>`
+   - **Exit 0 = all WCAG 2.1 ratios pass** → proceed. **Exit 1 = contrast failures** → palette misconfiguration detected; escalate to `creative-director`.
+
+Never present a prompt that failed validation (exit 1). Validation is synchronous; block until clean.
+
 ---
 
 ## 📋 13-Part Prompt Anatomy (The Output Shape)
@@ -105,7 +119,7 @@ Every emitted prompt follows this structure (from `reference-slides.md` anatomy 
 [13. SPEAKER-NOTE INTENT]
 ```
 
-**Crucial rule:** The emitted prompt is **user-facing and copy-paste-ready**. It uses concrete hex (`#C84A1E`), named fonts (`Cascadia Code`), and absolute sizes (`18–20pt`), NOT abstract names like `palette.accent` or `type.scale.body`.
+**Crucial rule:** The emitted prompt is **user-facing and copy-paste-ready**. It uses concrete hex (`#B8431B`), named fonts (`Cascadia Code`), and absolute sizes (`18–20pt`), NOT abstract names like `palette.accent` or `type.scale.body`.
 
 ---
 
@@ -113,11 +127,13 @@ Every emitted prompt follows this structure (from `reference-slides.md` anatomy 
 
 1. **Never generate files or invoke renderers.** Output is text prompts only. No `.pptx`, no python-pptx, no pptxgenjs, no external API calls. (Note: `ms-office` skills ARE renderers; they are exempt.)
 
-2. **Output prompts use concrete hex + named fonts resolved from the deck profile.** Never emit abstract token names like `palette.primary` or `type.scale.body` into the prompt. Token names live only in `design-tokens.md` (what the skill reads); the prompt is user-facing.
+2. **Output prompts use concrete hex + named fonts resolved from the deck profile.** Never emit abstract token names like `palette.primary` or `type.scale.body` into the prompt. Machine-verified by `validate_prompt.py` rule VP-02 (exit 0 = clean).
 
-3. **Every emitted prompt MUST include all 13 anatomy sections.** Specifically, never skip: per-region **Purpose**, **Visual tone**, **What to avoid**, **Bottom-line takeaway**, **Speaker-note intent**, **deck-furniture continuity** ("keep the top-right badge exactly as other slides").
+3. **Every emitted prompt MUST include all 13 anatomy sections.** Specifically, never skip: per-region **Purpose**, **Visual tone**, **What to avoid**, **Bottom-line takeaway**, **Speaker-note intent**, **deck-furniture continuity** ("keep the top-right badge exactly as other slides"). Machine-verified by `validate_prompt.py` rule VP-01 (exit 0 = all 13 parts detected).
 
-4. **Every emitted prompt is ONE self-contained copy-paste block.** No multi-step interactions, no "first generate the structure, then fill in content." One slide brief → one prompt block.
+4. **Every emitted prompt is ONE self-contained copy-paste block.** No multi-step interactions, no "first generate the structure, then fill in content." One slide brief → one prompt block. Machine-verified by `validate_prompt.py` rule VP-06 (exit 0 = no multi-step markers detected).
+
+5. **Contrast and accessibility must be machine-verifiable.** When a `LAYOUT_SPEC.md` is loaded, all text/background colour pairs must pass `contrast_check.py` (exit 0 = all WCAG 2.1 ratios ≥ threshold). Font-size statements must be explicit (pt-based). Machine-verified by `validate_prompt.py` rule VP-04 (exit 0 = font-size statement + contrast signals present).
 
 ---
 
@@ -149,18 +165,18 @@ Project-level `Artifacts/LAYOUT_SPEC.md` is the canonical deck profile source; f
 
 ## 📊 Success Metrics
 
-- [ ] Emitted prompts follow the 13-part anatomy with no sections skipped
-- [ ] Concrete hex values and named fonts appear in every prompt; zero abstract token names
-- [ ] Furniture (deck badge, footer L/R style) explicitly referenced in every prompt to maintain slide continuity
-- [ ] Per-region **Purpose** lines included in all layout specs (proof that the region's narrative is understood)
-- [ ] Accessibility rules (contrast ≥4.5:1 body / ≥3:1 large ≥18pt, font-size ≥12pt body / ≥10pt footnote, no color-only meaning) explicit in every prompt
-- [ ] Each prompt is a single, self-contained copy-paste block
-- [ ] Fallback banner (`[fallback: visual-composition defaults]`) added when LAYOUT_SPEC.md absent
+- [ ] Emitted prompts pass `validate_prompt.py` rule VP-01 (exit 0: all 13 anatomy sections present)
+- [ ] Concrete hex values and named fonts verified by `validate_prompt.py` rule VP-02 (exit 0: zero abstract token names)
+- [ ] Furniture (deck badge, footer L/R style) verified by `validate_prompt.py` rule VP-04 (exit 0: structural markers for furniture present)
+- [ ] Per-region **Purpose** lines verified by `validate_prompt.py` rule VP-01 (exit 0: section 7 Purpose signals detected)
+- [ ] Accessibility rules verified by `validate_prompt.py` rule VP-04 (exit 0: font-size + contrast/colour-pair statements present) + `contrast_check.py` (exit 0: WCAG 2.1 ≥4.5:1 body / ≥3:1 large ratios pass for all text/background pairs)
+- [ ] Each prompt verified by `validate_prompt.py` rule VP-06 (exit 0: single copy-paste block, no multi-step markers)
+- [ ] Fallback banner presence verified by `validate_prompt.py` rule VP-05 (exit 0: banner present iff `--no-layout-spec` flag used)
 - [ ] User receives a 1–2 sentence rationale for why the prompt will yield best results
 
 ---
 
-**Last updated:** 2026-07-04  
-**Version:** 2.0 — Rebuilt around reference-slides.md 13-part anatomy; concrete-hex-only output  
-**Model twin:** `banana-prompt` (same 4-step pipeline, prompt-generation output for external renderers)  
-**Depends on:** `design-tokens.md` (profile contract), `reference-slides.md` (fidelity bar), `visual-composition` (fallback defaults), `creative-director` (LAYOUT_SPEC.md author)
+**Last updated:** 2026-07-09  
+**Version:** 2.1 — Added Step 5 enforcement: machine validation of emitted prompts via `validate_prompt.py` (6 rules) and `contrast_check.py` (WCAG 2.1 ratios)  
+**Model twin:** `banana-prompt` (same 5-step pipeline, prompt-generation output for external renderers)  
+**Depends on:** `design-tokens.md` (profile contract), `reference-slides.md` (fidelity bar), `visual-composition` (fallback defaults), `creative-director` (LAYOUT_SPEC.md author), `validate_prompt.py` (Step 5), `contrast_check.py` (Step 5)

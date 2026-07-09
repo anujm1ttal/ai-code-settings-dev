@@ -21,7 +21,7 @@ The profile is a **fixed contract** — same fields on every slide in the deck. 
 |:---|:---|:---|
 | **Background** | Warm cream `#F5F1E8` | Full-slide background; clean, diagrammatic, no photo |
 | **Primary (Ink)** | Charcoal `#2A2A2A` | Titles, body text, strong contrast elements |
-| **Accent** | Terracotta `#C84A1E` | Highlights, badges, arrows, connectors; use sparingly |
+| **Accent** | Terracotta `#B8431B` | Highlights, badges, arrows, connectors; use sparingly |
 | **Muted greys** | `#888888` (text), `#666666` (secondary), `#555555` (labels), `#D6D0C4` (rules/outlines), `#A8A29A` (close-out) | Section headings, footer, muted annotations |
 | **Categorical** | Soft blue `#7BA7BC`, soft green `#8FAE6D`, soft yellow `#E8C547` | Card/region fills, heatmap colours, data visualization; use at 30–40% opacity for backgrounds, 65–75% for active data |
 
@@ -44,7 +44,7 @@ The profile is a **fixed contract** — same fields on every slide in the deck. 
 ### 3. Furniture (Deck-Wide Layout Constants)
 
 **Top-left:** Slide title (serif, dark charcoal, no full stop)  
-**Top-right badge:** "GRI · KICK-OFF" label + thin terracotta rule `#C84A1E` — **keep exactly as on other slides**  
+**Top-right badge:** "GRI · KICK-OFF" label + thin terracotta rule `#B8431B` — **keep exactly as on other slides**  
 **Footer left:** Slide title in Cascadia Code Italic, muted grey `#888888`  
 **Footer right:** Page number in Cascadia Code Regular, muted grey `#888888`  
 **Background:** Warm cream `#F5F1E8`, no photographic background, clean/diagrammatic style
@@ -99,10 +99,10 @@ Every emitted prompt follows this structure, with parts 3, 4, 5, 9-styling, 10, 
 | 9 | Takeaway line | Brief + profile | Text from brief; styling from profile (serif italic, ~20pt, charcoal, centre-aligned) |
 | 10 | Visual tone | Profile + brief | Adjectives: clean, minimal, diagrammatic, architectural, honest, calm, research-oriented, clear at a glance |
 | 11 | Forbidden list | Profile + brief | Deck-wide anti-cliché (metaphors, AI icons, fake UI, dense diagrams, DSL term, long paragraphs); slide-specific specifics |
-| 12 | Palette (with hex) | **Profile ONLY** | Exact hex values resolved from deck profile: `#F5F1E8` (background), `#C84A1E` (accent), `#2A2A2A` (charcoal), muted greys, categorical colours with opacities |
+| 12 | Palette (with hex) | **Profile ONLY** | Exact hex values resolved from deck profile: `#F5F1E8` (background), `#B8431B` (accent), `#2A2A2A` (charcoal), muted greys, categorical colours with opacities |
 | 13 | Speaker-note intent | Brief | The verbal narrative this visual should support |
 
-**Critical inversion (v1 mistake fixed):** Parts 3–5, 9-styling, 10, 11, 12 use **concrete hex and named fonts** (e.g., "Cascadia Code", "#C84A1E", "18–20pt"), NOT abstract token names like `palette.primary` or `type.scale.title`. Token names live only in this contract prose (what the skill reads); the emitted prompt is user-facing and must render without external resolution.
+**Critical inversion (v1 mistake fixed):** Parts 3–5, 9-styling, 10, 11, 12 use **concrete hex and named fonts** (e.g., "Cascadia Code", "#B8431B", "18–20pt"), NOT abstract token names like `palette.primary` or `type.scale.title`. Token names live only in this contract prose (what the skill reads); the emitted prompt is user-facing and must render without external resolution.
 
 ---
 

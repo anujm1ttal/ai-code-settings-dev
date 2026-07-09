@@ -48,7 +48,7 @@ Use the same serif title font, size, and dark charcoal colour (#2A2A2A) as the r
 ### Part 4: Deck Furniture
 
 ```
-Keep the existing top-right GRI · KICK-OFF label and orange rule (#C84A1E) exactly as used on the other slides.
+Keep the existing top-right GRI · KICK-OFF label and orange rule (#B8431B) exactly as used on the other slides.
 
 Footer:
 - Lower-left: {user_supplied_slide_title} in Cascadia Code Italic, muted grey (#888888)
@@ -109,7 +109,7 @@ Then add a subtle looping arrow from Panel 4 back to Panel 1 to show iteration.
 
 Arrow style:
 - Thin line, 1.25pt
-- Colour: terracotta orange (#C84A1E)
+- Colour: terracotta orange (#B8431B)
 - Simple arrowheads
 - The return loop arrow should be lighter or dashed, showing iteration rather than a one-way pipeline
 ```
@@ -199,7 +199,7 @@ ITERATION LOOP
 
 Arrow/connector style:
 - Line weight, colour, dashing, directionality
-- Example: terracotta orange (#C84A1E), dashed or lightly curved for iteration
+- Example: terracotta orange (#B8431B), dashed or lightly curved for iteration
 
 Label:
 {user_supplied_label_text}
@@ -221,7 +221,7 @@ iterate
 Style:
 - Cascadia Code Italic, 8pt
 - Muted grey (#888888)
-- Arrow line: terracotta orange (#C84A1E) at 40–50% opacity
+- Arrow line: terracotta orange (#B8431B) at 40–50% opacity
 - Dashed or lightly curved
 ```
 
@@ -291,7 +291,7 @@ PALETTE (Hex Values)
 
 Use the existing deck palette:
 - Cream background: #F5F1E8
-- Terracotta accent: #C84A1E
+- Terracotta accent: #B8431B
 - Dark charcoal (text): #2A2A2A
 - Muted grey (secondary): #888888
 - Muted greys (rules/outlines/close-out): #D6D0C4, #A8A29A, #666666, #555555
@@ -395,7 +395,7 @@ Use the same serif title font, size, and dark charcoal colour (#2A2A2A) as the r
 
 DECK FURNITURE
 
-Keep the existing top-right GRI · KICK-OFF label and orange rule (#C84A1E) exactly as used on the other slides.
+Keep the existing top-right GRI · KICK-OFF label and orange rule (#B8431B) exactly as used on the other slides.
 
 Footer:
 - Lower-left: The model can answer back in Cascadia Code Italic, muted grey (#888888)
@@ -409,7 +409,7 @@ OVERALL LAYOUT
 
 Create a 4-panel horizontal storyboard across the centre of the slide. The four panels show left to right: Designer intent → Structured model → gBlox massing → Data feedback + next move.
 
-Panel widths: 22%, 26%, 28%, 24%. Add thin arrows (#C84A1E, 1.25pt) between panels; add a subtle looping arrow back to Panel 1 (dashed, lighter opacity) to show iteration.
+Panel widths: 22%, 26%, 28%, 24%. Add thin arrows (#B8431B, 1.25pt) between panels; add a subtle looping arrow back to Panel 1 (dashed, lighter opacity) to show iteration.
 
 PANEL 1 — DESIGNER INTENT
 
@@ -464,7 +464,7 @@ Heading style: Cascadia Code, small caps, 10–11pt, muted grey (#888888)
 Visual device: Clean axonometric mixed-use massing diagram (no photorealism, no façade detail, no people).
 
 Massing layers:
-- Retail base: muted terracotta/orange (#C84A1E) at 65–75% opacity
+- Retail base: muted terracotta/orange (#B8431B) at 65–75% opacity
 - Office middle: soft blue (#7BA7BC) at 65–75% opacity
 - Residential top: soft green (#8FAE6D) at 65–75% opacity
 - Terraces: pale cream or pale green surfaces
@@ -493,7 +493,7 @@ Terrace area: 1,180 m²
 Below metrics, add a small rounded speech bubble:
 "Try a courtyard version."
 
-Bubble style: Warm cream or pale orange tint, thin terracotta outline (#C84A1E), serif italic or Cascadia Code, 10–11pt.
+Bubble style: Warm cream or pale orange tint, thin terracotta outline (#B8431B), serif italic or Cascadia Code, 10–11pt.
 
 Purpose of this region: Show that the model answers back with data, supporting the next design move.
 
@@ -502,7 +502,7 @@ ITERATION LOOP
 Add a subtle curved arrow from the prompt bubble (Panel 4) back to Panel 1. Label lightly:
 iterate
 
-Style: Cascadia Code Italic, 8pt, muted grey (#888888); arrow line terracotta (#C84A1E) at 40–50% opacity, dashed or lightly curved.
+Style: Cascadia Code Italic, 8pt, muted grey (#888888); arrow line terracotta (#B8431B) at 40–50% opacity, dashed or lightly curved.
 
 BOTTOM-LINE TAKEAWAY
 
@@ -526,7 +526,7 @@ PALETTE
 
 Use the existing deck palette:
 - Cream background: #F5F1E8
-- Terracotta accent: #C84A1E
+- Terracotta accent: #B8431B
 - Dark charcoal (text): #2A2A2A
 - Muted grey (text/outlines): #888888, #D6D0C4, #666666
 - Soft blue: #7BA7BC (65–75% opacity for massing)
@@ -538,7 +538,7 @@ SPEAKER NOTE INTENT
 "The point is not just that language can produce geometry. The important thing about gBlox is that the model carries structured data. A designer can describe an intent, that intent becomes a structured model, the structured model creates the massing, and the massing gives data back: GFA, FAR, program mix, units, parking, terraces. That feedback is what lets the designer keep iterating. The model can answer back."
 ```
 
-**Rationale:** This prompt shows a 4-panel storyboard feedback loop with concrete hex values (#C84A1E, #2A2A2A, #7BA7BC, #8FAE6D), named fonts (serif, Cascadia Code), explicit Purpose lines per panel, and furniture continuity (GRI badge, footer style). It mirrors reference-slides.md Slide A's fidelity and structure.
+**Rationale:** This prompt shows a 4-panel storyboard feedback loop with concrete hex values (#B8431B, #2A2A2A, #7BA7BC, #8FAE6D), named fonts (serif, Cascadia Code), explicit Purpose lines per panel, and furniture continuity (GRI badge, footer style). It mirrors reference-slides.md Slide A's fidelity and structure.
 
 ---
 
@@ -589,7 +589,7 @@ Use the same serif title font, size, and dark charcoal colour (#2A2A2A) as the r
 
 DECK FURNITURE
 
-Keep the existing top-right GRI · KICK-OFF label and orange rule (#C84A1E) exactly as used on the other slides.
+Keep the existing top-right GRI · KICK-OFF label and orange rule (#B8431B) exactly as used on the other slides.
 
 Footer:
 - Lower-left: The year ahead in Cascadia Code Italic, muted grey (#888888)
@@ -615,7 +615,7 @@ LEFT COLUMN — T1 MOCKUPS + FEEDBACK
 Column label:
 T1 · MOCKUPS + FEEDBACK
 
-Label style: Cascadia Code, small caps, 10–11pt, terracotta (#C84A1E), bold
+Label style: Cascadia Code, small caps, 10–11pt, terracotta (#B8431B), bold
 
 Column content:
 - Create high-level mockups from what we already know
@@ -624,7 +624,7 @@ Column content:
 
 Content style: Serif or clean sans, 10–11pt, dark charcoal (#2A2A2A), bullet spacing 0.1875in
 
-Column background: Very light grey (palette.neutrals, ~F5F5F5) for visual separation, thin outline (#D6D0C4), padding 0.25in
+Column background: Very light grey (#F5F5F5) for visual separation, thin outline (#D6D0C4), padding 0.25in
 
 Deliverable line:
 Mockup feedback + test scenarios.
@@ -662,13 +662,15 @@ WHAT TO AVOID
 
 Do not make this a simple linear Gantt only. Do not remove task cards. Do not use bright saturated colours. Do not add icons or decorative imagery. Do not add long paragraphs. Do not make it feel like a project-management dashboard (e.g., Jira-style).
 
+BOTTOM LINE
+
 This slide explains the basis of the project timeline, while showing that work is not strictly linear. The primary phases give structure, but listening, building, evaluation, and synthesis will overlap.
 
 PALETTE
 
 Use the existing deck palette:
 - Cream background: #F5F1E8
-- Terracotta: #C84A1E (emphasis, deliverable accent)
+- Terracotta: #B8431B (emphasis, deliverable accent)
 - Dark charcoal (text): #2A2A2A
 - Muted grey (text/outlines): #888888, #D6D0C4, #666666
 - Soft yellow: #E8C547 (optional for T1 card accent, 30–40% opacity)
@@ -680,7 +682,7 @@ SPEAKER NOTE INTENT
 "The task cards show the primary focus of each phase. But the work will not be perfectly linear. Listening continues into build. Build overlaps with evaluation. Evaluation overlaps with synthesis. The real work intermixes because the research demands it."
 ```
 
-**Rationale:** This prompt demonstrates a two-column comparison with concrete hex values (#C84A1E for labels, #7BA7BC for T2 semantic colour), named fonts (Cascadia Code small caps, serif body), explicit Purpose lines per column, and accessibility checks (contrast ≥4.5:1, font-size ≥10pt for labels). It shows how Part 6 (layout) varies while the 13-part structure remains constant.
+**Rationale:** This prompt demonstrates a two-column comparison with concrete hex values (#B8431B for labels, #7BA7BC for T2 semantic colour), named fonts (Cascadia Code small caps, serif body), explicit Purpose lines per column, and accessibility checks (contrast ≥4.5:1, font-size ≥10pt for labels). It shows how Part 6 (layout) varies while the 13-part structure remains constant.
 
 ---
 
@@ -722,6 +724,8 @@ Rebuild Slide XX: "Three research methods"
 
 The purpose of this slide is to introduce the three pillars of the research methodology — observational study, interviews, and iterative testing — and show how they combine to ground the project in real design practice.
 
+Do not make this a metaphor — show the actual three methods as concrete, labelled cards.
+
 TITLE
 
 Slide title:
@@ -731,7 +735,7 @@ Use the same serif title font, size, and dark charcoal colour (#2A2A2A) as the r
 
 DECK FURNITURE
 
-Keep the existing top-right GRI · KICK-OFF label and orange rule (#C84A1E) exactly as used on the other slides.
+Keep the existing top-right GRI · KICK-OFF label and orange rule (#B8431B) exactly as used on the other slides.
 
 Footer:
 - Lower-left: Three research methods in Cascadia Code Italic, muted grey (#888888)
@@ -818,6 +822,10 @@ Horizontal gutter (between columns): 0.25in (1× base spacing unit)
 
 Vertical gutter (if multiple rows): 0.375in (1.5× base spacing unit)
 
+FLOW DEVICE
+
+A thin terracotta (#B8431B) connector line runs left-to-right beneath the three cards, suggesting the methods flow into one another rather than standing alone.
+
 VISUAL TONE
 
 The slide should feel clean, minimal, research-oriented, clear at a glance. Cards are uniform, scannable, and consistent in structure.
@@ -825,6 +833,8 @@ The slide should feel clean, minimal, research-oriented, clear at a glance. Card
 WHAT TO AVOID
 
 Do not use: generic icons, decorative imagery, centered text, uniform rounded corners everywhere (only these cards), purple/blue gradients, long descriptions.
+
+BOTTOM LINE
 
 This slide introduces three research methods that ground the project in real design practice.
 
@@ -855,7 +865,7 @@ Before emitting any prompt, verify:
 - [ ] Layout archetype chosen (one of 7 types)
 - [ ] Deck profile loaded (palette hex, fonts, furniture, tone, forbidden list)
 - [ ] All {user_supplied_} slots filled (no placeholder text remains)
-- [ ] All design references are **concrete hex and named fonts** (e.g., `#C84A1E`, "Cascadia Code", "18–20pt"), never abstract tokens (e.g., `palette.primary`, `type.scale.body`)
+- [ ] All design references are **concrete hex and named fonts** (e.g., `#B8431B`, "Cascadia Code", "18–20pt"), never abstract tokens (e.g., `palette.primary`, `type.scale.body`)
 - [ ] Per-region **Purpose** lines included (every region has explicit narrative intent)
 - [ ] Deck furniture explicitly referenced (badge, footer style) for continuity with siblings
 - [ ] Accessibility rules explicit (contrast ≥4.5:1 body / ≥3:1 large ≥18pt, font-size ≥12pt body / ≥10pt footnote, no color-only meaning)
