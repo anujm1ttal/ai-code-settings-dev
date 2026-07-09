@@ -51,12 +51,25 @@ awaiting Interface-First `[user-approval]` on YAML schemas
       both data files as on-demand whole-file loads, explicitly "no search engine" in both rows.
       Role-crossover note: scribe-owned task done inline by coder per dispatch scope; auditor
       confirms on this review per dispatch instruction.**)
-- [-] [auditor] Gate: all VSE-2-Plan §Success metrics met with fresh evidence — Success: mark
+- [x] [auditor] Gate: all VSE-2-Plan §Success metrics met with fresh evidence — Success: mark
       phase `[x]`, authorize merge; re-install + live-verify (plugin scripts ship via install)
       (**2026-07-09 auditor: all 4 success metrics + all 4 Hard Rules PASS with fresh evidence —
       see `Artifacts/Reports/VSE-2-Report.md`. Merge to `main` is AUTHORIZED. Left `[-]` per this
       line's own success condition: phase close still pends plugin re-install + live-verify since
       plugin scripts ship via install, not repo-tree execution alone.**)
+      (**2026-07-09 auditor PHASE CLOSE: install evidence confirmed —
+      `installed_plugins.json` shows `visual-storytelling@ai-code-settings` v2.2.0,
+      gitCommitSha `c569a377b6fab3f875126d2f879afab2d2176c11` = `git rev-parse c569a37`
+      (merge commit) exactly. Cache
+      `.../cache/ai-code-settings/visual-storytelling/2.2.0/skills/pptx-slide-design/`
+      contains `data/archetypes.yaml` (7 entries, verified) + `data/profiles.yaml` (3 profiles,
+      all 3 `vetted`, verified) and `scripts/validate_prompt.py` with `RE_SEQUENTIAL_LAYOUT`
+      present (VP-01 archetype-conditional fix, `44b1c41`). Live-fire re-run from the INSTALLED
+      cache path against orchestrator's fixtures: `live_static_grid.txt --no-layout-spec` →
+      exit 0; `live_sequential.txt --no-layout-spec` → exit 1, "missing section 8 (Flow /
+      iteration devices)". Both match expected behavior — archetype-conditional gate live,
+      sequential guard intact. Repo-side regression: `python -m pytest tests/ -q` on `main` →
+      131 passed, exit 0. All 4 checks PASS. Phase CLOSED.**)
 
 ## Hard Rules
 1. No profile `vetted` without contrast_check evidence

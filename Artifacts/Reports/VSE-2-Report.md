@@ -191,3 +191,65 @@ Hard Rules PASS. Scope, versions, and role-crossovers all verified. Orchestrator
 `phase-vse-2-archetype-data` → `main` and delete the branch per Git Phase Branching. Final TODO
 gate line remains `[-]` pending plugin re-install + live-verify per the plan's own stated
 condition — this does not block the merge, only full phase closure bookkeeping.
+
+---
+
+## Phase Close Addendum (2026-07-09)
+
+Merge to `main` completed as `c569a37`. Re-audited the sole remaining open item (plugin
+re-install + installed-session live verification) fresh, independent of any coder/orchestrator
+claim.
+
+### Install Evidence
+- `C:/Users/44547/.claude/plugins/installed_plugins.json` →
+  `visual-storytelling@ai-code-settings` carries a `2.2.0` entry:
+  `gitCommitSha: c569a377b6fab3f875126d2f879afab2d2176c11`.
+- `git rev-parse c569a37` on `main` → `c569a377b6fab3f875126d2f879afab2d2176c11` — **exact match**
+  to the merge commit. The installed copy is provably built from the merged VSE-2 state, not a
+  stale pre-merge snapshot.
+
+### Cache Content Evidence
+Installed cache path:
+`C:/Users/44547/.claude/plugins/cache/ai-code-settings/visual-storytelling/2.2.0/skills/pptx-slide-design/`
+- `data/archetypes.yaml` — parsed, 7 entries (`title-section`, `hero-plus-evidence`,
+  `two-column-compare`, `grid-of-cards`, `top-summary-detail`, `left-narrative-right-visual`,
+  `full-bleed-visual`). Matches M1 of the main gate exactly.
+- `data/profiles.yaml` — parsed, 3 profiles (`gri-kickoff`, `boardroom-dark`,
+  `editorial-light`), all 3 `status: vetted`. Matches M2/M3 of the main gate exactly.
+- `scripts/validate_prompt.py` — contains `RE_SEQUENTIAL_LAYOUT` (line 55) and its use in the
+  section-8 gate (line 122), confirming the VP-01 archetype-conditional fix from `44b1c41`
+  shipped into the installed cache, not just the repo tree.
+
+### Live-Fire Re-Run (installed cache path, not repo tree)
+Ran directly against the orchestrator's fixtures (`Artifacts/Temp/live_static_grid.txt`,
+`Artifacts/Temp/live_sequential.txt`) using the **installed** `validate_prompt.py`:
+
+```
+python .../cache/.../2.2.0/.../scripts/validate_prompt.py Artifacts/Temp/live_static_grid.txt --no-layout-spec
+→ exit 0
+
+python .../cache/.../2.2.0/.../scripts/validate_prompt.py Artifacts/Temp/live_sequential.txt --no-layout-spec
+→ "VP-01: missing section 8 (Flow / iteration devices)"  exit 1
+```
+
+Both fixtures share the same 13-part body (a "three vetted deck profiles" slide); the only
+variable is the archetype/flow framing. Exit 0 on the static-grid framing (no flow device
+required) and exit 1 with the section-8 guard on the sequential framing is exactly the
+archetype-conditional behavior VP-01 was fixed to produce — verified live, from the installed
+plugin, not the source tree.
+
+### Repo-Side Regression
+`python -m pytest tests/ -q` on `main` (clean tree, HEAD = `c569a37`) → **131 passed**, exit 0.
+No regressions from the merge.
+
+### Disposition
+All 4 remaining-to-close items resolved:
+1. Plugin re-install — **done**, sha-verified against the merge commit.
+2. Installed-session live-verify — **done**, both exit codes match expected behavior.
+3. PyYAML dev-dependency declaration — **remains BACKLOG** (non-blocking, pre-existing repo gap).
+4. `slide-prompt-templates.md` duplication repoint — **remains BACKLOG** (non-blocking, LOW,
+   out of phase scope).
+
+**VSE-2 is CLOSED.** Gate line `[x]` in `Artifacts/Plans/VSE-2-TODO.md`. No further action
+required on this phase; items 3-4 above are tracked in `Artifacts/BACKLOG.md` for future
+scheduling, not phase blockers.

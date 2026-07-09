@@ -9,14 +9,14 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 
 # Active Initiative: VSE — Visual Storytelling Enhancement
 
-**Status:** VSE-1 COMPLETE (merged `278270e`, plugin v2.1.0 live) · VSE-2 queued · **Step 0:** approved 2026-07-07
+**Status:** VSE COMPLETE (both phases closed, plugin v2.2.0 live) · **Step 0:** approved 2026-07-07
 **Plans:** VSE-2 → `Artifacts/Plans/VSE-2-Plan.md` + `VSE-2-TODO.md` · VSE-1 (complete) archived → `Artifacts/History/Plans/` + `History/Reports/VSE-1-Report.md`
 **Origin:** ui-ux-pro-max-skill architecture pattern (data-fied design knowledge + executable output validation), applied to `pptx-slide-design` only. banana-prompt out of scope. No search engine (deferred until library >25 entries).
 **Sequencing:** VSE-1 → VSE-2 (VSE-2 requires `/grill` + Interface-First `[user-approval]` before kickoff)
 
 - [x] [strategist] **VSE Initiative Kickoff (/blueprint VSE-1)** — decompose Phase 1 tasks, create git branch · Success: phase-vse-1-quality-gates branch created, Tasks decomposed to Artifacts/Plans/VSE-1-TODO.md · **2026-07-09 auditor-verified at phase gate: branch created, tasks decomposed, kickoff complete.**
 - [x] **VSE-1 — Executable Quality Gates** (branch `phase-vse-1-quality-gates`, cut from `main` post-OSH) — Success: validate_prompt.py 2/2 gold pass + 3/3 seeded-bad fail; contrast_check.py pass/fail pair correct; pytest exit 0; zero new deps · **2026-07-09 auditor CLOSE: all metrics met fresh (119/119 pytest), install+live-fire verified, post-audit fixes (palette darken, template markers, VP-04 comment) re-confirmed; HR1 residual deferred to VSE-2. Merge authorized.**
-- [-] **VSE-2 (REFACTORED) — Archetype Extraction + Tiny Profile Seed** (branch `phase-vse-2-archetype-data`) — Success: 7 archetypes in `archetypes.yaml` (defs in exactly 1 file); 2-3 contrast-gated profiles; `pytest tests/` exit 0 · **2026-07-09: grilled → [REFACTORED]; schemas approved; implemented; auditor PASS (M1-M4 fresh, 131/131 0-skip, HR1-4 clean) — MERGE AUTHORIZED. Phase close pends: plugin re-install (user CLI) + installed-session live-verify, then auditor final `[x]`. Report: `Artifacts/Reports/VSE-2-Report.md`.**
+- [x] **VSE-2 (REFACTORED) — Archetype Extraction + Tiny Profile Seed** (branch `phase-vse-2-archetype-data`, merged `c569a37`) — Success: 7 archetypes in `archetypes.yaml` (defs in exactly 1 file); 2-3 contrast-gated profiles; `pytest tests/` exit 0 · **2026-07-09 auditor CLOSE: install sha `c569a377...` matches merge commit exactly; live-fire from installed cache — static-grid exit 0, sequential exit 1/"section 8"; 131/131 pytest on `main`. Report: `Artifacts/Reports/VSE-2-Report.md`.**
 
 ### Initiative Hard Rules (Auditor Rejects on Violation)
 1. Validators check invariants only — no coupling to 13-part section wording/order (Copilot render test still pending)
