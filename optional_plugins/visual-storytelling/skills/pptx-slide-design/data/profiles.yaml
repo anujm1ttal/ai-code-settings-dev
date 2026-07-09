@@ -1,0 +1,96 @@
+# Deck profile seed registry — starting-choice palettes/fonts for new decks (VSE-2 D2).
+# NOT authoritative for a live deck: `Artifacts/LAYOUT_SPEC.md` (per-project,
+# creative-director-authored) always wins over any entry here (Hard Rule 2, VSE-2-Plan).
+#
+# Schema (per entry, all fields required):
+#   id:         kebab-case unique identifier
+#   name:       display name
+#   palette:
+#     background:  hex, full-slide background
+#     ink:         hex, primary text colour
+#     accent:      hex, highlight/badge/connector colour (use sparingly)
+#     muted:       list[hex], secondary/label/rule/outline greys (2-4 values)
+#     categorical: map[name -> hex], card/region/data-viz fill colours
+#   font_pair:
+#     heading:  string, heading/title font family
+#     body:     string, body text font family
+#     mono:     string, monospace font family (labels, footers, code)
+#   tags:
+#     tone:      list[str], style adjectives
+#     audience:  list[str], intended viewers
+#     medium:    list[str], intended delivery context
+#   status:     "vetted" | "unvetted" — "vetted" REQUIRES a fresh contrast_check.py pass
+#               (exit 0) on both ink-on-background and accent-on-background pairs (Hard Rule 1)
+#   source:     string — provenance (hand-authored, or attribution if borrowed)
+#
+# Contrast evidence (VSE-2, contrast_check.py, fresh run against Artifacts/Temp/ specs):
+#   gri-kickoff:      ink/bg 12.73:1 PASS, accent/bg 4.83:1 PASS -> vetted
+#   boardroom-dark:   ink/bg 14.79:1 PASS, accent/bg 6.73:1 PASS -> vetted
+#   editorial-light:  ink/bg 12.82:1 PASS, accent/bg 7.67:1 PASS -> vetted
+
+profiles:
+  - id: gri-kickoff
+    name: "GRI · Kick-off"
+    palette:
+      background: "#F5F1E8"
+      ink: "#2A2A2A"
+      accent: "#B8431B"
+      muted: ["#888888", "#D6D0C4", "#666666"]
+      categorical:
+        blue: "#7BA7BC"
+        green: "#8FAE6D"
+        yellow: "#E8C547"
+    font_pair:
+      heading: "Georgia (serif)"
+      body: "Georgia (serif)"
+      mono: "Cascadia Code"
+    tags:
+      tone: [clean, minimal, diagrammatic, editorial, research-oriented, calm]
+      audience: [stakeholders, researchers]
+      medium: [presentation, workshop]
+    status: vetted
+    source: "hand-authored (GRI deck)"
+
+  - id: boardroom-dark
+    name: "Boardroom Dark"
+    palette:
+      background: "#1B1F24"
+      ink: "#F2F2F2"
+      accent: "#4FB3BF"
+      muted: ["#8A8F98", "#3A4048", "#B0B5BD"]
+      categorical:
+        blue: "#5EC8D8"
+        green: "#8FCB9B"
+        amber: "#E0A845"
+    font_pair:
+      heading: "Segoe UI Semibold"
+      body: "Segoe UI"
+      mono: "Consolas"
+    tags:
+      tone: [boardroom, technical, authoritative, high-contrast]
+      audience: [executives, engineers]
+      medium: [presentation, technical-review]
+    status: vetted
+    source: "hand-authored"
+
+  - id: editorial-light
+    name: "Editorial Light"
+    palette:
+      background: "#FAF9F6"
+      ink: "#22303C"
+      accent: "#8C2F42"
+      muted: ["#6B7280", "#D9D4C8", "#8C8578"]
+      categorical:
+        blue: "#4A7A96"
+        green: "#5E8C61"
+        gold: "#C9A227"
+    font_pair:
+      heading: "Cambria"
+      body: "Calibri"
+      mono: "Consolas"
+    tags:
+      tone: [editorial, warm, approachable, refined]
+      audience: [general, marketing, leadership]
+      medium: [presentation, report]
+    status: vetted
+    source: "hand-authored"

@@ -68,15 +68,9 @@ All cards/regions follow this standard:
 
 The skill picks one of these 7 layouts based on the user's slide brief (§3 below):
 
-| # | Layout Name | Intent | Zones | When to Use |
-|:---|:---|:---|:---|:---|
-| 1 | **Title / Section** | Deck title or divider; minimal content, maximum impact | Title top, optional subtitle, centred | Deck openers, section breaks |
-| 2 | **Hero + Evidence** | Large headline/stat top, supporting detail below | Hero ~40% top, evidence ~60% below | Insight slides, KPI reveal |
-| 3 | **Two-Column Compare** | Left vs. right under shared header | Shared header, left/right columns | Before/after, option comparison |
-| 4 | **Grid of Cards** | Repeated small units (3–5 cards) in rows | Repeated cards, 2–3 columns, grid alignment | Multi-item summary, team bios |
-| 5 | **Top Summary + Detail** | KPI/headline strip, detail table/chart below | KPI band ~25% top, detail ~75% below | Dashboard pages, exec summaries |
-| 6 | **Left Narrative + Right Visual** | Text on left; chart/image on right | Left ~55%, right ~45%, shared header optional | Analysis, case studies, data stories |
-| 7 | **Full-Bleed Visual** | Single image/graphic dominates; minimal text overlay | Image full slide; optional overlay bottom/centre | Section openers, impact moments |
+**Single source of truth:** `data/archetypes.yaml` (VSE-2 D1) — the 7 archetype definitions
+(`id`, `name`, `intent`, `zones`, `when_to_use`, `tags`) live there, not here. Load that file
+whole (Deep-Load Protocol) rather than duplicating the table in prose.
 
 **Fallback mapping:** If no LAYOUT_SPEC.md, use visual-composition defaults (Charcoal Minimal palette, Editorial fonts, 2–3 column grid, 0.25in spacing unit).
 

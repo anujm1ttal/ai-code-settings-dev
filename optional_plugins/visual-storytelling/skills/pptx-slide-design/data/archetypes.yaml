@@ -1,0 +1,65 @@
+# Layout archetype registry — single source of truth for the pptx-slide-design skill's
+# "Layout Menu" (VSE-2 D1). `references/design-tokens.md` §6 points here instead of
+# duplicating the table; do not re-add archetype rows to that file.
+#
+# Schema (per entry, all fields required):
+#   id:           kebab-case unique identifier
+#   name:         display name, verbatim from the original §6 table
+#   intent:       one-line purpose, verbatim from §6
+#   zones:        layout zone breakdown, verbatim from §6
+#   when_to_use:  scenarios this archetype fits, verbatim from §6
+#   tags:         list[str] — free-form retrieval/classification tags (not in the
+#                 original §6 table; added in VSE-2 to support future lookup by intent)
+#
+# Do not invent new archetypes here. Do not change intent/zones/when_to_use wording —
+# these are lifted 1:1 from design-tokens.md §6 (VSE-2 D1).
+
+archetypes:
+  - id: title-section
+    name: "Title / Section"
+    intent: "Deck title or divider; minimal content, maximum impact"
+    zones: "Title top, optional subtitle, centred"
+    when_to_use: "Deck openers, section breaks"
+    tags: [opener, divider, minimal]
+
+  - id: hero-plus-evidence
+    name: "Hero + Evidence"
+    intent: "Large headline/stat top, supporting detail below"
+    zones: "Hero ~40% top, evidence ~60% below"
+    when_to_use: "Insight slides, KPI reveal"
+    tags: [insight, kpi, stat]
+
+  - id: two-column-compare
+    name: "Two-Column Compare"
+    intent: "Left vs. right under shared header"
+    zones: "Shared header, left/right columns"
+    when_to_use: "Before/after, option comparison"
+    tags: [compare, before-after, options]
+
+  - id: grid-of-cards
+    name: "Grid of Cards"
+    intent: "Repeated small units (3–5 cards) in rows"
+    zones: "Repeated cards, 2–3 columns, grid alignment"
+    when_to_use: "Multi-item summary, team bios"
+    tags: [multi-item, team, summary]
+
+  - id: top-summary-detail
+    name: "Top Summary + Detail"
+    intent: "KPI/headline strip, detail table/chart below"
+    zones: "KPI band ~25% top, detail ~75% below"
+    when_to_use: "Dashboard pages, exec summaries"
+    tags: [dashboard, exec-summary, kpi-strip]
+
+  - id: left-narrative-right-visual
+    name: "Left Narrative + Right Visual"
+    intent: "Text on left; chart/image on right"
+    zones: "Left ~55%, right ~45%, shared header optional"
+    when_to_use: "Analysis, case studies, data stories"
+    tags: [analysis, case-study, data-story]
+
+  - id: full-bleed-visual
+    name: "Full-Bleed Visual"
+    intent: "Single image/graphic dominates; minimal text overlay"
+    zones: "Image full slide; optional overlay bottom/centre"
+    when_to_use: "Section openers, impact moments"
+    tags: [section-opener, impact, imagery]

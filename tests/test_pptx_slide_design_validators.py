@@ -25,6 +25,21 @@ VALIDATE_PROMPT_SCRIPT = SKILL_ROOT / "scripts" / "validate_prompt.py"
 CONTRAST_CHECK_SCRIPT = SKILL_ROOT / "scripts" / "contrast_check.py"
 REFERENCE_SLIDES_MD = SKILL_ROOT / "references" / "reference-slides.md"
 TEMPLATES_MD = SKILL_ROOT / "references" / "slide-prompt-templates.md"
+ARCHETYPES_YAML = SKILL_ROOT / "data" / "archetypes.yaml"
+PROFILES_YAML = SKILL_ROOT / "data" / "profiles.yaml"
+
+# PyYAML is not a stdlib module and is not declared as a repo dependency (no pyproject.toml/
+# requirements.txt at repo root); guard rather than hard-require so the suite stays green in
+# an environment without it (VSE-2 D3).
+try:
+    import yaml
+except ImportError:  # pragma: no cover - environment-dependent
+    yaml = None
+
+requires_yaml = pytest.mark.skipif(yaml is None, reason="PyYAML not installed")
+
+ARCHETYPE_REQUIRED_KEYS = {"id", "name", "intent", "zones", "when_to_use", "tags"}
+PROFILE_REQUIRED_KEYS = {"id", "name", "palette", "font_pair", "tags", "status", "source"}
 
 FALLBACK_BANNER = "[fallback: visual-composition defaults]"
 
@@ -228,3 +243,74 @@ def test_contrast_check_known_pass_pair_exits_zero_with_pass_line(tmp_path: Path
 def test_script_top_level_imports_are_stdlib_only(script_path: Path) -> None:
     imported_modules = _top_level_imports(script_path)
     assert imported_modules <= sys.stdlib_module_names
+
+
+# --- VSE-2: data/archetypes.yaml + data/profiles.yaml schema and contrast-gate tests -------
+
+
+@requires_yaml
+def test_archetypes_yaml_parses_with_exactly_seven_entries() -> None:
+    parsed = yaml.safe_load(ARCHETYPES_YAML.read_text(encoding="utf-8"))
+    archetypes = parsed["archetypes"]
+    assert isinstance(archetypes, list)
+    assert len(archetypes) == 7
+
+
+@requires_yaml
+def test_archetypes_yaml_entries_have_all_required_keys() -> None:
+    parsed = yaml.safe_load(ARCHETYPES_YAML.read_text(encoding="utf-8"))
+    for entry in parsed["archetypes"]:
+        assert ARCHETYPE_REQUIRED_KEYS <= entry.keys(), f"missing keys in {entry.get('id')!r}: {ARCHETYPE_REQUIRED_KEYS - entry.keys()}"
+        assert isinstance(entry["tags"], list)
+
+
+@requires_yaml
+def test_profiles_yaml_parses_with_two_to_three_entries() -> None:
+    parsed = yaml.safe_load(PROFILES_YAML.read_text(encoding="utf-8"))
+    profiles = parsed["profiles"]
+    assert isinstance(profiles, list)
+    assert 2 <= len(profiles) <= 3
+
+
+@requires_yaml
+def test_profiles_yaml_entries_have_all_required_keys() -> None:
+    parsed = yaml.safe_load(PROFILES_YAML.read_text(encoding="utf-8"))
+    for entry in parsed["profiles"]:
+        assert PROFILE_REQUIRED_KEYS <= entry.keys(), f"missing keys in {entry.get('id')!r}: {PROFILE_REQUIRED_KEYS - entry.keys()}"
+
+
+@requires_yaml
+def test_profiles_yaml_all_entries_carry_nonempty_source() -> None:
+    parsed = yaml.safe_load(PROFILES_YAML.read_text(encoding="utf-8"))
+    for entry in parsed["profiles"]:
+        assert isinstance(entry["source"], str) and entry["source"].strip(), (
+            f"profile {entry.get('id')!r} missing non-empty source"
+        )
+
+
+def _vetted_profiles() -> list[dict]:
+    """Load `profiles.yaml` and return entries with `status: vetted` (empty list if PyYAML absent)."""
+    if yaml is None:
+        return []
+    parsed = yaml.safe_load(PROFILES_YAML.read_text(encoding="utf-8"))
+    return [entry for entry in parsed["profiles"] if entry["status"] == "vetted"]
+
+
+@requires_yaml
+@pytest.mark.parametrize(
+    "profile", _vetted_profiles(), ids=lambda profile: profile["id"] if isinstance(profile, dict) else str(profile)
+)
+def test_vetted_profile_ink_and_accent_pass_contrast_check(profile: dict, tmp_path: Path) -> None:
+    """Hard Rule 1 (VSE-2): every `vetted` profile's ink-on-background and accent-on-background
+    pairs must pass `contrast_check.py` (exit 0), enforced here as a live subprocess check --
+    not by trusting the header-comment evidence in profiles.yaml."""
+    palette = profile["palette"]
+    spec_path = tmp_path / f"{profile['id']}_contrast_spec.md"
+    spec_path.write_text(
+        f"- Background: `{palette['background']}`\n"
+        f"- Text (Ink): `{palette['ink']}`\n"
+        f"- Text (Accent): `{palette['accent']}`\n",
+        encoding="utf-8",
+    )
+    result = _run_contrast_check(spec_path)
+    assert result.returncode == 0, result.stdout

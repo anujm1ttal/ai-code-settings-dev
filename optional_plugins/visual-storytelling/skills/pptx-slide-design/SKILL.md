@@ -3,7 +3,7 @@ name: pptx-slide-design
 description: Use this skill to emit copy-paste-ready prompts that Copilot Premium can execute directly inside PowerPoint to render beautifully designed slides. The skill reads a deck profile (palette, fonts, furniture, tone, forbidden list) from `Artifacts/LAYOUT_SPEC.md` and a per-slide brief (purpose, layout choice, content, speaker note), then expands them into a **13-part prompt** that ensures deck-wide consistency while preserving the per-slide narrative. Trigger when a user has a LAYOUT_SPEC.md or asks to design individual slides. Do NOT use for authoring presentation content, generating `.pptx` files, or invoking any renderer — this skill emits text prompts only.
 argument-hint: "<slide intent, layout choice, and content>"
 metadata:
-  version: "2.1.0"
+  version: "2.2.0"
   tags: [powerpoint, slide-design, copilot, prompts, presentation, design-system]
 ---
 
@@ -37,6 +37,8 @@ Load reference files ONLY when the following conditions are met:
 | `references/reference-slides.md` | Mandatory before every prompt generation (shows the two canonical gold-standard prompts that define the fidelity bar) |
 | `references/slide-prompt-templates.md` | Mandatory before every prompt generation (13-part skeleton + worked examples) |
 | `Artifacts/LAYOUT_SPEC.md` (per-project) | Mandatory if present; fallback to visual-composition defaults if absent |
+| `data/archetypes.yaml` | On demand: when selecting/confirming a layout archetype (whole-file load, no search engine) |
+| `data/profiles.yaml` | On demand: when a project has no `LAYOUT_SPEC.md` yet and the user wants a starting deck-profile choice (whole-file load, no search engine) |
 
 ---
 
@@ -177,6 +179,6 @@ Project-level `Artifacts/LAYOUT_SPEC.md` is the canonical deck profile source; f
 ---
 
 **Last updated:** 2026-07-09  
-**Version:** 2.1 — Added Step 5 enforcement: machine validation of emitted prompts via `validate_prompt.py` (6 rules) and `contrast_check.py` (WCAG 2.1 ratios)  
+**Version:** 2.2 — Extracted the 7 layout archetypes to `data/archetypes.yaml` (single source, §6 now a pointer) and seeded `data/profiles.yaml` (3 contrast-vetted deck profiles) (VSE-2)  
 **Model twin:** `banana-prompt` (same 5-step pipeline, prompt-generation output for external renderers)  
 **Depends on:** `design-tokens.md` (profile contract), `reference-slides.md` (fidelity bar), `visual-composition` (fallback defaults), `creative-director` (LAYOUT_SPEC.md author), `validate_prompt.py` (Step 5), `contrast_check.py` (Step 5)
