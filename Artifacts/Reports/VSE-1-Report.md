@@ -267,3 +267,98 @@ evidence). T5 and the final auditor gate line left at `[-]` — live-fire half r
 install half is pending user action per plan R4; phase/initiative is NOT marked complete. No edits
 made to root `Artifacts/TODO.md` (orchestrator-owned). BACKLOG.md updated with an auditor addendum
 (severity re-classification + root-cause detail) — additive, coder's original entry preserved.
+
+---
+
+## Phase Close Addendum (2026-07-09)
+
+**Auditor gate re-run:** same session's five must-change items re-verified fresh, on branch
+`phase-vse-1-quality-gates` (not switched, not committed, not merged — merge is orchestrator's act).
+
+### 1. Install evidence — CONFIRMED
+
+`C:/Users/44547/.claude/plugins/installed_plugins.json` → `visual-storytelling@ai-code-settings`
+entry: `version: "2.1.0"`, `gitCommitSha: "5b13bd274f3eaa5c04de27841d8ed7f276a8740c"`. Confirmed
+`git rev-parse 5b13bd2` resolves to the identical full SHA — the installed plugin is pinned to the
+exact commit under audit, not a stale or divergent copy. Cache dir
+`.../visual-storytelling/2.1.0/skills/pptx-slide-design/scripts/` contains both `contrast_check.py`
+and `validate_prompt.py`; byte-for-byte diff against the repo copy of `validate_prompt.py` is
+identical (no install-time drift).
+
+### 2. Installed-session live-fire — PASS (exit 0)
+
+```
+$ python <cache>/scripts/validate_prompt.py Artifacts/Temp/installed_session_emission.txt --no-layout-spec
+EXIT:0
+```
+
+Spot-checked `installed_session_emission.txt` directly: contains all 13 anatomy sections with real,
+slide-specific content (a genuine "Quality gates you can run" 3-card slide prompt, concrete hex
+throughout, Purpose lines per card, speaker-note intent) — not a placeholder/stub. VP-05 contract
+confirmed correct: fallback banner `[fallback: visual-composition defaults]` present, matching the
+`--no-layout-spec` flag.
+
+### 3. Post-audit fixes — ALL HOLD
+
+```
+$ validate_prompt.py Artifacts/Temp/example_1_output.txt   → exit 0
+$ validate_prompt.py Artifacts/Temp/example_2_output.txt   → exit 0
+$ validate_prompt.py Artifacts/Temp/example_3_output.txt   → exit 0
+$ contrast_check.py references/design-tokens.md            → exit 0
+  PASS badge #B8431B on #F5F1E8: 4.83:1 (threshold 4.5:1)   — matches claimed value exactly
+```
+
+`grep -ri C84A1E optional_plugins/visual-storytelling` → only match is
+`references/reference-slides.md` (historical record, deliberately untouched per plan). Zero
+occurrences in `design-tokens.md`, `slide-prompt-templates.md`, `SKILL.md` — accent swap is
+complete and scoped correctly. Read `SKILL.md` and `design-tokens.md` diffs line-by-line: only the
+claimed accent-hex substitutions, version bump, and Step-5 additions — no adjacent drift.
+`validate_prompt.py` VP-04 comment read in full: no longer overclaims "neither gold prompt" —
+now correctly scopes the claim ("Slide B has zero... Slide A contains only incidental prose
+uses"). Item 4 confirmed fixed.
+
+### 4. Suite — PASS
+
+```
+$ python -m pytest tests/ -q
+119 passed in 13.20s
+```
+
+No regressions; matches the 119-test baseline from the T1–T4 gate run.
+
+### 5. Scope — CLEAN
+
+```
+$ git diff main --stat
+ Artifacts/BACKLOG.md | Artifacts/Plans/VSE-1-Plan.md | Artifacts/Plans/VSE-1-TODO.md |
+ Artifacts/Reports/VSE-1-Report.md | Artifacts/TODO.md | plugin.json | SKILL.md |
+ design-tokens.md | slide-prompt-templates.md | contrast_check.py | validate_prompt.py |
+ tests/test_pptx_slide_design_validators.py
+ 12 files changed, 985 insertions(+), 54 deletions(-)
+```
+
+Every changed file is either on the original approved list, on the user-approved amendment list
+(`VSE-1-Plan.md` §Post-audit amendments: `slide-prompt-templates.md`, `design-tokens.md`,
+`SKILL.md`, `validate_prompt.py`), or an Artifacts state file. `reference-slides.md` has zero diff
+— confirmed untouched. No scope violation.
+
+### Hard Rule 1 disposition — RESIDUAL ACCEPTED, DEFERRED TO VSE-2
+
+The HR1 partial violation (VP-01 parts 2/8/9 keyed to gold vocabulary rather than archetype-general
+invariants) is **not resolved** by the template patch — the template patch fixed the 3 worked
+examples' surface symptom (missing lines), not the validator's underlying archetype-blindness. This
+was flagged in the original audit as requiring a genuine logic change, not documentation. The user
+approved deferring this residual to VSE-2 (recorded in `VSE-1-Plan.md` §Post-audit amendments:
+"Residual to VSE-2: archetype-conditional VP-01 logic (HR1)"). This is an explicit, user-approved
+scope decision, not an auditor waiver — I am recording it, not overriding HR1. VSE-2 kickoff must
+carry this forward as a named task, not rediscover it.
+
+### Verdict: CLOSE
+
+All five must-change items independently re-verified with fresh evidence this session. M1–M4 remain
+PASS. HR2/HR3 remain clean. HR1 residual is explicitly deferred to VSE-2 per user-approved plan
+amendment — no longer phase-blocking for VSE-1. No scope drift. No regressions.
+
+**Merge authorization:** `phase-vse-1-quality-gates` → `main` is authorized. Delete branch after
+merge per `orchestration.md` Git Phase Branching §5. Orchestrator executes the merge; auditor does
+not merge or commit.

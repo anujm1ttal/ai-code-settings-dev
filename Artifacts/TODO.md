@@ -31,8 +31,8 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 **Origin:** ui-ux-pro-max-skill architecture pattern (data-fied design knowledge + executable output validation), applied to `pptx-slide-design` only. banana-prompt out of scope. No search engine (deferred until library >25 entries).
 **Sequencing:** VSE-1 → VSE-2 (VSE-2 requires `/grill` + Interface-First `[user-approval]` before kickoff)
 
-- [-] [strategist] **VSE Initiative Kickoff (/blueprint VSE-1)** — decompose Phase 1 tasks, create git branch · Success: phase-vse-1-quality-gates branch created, Tasks decomposed to Artifacts/Plans/VSE-1-TODO.md · **2026-07-09: branch created from `8d62838`; tasks pre-decomposed in VSE-1-TODO.md; parked-project scope reconciled (see below). Pending auditor `[x]` at phase gate.**
-- [ ] **VSE-1 — Executable Quality Gates** (branch `phase-vse-1-quality-gates`, cut from `main` post-OSH) — Success: validate_prompt.py 2/2 gold pass + 3/3 seeded-bad fail; contrast_check.py pass/fail pair correct; pytest exit 0; zero new deps
+- [x] [strategist] **VSE Initiative Kickoff (/blueprint VSE-1)** — decompose Phase 1 tasks, create git branch · Success: phase-vse-1-quality-gates branch created, Tasks decomposed to Artifacts/Plans/VSE-1-TODO.md · **2026-07-09 auditor-verified at phase gate: branch created, tasks decomposed, kickoff complete.**
+- [x] **VSE-1 — Executable Quality Gates** (branch `phase-vse-1-quality-gates`, cut from `main` post-OSH) — Success: validate_prompt.py 2/2 gold pass + 3/3 seeded-bad fail; contrast_check.py pass/fail pair correct; pytest exit 0; zero new deps · **2026-07-09 auditor CLOSE: all metrics met fresh (119/119 pytest), install+live-fire verified, post-audit fixes (palette darken, template markers, VP-04 comment) re-confirmed; HR1 residual deferred to VSE-2. Merge authorized.**
 - [ ] **VSE-2 — Design-Data Library + Draft Generator** (branch `phase-vse-2-design-data`) — Success: ≥8 vetted palettes + ≥6 vetted font pairs (100% attributed, contrast-gated); intake draft LAYOUT_SPEC passes VSE-1 validators first try; archetypes defined in exactly 1 file
 
 ### Initiative Hard Rules (Auditor Rejects on Violation)
