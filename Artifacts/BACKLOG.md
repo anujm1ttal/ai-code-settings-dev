@@ -86,6 +86,20 @@ and treat it as a prompt to reconsider whether VP-01 parts 2/8/9 need archetype-
 
 ---
 
+## `oxl_wayfinder_1` — `/blueprint --foggy` (wayfinder decision-ticket mode) deferred
+
+**Filed:** 2026-07-09 (OXL grill cut) · **Severity:** LOW · **Needs:** demand evidence, then Step 0
+
+Wayfinder pattern (mattpocock/skills): for initiatives whose destination can't be named, chart a
+map (Destination / Decisions-so-far / Not-yet-specified fog / Out-of-scope) + child decision
+tickets (research/prototype/grilling/task) sized to one session — "tickets resolve decisions, not
+deliverables." Cut at OXL grill: zero observed demand (every past initiative's fog was burned off
+by /blueprint + one /grill session). **Revival trigger:** an initiative arrives whose destination
+still can't be named after one grill session. Design as a `/blueprint` MODE, not a new command;
+map reuses existing artifact types.
+
+---
+
 ## `vse2_yaml-dep_1` — PyYAML undeclared; YAML schema tests skip silently without it
 
 **Filed:** 2026-07-09 (VSE-2 audit ruling) · **Severity:** LOW · **Needs:** small dep-declaration pass

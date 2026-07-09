@@ -6,6 +6,36 @@ Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
 
 ---
 
+## 2026-07-09 — OXL grilled → [REFACTORED]: 3 phases → 2; ship nothing without a consumer [OXL]
+
+**Decision:** `/grill` on the OXL blueprint (Skeptical Architect + recon) cut every element lacking
+a day-one consumer or demand evidence. User accepted all three recommended cuts.
+
+**What was cut (and why):**
+- **AFK/HITL tag out of Phase 1** → folded into `oxl_afk-runner_1` BACKLOG spec. With the runner
+  ruled spec-only, the tag had zero mechanical consumers — a no-op field by the imported taxonomy
+  itself. Tag + runner ship together or not at all.
+- **Phase 3 `/blueprint --foggy` (wayfinder mode)** → CUT to `oxl_wayfinder_1` with a revival
+  trigger. Zero observed demand: no initiative in repo history was too foggy for /blueprint+/grill.
+  The separable vertical-slice + expand–contract rules moved into Phase 1 (project-planner).
+- **Blanket commit-as-handoff** → scoped to task-completion commits only. Ralph needs it on every
+  commit because git log is its ONLY memory; we have Artifacts. The real gap is crash recovery
+  between /handoffs — trivial commits are exempt.
+
+**Recon corrections (evidence, not opinion):**
+- `disable-model-invocation: true` verified real + doc-cited (removes description from context,
+  stays user-invocable; `skillOverrides: "user-invocable-only"` = file-less alternative).
+- `skill-creator` is an external plugin — Phase 2's checklist rehomed to a NEW on-demand
+  `skills/skill-authoring-standards.md` (never always-loaded; references claude-md-standards).
+- Hooks don't parse TODO line format (session-boot injects head verbatim; guard-paths matches
+  basenames) → additive fields are safe.
+- All hides require runtime verification (OSA lesson: config correct ≠ runtime honors it);
+  phase gate after OXL-1 (LH lesson: token-diet wins can evaporate at small scale).
+
+**Status:** RESOLVED — plan files written 2026-07-09; branch `phase-oxl-1-conventions`.
+
+---
+
 ## 2026-07-09 — VSE-2 grilled → [REFACTORED]: cut library + generator + external seeding [VSE]
 
 **Decision:** `/grill` on VSE-2 (Skeptical Architect) found ~70% speculative infrastructure. User
