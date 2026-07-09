@@ -12,6 +12,7 @@ CLI contract -- the exit code and stdout ARE the contract, not internal function
 from __future__ import annotations
 
 import ast
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -23,8 +24,17 @@ SKILL_ROOT = REPO_ROOT / "optional_plugins" / "visual-storytelling" / "skills" /
 VALIDATE_PROMPT_SCRIPT = SKILL_ROOT / "scripts" / "validate_prompt.py"
 CONTRAST_CHECK_SCRIPT = SKILL_ROOT / "scripts" / "contrast_check.py"
 REFERENCE_SLIDES_MD = SKILL_ROOT / "references" / "reference-slides.md"
+TEMPLATES_MD = SKILL_ROOT / "references" / "slide-prompt-templates.md"
 
 FALLBACK_BANNER = "[fallback: visual-composition defaults]"
+
+# VP-01 part 8 device words (must stay in sync with validate_prompt.py RE_FLOW_DEVICE).
+_FLOW_WORD_RE = re.compile(r"\b(arrow|loop|connector|heatmap|flow)\w*\b", re.IGNORECASE)
+
+
+def _strip_flow_devices(prompt_text: str) -> str:
+    """Neutralise every flow-device word so RE_FLOW_DEVICE no longer matches."""
+    return _FLOW_WORD_RE.sub("element", prompt_text)
 
 
 def _extract_reference_section(markdown_text: str, header_prefix: str) -> str:
@@ -77,6 +87,28 @@ def _run_contrast_check(spec_path: Path) -> subprocess.CompletedProcess[str]:
 _REFERENCE_TEXT = REFERENCE_SLIDES_MD.read_text(encoding="utf-8")
 GOLD_SLIDE_A = _extract_reference_section(_REFERENCE_TEXT, "## Reference Slide A")
 GOLD_SLIDE_B = _extract_reference_section(_REFERENCE_TEXT, "## Reference Slide B")
+
+
+def _extract_example_output(markdown_text: str, example_number: int) -> str:
+    """Extract the fenced Output block for a numbered worked example in templates."""
+    section = re.split(r"^### Example ", markdown_text, flags=re.M)
+    for block in section[1:]:
+        if block.lstrip().startswith(str(example_number)):
+            match = re.search(
+                r"\*\*Output \(Copy-Paste Ready Prompt\):\*\*\s*\n+```\n(.*?)\n```",
+                block,
+                re.S,
+            )
+            if match is None:
+                raise ValueError(f"no Output block in Example {example_number}")
+            return match.group(1)
+    raise ValueError(f"Example {example_number} not found")
+
+
+# Example 3 is a Grid of Cards: a STATIC (non-sequential) layout -- the canonical case
+# a flow-device requirement must not spuriously fail. Extracted, not hardcoded.
+GRID_EXAMPLE = _extract_example_output(TEMPLATES_MD.read_text(encoding="utf-8"), 3)
+GRID_STATIC_NO_FLOW = _strip_flow_devices(GRID_EXAMPLE)
 
 # Seeded-bad mutations, derived from the extracted gold text (not hardcoded strings).
 _SPEAKER_NOTE_MARKER = "SPEAKER NOTE INTENT"
@@ -135,6 +167,43 @@ def test_validate_prompt_vp05_fallback_banner_reports_rule_id(
 ) -> None:
     result = _run_validate_prompt(prompt_text, tmp_path, extra_args)
     assert "VP-05" in result.stdout
+
+
+def test_validate_prompt_static_layout_without_flow_device_passes(tmp_path: Path) -> None:
+    """VP-01 part 8 is archetype-conditional: a static Grid of Cards with no flow device
+    must pass (the VSE-1 HR1 regression -- storyboards need flow, grids do not)."""
+    assert not re.search(r"\b(storyboard|timeline|panel\s*\d|stage\s*\d)\b", GRID_STATIC_NO_FLOW, re.I)
+    result = _run_validate_prompt(GRID_STATIC_NO_FLOW, tmp_path)
+    assert result.returncode == 0, result.stdout
+
+
+def test_validate_prompt_sequential_layout_missing_flow_device_fails(tmp_path: Path) -> None:
+    """Guard: the flow-device check is not lost -- a SEQUENTIAL layout (storyboard with
+    ordinal panels) that omits its flow device still fails VP-01 on section 8."""
+    sequential_missing_flow = _strip_flow_devices(GOLD_SLIDE_A)
+    result = _run_validate_prompt(sequential_missing_flow, tmp_path)
+    assert result.returncode == 1
+    assert "section 8" in result.stdout
+
+
+def test_validate_prompt_content_truth_alternate_phrasing_passes(tmp_path: Path) -> None:
+    """VP-01 part 2 is phrasing-agnostic: a content-truth directive that avoids the gold
+    prompts' exact words ('metaphor'/'show the actual') still satisfies the check."""
+    rephrased = GRID_STATIC_NO_FLOW.replace(
+        "Do not make this a metaphor — show the actual three methods as concrete, labelled cards.",
+        "Show the real research methods, not an abstract sketch.",
+    )
+    assert "metaphor" not in rephrased.lower()
+    result = _run_validate_prompt(rephrased, tmp_path)
+    assert result.returncode == 0, result.stdout
+
+
+def test_validate_prompt_takeaway_alternate_phrasing_passes(tmp_path: Path) -> None:
+    """VP-01 part 9 is phrasing-agnostic: a takeaway using 'key takeaway' instead of the
+    gold prompts' 'bottom line' still satisfies the check."""
+    rephrased = GRID_STATIC_NO_FLOW.replace("BOTTOM LINE", "KEY TAKEAWAY")
+    result = _run_validate_prompt(rephrased, tmp_path)
+    assert result.returncode == 0, result.stdout
 
 
 def test_contrast_check_known_fail_pair_exits_one_with_fail_line(tmp_path: Path) -> None:

@@ -41,10 +41,19 @@ user-authored gold-slide fidelity.
 **Resolution (template half):** All 3 worked examples now exit 0 (fresh run). Example 3 gained its
 3 missing markers (content-truth, flow device, `BOTTOM LINE`); Example 2 — found failing during the
 fix, beyond the audit's scope — had a missing takeaway header AND a real `palette.neutrals` VP-02
-token leak in teaching material, both fixed. **Residual (validator half, → VSE-2):** the HR1
-partial-violation stands — `PART_CHECKERS` 2/8/9 remain gold-vocabulary-keyed and Part 8 is
-brief-conditional per `design-tokens.md`; archetype-conditional VP-01 logic is a VSE-2 candidate
-task per the auditor's recommendation (`Artifacts/Reports/VSE-1-Report.md` §Hard Rule 1).
+token leak in teaching material, both fixed.
+
+**Resolution (validator half — RESOLVED 2026-07-09, standalone MTP `fix-vp01-archetype-conditional`):**
+The HR1 partial-violation is now closed. `validate_prompt.py` VP-01 made archetype-conditional:
+- **Part 8 (flow devices)** — required ONLY for sequential layouts (storyboard / timeline / ordinal
+  panels / stages, via `RE_SEQUENTIAL_LAYOUT`); static layouts (grid, hero, title, two-column,
+  full-bleed) pass without one, matching `design-tokens.md` §13 (Part 8 = brief-sourced).
+- **Parts 2 & 9** — regexes broadened to phrasing-agnostic signals (no longer keyed to the two
+  golds' exact words).
+Tests: +4 (static-passes-without-flow, sequential-missing-flow-still-fails guard, broadened 2/9);
+mutation-verified non-hollow; full suite 123/123. Note: keyword signals still have theoretical
+edge cases (a sequential layout not naming storyboard/timeline/panel), acceptable — the check now
+errs toward not-blocking, and the guard test locks the common sequential case.
 
 A prompt emitted faithfully from **Example 3 (Grid of Cards)** fails `validate_prompt.py` with 3
 VP-01 violations: missing part 2 (content-truth directive), part 8 (flow device), part 9 (takeaway

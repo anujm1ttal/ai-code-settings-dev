@@ -31,8 +31,11 @@ HEX_CANDIDATE = re.compile(r"#([0-9A-Za-z]{3,8})\b")
 TOKEN_LEAK = re.compile(r"palette\.\w+|type\.scale\.\w+")
 
 RE_COMMAND = re.compile(r"\b(rebuild|redesign|recreate)\s+slide\b", re.IGNORECASE)
+# VP-01 part 2: content-truth directive. Phrasing-agnostic — the two gold prompts say
+# "metaphor"/"show the actual", but any real-vs-abstract directive is valid (VSE HR1 rework).
 RE_CONTENT_TRUTH = re.compile(
-    r"\b(metaphor|do not make this|show the actual|actual research object)\b",
+    r"\b(metaphor|show the (actual|real)|(actual|real)\s+\w+\s+object"
+    r"|do not (make|turn|use) this)\b",
     re.IGNORECASE,
 )
 RE_NO_FULL_STOP = re.compile(r"no full stop", re.IGNORECASE)
@@ -44,7 +47,19 @@ RE_OVERALL_LAYOUT = re.compile(r"overall layout", re.IGNORECASE)
 RE_REGION_MARKER = re.compile(r"\b(panel|card|region|zone)\s*\d+\b", re.IGNORECASE)
 RE_PURPOSE_LINE = re.compile(r"purpose of this", re.IGNORECASE)
 RE_FLOW_DEVICE = re.compile(r"\b(arrow|loop|connector|heatmap|flow)\b", re.IGNORECASE)
-RE_TAKEAWAY_HEADER = re.compile(r"\b(bottom line|closing line|takeaway)\b", re.IGNORECASE)
+# VP-01 part 8: flow devices are archetype-conditional (design-tokens.md §13 lists Part 8 as
+# brief-sourced). Only SEQUENTIAL layouts (storyboard, timeline, ordinal panels/stages) require
+# a flow device; static layouts (grid of cards, hero, title, two-column, full-bleed) do not.
+# Signals are structural layout words, chosen not to leak from content nouns ("iterative",
+# "process") that appear in static slides (VSE HR1 rework).
+RE_SEQUENTIAL_LAYOUT = re.compile(
+    r"\b(storyboard|timeline|panel\s*\d|stage\s*\d)\b", re.IGNORECASE
+)
+# VP-01 part 9: bottom-line takeaway. Phrasing-agnostic (gold prompts use "bottom line"/
+# "takeaway"; broadened so other valid closings pass) (VSE HR1 rework).
+RE_TAKEAWAY_HEADER = re.compile(
+    r"\b(bottom[- ]line|closing line|(key |slide )?takeaway|in short)\b", re.IGNORECASE
+)
 RE_VISUAL_TONE = re.compile(r"visual tone", re.IGNORECASE)
 RE_WHAT_TO_AVOID = re.compile(r"what to avoid", re.IGNORECASE)
 RE_SPEAKER_NOTE = re.compile(r"speaker note intent", re.IGNORECASE)
@@ -104,7 +119,7 @@ PART_CHECKERS: dict[int, Callable[[str], bool]] = {
     5: lambda text: bool(RE_BACKGROUND.search(text)) and bool(RE_NO_PHOTO.search(text)),
     6: lambda text: bool(RE_OVERALL_LAYOUT.search(text)),
     7: lambda text: len(RE_REGION_MARKER.findall(text)) >= 2 or bool(RE_PURPOSE_LINE.search(text)),
-    8: lambda text: bool(RE_FLOW_DEVICE.search(text)),
+    8: lambda text: (not RE_SEQUENTIAL_LAYOUT.search(text)) or bool(RE_FLOW_DEVICE.search(text)),
     9: lambda text: bool(RE_TAKEAWAY_HEADER.search(text)),
     10: lambda text: bool(RE_VISUAL_TONE.search(text)),
     11: lambda text: bool(RE_WHAT_TO_AVOID.search(text)),
