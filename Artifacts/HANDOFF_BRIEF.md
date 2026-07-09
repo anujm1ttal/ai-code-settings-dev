@@ -1,62 +1,98 @@
-# Session Handoff Brief — uv Workflow Operationalization (2026-07-08)
+# Session Handoff Brief — VSE-1 Phase Complete (2026-07-09)
 
-**Session Tier**: L1 Checkpoint (`--lite`) — mid-task pause, work uncommitted
-**Date**: 2026-07-08
-**Branch**: `main` · **Tree**: uv edit committed + deployed same session (see Blockers — resolved)
+**Session Tier**: L3 Phase-Gate (`--phase`)
+**Date**: 2026-07-09
+**Branch**: `main` · merged `278270e` (VSE-1), pushed; phase branch deleted
 
 ---
 
 ## Session Summary
 
-Single micro-task (MTP) session. User invoked `/blueprint` with a question ("what do you think of uv? i don't think i have it in any of my skills") — routed as a claim to pressure-test, not a project to plan.
+Two deliverables in one session: (1) MTP — uv workflow operationalized in `python-patterns`
+v1.2.0 (committed `3ee4992`, deployed, pushed); (2) **VSE-1 — Executable Quality Gates: full
+lifecycle** — `/blueprint` kickoff → parallel implementation (2 coder agents) → tests + SKILL.md
+wiring (coder + scribe, parallel) → live-fire → 2-stage auditor gate → user rulings → post-audit
+fixes → plugin install → installed-session verification → CLOSE → merge → push.
 
-- **Claim disproven**: `uv` already named in 4 OS files (`python-patterns/SKILL.md:108`, `coding-style.md`, `security.md:33`, `auditor.md:76`).
-- **Real gap found**: named but never operationalized — no commands, no lockfile discipline, no `uv run` guidance.
-- **Fix drafted and applied** (user approved draft, declined a phase).
+**Agents active**: strategist (kickoff/orchestration), coder ×3 (T1/T2/T3), scribe (T4),
+auditor ×2 (T6 gate, phase close).
 
-## In Progress (uncommitted)
+## Completed
 
-**`skills/python-patterns/SKILL.md`** (v1.1.0 → 1.2.0): new **§⚡ uv Workflow** section + toolchain-bullet pointer:
+- **VSE-1** (merged `278270e`, +1,081/−55): `validate_prompt.py` (VP-01..VP-06, 233 lines stdlib),
+  `contrast_check.py` (WCAG 2.1, 160 lines), 14 pytest tests (suite 119/119), SKILL.md v2.1.0
+  5-Step Pipeline with synchronous Step 5 Enforcement, plugin.json 2.1.0.
+- **Plugin installed**: `visual-storytelling@ai-code-settings` v2.1.0 (cache snapshot `5b13bd2`);
+  Step 5 live-verified from the INSTALLED cache path — fresh 13-part emission, exit 0.
+- **Kickoff reconciliation**: parked pptx project scope folded into VSE (holding branch was
+  already deleted; content on `main`); parked section now holds ONLY the Copilot render test.
+- **Post-audit fixes (user-approved)**: accent `#C84A1E` → `#B8431B` (4.18→4.83:1);
+  worked examples patched (Example 2 had a REAL `palette.neutrals` VP-02 leak + missing takeaway;
+  Example 3 missing parts 2/8/9); VP-04 comment overclaim corrected; plan D1 amendment recorded.
+- **BACKLOG**: `vse1_palette_1` RESOLVED, `vse1_templates_1` RESOLVED (template half).
 
-- `uv init --package` / `uv add` / `uv add --dev` / `uv remove`; `pyproject.toml` is source of truth
-- Lockfile discipline: commit `uv.lock`; `uv lock --upgrade-package`; never delete-to-fix; `uv sync --frozen` in CI
-- `.python-version` pinning + `uv python install` (replaces pyenv/manual installers)
-- **`uv run python -m <tool>`** for all invocation — cross-referenced to `coding-style.md` §Windows Shell & Paths (clean fix for the `.exe` launcher `WinError 6` class)
-- `uvx` for one-off tools (`uvx pip-audit`, per `security.md`); Rhino boundary: uv is Host-side (3.12+) only
+## In Progress
 
-## Blockers / Next Session
+Nothing mid-task. VSE-2 is queued, not started.
 
-1. ~~User decision pending: commit + deploy~~ **RESOLVED same session** — user approved; `deploy.sh` passed 6/6 (105/105 tests, "all 7 enforced hook(s) present and wired", backup `.claude.backup-20260708-210619`), deployed copy verified, SKILL.md committed.
-2. **VSE initiative** queued — `/blueprint VSE-1` ready, Step 0 approved 2026-07-07.
-3. **`my_mcp_rhino` CLAUDE.md** — broken `GBLOX.md` link (D4) + precedence gap (D6); user fixing manually under that repo's protocol.
+## Blockers / Open
 
-## Decisions
+1. **VSE-2 kickoff gate**: requires `/grill` + Interface-First `[user-approval]` BEFORE any
+   implementation. MUST carry named task: **archetype-conditional VP-01 logic (parts 2/8/9)** —
+   HR1 residual, user-approved deferral (auditor: "deferral, not waiver").
+2. **Parked pptx project**: sole blocker = user Copilot Premium test (3 prompts, ≥80% first-pass).
+3. **Rendered deck accent drift**: existing slides show `#C84A1E`; next Copilot iteration carries
+   `#B8431B` (BACKLOG residual note).
+4. **Carried from 2026-07-08**: `my_mcp_rhino` CLAUDE.md fixes (user, manual, that repo's protocol).
 
-- **uv endorsed as the standard for all Python projects** — operationalize the existing reference rather than add new rule surface (deep-vs-shallow: same interface, more behavior). MTP scope; no DECISION_LOG entry appended (log is reserved for pivots/high-stakes resolutions — this is neither).
+## Decisions (full entries in DECISION_LOG 2026-07-09)
+
+- VP-04 structural proxy accepted (plan contract was unsatisfiable against gold corpus).
+- Accent darkened; `reference-slides.md` kept as untouched historical record.
+- Worked-example fixes taken as user-approved scope extension on the phase branch (ship-coherent
+  beats HR3-pristine when the skill's own exemplars fail its mandatory gate).
+- HR1 residual formally deferred to VSE-2.
+
+## Learnings Filed
+
+- **Pattern**: When shipping a validator, sweep ALL exemplar content through it (2 of 3 worked
+  examples failed; one leak invisible to two audits until the validator ran against them).
+- **Anti-pattern**: Plan contract assertions never probed against the target corpus (VP-04).
+
+## Possible Uncommitted Tasks (mined — NOT auto-added, confirm next session)
+
+1. "next Copilot iteration of the deck carries the new accent" → user deck task, tracked as
+   BACKLOG residual only.
+2. Consider `/graduate` for the two learnings (validator-sweep + contract-probe) — both look
+   cross-project, candidates for `GLOBAL_INBOX.md`.
 
 ## State File Health
 
 | File | Status |
 |:---|:---|
-| `Artifacts/.agent/current_task.md` | ✅ Updated (checkpoint state, stale HEAD pointer `ca03928` → `70c2cbe` corrected) |
-| `Artifacts/TODO.md` | ✅ Stable — MTP work correctly absent (below TODO granularity); VSE still queued at top |
-| `Artifacts/IMPLEMENTATION_PLAN.md` | ✅ Untouched |
-| `Artifacts/ARCH.md` | ✅ Stable |
-| `Artifacts/DECISION_LOG.md` | ✅ Stable — no append (MTP, no pivot); under rotation threshold |
+| `Artifacts/.agent/current_task.md` | ✅ rewritten for phase close |
+| `Artifacts/TODO.md` | ✅ VSE active (VSE-1 `[x]`), DLR archived to ledger, header refreshed |
+| `Artifacts/IMPLEMENTATION_PLAN.md` | ✅ untouched (initiative plans live per-phase) |
+| `Artifacts/ARCH.md` | ✅ stable |
+| `Artifacts/DECISION_LOG.md` | ✅ VSE-1 entry appended; under rotation threshold (no rotation) |
+| Plans/Reports pruning | ✅ VSE-1 + DLR + LH sets → `History/Plans/` + `History/Reports/`; only VSE-2 remains active |
 
 ## Gate Telemetry
 
 | Hook | Deny | Nag | Last Fired |
 |:---|---:|---:|:---|
-| evidence-gate | 0 | 85 | 2026-07-08T14:17:15.883Z |
-| guard-commands | 68 | 0 | 2026-07-08T14:17:31.959Z |
-| guard-paths | 85 | 0 | 2026-07-08T14:17:31.200Z |
+| evidence-gate | 0 | 115 | 2026-07-09T12:57:41.256Z |
+| guard-commands | 92 | 0 | 2026-07-09T12:57:50.623Z |
+| guard-paths | 115 | 0 | 2026-07-09T12:57:50.290Z |
 | nudge-handoff | 0 | 1 | 2026-07-08T20:03:05.734Z |
 | unknown | 0 | 0 | 2026-07-08T11:46:59.712Z |
 
-**153 deny, 86 nag across 5 hook(s).**
+**207 deny, 116 nag across 5 hook(s).**
 
 ## Next Session
 
-**Agent**: strategist → `/blueprint VSE-1` (uv work fully closed: committed + deployed).
-**Critical context**: the uv section deliberately cross-references the Windows Shell & Paths HARD-GATE — `uv run` supersedes bare `python -m` as the preferred invocation *in uv-managed projects only*; the global rule text in `coding-style.md` was intentionally left untouched.
+**Agent**: strategist → `/blueprint VSE-2` — but FIRST the kickoff gate: `/grill` the VSE-2 plan
++ Interface-First `[user-approval]` on the design-data contract. Critical context: VSE-2's task
+list must include archetype-conditional VP-01 (parts 2/8/9 are gold-vocabulary-keyed; Part 8 is
+brief-conditional per `design-tokens.md`) — this is a formally deferred Hard-Rule residual, not
+optional polish. Plugin re-install will be needed again at VSE-2 close (scripts ship via install).

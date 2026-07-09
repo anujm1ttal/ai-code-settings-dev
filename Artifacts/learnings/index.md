@@ -15,6 +15,8 @@ This registry contains project-wide, persistent knowledge captured across sessio
 
 ## Recent Entries
 
+- [2026-07-09] Pattern: When Shipping a Validator, Sweep ALL Exemplar Content Through It
+- [2026-07-09] Anti-Pattern: Plan Contract Assertions Never Probed Against the Target Corpus
 - [2026-07-08] Execution Rule: Deploy.sh Rollback (Scoped-Item Replace)
 - [2026-07-08] Pattern: Guard Hook — Recursive Deletes Require Manual Execution
 - [2026-07-08] Anti-Pattern: Auditor Mutation-Testing Catches Hollow Tests

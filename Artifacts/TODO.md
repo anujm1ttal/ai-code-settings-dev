@@ -1,39 +1,22 @@
 # TODO — Active & Queued Work
 
-**Updated:** 2026-07-08 · **Branch:** `main` (clean, pushed)
+**Updated:** 2026-07-09 · **Branch:** `main` (clean, pushed)
 
-Completed initiatives (LH, OSH, CMD, OSA) archived → `Artifacts/History/COMPLETED_INITIATIVES.md`.
+Completed initiatives (LH, OSH, CMD, OSA, DLR) archived → `Artifacts/History/COMPLETED_INITIATIVES.md`.
 Deferred findings live in `Artifacts/BACKLOG.md`.
 
 ---
 
-# Active Initiative: DLR — DECISION_LOG Rotation
+# Active Initiative: VSE — Visual Storytelling Enhancement
 
-**Status:** COMPLETE · **Step 0:** approved 2026-07-08 · **Plan:** `Artifacts/Plans/DLR-Plan.md` + `DLR-TODO.md`
-**Goal:** Bound the ever-growing DECISION_LOG via size-threshold rotation to a rolling `History/` archive — never prune (it's an audit trail). Adds the lifecycle rule the OS was missing.
-
-- [x] [coder] T1 — Rotation policy in `orchestration.md` (>400 lines/40 entries → oldest resolved to `History/DECISION_LOG-archive.md`; never delete) — Success: M1
-- [x] [coder] T2 — Read-discipline (newest-first head) in `sync.md` + `handoff.md` — Success: M2
-- [x] [coder] T3 — Archive scaffold + forward-pointer; no move (repo under threshold) — Success: M3
-- [x] [auditor] T4 — Gate M1–M4 + deploy + merge — Success: deployed, closed
-
-### Initiative Hard Rules (Auditor Rejects on Violation)
-1. Rotation NEVER deletes — entries only move to History/; archive is append-only
-2. UNRESOLVED entries never rotate, regardless of age
-3. No behavioral loss — head-read still surfaces unresolved; under-threshold entries not force-moved
-
----
-
-# Queued Initiative: VSE — Visual Storytelling Enhancement
-
-**Status:** UNBLOCKED (OSH + LH both closed 2026-07-08) — ready for `/blueprint VSE-1` · **Step 0:** approved 2026-07-07
-**Plans:** `Artifacts/Plans/VSE-[1-2]-Plan.md` + `VSE-[1-2]-TODO.md` (detailed tasks live there)
+**Status:** VSE-1 COMPLETE (merged `278270e`, plugin v2.1.0 live) · VSE-2 queued · **Step 0:** approved 2026-07-07
+**Plans:** VSE-2 → `Artifacts/Plans/VSE-2-Plan.md` + `VSE-2-TODO.md` · VSE-1 (complete) archived → `Artifacts/History/Plans/` + `History/Reports/VSE-1-Report.md`
 **Origin:** ui-ux-pro-max-skill architecture pattern (data-fied design knowledge + executable output validation), applied to `pptx-slide-design` only. banana-prompt out of scope. No search engine (deferred until library >25 entries).
 **Sequencing:** VSE-1 → VSE-2 (VSE-2 requires `/grill` + Interface-First `[user-approval]` before kickoff)
 
 - [x] [strategist] **VSE Initiative Kickoff (/blueprint VSE-1)** — decompose Phase 1 tasks, create git branch · Success: phase-vse-1-quality-gates branch created, Tasks decomposed to Artifacts/Plans/VSE-1-TODO.md · **2026-07-09 auditor-verified at phase gate: branch created, tasks decomposed, kickoff complete.**
 - [x] **VSE-1 — Executable Quality Gates** (branch `phase-vse-1-quality-gates`, cut from `main` post-OSH) — Success: validate_prompt.py 2/2 gold pass + 3/3 seeded-bad fail; contrast_check.py pass/fail pair correct; pytest exit 0; zero new deps · **2026-07-09 auditor CLOSE: all metrics met fresh (119/119 pytest), install+live-fire verified, post-audit fixes (palette darken, template markers, VP-04 comment) re-confirmed; HR1 residual deferred to VSE-2. Merge authorized.**
-- [ ] **VSE-2 — Design-Data Library + Draft Generator** (branch `phase-vse-2-design-data`) — Success: ≥8 vetted palettes + ≥6 vetted font pairs (100% attributed, contrast-gated); intake draft LAYOUT_SPEC passes VSE-1 validators first try; archetypes defined in exactly 1 file
+- [ ] **VSE-2 — Design-Data Library + Draft Generator** (branch `phase-vse-2-design-data`) — Success: ≥8 vetted palettes + ≥6 vetted font pairs (100% attributed, contrast-gated); intake draft LAYOUT_SPEC passes VSE-1 validators first try; archetypes defined in exactly 1 file · **MUST carry named task: archetype-conditional VP-01 logic for parts 2/8/9 (HR1 residual, user-approved deferral — DECISION_LOG 2026-07-09). Kickoff gate: `/grill` + Interface-First `[user-approval]` first.**
 
 ### Initiative Hard Rules (Auditor Rejects on Violation)
 1. Validators check invariants only — no coupling to 13-part section wording/order (Copilot render test still pending)
@@ -90,3 +73,4 @@ Full ledger → `Artifacts/History/COMPLETED_INITIATIVES.md`. Summary:
 | **OSH — OS Hardening** | COMPLETE (6 phases) | `38db2c9` |
 | **CMD — CLAUDE.md Discipline** | COMPLETE (3 phases) | `a393e2b` |
 | **OSA — OS Self-Audit** | COMPLETE (2 workstreams) | `6bdd944` |
+| **DLR — DECISION_LOG Rotation** | COMPLETE (1 phase) | `ca03928` |

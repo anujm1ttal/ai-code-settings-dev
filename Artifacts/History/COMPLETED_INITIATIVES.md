@@ -9,6 +9,20 @@ Genuinely-deferred follow-ups from these initiatives were moved to `Artifacts/BA
 
 ---
 
+# DLR — DECISION_LOG Rotation (2026-07-08)
+
+**Status:** COMPLETE — single phase, auditor-closed, deployed, merged (`ca03928`). **Step 0:** approved 2026-07-08.
+**Goal:** Bound the ever-growing DECISION_LOG via size-threshold rotation (>400 lines / >40 entries) to a rolling `History/DECISION_LOG-archive.md` — never prune (audit trail). Added the lifecycle rule the OS was missing.
+
+- [x] T1 — Rotation policy in `orchestration.md` (oldest RESOLVED only; never delete; UNRESOLVED never rotate)
+- [x] T2 — Read-discipline (newest-first head) in `sync.md` + `handoff.md`
+- [x] T3 — Archive scaffold + forward-pointer (repo under threshold, no move)
+- [x] T4 — Gate M1–M4 + deploy + merge
+
+**Hard Rules — all 3 held:** rotation never deletes; unresolved never rotates; no behavioral loss on head-reads.
+
+---
+
 # LH — Loop Hardening (2026-07-08)
 
 **Status:** COMPLETE — all 3 phases shipped, auditor-verified, deployed, merged to `main`, pushed.

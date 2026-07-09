@@ -6,6 +6,26 @@ Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
 
 ---
 
+## 2026-07-09 — VSE-1 post-audit rulings: VP-04 proxy, palette darken, HR1 residual → VSE-2 [VSE] — RESOLVED
+
+**Decisions (all user-approved at the T6 gate):**
+1. **VP-04 structural proxy accepted.** Plan D1's "contrast statement present" was unsatisfiable —
+   neither user-authored gold prompt contains one. Validator accepts explicit ratio/keyword OR
+   structural proxy (background colour + distinct text-ink colour) + `\d+pt` font floors. Recorded
+   as plan amendment; ruled acceptable under "fix the validator, not the reference".
+2. **Accent darkened `#C84A1E` → `#B8431B`** (4.18:1 → 4.83:1 on cream, now passes 4.5:1 body).
+   Applied to `design-tokens.md`, `slide-prompt-templates.md`, `SKILL.md`. `reference-slides.md`
+   deliberately untouched (historical record of the rendered deck). Residual: rendered slides
+   still show the old accent until the next Copilot iteration.
+3. **Scope extension over MTP-style deferral.** Worked-example VP-01/VP-02 failures (incl. a real
+   `palette.neutrals` leak in Example 2) patched on the phase branch rather than deferred — a
+   skill whose own exemplars fail its mandatory gate ships broken-by-default.
+4. **HR1 residual formally deferred to VSE-2** (auditor: deferral, not waiver). `PART_CHECKERS`
+   2/8/9 are gold-vocabulary-keyed; Part 8 is brief-conditional per the contract. **VSE-2 kickoff
+   MUST carry archetype-conditional VP-01 logic as a named task.**
+
+**Evidence:** `Artifacts/Reports/VSE-1-Report.md` (+ Phase Close Addendum). Merged `278270e`.
+
 ## 2026-07-08 — Re-scope LH-3 (terminal): drop prose-split, keep deploy-guard + telemetry + doc-sync [LH]
 
 **Decision:** At LH-3 kickoff, recon of the two load-bearing assumptions failed both. Re-scoped the terminal phase to its real value and dropped the "prose payoff" that named it. User approved (Lean + valuable).

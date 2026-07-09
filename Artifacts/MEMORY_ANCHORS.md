@@ -221,5 +221,30 @@ Plugin's skills/<skill>/ surfaced to the agent
 
 ---
 
-**Last Updated**: 2026-07-08 (OSH-6 complete + deployed)
-**Next Review**: Before next major initiative (VSE), or if deploy.sh changes
+## 🎬 VSE-1 Constraints (NEW 2026-07-09)
+
+### Step 5 Enforcement Is Load-Bearing (pptx-slide-design v2.1.0)
+
+- Every emitted Copilot prompt MUST exit 0 from `validate_prompt.py` before presentation
+  (`--no-layout-spec` when fallback profile used); `contrast_check.py` gates any loaded LAYOUT_SPEC
+- Validation is synchronous — never present a prompt that failed exit 1
+- **Impact**: exemplar/teaching content shipped with the skill must pass the same gate
+  (2 of 3 worked examples failed it at first sweep — see learnings)
+
+### Deck Profile Accent (changed 2026-07-09)
+
+- Accent is **`#B8431B`** (4.83:1 on cream `#F5F1E8` — passes 4.5:1 body). Old `#C84A1E` (4.18:1)
+  survives ONLY in `reference-slides.md` as the historical record of the rendered deck — do not
+  "fix" it there. Rendered slides carry the new accent from the next Copilot iteration onward.
+
+### Plugin Scripts Ship via Install, NOT deploy.sh
+
+- `optional_plugins/**/scripts/*` reach sessions only through `/plugin install` (user CLI action);
+  cache snapshot is keyed to gitCommitSha at install time
+- Phase close for plugin-script work = re-install + live verification from the CACHE path
+- `visual-storytelling@ai-code-settings` v2.1.0 installed 2026-07-09 (snapshot `5b13bd2`)
+
+---
+
+**Last Updated**: 2026-07-09 (VSE-1 complete: validators live, plugin installed)
+**Next Review**: At VSE-2 kickoff (`/grill` + Interface-First gate), or if deploy.sh changes
