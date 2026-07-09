@@ -6,6 +6,44 @@ Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
 
 ---
 
+## 2026-07-09 — VSE-2 grilled → [REFACTORED]: cut library + generator + external seeding [VSE]
+
+**Decision:** `/grill` on VSE-2 (Skeptical Architect) found ~70% speculative infrastructure. User
+answers refactored it from a 10-task data phase to a lean refactor.
+
+**What was cut (and why):**
+- **Full palette/font library (≥8/≥6)** → replaced with a **tiny 2-3 profile seed**. A library
+  for varied deck look-and-feel serves multiple decks; only the one GRI deck exists near-term.
+  YAGNI until deck #2.
+- **Draft-generator (D3, 4-question intake → LAYOUT_SPEC)** → CUT. Authoring a profile is a
+  once-per-deck task creative-director already does; automating it is gold-plating.
+- **External seeding from `ui-ux-pro-max-skill`** → CUT. A 2-3 profile seed is trivial to
+  hand-author; scraping an external (unverified, assumed-MIT) repo bought curation, not data.
+  Removing it eliminates the Blast-Radius dependency risk entirely.
+- **Metric 3 was defective** (strategist pre-flag confirmed): "draft LAYOUT_SPEC passes both
+  VSE-1 validators" — `validate_prompt.py` validates emitted 13-part *prompts*, not deck
+  *profiles*; a LAYOUT_SPEC has no anatomy sections and would fail VP-01 nonsensically. Only
+  `contrast_check.py` applies to a profile. Metric rewritten.
+
+**What survives (the load-bearing part):** archetype extraction — lift the 7 layout archetypes
+from `design-tokens.md` §6 into `data/archetypes.yaml`, repoint §6 (single-source de-dup, the
+real deepening refactor) — plus a hand-authored, contrast-gated 2-3 profile seed.
+
+**Next gate:** Interface-First `[user-approval]` on the (now smaller) YAML schemas before any
+data authoring. No branch cut until approved.
+
+---
+
+## 2026-07-09 — VP-01 parts 2/8/9 archetype-conditional (HR1 residual closed) [VSE] — RESOLVED
+
+**Decision:** Standalone MTP (`fix-vp01-archetype-conditional`, merged `44b1c41`), chosen by user
+over folding into VSE-2 — independent validator logic shouldn't gate behind a data phase. Part 8
+(flow devices) now required only for sequential layouts; parts 2/9 broadened off gold vocabulary.
++4 mutation-verified tests, suite 123/123. Closes the VSE-1 HR1 residual. Re-install needed for
+installed sessions to pick it up (repo tests already exercise it).
+
+---
+
 ## 2026-07-09 — VSE-1 post-audit rulings: VP-04 proxy, palette darken, HR1 residual → VSE-2 [VSE] — RESOLVED
 
 **Decisions (all user-approved at the T6 gate):**

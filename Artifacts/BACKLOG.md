@@ -86,6 +86,31 @@ and treat it as a prompt to reconsider whether VP-01 parts 2/8/9 need archetype-
 
 ---
 
+## `vse2_yaml-dep_1` — PyYAML undeclared; YAML schema tests skip silently without it
+
+**Filed:** 2026-07-09 (VSE-2 audit ruling) · **Severity:** LOW · **Needs:** small dep-declaration pass
+
+The VSE-2 schema-sanity tests guard on `pytest.mark.skipif(yaml is None)`. PyYAML 6.0.3 is present
+in the current env (tests ran, 0 skipped — audit-verified) but the repo declares NO dependencies at
+all (no `pyproject.toml`/`requirements.txt`) — a pre-existing gap, not introduced by VSE-2. In a
+PyYAML-less env the schema gate vanishes silently. The safety-critical gate (`contrast_check.py`,
+stdlib-only) is unaffected. **Fix:** declare PyYAML as a dev dependency when the repo gains a
+`pyproject.toml` (fits the uv workflow in `python-patterns` §uv Workflow: `uv add --dev pyyaml`).
+
+---
+
+## `vse2_layout-menu-dup_1` — templates' "Layout Menu" table partially repeats archetype data
+
+**Filed:** 2026-07-09 (VSE-2 audit, LOW, non-blocking) · **Severity:** LOW · **Needs:** doc pass
+
+`references/slide-prompt-templates.md` §"Layout Menu & How Part 6 Varies" (pre-existing, VSE-1-era)
+repeats archetype names + short zone text now single-sourced in `data/archetypes.yaml`. Different
+schema (no intent/when_to_use) and outside VSE-2's approved file list, so not an HR4 violation for
+that phase — but it's residual duplication. Fix: repoint that table to `data/archetypes.yaml` in a
+future doc pass (batch with `osh_docs-count_1`).
+
+---
+
 ## `lh3_telemetry-deploy_1` — Gate telemetry reader is repo-local; hooks log everywhere
 
 **Filed:** 2026-07-08 (LH-3 ship) · **Severity:** LOW · **Needs:** product decision

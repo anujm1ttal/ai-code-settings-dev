@@ -1,95 +1,95 @@
-# VSE-2 Plan — Design-Data Library + Draft LAYOUT_SPEC Generator
+# VSE-2 Plan (REFACTORED) — Archetype Extraction + Tiny Profile Seed
 
-**Initiative:** VSE — Visual Storytelling Enhancement (Step 0 approved 2026-07-07)
-**Status:** PLANNED — blocked on VSE-1 completion; **mandatory `/grill` before kickoff**
-**Branch (when executed):** `phase-vse-2-design-data`
-**Mode:** Standard orchestration
+**Initiative:** VSE — Visual Storytelling Enhancement
+**Status:** REFACTORED 2026-07-09 via `/grill` → [REFACTORED] (see DECISION_LOG). Awaiting
+Interface-First `[user-approval]` on YAML schemas before data authoring.
+**Branch (when approved):** `phase-vse-2-archetype-data`
+**Mode:** Standard orchestration · lean single-session scope
+
+## What changed (grill outcome)
+
+Cut from the original 10-task plan: the ≥8-palette/≥6-font library, the 4-question draft
+generator (D3), `profile-mapping.md`, the `creative-director.md` edit, and all external
+`ui-ux-pro-max` seeding. See DECISION_LOG 2026-07-09. Metric 3 (defective) rewritten.
 
 ## Objective
 
-Replace prose-embedded design knowledge with a tagged, queryable YAML library
-(palettes / font pairs / layout archetypes), seeded from ui-ux-pro-max-skill (MIT),
-and give the creative-director a deterministic intake → **draft** `LAYOUT_SPEC.md` flow.
-Human curates; the generator never publishes an authoritative spec.
-
-## Pre-kickoff gates
-
-1. **`/grill`** — phase spec exceeds 50 lines; stress-test mandatory before execution.
-2. **`[user-approval]` Interface-First** — YAML schemas approved before any data entry
-   is authored. No data work until the contract is signed off.
+1. **Single-source the 7 layout archetypes** — lift them from `design-tokens.md` §6 prose table
+   into structured `data/archetypes.yaml`; repoint §6 to the data file (de-dup — the deepening
+   refactor).
+2. **Seed 2-3 vetted deck profiles** (hand-authored, contrast-gated) so future decks have a
+   starting choice. The existing GRI profile is entry #1; 1-2 additional hand-picked profiles.
+   No external scraping.
 
 ## Deliverables
 
-### D1 — Data schemas + files (Interface-First, `[user-approval]`)
+### D1 — `data/archetypes.yaml` (CREATE) + §6 repoint (Interface-First, `[user-approval]`)
 Location: `optional_plugins/visual-storytelling/skills/pptx-slide-design/data/`
-- `palettes.yaml` — per entry: id, name, role→hex map (background/ink/accent/muted/categorical),
-  tags (tone[], audience[], medium[]), `status: vetted|unvetted`, `source` (attribution), license
-- `font-pairs.yaml` — id, heading family, body family, mono family, fallbacks, tags, status, source
-- `archetypes.yaml` — the existing 7 layout archetypes lifted from `design-tokens.md` §6
-  into structured form (id, name, intent, zones, when-to-use, tags)
-- Schema documented at top of each file (comment block); no JSON Schema file unless
-  `/grill` demands one (Minimalism).
+- 7 entries, each: `id`, `name`, `intent`, `zones`, `when_to_use`, `tags[]` — lifted 1:1 from
+  `design-tokens.md` §6 (no new archetypes).
+- `design-tokens.md` §6 table becomes a pointer to `data/archetypes.yaml` (single source).
+- Schema documented in a header comment block; no JSON Schema file (Minimalism).
 
-### D2 — Seeding pass (ui-ux-pro-max, MIT)
-- Cherry-pick candidate palettes + font pairings from
-  `github.com/nextlevelbuilder/ui-ux-pro-max-skill` data files.
-- Filter for projection/slide suitability (no low-contrast web-pastel sets; no fonts
-  absent from standard Windows/Office installs unless flagged).
-- Every seeded palette runs through VSE-1 `contrast_check.py`; only passing entries may
-  be marked `vetted`, and only after human spot-check. All else stays `unvetted`.
-- Attribution: `source: ui-ux-pro-max-skill (MIT)` per seeded entry; repo-level credit
-  line in the skill's references.
+### D2 — `data/profiles.yaml` (CREATE, tiny seed) (Interface-First, `[user-approval]`)
+- 2-3 deck profiles. Each: `id`, `name`, `palette` (role→hex: background/ink/accent/muted/
+  categorical), `font_pair` (heading/body/mono families), `tags[]` (tone/audience/medium),
+  `status: vetted|unvetted`, `source` (hand-authored, or attribution if borrowed).
+- Entry #1 = the GRI · KICK-OFF profile, extracted from the existing design-tokens/LAYOUT_SPEC
+  (cream `#F5F1E8`, accent `#B8431B`, charcoal `#2A2A2A`, Georgia/serif + Cascadia Code).
+- Additional 1-2 profiles hand-authored; each palette runs through VSE-1 `contrast_check.py`;
+  only passing profiles may be `vetted` (after human spot-check).
 
-### D3 — Mapping table + intake procedure
-- `references/profile-mapping.md` — (project type + tone + audience) → candidate palette
-  ids / font-pair ids / archetype emphasis. Deterministic lookup, no scoring engine.
-- Creative-director flow addition: 4-question intake (industry/domain, audience,
-  tone, deck length) → emit **draft** `Artifacts/LAYOUT_SPEC.md` assembled from vetted
-  entries, clearly bannered `[DRAFT — creative-director/user must review]`.
-- Touchpoint: `agents/creative-director.md` gets a pointer to the flow (≤5 lines);
-  the procedure itself lives in the skill reference (keeps agent file thin).
+### D3 — Tests (EDIT `tests/test_pptx_slide_design_validators.py`)
+- Schema sanity: both YAML files parse; required keys present per entry; archetypes count == 7.
+- Contrast gate: every `vetted` profile's text/background pairs pass `contrast_check.py` (exit 0).
 
-### D4 — SKILL.md + design-tokens.md updates
-- `design-tokens.md` §6 archetype table becomes a pointer to `data/archetypes.yaml`
-  (single source; no duplication).
-- Deep-Load Protocol updated: data files loaded on demand (library is small enough to
-  load whole; **no search engine** — explicitly deferred until >25–30 entries).
-- Version bumps: SKILL.md metadata + plugin.json → 2.2.0.
+### D4 — SKILL.md deep-load pointer + version (EDIT)
+- Deep-Load Protocol: `data/archetypes.yaml` + `data/profiles.yaml` loaded on demand (small,
+  whole-file load; no search engine).
+- `design-tokens.md` §6 pointer (see D1).
+- Version bump: SKILL.md metadata + plugin.json → 2.2.0.
 
 ## Approved file list (scope lockdown)
 
 | File | Action |
 |:---|:---|
-| `…/pptx-slide-design/data/palettes.yaml` | CREATE |
-| `…/pptx-slide-design/data/font-pairs.yaml` | CREATE |
 | `…/pptx-slide-design/data/archetypes.yaml` | CREATE |
-| `…/pptx-slide-design/references/profile-mapping.md` | CREATE |
+| `…/pptx-slide-design/data/profiles.yaml` | CREATE |
 | `…/pptx-slide-design/references/design-tokens.md` | EDIT (§6 → pointer) |
 | `…/pptx-slide-design/SKILL.md` | EDIT (Deep-Load, version) |
 | `optional_plugins/visual-storytelling/.claude-plugin/plugin.json` | EDIT (version) |
-| `agents/creative-director.md` | EDIT (≤5-line pointer) |
-| `tests/test_pptx_slide_design_validators.py` | EDIT (data-file schema sanity tests) |
+| `tests/test_pptx_slide_design_validators.py` | EDIT (YAML schema + contrast-gate tests) |
 | `Artifacts/Plans/VSE-2-TODO.md` | status tracking |
 
-## Success metrics (numeric)
+## Success metrics (numeric, corrected)
 
-1. ≥8 palettes with `status: vetted` (each passed contrast_check + human spot-check); ≥6 vetted font pairs
-2. 100% of seeded entries carry `source` attribution; 0 entries vetted without a contrast_check pass
-3. Draft-generator dry run: 4-answer intake produces a LAYOUT_SPEC draft that passes both VSE-1 validators on first try
-4. 0 duplicated archetype definitions (grep: archetype table exists in exactly one file)
-5. `pytest tests/` exit 0
+1. `data/archetypes.yaml` has exactly 7 archetypes; archetype definitions exist in exactly 1 file
+   (grep: §6 no longer contains the table, only a pointer).
+2. `data/profiles.yaml` has 2-3 profiles; 100% carry `source`; 0 marked `vetted` without a
+   `contrast_check.py` pass.
+3. Every `vetted` profile's palette passes `contrast_check.py` (exit 0) — fresh evidence.
+4. `pytest tests/` exit 0.
+
+*(Removed the original metric 3: "draft LAYOUT_SPEC passes both VSE-1 validators" — the generator
+is cut, and `validate_prompt.py` does not apply to deck profiles.)*
 
 ## Hard Rules (auditor rejects on violation)
 
-1. Generator output is always bannered DRAFT — never presented as final spec
-2. No entry marked `vetted` without contrast_check evidence
-3. No search/lookup engine in this phase (Decision Ladder rung 1 — revisit at >25 entries)
-4. `LAYOUT_SPEC.md` remains the single deck-profile source of truth; data library feeds
-   drafts only (design-tokens.md precedence order unchanged)
+1. No profile marked `vetted` without `contrast_check.py` evidence.
+2. `LAYOUT_SPEC.md` remains the single deck-profile source of truth; `profiles.yaml` is a
+   starting-choice seed, never authoritative for a live deck.
+3. No generator, no search/lookup engine, no external scraping this phase (Decision Ladder rung 1
+   — revisit a real library only when deck #2 exists).
+4. Archetype definitions exist in exactly 1 file after the §6 repoint.
 
 ## Risks
 
-- **R3** web-origin palettes unsuited to projection → mitigated by contrast gate + `unvetted` default
-- **Upstream churn** — ui-ux-pro-max is v0.9.x; seeding is a one-time copy, no live dependency
-- **R1 carry-over** — if the Copilot render test (parked pptx Phase 3) forces anatomy changes,
-  data library is unaffected (palette/font data is anatomy-independent)
+- **Anatomy churn (R1 carry-over):** if the parked Copilot render test forces anatomy changes,
+  archetype/profile data is unaffected (palette/font/archetype data is anatomy-independent).
+- **Profile authority confusion:** mitigated by Hard Rule 2 — `profiles.yaml` feeds starting
+  choices only; the live deck's `LAYOUT_SPEC.md` still wins.
+
+## Dependencies
+
+None external (seeding dependency removed by grill). Depends only on VSE-1's shipped
+`contrast_check.py` for the vetting gate.
