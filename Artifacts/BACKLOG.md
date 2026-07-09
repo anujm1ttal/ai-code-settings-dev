@@ -16,6 +16,67 @@ self-contained fail-open claim is now true in isolation, not just via call-site 
 
 ---
 
+## ~~`vse1_palette_1` — Terracotta accent `#C84A1E` fails 4.5:1 body contrast on cream~~ — RESOLVED
+
+**Filed:** 2026-07-09 (VSE-1 T2 verification) · **Resolved:** 2026-07-09 (user ruled: darken) · **Severity:** ~~LOW~~ → none
+
+**Resolution:** Accent darkened `#C84A1E` → `#B8431B` (4.83:1 on cream, fresh `contrast_check.py`
+PASS exit 0) in `design-tokens.md`, `slide-prompt-templates.md`, `SKILL.md`. `reference-slides.md`
+deliberately untouched — it is the historical record of the rendered deck. **Residual:** existing
+rendered slides still show `#C84A1E`; the next Copilot iteration of the deck carries the new accent.
+
+`contrast_check.py` run against the real deck profile in `design-tokens.md` computes `#C84A1E` on
+`#F5F1E8` at **4.18:1** — below the 4.5:1 body-text threshold (passes 3:1 large-text). Affected use:
+the top-right badge label. If the badge label qualifies as large/label text, document that in
+design-tokens.md so the checker's role heuristic classifies it accordingly; otherwise darken the
+accent (~`#B8431B` region) and re-run the checker. Do NOT silently change the palette — it is
+user-authored gold-slide fidelity.
+
+---
+
+## ~~`vse1_templates_1` — Worked examples in slide-prompt-templates.md fail VP-01~~ — RESOLVED (template patch); residual → VSE-2
+
+**Filed:** 2026-07-09 (VSE-1 T5 live-fire) · **Severity:** ~~MEDIUM → HIGH~~ → residual MEDIUM · **Resolved:** 2026-07-09 (user-approved scope extension, same branch)
+
+**Resolution (template half):** All 3 worked examples now exit 0 (fresh run). Example 3 gained its
+3 missing markers (content-truth, flow device, `BOTTOM LINE`); Example 2 — found failing during the
+fix, beyond the audit's scope — had a missing takeaway header AND a real `palette.neutrals` VP-02
+token leak in teaching material, both fixed. **Residual (validator half, → VSE-2):** the HR1
+partial-violation stands — `PART_CHECKERS` 2/8/9 remain gold-vocabulary-keyed and Part 8 is
+brief-conditional per `design-tokens.md`; archetype-conditional VP-01 logic is a VSE-2 candidate
+task per the auditor's recommendation (`Artifacts/Reports/VSE-1-Report.md` §Hard Rule 1).
+
+A prompt emitted faithfully from **Example 3 (Grid of Cards)** fails `validate_prompt.py` with 3
+VP-01 violations: missing part 2 (content-truth directive), part 8 (flow device), part 9 (takeaway
+header). The validator's markers are tuned to the two gold prompts in `reference-slides.md` (correct
+per plan — golds are the fidelity bar), but SKILL.md now mandates Step 5 on EVERY emission, so
+prompts modeled on the worked examples fail out of the box. Live-fire evidence: fresh emission
+exit 1 → 3 additions (one line each) → exit 0. Fix: patch the 3 worked examples to carry the
+missing invariant markers (content-truth line, flow-device line, `BOTTOM LINE` header). Templates
+were already flagged "user to refine via Copilot iteration" — fold this in there.
+
+**Auditor addendum (2026-07-09, VSE-1 gate, independently re-derived — not taken on claim):**
+Re-extracted Example 3's own worked output verbatim from `slide-prompt-templates.md` (the
+coder's original claim is accurate) and confirmed the same 3 violations fresh:
+`VP-01: missing section 2 (Content-truth directive)`, `... section 8 (Flow / iteration devices)`,
+`... section 9 (Takeaway line)`, exit 1. Root cause is deeper than "3 missing lines": this is a
+**Hard Rule 1 (invariant-only) partial violation**, not just a template gap —
+`design-tokens.md:98` itself documents Part 8 ("Flow devices") as sourced from **Brief**, i.e.
+conditional on the slide's narrative, not a universal invariant; a static Grid-of-Cards slide has
+no legitimate reason to carry an iteration loop. `PART_CHECKERS[2]` and `PART_CHECKERS[9]` are
+similarly keyed to the two golds' specific vocabulary (`"show the actual"`, `"metaphor"`,
+`"bottom line"/"closing line"/"takeaway"`) rather than a general "content-truth directive exists"
+or "takeaway line exists" structural signal. Re-classified MEDIUM → HIGH because: (1) Step 5 is
+now mandatory and synchronous per SKILL.md — this is a live, reproducible production blocker for
+at least 1 of 7 layout archetypes today, not a hypothetical; (2) "fold into templates refinement"
+risks indefinite deferral of a Hard-Rule-relevant gap. Recommend: schedule as an MTP-eligible
+micro-task (single file, <30 lines) promptly — either a VSE-1 fast-follow or the first VSE-2 task —
+and treat it as a prompt to reconsider whether VP-01 parts 2/8/9 need archetype-conditional logic
+(not just literal missing lines) rather than a pure template patch. Full detail:
+`Artifacts/Reports/VSE-1-Report.md` §Hard Rule 1.
+
+---
+
 ## `lh3_telemetry-deploy_1` — Gate telemetry reader is repo-local; hooks log everywhere
 
 **Filed:** 2026-07-08 (LH-3 ship) · **Severity:** LOW · **Needs:** product decision

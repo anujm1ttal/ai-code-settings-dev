@@ -33,6 +33,11 @@ Contract (Interface-First):
   - `VP-02` zero abstract token leakage — regex `palette\.\w+|type\.scale\.\w+`
   - `VP-03` all hex values well-formed (`#[0-9A-Fa-f]{6}`) and ≥1 palette hex present
   - `VP-04` contrast statement present (≥4.5:1 body / ≥3:1 large) and font-size floors stated
+    - *Amendment (2026-07-09, T6 audit ruling A): gold prompts contain no genuine contrast
+      statement, making the literal check unsatisfiable. VP-04 accepts an explicit
+      ratio/keyword statement OR the structural proxy both golds carry (explicit background
+      colour + distinct text-ink colour), plus `\d+pt` font-size floors. Ruled acceptable
+      under "fix the validator, not the reference".*
   - `VP-05` fallback banner `[fallback: visual-composition defaults]` present iff `--no-layout-spec`
   - `VP-06` single copy-paste block (no multi-step "first…, then…" interaction markers)
 - Python 3.12+, stdlib only. No new dependencies.
@@ -92,3 +97,18 @@ mechanism. Bump `metadata.version` → 2.1.0; bump plugin.json → 2.1.0.
 
 None on the blocked Copilot test. None on OSH files (zero overlap). Can start immediately
 after OSH closes.
+
+## Post-audit amendments (2026-07-09, user-approved)
+
+Scope extension beyond the original approved file list, ruled at the T6 gate + user decision:
+
+| File | Action | Why |
+|:---|:---|:---|
+| `references/slide-prompt-templates.md` | EDIT | `vse1_templates_1` fix: Example 3 markers (parts 2/8/9), Example 2 takeaway header + `palette.neutrals` VP-02 leak; accent hex swap |
+| `references/design-tokens.md` | EDIT | `vse1_palette_1` fix: accent `#C84A1E` → `#B8431B` (4.83:1, contrast_check exit 0) |
+| `SKILL.md` | EDIT | Accent hex consistency in 2 illustrative examples; VP-04 comment references |
+| `scripts/validate_prompt.py` | EDIT | Audit item 4: VP-04 comment overclaim corrected |
+
+`reference-slides.md` untouched (historical record of the rendered deck). Evidence: all 3 worked
+examples validate exit 0; design-tokens contrast exit 0; suite 119/119. Residual to VSE-2:
+archetype-conditional VP-01 logic (HR1).

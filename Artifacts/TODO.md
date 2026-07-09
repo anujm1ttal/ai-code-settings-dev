@@ -31,7 +31,7 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 **Origin:** ui-ux-pro-max-skill architecture pattern (data-fied design knowledge + executable output validation), applied to `pptx-slide-design` only. banana-prompt out of scope. No search engine (deferred until library >25 entries).
 **Sequencing:** VSE-1 → VSE-2 (VSE-2 requires `/grill` + Interface-First `[user-approval]` before kickoff)
 
-- [ ] [strategist] **VSE Initiative Kickoff (/blueprint VSE-1)** — decompose Phase 1 tasks, create git branch · Success: phase-vse-1-quality-gates branch created, Tasks decomposed to Artifacts/Plans/VSE-1-TODO.md
+- [-] [strategist] **VSE Initiative Kickoff (/blueprint VSE-1)** — decompose Phase 1 tasks, create git branch · Success: phase-vse-1-quality-gates branch created, Tasks decomposed to Artifacts/Plans/VSE-1-TODO.md · **2026-07-09: branch created from `8d62838`; tasks pre-decomposed in VSE-1-TODO.md; parked-project scope reconciled (see below). Pending auditor `[x]` at phase gate.**
 - [ ] **VSE-1 — Executable Quality Gates** (branch `phase-vse-1-quality-gates`, cut from `main` post-OSH) — Success: validate_prompt.py 2/2 gold pass + 3/3 seeded-bad fail; contrast_check.py pass/fail pair correct; pytest exit 0; zero new deps
 - [ ] **VSE-2 — Design-Data Library + Draft Generator** (branch `phase-vse-2-design-data`) — Success: ≥8 vetted palettes + ≥6 vetted font pairs (100% attributed, contrast-gated); intake draft LAYOUT_SPEC passes VSE-1 validators first try; archetypes defined in exactly 1 file
 
@@ -45,9 +45,9 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 
 # Parked Project: `pptx-slide-design` Skill + `ms-office` / `visual-storytelling` Plugins
 
-**Status:** PARKED — BLOCKED on user Copilot Premium test. Phase 0 ✅ merged (`5a47961`); Phase 1 ✅ (`74b621c`); Phase 2 in progress; Phase 3 blocked.
-**Owner:** strategist → coder → auditor · **Branch:** `phase-1-pptx-slide-design-contract` (holding; merge pending template refinement + Copilot test)
-**Note:** VSE (above) supersedes the *quality-gate* ambition for this skill; this parked branch is the pre-VSE contract work. Reconcile scope at VSE-1 kickoff.
+**Status:** PARKED — BLOCKED on user Copilot Premium test. Phase 0 ✅ merged (`5a47961`); Phase 1 ✅ (`74b621c`); Phase 2 content landed on `main`; Phase 3 blocked on Copilot test only.
+**Owner:** strategist → coder → auditor · **Branch:** ~~`phase-1-pptx-slide-design-contract`~~ deleted — content reached `main` via plugin conversion (`5227b29`) + OSH-4 (`23565e7`); SKILL.md + plugin.json at v2.0.0.
+**Scope reconciled at VSE-1 kickoff (2026-07-09):** VSE owns all quality-gate work for this skill (validators, enforcement wiring, v2.1.0 bump). This section retains ONLY the Copilot Premium render test (Phase 3) — the sole remaining blocker.
 
 **Done (archived detail):**
 - **Phase 0 — Office/Storytelling Restructure** ✅ merged `5a47961` — scaffolded `ms-office` + `visual-storytelling` plugins, moved skills, registered categories, tests exit 0 (46 passed), no `pptx-core` regressions. *(NB: bespoke manifest system since retired in OSA-2 — plugin.yaml/schema references are historical.)*
@@ -65,7 +65,7 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 - [ ] [auditor] Mark project terminal — verify Phase 2/3 `[x]`, metrics met, authorize merge → `main`, delete branch. **BLOCKED on Copilot test gate.**
 
 ### Merge Gate
-- Phase 0 ✅ merged `5a47961`. Phase 1/2/3 holding on `phase-1-pptx-slide-design-contract` pending template refinement + Copilot test.
+- Phase 0 ✅ merged `5a47961`. Phase 1/2 content on `main` (holding branch deleted — see Status). Phase 3 gate = Copilot Premium test.
 
 ### Hard Rules (Auditor Rejects on Violation)
 1. `pptx-slide-design`/`banana-prompt` never generate office files or invoke renderers (`ms-office` skills exempt)
@@ -73,7 +73,7 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 3. **CRITICAL (v2):** Output prompts MUST use concrete hex + named fonts, NEVER abstract token names. Load-bearing for Copilot rendering.
 
 ### Notes
-- No implementation on `main` — all work on `phase-1-pptx-slide-design-contract`.
+- ~~No implementation on `main`~~ superseded: skill content is on `main` (v2.0.0); new quality-gate work happens on `phase-vse-1-quality-gates` (VSE).
 - `banana-prompt` is the structural twin/template for the plugin structure.
 - Fidelity bar: two user-authored gold slides in `references/reference-slides.md`.
 - Deferred repo hygiene: `scripts/office/` triplication (dedup opportunity); `plugin.yaml` min_model_version schema nit (pre-existing, low priority).
