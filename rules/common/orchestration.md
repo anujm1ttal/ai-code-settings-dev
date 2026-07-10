@@ -131,6 +131,7 @@ To ensure the stability of the `main` branch, all work must occur on isolated ph
 3. **Trigger**: The `strategist` prompts for branch creation immediately after Step 0 approval in `/blueprint`.
 4. **Merge Requirement**: A phase branch can only be merged to `main` after the `auditor` marks the final task of the phase as `[x]` and confirms all success metrics are met.
 5. **Cleanup**: Delete the phase branch immediately after a successful merge.
+6. **Commit-as-Handoff**: Task-completion commits (a commit that finishes a TODO task) carry the key decisions made and any blockers/notes for the next iteration in the commit body. Trivial/intermediate commits are exempt. Rationale: crash recovery between `/handoff`s — the git log becomes a self-maintaining brief that cannot drift.
 
 <HARD-GATE>
 No agent may begin implementation, write code, scaffold projects, or take any implementation action until Step 0 is complete AND the user has approved the plan. This applies to EVERY project regardless of perceived simplicity. "Simple" projects are where unexamined assumptions cause the most wasted work.
@@ -148,6 +149,12 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 
 **Task format**: `[ ] [agent] Task description — Success: metric`
 - `[ ]` Not started | `[-]` In progress | `[x]` Auditor-verified complete
+
+**Extended format (optional)**: `[ ] [agent] Tn: Task description — Success: metric — Blocked by: Tm[, Tk]`
+- `Tn:` (task ID) and `Blocked by:` are both OPTIONAL — a task without them is fully valid. IDs are phase-local (`T1`..`Tn` within a `Phase-N-TODO.md`).
+- Example: `[ ] [coder] T3: Wire schema validation into intake — Success: pytest tests/test_intake.py exit 0 — Blocked by: T1, T2`
+- **Enforcement**: Auditor must not allow a task to be marked `[-]` while any listed blocker is not `[x]`.
+- **Anti-pattern**: A linear chain (T2←T1, T3←T2, …) adds nothing over list order — omit `Blocked by:` there; use it only where the dependency graph diverges from list order.
 
 ## Persistence
 

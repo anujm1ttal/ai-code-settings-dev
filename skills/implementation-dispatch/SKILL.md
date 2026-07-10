@@ -3,7 +3,7 @@ name: implementation-dispatch
 description: Use this skill when executing a roadmap with 3+ independent tasks or when the conversation context length is at 70% or higher. It allows the main agent to delegate specific, bounded tasks to fresh subagents, preserving the primary context for coordination and high-level strategy. Trigger when you identify parallelizable work in the TODO list or when you feel "context poisoning" affecting your performance. Do NOT use for tasks that require deep, real-time coordination across multiple files that haven't been modified yet.
 argument-hint: "[--dispatch <agent_type> | --status]"
 metadata:
-  version: "2.2.0"
+  version: "2.3.0"
   tags: [subagent, delegation, orchestration, parallel, task-execution, context-management]
 ---
 
@@ -37,6 +37,7 @@ Read the relevant template before dispatching. Adapt the placeholders to the spe
 ### 1. Task Selection
 - Select the next `[ ]` task from `Artifacts/TODO.md`.
 - Verify dependencies are met (no predecessors still `[ ]` or `[-]`).
+- **Parallel Independence Test**: Two tasks are parallel-dispatchable only if neither transitively blocks the other via `Blocked by:` AND the Footprint Check below passes (no shared-file conflict). Tasks without a `Blocked by:` field fall back to list-order judgment (the field is optional).
 - Identify file scope boundaries for the subagent.
 - **Footprint Check (mandatory before any parallel wave)**: List each task's file footprint. ANY overlap ⇒ merge those tasks into one agent or serialize them — parallel writes to one file fail as silent overwrites, not merge conflicts. Additionally, every parallel prompt must explicitly ban shared-config edits (`conftest.py`, `pytest.ini`, shared fixtures): instruct "define fixtures locally."
 
