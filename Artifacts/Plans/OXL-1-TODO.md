@@ -6,7 +6,7 @@
 - [x] [coder] T2: implementation-dispatch independence rule cites `Blocked by:` — Success: grep hit ≥1; 3+-task trigger preserved
 - [x] [coder] T3: vertical-slice test + expand–contract exception in project-planner — Success: 3 criteria + exception present
 - [x] [coder] T4: commit-as-handoff rule (task-completion commits) in orchestration.md §Git Phase Branching — Success: positive-form rule, trivial-commit exemption explicit
-- [-] [strategist] T5: AFK/HITL tag spec in orchestration.md task format (AMENDED grill-2 — supersedes BACKLOG deferral) — Success: tag optional; default-HITL rule; strategist-only tagging; `/afk`-enforcement line — Blocked by: T1
+- [x] [strategist] T5: AFK/HITL tag spec in orchestration.md task format (AMENDED grill-2 — supersedes BACKLOG deferral) — Success: tag optional; default-HITL rule; strategist-only tagging; `/afk`-enforcement line — Blocked by: T1
 - [ ] [coder] T7: `commands/afk.md` runner procedure — Success: all 8 Plan §T7 elements (Opus hard-stop, frontier, run-report append, iteration cap 10, empty-frontier pause, TODO-authority preservation) — Blocked by: T2, T4, T5
 - [ ] [scribe] T8: registry rows — Success: `/afk` in CLAUDE-global.md Commands table + cheatsheet.md; registry-audit clean — Blocked by: T7
 - [ ] [coder] T9: live-fire smoke run — Success: 1 `/afk` iteration end-to-end on sandbox task (run-report + commit hash); `model_routing_audit.py --violations-only` clean — Blocked by: T7, T8

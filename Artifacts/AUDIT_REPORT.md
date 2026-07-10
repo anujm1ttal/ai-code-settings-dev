@@ -166,3 +166,94 @@ touched — the corresponding lines in `Artifacts/Plans/OXL-1-TODO.md` are uncha
 
 All 4 metrics PASS with fresh evidence. Both gated Hard Rules (1, 3) PASS. No violations found —
 no `DONE_WITH_CONCERNS` items. `Artifacts/Plans/OXL-1-TODO.md` T1–T4 marked `[x]`.
+
+---
+---
+
+# T5 Gate — AFK/HITL mode tag (orchestration.md)
+
+**Auditor** · Branch `phase-oxl-1-conventions` · HEAD `7f04881`
+**Scope**: Plan §T5, Success Metric 5, Hard Rule 1 (tag OPTIONAL / additions-only), Blocker check (T5 ← T1)
+**Working tree**: `git status --short` — clean at HEAD `7f04881` (verified fresh this pass)
+
+## Verdict: PASS (Success Metric 5, Hard Rule 1, blocker gate)
+
+| Check | Verdict |
+|:---|:---|
+| Grep 1 — `Mode: AFK`/`Mode: HITL` optional tag, placement in extended format line | PASS |
+| Grep 2 — default-HITL line (untagged = HITL) | PASS |
+| Grep 3 — strategist-only tagging authority line | PASS |
+| Grep 4 — `/afk`-enforcement line (never dispatches HITL/untagged) | PASS |
+| Hard Rule 1 — tag OPTIONAL; `git diff a50002f..HEAD` additions-only, no T1 block modified/deleted | PASS |
+| Blocker — T5's `Blocked by: T1` is `[x]` in OXL-1-TODO.md | PASS |
+
+## Evidence
+
+**Live grep** (`rules/common/orchestration.md`, current HEAD, lines 159–163):
+
+```
+159:**Mode tag (optional)**: append `— Mode: AFK` or `— Mode: HITL` to gate `/afk` auto-execution: `[ ] [agent] Tn: Task description — Success: metric — Mode: AFK — Blocked by: Tm`
+161:- **Default-HITL**: an untagged task is HITL — nothing auto-runs by omission (fail-safe).
+162:- **Tagging authority**: strategist only, at planning time; no agent may retag at runtime.
+163:- **Enforcement**: `/afk` never dispatches a HITL or untagged task.
+```
+
+- Check 1: line 159 shows `Mode: AFK`/`Mode: HITL` both present, both parenthetically labeled
+  "(optional)", and placed inline in the extended task-format string alongside the T1 `Tn:` /
+  `Blocked by:` fields (`... — Success: metric — Mode: AFK — Blocked by: Tm`) — matches Plan
+  §T5's "alongside T1's fields" requirement. ✓
+- Check 2: line 161, exact "untagged task is HITL" semantics with explicit fail-safe rationale. ✓
+- Check 3: line 162, "strategist only, at planning time; no agent may retag at runtime" —
+  matches Plan §T5 tagging-authority clause verbatim in substance. ✓
+- Check 4: line 163, "`/afk` never dispatches a HITL or untagged task" — matches Plan §T5
+  enforcement clause verbatim. ✓
+
+**`git diff a50002f..HEAD -- rules/common/orchestration.md`** (full diff, reproduced):
+
+```diff
+@@ -156,6 +156,12 @@ No agent may begin implementation, write code, scaffold projects, or take any im
+ - **Enforcement**: Auditor must not allow a task to be marked `[-]` while any listed blocker is not `[x]`.
+ - **Anti-pattern**: A linear chain (T2←T1, T3←T2, …) adds nothing over list order — omit `Blocked by:` there; use it only where the dependency graph diverges from list order.
+ 
++**Mode tag (optional)**: append `— Mode: AFK` or `— Mode: HITL` to gate `/afk` auto-execution: `[ ] [agent] Tn: Task description — Success: metric — Mode: AFK — Blocked by: Tm`
++- `AFK` = the `/afk` runner may auto-execute this task without user approval; `HITL` = user approval required before execution.
++- **Default-HITL**: an untagged task is HITL — nothing auto-runs by omission (fail-safe).
++- **Tagging authority**: strategist only, at planning time; no agent may retag at runtime.
++- **Enforcement**: `/afk` never dispatches a HITL or untagged task.
++
+ ## Persistence
+```
+
+- Diff is a single hunk, **all `+` lines, zero `-` lines** — additions-only confirmed. ✓
+- The hunk is appended immediately after T1's `Blocked by:` block (context lines 156–158 shown
+  unmodified, `Anti-pattern` line intact) — T1's block from `ae60542` is untouched by this
+  commit. ✓
+- No other line in `orchestration.md` changed between `a50002f` and `HEAD` — confirmed by the
+  diff containing exactly one hunk. ✓ (Hard Rule 1 satisfied: tag presented as OPTIONAL in its
+  own defining line, and no pre-existing content modified or deleted.)
+
+**Blocker check** — `Artifacts/Plans/OXL-1-TODO.md`:
+
+```
+5:- [x] [coder] T1: `Blocked by:` + optional `Tn:` ID in orchestration.md task format — ...
+9:- [-] [strategist] T5: AFK/HITL tag spec in orchestration.md task format ... — Blocked by: T1
+```
+
+- T5 declares `Blocked by: T1`. T1 is `[x]` (verified `[x]` in the T1–T4 gate above, unchanged
+  since). Per the new §T5 enforcement rule itself and the pre-existing `Blocked by:` enforcement
+  line ("Auditor must not allow a task to be marked `[-]` while any listed blocker is not `[x]`"),
+  the dependency gate is satisfied. ✓
+
+## Note (non-blocking, INFO)
+
+`OXL-1-TODO.md` line 9 tags T5's agent as `[strategist]`, but the implementing commit
+(`7f04881`, `feat(oxl-1): T5 — ...`) is a doc-only orchestration.md edit consistent with either
+strategist or coder authorship per `orchestration.md`'s TODO-authority table (content edits to
+`rules/common/*` are not agent-restricted the way `Artifacts/TODO.md` status marks are). Not a
+gate criterion for this dispatch — flagged for awareness only, no action required.
+
+## Disposition
+
+Success Metric 5 (all 4 grep checks), Hard Rule 1 (tag optional, additions-only), and the T5←T1
+blocker gate all PASS with fresh evidence at HEAD `7f04881`. `Artifacts/Plans/OXL-1-TODO.md` T5
+marked `[x]`.
