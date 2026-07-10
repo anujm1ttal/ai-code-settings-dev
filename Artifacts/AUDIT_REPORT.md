@@ -257,3 +257,134 @@ gate criterion for this dispatch — flagged for awareness only, no action requi
 Success Metric 5 (all 4 grep checks), Hard Rule 1 (tag optional, additions-only), and the T5←T1
 blocker gate all PASS with fresh evidence at HEAD `7f04881`. `Artifacts/Plans/OXL-1-TODO.md` T5
 marked `[x]`.
+
+---
+---
+
+# T7 Gate — `commands/afk.md` runner procedure
+
+**Auditor** · Branch `phase-oxl-1-conventions` · HEAD `210d5f6`
+**Scope**: Plan §T7, Success Metric 6, Hard Rules 2 (amended) & 4, tag-syntax consistency vs
+`orchestration.md`, blocker check (T7 ← T2, T4, T5)
+**Working tree**: `git status --short` — clean at HEAD `210d5f6` (verified fresh this pass)
+
+## Verdict: PASS (Success Metric 6, Hard Rules 2 & 4, tag-syntax consistency, blocker gate)
+
+| # | Check | Verdict |
+|:--|:---|:---|
+| 1 | File exists at `commands/afk.md` | PASS |
+| 2 | All 8 §T7 plan elements present (enumerated below) | PASS |
+| 3 | Spot-grep: `hard-stop` / stop instruction for model tier | PASS — line 15 `## 1. Preconditions (hard-stops)`, line 19-20 stop message |
+| 4 | Spot-grep: `frontier` | PASS — defined §2, used throughout §3–8 |
+| 5 | Spot-grep: `afk-run-` | PASS — line 75 `Artifacts/Reports/afk-run-<YYYY-MM-DD>.md` |
+| 6 | Spot-grep: iteration cap `10` | PASS — line 9 `(default \`10\`)`, line 92 `default 10` |
+| 7 | Spot-grep: empty-frontier pause | PASS — line 91 `Frontier empty AND tasks remain` → `AFK-RUN PAUSED` |
+| 8 | Hard Rule 2 (amended) — pure markdown, no executable code blocks | PASS — 0 triple-backtick fences in file; inline `` `git status` `` citations only (permitted) |
+| 9 | Hard Rule 4 — `/afk` never dispatches HITL/untagged (via frontier definition) | PASS — line 35 |
+| 10 | Tag-syntax consistency vs `orchestration.md` Mode-tag block | PASS — exact match |
+| 11 | Blocker check — T7's `Blocked by: T2, T4, T5` all `[x]` | PASS |
+
+## Evidence
+
+### Check 1–2: File exists, 8 §T7 elements present
+
+`Read` of `commands/afk.md` (111 lines) confirms all 8 Plan §T7 elements, mapped section-by-section:
+
+1. **Preconditions** (§1, lines 15–24): 3 hard-stop checks in order — (a) model tier Opus-or-above,
+   stop + instruct `/model opus` if not (lines 19–20); (b) approved plan + phase TODO exist, stop +
+   instruct `/blueprint` if not (lines 21–22); (c) clean working tree via `git status`, stop if not
+   (lines 23–24). Matches plan verbatim ("hard-stop otherwise, instruct `/model opus`").
+2. **Frontier** (§2, lines 26–36): status `[ ]` AND `— Mode: AFK` AND all `Blocked by:` `[x]`
+   (lines 31–33), plus explicit default-HITL exclusion (line 35: "An untagged task or one tagged
+   `— Mode: HITL` is NEVER in the frontier").
+3. **Dispatch** (§3, lines 38–48): Agent tool per model bindings (coder→Sonnet, scribe→Haiku,
+   auditor→Sonnet, line 43), `implementation-dispatch/implementer-prompt.md` templates (line 45),
+   status codes `DONE`/`DONE_WITH_CONCERNS`/`NEEDS_CONTEXT`/`BLOCKED` (line 48).
+4. **Orchestrator review** (§4, lines 50–65): two-stage — Stage A Spec Compliance (lines 56–57),
+   Stage B Technical Quality (lines 58–59); FAIL → feedback + re-dispatch (line 61); fingerprint
+   loop-detection, FREEZE at 3 identical fingerprints (lines 63–65).
+5. **Auditor gate per task** (§5, lines 67–77): auditor subagent verifies fresh, marks `[x]` on
+   PASS (lines 71–73); findings appended as new dated section to
+   `Artifacts/Reports/afk-run-<YYYY-MM-DD>.md`, explicitly "never written to
+   `Artifacts/AUDIT_REPORT.md`" (lines 74–77).
+6. **Commit** (§6, lines 79–84): task-completion commit per `orchestration.md` §Git Phase
+   Branching item 6 (T4's commit-as-handoff rule) after auditor PASS.
+7. **Exits** (§7, lines 86–95): 4 rows — `AFK-RUN COMPLETE` (frontier empty ∧ all `[x]`),
+   `AFK-RUN PAUSED` (frontier empty ∧ tasks remain, with explicit "only pause trigger" semantics
+   parenthetical), `AFK-RUN CAPPED` (default 10, arg-overridable via `max_iterations`), loop-detect
+   FREEZE → escalate per `implementation-dispatch` §3.
+8. **TODO authority preserved** (§8, lines 97–101): "The orchestrator (this command) marks
+   **nothing** in any TODO file... coder subagent marks `[-]`; the dispatched auditor subagent
+   marks `[x]`."
+
+All 8 elements present, matching Plan §T7 items 1–8 one-to-one.
+
+### Check 3–7: Spot-greps
+
+`Grep` of `commands/afk.md` for `hard-stop|frontier|afk-run-|max_iterations|default \`10\`|empty|Mode: AFK|Blocked by: Tm`
+returned 12 hits covering every required term (lines 2, 3, 9, 15, 28, 32–36, 40, 64, 75, 90–92) —
+reproduced above per-check. All 5 spot-grep terms present.
+
+### Check 8: Hard Rule 2 (amended) — no executable code
+
+`Grep` for `` ``` `` (triple-backtick code fence) in `commands/afk.md` → **0 matches**. The only
+backtick usage in the file is single-backtick inline code spans citing file paths, tag syntax, and
+check commands (e.g. `` `git status` `` at line 23, `` `/model opus` `` at line 20) — these are
+checks/citations, not executable logic, per the amended Hard Rule 2's explicit carve-out. File is
+pure markdown procedure. PASS.
+
+### Check 9: Hard Rule 4 — never dispatches HITL/untagged
+
+Line 35: "An **untagged task or one tagged `— Mode: HITL` is NEVER in the frontier** (default-HITL
+rule — nothing auto-runs by omission)." Since dispatch (§3) only ever operates on "the frontier
+task," and the frontier definition (§2) structurally excludes HITL/untagged tasks, `/afk` cannot
+dispatch either by construction. PASS.
+
+### Check 10: Tag-syntax consistency vs `orchestration.md`
+
+`Grep` of `rules/common/orchestration.md` for the Mode-tag block:
+
+```
+153:**Extended format (optional)**: `[ ] [agent] Tn: Task description — Success: metric — Blocked by: Tm[, Tk]`
+159:**Mode tag (optional)**: append `— Mode: AFK` or `— Mode: HITL` to gate `/afk` auto-execution: `[ ] [agent] Tn: Task description — Success: metric — Mode: AFK — Blocked by: Tm`
+```
+
+`commands/afk.md` §2 cites: `— Mode: AFK` (line 32) — byte-identical to orchestration.md line 159's
+`— Mode: AFK` token. `— Blocked by: Tm[, Tk]` (line 33) — byte-identical to orchestration.md line
+153's canonical `Blocked by: Tm[, Tk]` syntax (afk.md correctly uses the fuller `[, Tk]` form for
+the general case, matching the canonical definition rather than line 159's abbreviated inline
+example). No drift. PASS.
+
+### Check 11: Blocker gate
+
+`Artifacts/Plans/OXL-1-TODO.md`:
+
+```
+6:- [x] [coder] T2: implementation-dispatch independence rule cites `Blocked by:` — ...
+8:- [x] [coder] T4: commit-as-handoff rule ... — ...
+9:- [x] [strategist] T5: AFK/HITL tag spec ... — ...
+10:- [-] [coder] T7: `commands/afk.md` runner procedure — ... — Blocked by: T2, T4, T5
+```
+
+T7 declares `Blocked by: T2, T4, T5`. All three are `[x]` (T2/T4 verified in the T1–T4 gate above,
+T5 verified in the T5 gate above, unchanged since). Dependency gate satisfied. PASS.
+
+## Strengths
+
+- **Report-destination discipline is explicit and repeated**: §5 and the Relationships section both
+  state, in different words, that `afk-run-<date>.md` is never conflated with `AUDIT_REPORT.md` —
+  a deliberate redundancy against a plausible orchestrator mistake.
+- **Pause semantics are self-documenting**: the §7 table's parenthetical ("No HITL task is ever
+  'reached' — an empty frontier with work remaining is the only pause trigger") preempts the
+  natural misreading that the runner "stops when it hits a HITL task," which the frontier
+  definition already rules out structurally.
+- **Zero drift from the T1/T4/T5 primitives it composes**: afk.md does not redefine `Blocked by:`,
+  `Mode:`, or the commit-as-handoff rule — it cites `orchestration.md` and
+  `implementation-dispatch/SKILL.md` by section, keeping a single source of truth (see Check 10).
+
+## Disposition
+
+Success Metric 6 (file exists, all 8 §T7 elements, all 5 spot-greps), Hard Rule 2 amended (pure
+markdown, zero executable code fences), Hard Rule 4 (structural HITL/untagged exclusion), tag-syntax
+consistency (byte-identical to `orchestration.md`), and the T7←T2,T4,T5 blocker gate all PASS with
+fresh evidence at HEAD `210d5f6`. `Artifacts/Plans/OXL-1-TODO.md` T7 marked `[x]`.
