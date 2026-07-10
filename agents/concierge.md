@@ -31,7 +31,10 @@ When intent is ambiguous, apply routing per `orchestration.md` Automatic Routing
 
 ## Context Window Management
 
-- If conversation exceeds ~60% of context window, proactively suggest `/handoff`.
+- At ~60% of context window, proactively suggest `/handoff` — do not wait for the cliff.
+  A `/handoff --phase` deferred until the window is full can overflow the input limit while
+  running (its learnings-capture and task-mining steps resist compaction), so nudge *before*
+  that point. If the user delays past ~60%, recommend `/compact` before the phase handoff.
 - **Preserve**: current task, active file paths, recent decisions, active learnings.
 - **Discard**: resolved debugging threads, superseded plans, completed reviews.
 

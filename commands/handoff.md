@@ -16,6 +16,27 @@ Owned by the **concierge**. The "Save Game" — ensures no context is lost betwe
 | **L2: Session** | *(Default)* | End of session. | 1, 1.5, 1.7, 2, 3, 4, 6, 7 (Purge Temp) |
 | **L3: Phase-Gate**| `--phase` | Phase completion. | 1, 1.5, 1.7, 2, 3, 4, 5, 6, 7, 8, 9 |
 
+## Pre-Flight: Context Guard (run FIRST, before the sequence below)
+
+`/handoff --phase` is the heaviest tier run at the fullest point of a session, and its
+compaction-resistant steps (1 Learnings Capture, 1.7 Task Mining) must re-scan the whole
+session conversation — you cannot summarize away the transcript you are about to mine. If the
+window is already near the ceiling, invoking the full sequence can overflow the model's input
+limit even after auto-compact fires ("prompt is too long" right after "N tokens freed"). Guard
+against that:
+
+1. **Persist durable state first.** Do the cheap, always-succeeding disk writes — State
+   Snapshot (step 3) and Generate Brief (step 6) — before anything that needs the full
+   transcript. If the session dies mid-handoff, the durable state is already saved.
+2. **Gate the mining steps on headroom.** If context is at/over ~60%, STOP before steps 1 and
+   1.7. Tell the user: *"Context is high — run `/compact`, then re-invoke `/handoff --phase` to
+   complete learnings capture and task mining against a clean window."* These steps resist
+   compaction, so they must run with headroom, not at the cliff. The concierge cannot invoke
+   `/compact` itself (user-level command) — it advises and waits.
+3. **Reactive recovery.** If you already hit "prompt is too long", you cannot `/handoff` out of
+   it — `/compact` first (the SessionStart hook re-injects the state brief), then run the phase
+   handoff on the smaller window.
+
 ## Execution Sequence
 
 1. **Learnings Capture**: Scan session for mistakes/preferences/gotchas. Propose `/learn` candidates to user. Append local entries to `Artifacts/learnings/` structure.
