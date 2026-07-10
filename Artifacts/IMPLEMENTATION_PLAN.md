@@ -1,6 +1,21 @@
 # Implementation Plan
 
-_No active initiative. DLR closed 2026-07-08 (`6e989eb`). Queued: VSE — see `Artifacts/TODO.md`._
+# Active Initiative: OXL — OS Cross-Learning
+
+**Step 0 approved:** 2026-07-09 · **Grill:** [REFACTORED] 2026-07-09 (3 phases → 2 — see DECISION_LOG [OXL])
+**Origin:** external-pattern review of mattpocock/skills + ralph (2026-07-09 session). Imports:
+mechanical task dependencies, vertical-slice decomposition, commit-as-handoff, skill-authoring
+anti-pattern craft, `disable-model-invocation` token diet. Cut at grill: AFK/HITL tag (→ folded
+into `oxl_afk-runner_1` BACKLOG spec), `/blueprint --foggy` wayfinder mode (→ `oxl_wayfinder_1`,
+trigger-conditioned), blanket commit ceremony (→ task-completion commits only).
+
+| Phase | Scope | Spec |
+|:---|:---|:---|
+| **OXL-1 — Work-Tracking & Planning Conventions + AFK Runner** (active) | `Blocked by:` + optional task IDs (orchestration.md); dispatch independence (implementation-dispatch); vertical-slice + expand–contract (project-planner); commit-as-handoff (task commits); AFK/HITL tag + `/afk` markdown runner + live-fire smoke (grill-2 user override 2026-07-10 — was "spec → BACKLOG"; first consumer: `my_mcp_rhino`) | `Artifacts/Plans/OXL-1-Plan.md` |
+| **OXL-2 — Skill-Authoring Craft** (queued) | On-demand `skills/skill-authoring-standards.md` (anti-pattern taxonomy + scored checklist, mirrors claude-md-standards); report-first `disable-model-invocation` audit over 22 commands + plugin skills; apply hides + runtime verify (config ≠ honored); measured token delta. Hard rules: nudge commands (`/handoff`,`/sync`) stay model-visible; no hide without rationale + runtime evidence; standards doc never enters an always-loaded surface | OXL-2-Plan.md at phase start |
+
+**Phase gate after OXL-1:** reassess OXL-2 cost (LH precedent: token-diet wins can evaporate at
+small scale — the audit report must show the delta before hides apply).
 
 ---
 ---

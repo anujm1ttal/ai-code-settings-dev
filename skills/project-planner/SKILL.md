@@ -109,6 +109,14 @@ Every item in `Artifacts/TODO.md` must be:
 - **Scoped**: Touches 8 or fewer source code files. If more, decompose further.
 - **Sequenced**: Ordered by dependency. No task appears before its prerequisites.
 
+### Slice Sizing Test
+A well-sized task/slice meets **all 3** criteria:
+- **Full-stack cut**: crosses every affected layer (not "all models, then all services, then all UI").
+- **Independently verifiable**: passes its own success metric without waiting on sibling slices.
+- **Context-window-sized**: completable in a single session.
+
+**Exception — expand–contract for wide refactors**: wide refactors are not vertically sliced. Sequence as: (a) introduce the new form alongside the old, (b) migrate call sites in batches, (c) delete the old form. Each step keeps the system green.
+
 ### Task Briefing Patterns
 For high-rigor or large-scale roadmaps, every atomic task should be expanded into a **Task Brief** in the `IMPLEMENTATION_PLAN.md` or as a sub-document.
 

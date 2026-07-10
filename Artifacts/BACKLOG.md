@@ -5,6 +5,22 @@ Reference-on-demand (not boot-loaded). ID format: `<phase>_<component>_<n>`.
 
 ---
 
+## `oxl_routing-violations_1` — 21 historical model-routing violations in session transcripts
+
+**Filed:** 2026-07-10 (OXL-1 T9 smoke run, routing audit) · **Severity:** MEDIUM
+
+`python scripts/model_routing_audit.py --violations-only` (unscoped) reports 21 violations across
+4 historical sessions: `0034d334` (13× coder/auditor/strategist ran on Haiku), `b0910c55`
+(6× coder inherited the main-session model `claude-fable-5` instead of Sonnet binding),
+`c265a752` (scribe on Sonnet), `550a42d0` (auditor on `qwen3.5-tuned` — non-Anthropic model,
+investigate how). All predate OXL-1; today's session (`df244fcd`) is clean 13/13.
+**Action when picked up:** determine whether these were deliberate alternate-model sessions
+(then document + exclude via `--since` convention) or a real routing bypass (then root-cause).
+The `/afk` runner's routing-audit metric is date-scoped (`--since <run date>`) precisely so this
+historical noise cannot poison future gates.
+
+---
+
 ## ~~`lh3_gate-log_1` — `logGateEvent(null)` throws before entering its own try/catch~~ — RESOLVED
 
 **Filed:** 2026-07-08 (LH-3 audit) · **Resolved:** 2026-07-08 (LH-3, strategist ruled fix-now) · **Severity:** ~~MEDIUM~~ → none
@@ -83,6 +99,20 @@ micro-task (single file, <30 lines) promptly — either a VSE-1 fast-follow or t
 and treat it as a prompt to reconsider whether VP-01 parts 2/8/9 need archetype-conditional logic
 (not just literal missing lines) rather than a pure template patch. Full detail:
 `Artifacts/Reports/VSE-1-Report.md` §Hard Rule 1.
+
+---
+
+## `oxl_wayfinder_1` — `/blueprint --foggy` (wayfinder decision-ticket mode) deferred
+
+**Filed:** 2026-07-09 (OXL grill cut) · **Severity:** LOW · **Needs:** demand evidence, then Step 0
+
+Wayfinder pattern (mattpocock/skills): for initiatives whose destination can't be named, chart a
+map (Destination / Decisions-so-far / Not-yet-specified fog / Out-of-scope) + child decision
+tickets (research/prototype/grilling/task) sized to one session — "tickets resolve decisions, not
+deliverables." Cut at OXL grill: zero observed demand (every past initiative's fog was burned off
+by /blueprint + one /grill session). **Revival trigger:** an initiative arrives whose destination
+still can't be named after one grill session. Design as a `/blueprint` MODE, not a new command;
+map reuses existing artifact types.
 
 ---
 

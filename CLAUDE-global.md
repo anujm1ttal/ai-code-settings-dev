@@ -84,6 +84,7 @@ interaction → `standards.md`; implementation → `coding-style.md`; orchestrat
 | `/graduate` | concierge | Move project lessons to global OS settings |
 | `/council` | council | High-rigor deliberation & consensus |
 | `/triage` | coder | Bug investigation and fix planning — investigation only, no source edits until plan approved |
+| `/afk` | coder (dispatch) / auditor (gates) | AFK task runner — dispatch, review, and audit AFK-tagged tasks until frontier empties or cap hits |
 | `/learn` | concierge | Capture a lesson into the learnings registry |
 | `/claude-md` | auditor | Audit/update a CLAUDE.md against `claude-md-standards.md` (report-first) |
 

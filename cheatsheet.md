@@ -10,6 +10,7 @@ Quick reference for common commands, workflows, and navigation in Claude Code se
 |:---|:---|:---|:---|
 | **Plan a feature/phase** | `/blueprint` | strategist | Starting a project or major refactor |
 | **Fix a bug** | `/triage` | coder | Investigating root cause before implementation |
+| **Run AFK tasks** | `/afk` | coder (dispatch) / auditor (gates) | Execute frontier tasks automatically until empty or cap hit |
 | **Review my work** | `/audit` | auditor | Before marking tasks complete |
 | **End session** | `/handoff` | concierge | Wrapping up (saves context, learnings, briefs) |
 | **Scan codebase** | `/sweep` | strategist | Looking for tech debt, redundancy, patterns |
