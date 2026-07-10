@@ -13,7 +13,7 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 **Plans:** `Artifacts/Plans/OXL-1-Plan.md` + `OXL-1-TODO.md` · OXL-2 queued (phase gate after OXL-1)
 **Origin:** mattpocock/skills + ralph pattern import — see IMPLEMENTATION_PLAN.md + DECISION_LOG [OXL]
 
-- [ ] [coder] **OXL-1 — Work-Tracking & Planning Conventions + AFK Runner** (branch `phase-oxl-1-conventions`) — Success: 9 plan metrics (format spec + example, dispatch cite, slice test, commit-as-handoff, AFK/HITL tag spec, `commands/afk.md` 8 elements, registry rows, live-fire smoke evidence, deploy exit 0) — tasks: `Plans/OXL-1-TODO.md`
+- [x] [coder] **OXL-1 — Work-Tracking & Planning Conventions + AFK Runner** (branch `phase-oxl-1-conventions`) — Success: 9 plan metrics (format spec + example, dispatch cite, slice test, commit-as-handoff, AFK/HITL tag spec, `commands/afk.md` 8 elements, registry rows, live-fire smoke evidence, deploy exit 0) — tasks: `Plans/OXL-1-TODO.md`
 - [ ] **OXL-2 — Skill-Authoring Craft** (queued; gate: reassess after OXL-1) — Success: standards doc ≤150 lines on-demand; audit report covers 100% of commands; hides runtime-verified with measured token delta
 
 ### Initiative Hard Rules (Auditor Rejects on Violation)

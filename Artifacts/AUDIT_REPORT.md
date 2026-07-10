@@ -514,3 +514,76 @@ Success Metric 7 (both registry rows present, correctly formatted), registry cro
 integrity (commands/afk.md consistency, fleet membership, no in-scope registry surface
 missing `/afk`), the T8←T7 blocker gate, and Hard Rule 3 (blast radius) all PASS with fresh
 evidence at HEAD `f7f5e71`. `Artifacts/Plans/OXL-1-TODO.md` T8 marked `[x]`.
+
+---
+---
+
+# T9 Gate + T6 Phase Gate — Live-fire evidence, full metric re-verification, deploy
+
+**Auditor** · Branch `phase-oxl-1-conventions` · HEAD `2dc8f1f`
+**Scope**: Plan §T9 (Success Metric 8, amended); phase-gate re-verification of Success Metrics
+1–9 and Hard Rules 1–4 (Plan §Hard Rules)
+**Working tree**: `git status --short` → clean at HEAD `2dc8f1f` (verified fresh this pass)
+
+## Verdict: PASS (T9 gate + full T6 phase gate — all 9 Success Metrics, all 4 Hard Rules)
+
+## Part 1 — T9 Gate (Success Metric 8, amended)
+
+| # | Check | Verdict | Evidence |
+|:--|:---|:---|:---|
+| 1 | `Artifacts/Reports/afk-run-2026-07-10.md` exists, S1 gate section, per-check PASS | PASS | `Read` — 3/3 checks (file exists, content matches exactly, blast radius) all `PASS`, "Overall: PASS" |
+| 2 | Task-completion commit for smoke iteration | PASS | `git log --oneline` → `8f5e012 test(oxl-1): /afk smoke iteration 1 — S1 PASS, run-report created` |
+| 3 | `python scripts/model_routing_audit.py --since 2026-07-10 --violations-only` fresh | PASS | Output: `14 honored, 0 violated, 0 no-data across 15 subagent runs` (auditor 6/6, coder 5/5, scribe 1/1, strategist 2/2, all 100%) — **passed with exit 0** |
+| 4 | Sandbox cleaned: `Artifacts/Temp/afk-smoke/` no longer exists | PASS | `test -d Artifacts/Temp/afk-smoke` → absent, printed `ABSENT - PASS` |
+
+**T9 Disposition**: All 4 checks PASS with fresh evidence at HEAD `2dc8f1f`. `Artifacts/Plans/OXL-1-TODO.md` T9 marked `[x]`.
+
+## Part 2 — T6 Phase Gate (all 9 Success Metrics, re-verified fresh)
+
+| Metric | Description | Verdict | Fresh evidence (this pass) |
+|:--|:---|:---|:---|
+| 1 | orchestration.md extended format: optional `Tn:`+`Blocked by:`, 1 example, auditor-enforcement line, `[ ]/[-]/[x]` semantics unchanged | PASS | `grep` lines 150–159: line 150–151 semantics text byte-identical to pre-phase baseline; line 153 "Extended format (optional)"; line 155 exactly 1 example (`T3: Wire schema validation...`); line 157 anti-pattern/enforcement note present |
+| 2 | implementation-dispatch cites `Blocked by:` | PASS | `grep` line 40: "Parallel Independence Test... via `Blocked by:` AND the Footprint Check..." — 1 hit, meets ≥1 bar |
+| 3 | project-planner: 3-criterion slice test + expand–contract exception | PASS | `grep` lines 112–116: "Slice Sizing Test", "Full-stack cut", "Independently verifiable", "Context-window-sized" — all 3 criteria present (expand–contract exception confirmed present in prior gate, file unchanged since) |
+| 4 | orchestration.md §Git Phase Branching: commit-as-handoff + trivial-commit exemption | PASS | `grep` line 134: "**Commit-as-Handoff**... Trivial/intermediate commits are exempt." |
+| 5 | Mode tag block: `AFK`/`HITL` optional, default-HITL, strategist-only, `/afk`-enforcement (4 elements) | PASS | `grep` lines 159, 161–163: all 4 elements present verbatim |
+| 6 | `commands/afk.md` all 8 §T7 elements | PASS | `grep` confirms hard-stop (§1 line 15), frontier (§2 lines 28–36), dispatch, orchestrator review, auditor-gate/report-path (line 75 `afk-run-<YYYY-MM-DD>.md`), commit, exits (lines 90–92: `AFK-RUN COMPLETE`/`PAUSED`/`CAPPED`, iteration cap `default 10`/`max_iterations`), TODO-authority preservation. 0 triple-backtick code fences (Hard Rule 2). |
+| 7 | `/afk` row in CLAUDE-global.md + cheatsheet.md | PASS | `grep`: `CLAUDE-global.md:87` and `cheatsheet.md:13` both present, owner `coder (dispatch) / auditor (gates)` consistent across both |
+| 8 | Live-fire evidence: run-report + routing audit clean, scoped to run date | PASS | See Part 1 above — run-report exists, commit `8f5e012` exists, `--since 2026-07-10 --violations-only` → 0 violations, exit 0 |
+| 9 | `bash scripts/deploy.sh` exits 0 | PASS | Fresh run this pass: `[2/6] Running test suite... 131 passed in 37.69s`, `[6/6] ... all 7 enforced hook(s) present and wired`, `✓ DEPLOYMENT COMPLETE` — **exited with code 0** |
+
+### Hard Rules (Plan §Hard Rules, re-verified)
+
+| # | Rule | Verdict | Evidence |
+|:--|:---|:---|:---|
+| 1 | New fields/tags OPTIONAL everywhere; `[ ]/[-]/[x]` status semantics + TODO-authority untouched | PASS | Lines 150–151 byte-identical to pre-phase baseline (confirmed above); TODO-authority table untouched since T1 gate (no diff hunk in that line range across the full `d445b63..HEAD` range) |
+| 2 | No executable runner code; `commands/afk.md` markdown-only | PASS | `grep '```' commands/afk.md` → 0 matches (no code fences); `git diff --stat d445b63..HEAD -- hooks/ scripts/` → empty (zero touches to hooks/ or scripts/ across the entire phase) |
+| 3 | Doc-only blast radius confined to T1–T8 named files + smoke writes confined to `Artifacts/Temp/afk-smoke/` + `Artifacts/Reports/` | PASS | `git diff --stat d445b63..HEAD -- . ':!Artifacts'` → exactly 6 files: `CLAUDE-global.md`, `cheatsheet.md`, `commands/afk.md`, `rules/common/orchestration.md`, `skills/implementation-dispatch/SKILL.md`, `skills/project-planner/SKILL.md` (135 insertions, 1 deletion — the 1 deletion is a frontmatter version-bump line, confirmed via `git diff -- skills/implementation-dispatch/SKILL.md \| grep '^-'` → only `-  version: "2.2.0"`). `Artifacts/Temp/afk-smoke/` cleaned (absent, Part 1 check 4); `Artifacts/Reports/afk-run-2026-07-10.md` is the only new Reports/ file. |
+| 4 | `/afk` never dispatches HITL/untagged; untagged defaults to HITL | PASS | orchestration.md line 163: "`/afk` never dispatches a HITL or untagged task"; `commands/afk.md` line 35: frontier structurally excludes untagged/HITL tasks — both confirmed present and consistent |
+
+## Strengths
+
+- **Metric re-verification found zero drift** across all 5 previously-gated metrics (1–5):
+  every grep this pass reproduces the exact line numbers and text captured in the T1–T4 and T5
+  gate sections above, confirming no regression was introduced by the later T7/T8/T9 commits.
+- **Blast-radius discipline held across the entire phase, not just per-commit**: the
+  phase-wide diff (`d445b63..HEAD`, excluding `Artifacts/`) touches exactly the 6 files the
+  plan names across T1–T8 — no incidental file was ever touched, and the one deletion line in
+  the entire phase is a harmless frontmatter version bump.
+- **Metric 8's scoping amendment is honored correctly**: the live-fire evidence uses the
+  date-scoped `--since 2026-07-10` invocation as amended in the plan, not the unscoped
+  variant that surfaced the 21 pre-existing (out-of-scope) violations now correctly filed in
+  `Artifacts/BACKLOG.md` as `oxl_routing-violations_1`.
+- **Sandbox hygiene**: `Artifacts/Temp/afk-smoke/` was cleaned before this gate ran, and the
+  smoke run's only permanent trace is the report append (`afk-run-2026-07-10.md`) — exactly
+  the footprint Hard Rule 3 permits.
+
+## Disposition
+
+**T9 Gate**: PASS (4/4 checks, fresh evidence). `Artifacts/Plans/OXL-1-TODO.md` T9 marked `[x]`.
+
+**T6 Phase Gate**: PASS (9/9 Success Metrics, 4/4 Hard Rules, all fresh evidence at HEAD
+`2dc8f1f`). `Artifacts/Plans/OXL-1-TODO.md` T6 marked `[x]`.
+
+**Initiative**: OXL-1 — Work-Tracking & Planning Conventions + AFK Runner is phase-complete.
+`Artifacts/TODO.md` OXL-1 line marked `[x]`.
