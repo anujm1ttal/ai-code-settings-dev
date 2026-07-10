@@ -13,7 +13,7 @@ Concierge reads this first during `/sync` boot. Promotes/demotes during `/handof
 | # | Category | Title | Source | Last Referenced |
 |:---|:---|:---|:---|:---|
 | 1 | execution-rule | Deploy.sh Rollback: Scoped-Item Replace, Never Full-Wipe | execution-rules/index.md | 2026-07-08 |
-| 2 | pattern | Guard Hook — Recursive Deletes & Dangerous Strings Require Manual Execution | patterns/index.md | 2026-07-09 (OXL: hooks don't parse TODO format — additive fields safe) |
+| 2 | pattern | Guard Hook — Recursive Deletes & Dangerous Strings Require Manual Execution | patterns/index.md | 2026-07-10 (OXL: hooks don't parse TODO format — additive fields safe) |
 | 3 | pattern | Scan Exclusions (skip venv, dist, .git) | patterns/index.md | 2026-05-07 |
 | 4 | anti-pattern | Artifact Path Validation | anti-patterns/index.md | 2026-04-30 |
 | 5 | execution-rule | Mirroring Rule (HARD-GATE) | execution-rules/index.md | 2026-05-07 |
