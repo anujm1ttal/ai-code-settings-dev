@@ -9,16 +9,16 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 
 # Active Initiative: OXL — OS Cross-Learning
 
-**Status:** OXL-1 kicked off · **Step 0:** approved 2026-07-09 · **Grill:** [REFACTORED] 2026-07-09
+**Status:** OXL-1 expanded (AFK runner folded in) · **Step 0:** approved 2026-07-09 · **Grill:** [REFACTORED] 2026-07-09 · **Grill-2:** [REFACTORED] 2026-07-10
 **Plans:** `Artifacts/Plans/OXL-1-Plan.md` + `OXL-1-TODO.md` · OXL-2 queued (phase gate after OXL-1)
 **Origin:** mattpocock/skills + ralph pattern import — see IMPLEMENTATION_PLAN.md + DECISION_LOG [OXL]
 
-- [ ] [coder] **OXL-1 — Work-Tracking & Planning Conventions** (branch `phase-oxl-1-conventions`) — Success: 5 plan metrics (format spec + example, dispatch cite, slice test, `oxl_afk-runner_1` 6-element spec, deploy exit 0) — tasks: `Plans/OXL-1-TODO.md`
+- [ ] [coder] **OXL-1 — Work-Tracking & Planning Conventions + AFK Runner** (branch `phase-oxl-1-conventions`) — Success: 9 plan metrics (format spec + example, dispatch cite, slice test, commit-as-handoff, AFK/HITL tag spec, `commands/afk.md` 8 elements, registry rows, live-fire smoke evidence, deploy exit 0) — tasks: `Plans/OXL-1-TODO.md`
 - [ ] **OXL-2 — Skill-Authoring Craft** (queued; gate: reassess after OXL-1) — Success: standards doc ≤150 lines on-demand; audit report covers 100% of commands; hides runtime-verified with measured token delta
 
 ### Initiative Hard Rules (Auditor Rejects on Violation)
 1. New task-format fields optional everywhere; `[ ]`/`[-]`/`[x]` semantics and TODO authority untouched
-2. No runner/hook/script code ships in OXL — specs and markdown only
+2. [AMENDED 2026-07-10, user override] No **executable** runner code ships in OXL — no scripts/hooks/JS/bash; `commands/afk.md` is markdown procedure only (see DECISION_LOG [OXL] 2026-07-10)
 3. No skill/command hidden without written rationale + runtime verification; `/handoff` + `/sync` stay model-visible
 4. Authoring-standards doc lives on-demand only — never in rules/common/ or any always-loaded surface
 

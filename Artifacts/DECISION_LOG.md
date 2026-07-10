@@ -6,6 +6,38 @@ Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
 
 ---
 
+## 2026-07-10 — AFK runner folded into OXL-1: user override of the 2026-07-09 deferral [OXL]
+
+**Decision:** User described their target operating model (interactive planning → Opus
+orchestrator dispatches Sonnet/Haiku subagents → orchestrator reviews each return → auditor
+gates → user approves only HITL tasks) and, on being shown that this is exactly the deferred
+`oxl_afk-runner_1`, chose **"Fold into OXL-1 now"** over the recommended "revive after OXL-1."
+
+**Override:** OXL Hard Rule 2 ("no runner ships in OXL") AMENDED → "no *executable* runner code
+ships" — the runner lands as `commands/afk.md`, a markdown procedure composing existing machinery
+(Agent tool + model bindings, implementation-dispatch review protocol, T1 `Blocked by:` frontier,
+T4 commit-as-handoff, auditor `[x]` gate). The `oxl_afk-runner_1` BACKLOG entry is never created;
+its 6 design elements ship in T5/T7.
+
+**Consumer evidence (satisfies yesterday's "ship nothing without a consumer"):** user named
+`my_mcp_rhino` as the first real AFK backlog; maiden voyage after the in-repo smoke run.
+
+**Grill-2 [REFACTORED] — defects found + hardening accepted:**
+- **HITL-exit semantics fixed**: frontier = AFK ∧ unblocked can never *contain* a HITL task;
+  the correct pause is "frontier empty ∧ tasks remain → report gating HITL/blocked tasks."
+- **Audit-output clobber fixed**: per-task auditor gates append sections to
+  `Artifacts/Reports/afk-run-<date>.md`; `AUDIT_REPORT.md` reserved for standalone `/audit`.
+- **Live-fire smoke gate added** (metric 8): one end-to-end `/afk` iteration + clean
+  `model_routing_audit.py --violations-only` — proves Agent tool honors bindings at runtime.
+- **Opus-tier hard-stop**: `/afk` refuses to run below Opus-tier (orchestrator IS the reviewer).
+- **Fail-safe tagging**: untagged = HITL; strategist-only tagging authority.
+- **Review depth (user-selected)**: orchestrator two-stage review AND auditor gate per task —
+  highest-cost option, accepted knowingly.
+
+**Status:** RESOLVED — plan files amended 2026-07-10; implementation pending user plan approval.
+
+---
+
 ## 2026-07-09 — OXL grilled → [REFACTORED]: 3 phases → 2; ship nothing without a consumer [OXL]
 
 **Decision:** `/grill` on the OXL blueprint (Skeptical Architect + recon) cut every element lacking

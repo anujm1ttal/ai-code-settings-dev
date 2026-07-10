@@ -11,7 +11,7 @@ trigger-conditioned), blanket commit ceremony (→ task-completion commits only)
 
 | Phase | Scope | Spec |
 |:---|:---|:---|
-| **OXL-1 — Work-Tracking & Planning Conventions** (active) | `Blocked by:` + optional task IDs (orchestration.md); dispatch independence (implementation-dispatch); vertical-slice + expand–contract (project-planner); commit-as-handoff (task commits); AFK-runner spec → BACKLOG | `Artifacts/Plans/OXL-1-Plan.md` |
+| **OXL-1 — Work-Tracking & Planning Conventions + AFK Runner** (active) | `Blocked by:` + optional task IDs (orchestration.md); dispatch independence (implementation-dispatch); vertical-slice + expand–contract (project-planner); commit-as-handoff (task commits); AFK/HITL tag + `/afk` markdown runner + live-fire smoke (grill-2 user override 2026-07-10 — was "spec → BACKLOG"; first consumer: `my_mcp_rhino`) | `Artifacts/Plans/OXL-1-Plan.md` |
 | **OXL-2 — Skill-Authoring Craft** (queued) | On-demand `skills/skill-authoring-standards.md` (anti-pattern taxonomy + scored checklist, mirrors claude-md-standards); report-first `disable-model-invocation` audit over 22 commands + plugin skills; apply hides + runtime verify (config ≠ honored); measured token delta. Hard rules: nudge commands (`/handoff`,`/sync`) stay model-visible; no hide without rationale + runtime evidence; standards doc never enters an always-loaded surface | OXL-2-Plan.md at phase start |
 
 **Phase gate after OXL-1:** reassess OXL-2 cost (LH precedent: token-diet wins can evaporate at
