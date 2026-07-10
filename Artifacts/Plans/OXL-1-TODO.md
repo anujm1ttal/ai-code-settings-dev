@@ -9,5 +9,5 @@
 - [x] [strategist] T5: AFK/HITL tag spec in orchestration.md task format (AMENDED grill-2 — supersedes BACKLOG deferral) — Success: tag optional; default-HITL rule; strategist-only tagging; `/afk`-enforcement line — Blocked by: T1
 - [x] [coder] T7: `commands/afk.md` runner procedure — Success: all 8 Plan §T7 elements (Opus hard-stop, frontier, run-report append, iteration cap 10, empty-frontier pause, TODO-authority preservation) — Blocked by: T2, T4, T5
 - [x] [scribe] T8: registry rows — Success: `/afk` in CLAUDE-global.md Commands table + cheatsheet.md; registry-audit clean — Blocked by: T7
-- [ ] [coder] T9: live-fire smoke run — Success: 1 `/afk` iteration end-to-end on sandbox task (run-report + commit hash); `model_routing_audit.py --violations-only` clean — Blocked by: T7, T8
+- [-] [coder] T9: live-fire smoke run — Success: 1 `/afk` iteration end-to-end on sandbox task (run-report + commit hash); `model_routing_audit.py --violations-only` clean — Blocked by: T7, T8
 - [ ] [auditor] T6: phase gate — Success: all 9 plan metrics verified fresh; deploy.sh exit 0 — Blocked by: T1, T2, T3, T4, T5, T7, T8, T9
