@@ -5,6 +5,22 @@ Reference-on-demand (not boot-loaded). ID format: `<phase>_<component>_<n>`.
 
 ---
 
+## `oxl_routing-violations_1` — 21 historical model-routing violations in session transcripts
+
+**Filed:** 2026-07-10 (OXL-1 T9 smoke run, routing audit) · **Severity:** MEDIUM
+
+`python scripts/model_routing_audit.py --violations-only` (unscoped) reports 21 violations across
+4 historical sessions: `0034d334` (13× coder/auditor/strategist ran on Haiku), `b0910c55`
+(6× coder inherited the main-session model `claude-fable-5` instead of Sonnet binding),
+`c265a752` (scribe on Sonnet), `550a42d0` (auditor on `qwen3.5-tuned` — non-Anthropic model,
+investigate how). All predate OXL-1; today's session (`df244fcd`) is clean 13/13.
+**Action when picked up:** determine whether these were deliberate alternate-model sessions
+(then document + exclude via `--since` convention) or a real routing bypass (then root-cause).
+The `/afk` runner's routing-audit metric is date-scoped (`--since <run date>`) precisely so this
+historical noise cannot poison future gates.
+
+---
+
 ## ~~`lh3_gate-log_1` — `logGateEvent(null)` throws before entering its own try/catch~~ — RESOLVED
 
 **Filed:** 2026-07-08 (LH-3 audit) · **Resolved:** 2026-07-08 (LH-3, strategist ruled fix-now) · **Severity:** ~~MEDIUM~~ → none

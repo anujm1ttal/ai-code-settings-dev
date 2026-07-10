@@ -96,7 +96,11 @@ Markdown command, executed by the main session ("orchestrator"). Required conten
    path, iteration cap, empty-frontier pause).
 7. `/afk` row present in CLAUDE-global.md Commands table AND cheatsheet.md.
 8. Live-fire evidence: `Artifacts/Reports/afk-run-<date>.md` shows 1 completed iteration
-   (dispatch, review verdict, auditor PASS, commit hash); routing audit exits 0 with no violations.
+   (dispatch, review verdict, auditor PASS, commit hash); routing audit clean **scoped to the
+   run date** (`model_routing_audit.py --since 2026-07-10 --violations-only` → 0 violations).
+   [AMENDED during T9: unscoped audit surfaced 21 pre-existing violations from historical
+   sessions — real finding, filed as `oxl_routing-violations_1` in BACKLOG.md; they predate
+   this phase and cannot be remediated by it.]
 9. `bash scripts/deploy.sh` exits 0 (6-step validation incl. pytest).
 
 ## Hard Rules (auditor rejects on violation)
