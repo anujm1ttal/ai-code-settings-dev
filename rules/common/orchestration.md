@@ -156,6 +156,12 @@ No agent may begin implementation, write code, scaffold projects, or take any im
 - **Enforcement**: Auditor must not allow a task to be marked `[-]` while any listed blocker is not `[x]`.
 - **Anti-pattern**: A linear chain (T2←T1, T3←T2, …) adds nothing over list order — omit `Blocked by:` there; use it only where the dependency graph diverges from list order.
 
+**Mode tag (optional)**: append `— Mode: AFK` or `— Mode: HITL` to gate `/afk` auto-execution: `[ ] [agent] Tn: Task description — Success: metric — Mode: AFK — Blocked by: Tm`
+- `AFK` = the `/afk` runner may auto-execute this task without user approval; `HITL` = user approval required before execution.
+- **Default-HITL**: an untagged task is HITL — nothing auto-runs by omission (fail-safe).
+- **Tagging authority**: strategist only, at planning time; no agent may retag at runtime.
+- **Enforcement**: `/afk` never dispatches a HITL or untagged task.
+
 ## Persistence
 
 - **Project State Persistence [HARD-GATE]**: All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository). 
