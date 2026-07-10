@@ -388,3 +388,129 @@ Success Metric 6 (file exists, all 8 §T7 elements, all 5 spot-greps), Hard Rule
 markdown, zero executable code fences), Hard Rule 4 (structural HITL/untagged exclusion), tag-syntax
 consistency (byte-identical to `orchestration.md`), and the T7←T2,T4,T5 blocker gate all PASS with
 fresh evidence at HEAD `210d5f6`. `Artifacts/Plans/OXL-1-TODO.md` T7 marked `[x]`.
+
+---
+---
+
+# T8 Gate — Registry rows (`/afk` in `CLAUDE-global.md` + `cheatsheet.md`)
+
+**Auditor** · Branch `phase-oxl-1-conventions` · HEAD `f7f5e71`
+**Scope**: Plan §T8, Success Metric 7, registry cross-reference integrity (`/registry-audit`
+concern scoped to this change), blocker check (T8 ← T7), Hard Rule 3
+**Working tree**: `git status --short` — verified fresh this pass at HEAD `f7f5e71`
+
+## Verdict: PASS (Success Metric 7, registry cross-reference integrity, blocker gate, Hard Rule 3)
+
+| # | Check | Verdict |
+|:--|:---|:---|
+| 1 | `/afk` row in `CLAUDE-global.md` Commands table, owner + purpose filled | PASS |
+| 2 | `/afk` entry in `cheatsheet.md`, format consistent with its table | PASS |
+| 3 | Registry cross-reference integrity (`commands/afk.md` exists, frontmatter/owner/fleet consistency, no other command-enumerating file missing `/afk`) | PASS (1 pre-existing, already-tracked drift noted — not a T8 defect) |
+| 4 | Blocker gate — T7 `[x]` in `Artifacts/Plans/OXL-1-TODO.md` | PASS |
+| 5 | Hard Rule 3 — blast radius confined to `CLAUDE-global.md`, `cheatsheet.md`, TODO status line | PASS |
+
+## Evidence
+
+### Check 1: `CLAUDE-global.md` Commands table row
+
+`Grep` of `CLAUDE-global.md` line 87:
+
+```
+| `/afk` | coder (dispatch) / auditor (gates) | AFK task runner — dispatch, review, and audit AFK-tagged tasks until frontier empties or cap hits |
+```
+
+Owner and purpose columns both filled, table-row syntax (`| \`cmd\` | owner | purpose |`)
+matches the surrounding rows (`/triage` at line 86, `/learn` at line 88). The owner cell uses
+parenthetical role annotations (`coder (dispatch) / auditor (gates)`) — this is a new
+sub-pattern not used by the single-owner rows immediately adjacent, but it is not an
+inconsistency: it is the **literal wording specified in the Plan** (`Artifacts/Plans/OXL-1-Plan.md`
+line 75: "owner: coder dispatch / auditor gates") and it faithfully encodes real information
+(`/afk`'s two owners have genuinely different responsibilities — dispatch vs. gate — unlike
+`/deck`'s flat `concierge / coder / auditor` list where all three share one role). Judged
+plan-compliant, not a style defect.
+
+### Check 2: `cheatsheet.md` entry
+
+`Grep` of `cheatsheet.md` line 13:
+
+```
+| **Run AFK tasks** | `/afk` | coder (dispatch) / auditor (gates) | Execute frontier tasks automatically until empty or cap hit |
+```
+
+4-column format (`What You Want | Command | Owner | Use When`) matches the table header and
+every adjacent row (`/blueprint`, `/triage`, `/audit`, `/handoff`, ...). Owner cell mirrors
+`CLAUDE-global.md`'s wording verbatim. PASS.
+
+### Check 3: Registry cross-reference integrity
+
+- **`commands/afk.md` exists**: confirmed (`Glob commands/*` lists `commands/afk.md`;
+  previously read in full during the T7 gate, 111 lines).
+- **Frontmatter description vs. registry purpose text**: `commands/afk.md` frontmatter
+  (line 2): "AFK task runner — orchestrates dispatch, review, and audit of AFK-tagged tasks
+  without user presence, task by task, until the frontier empties or the cap hits." vs.
+  `CLAUDE-global.md` row: "AFK task runner — dispatch, review, and audit AFK-tagged tasks
+  until frontier empties or cap hits." Same claim, consistent wording — not byte-identical
+  but not required to be; no semantic drift. PASS.
+- **Owner agents exist in the fleet**: `coder` and `auditor` both present in
+  `CLAUDE-global.md` §Agents table (and `rules/common/orchestration.md` §The Fleet). PASS.
+- **No other command-enumerating registry surface missing `/afk`**:
+  - `skills/skills.overview.md` — read in full; it enumerates **skills only** (no Commands
+    table), so it is not a command-registry surface. Not applicable, no violation.
+  - `README.md` — contains two illustrative "Common Workflows" code blocks
+    (`/blueprint`, `/triage`, `/audit`, `/handoff`, `/sweep`, `/council`) that are curated
+    examples, not a full command enumeration — they already omit ~20 other pre-existing
+    commands (`/docs`, `/explain`, `/sync`, `/ingest`, `/deck`, `/snapshot`, `/ideate`,
+    `/script`, `/pack`, `/learn`, `/claude-md`, `/grill`, `/skill-graph`, `/registry-audit`,
+    `/graduate`, `/clean`, etc.) independent of this change. Not the "commands overview/index
+    file that enumerates all commands" the gate is watching for — no violation attributable
+    to T8.
+  - **`GEMINI.md`** *does* carry a full parallel "Commands" table modeled on
+    `CLAUDE-global.md`'s, and it is missing `/afk`. However this is **pre-existing drift, not
+    introduced by T8**: `GEMINI.md`'s Commands table was already missing 4 other entries
+    before this change (`/skill-graph`, `pptx-slide-design`, `high-rigor-engineering`,
+    `/claude-md` — confirmed by diffing its table against `CLAUDE-global.md`'s current table).
+    It is explicitly tracked as an open, unresolved product decision in
+    `Artifacts/BACKLOG.md` (`cmd_gemini-parity_1`, filed 2026-07-06: "GEMINI.md holds old
+    combined (pre-split) content... is Gemini parity still wanted?"). Plan §T8 names only
+    `CLAUDE-global.md` + `cheatsheet.md` as the surfaces to update, and Hard Rule 3 confines
+    T8's blast radius to files named in T1–T8 — `GEMINI.md` is not named, so editing it would
+    itself have been a Hard Rule 3 violation. **Not a T8 defect; no new BACKLOG entry filed
+    (duplicate of `cmd_gemini-parity_1`)** — flagged here for the strategist's awareness only.
+
+### Check 4: Blocker gate
+
+`Artifacts/Plans/OXL-1-TODO.md` line 10: `- [x] [coder] T7: ...` — T8's declared blocker
+(`Blocked by: T7`, line 11) is `[x]`. PASS.
+
+### Check 5: Hard Rule 3 — blast radius
+
+`git show f7f5e71 --stat`:
+
+```
+ Artifacts/Plans/OXL-1-TODO.md | 2 +-
+ CLAUDE-global.md              | 1 +
+ cheatsheet.md                 | 1 +
+ 3 files changed, 3 insertions(+), 1 deletion(-)
+```
+
+Exactly the 2 files named in Plan §T8 (`CLAUDE-global.md`, `cheatsheet.md`) plus the TODO
+status-line update. No other file touched. PASS.
+
+## Strengths
+
+- **Plan-literal owner wording**: the coder carried the Plan's exact `(dispatch)`/`(gates)`
+  owner annotation into both registry surfaces verbatim, rather than paraphrasing — zero
+  drift risk between the two tables.
+- **Minimal, single-purpose commit**: `f7f5e71` is a 3-line, 3-file diff with nothing
+  incidental — easiest possible commit to audit for blast-radius compliance.
+- **Correctly respected Hard Rule 3's scope boundary**: the coder did not attempt to "fix"
+  `GEMINI.md`'s pre-existing drift opportunistically, even though it would have been an easy
+  reach — that restraint is exactly what Hard Rule 3 requires, and over-reaching would have
+  been a violation, not a bonus.
+
+## Disposition
+
+Success Metric 7 (both registry rows present, correctly formatted), registry cross-reference
+integrity (commands/afk.md consistency, fleet membership, no in-scope registry surface
+missing `/afk`), the T8←T7 blocker gate, and Hard Rule 3 (blast radius) all PASS with fresh
+evidence at HEAD `f7f5e71`. `Artifacts/Plans/OXL-1-TODO.md` T8 marked `[x]`.
