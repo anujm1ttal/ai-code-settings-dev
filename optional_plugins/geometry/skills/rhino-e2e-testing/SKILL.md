@@ -3,7 +3,7 @@ name: rhino-e2e-testing
 description: Use this skill whenever you are performing rigorous, headless end-to-end testing of RhinoCommon geometry, Grasshopper definitions, or plugin state using Rhino.Inside and pytest. It implements the "Lane A protocol" for verifying geometric invariants like manifoldness, intersections, and tolerance-aware comparisons. Trigger when you are fixing a geometric bug, adding a new Grasshopper component, or verifying a complex Brep operation. Do NOT use for geometry-agnostic logic that can be tested in pure Python (Lane B); use rhino-unit-testing instead.
 argument-hint: "[--run-tests|--setup-reproduction]"
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   tags: ["rhino", "grasshopper", "testing", "pytest", "rhinoinside", "rhinocode", "e2e"]
 ---
 
@@ -126,6 +126,27 @@ The `rhinocode` CLI drives a **live, fully-loaded Rhino session** from the termi
 
 Target a specific instance with `--rhino <id>` when multiple are open.
 
+### Bringing packages into the in-process script (`# venv:` / `# r:`)
+
+`rhinocode script` runs inside Rhino's **embedded** interpreter — by default it sees only stdlib + live RhinoCommon, **not** your repo's `.venv`. To run `pytest` (or any pip package) in-process, the script's header declares its environment. Two mechanisms, in preference order:
+
+| Directive | Use when | Behaviour |
+|:---|:---|:---|
+| `# venv: <name>` + `# r: <pkg>` | **Default** — RhinoCode-managed env. | Auto-creates `site-envs/<name>-<id>` **inside the py39-rh8 runtime dir** and pip-installs the `# r:` packages on first run (first on `sys.path`). Python auto-matches Rhino's 3.9 — no version trap. Documented mechanism. |
+| `# env: <abs path to site-packages>` | **External env only** — you must target site-packages you already have. | Puts that directory on `sys.path` as-is; you own the version match. Escape hatch, not the standard. |
+
+```python
+#! python 3
+# venv: rhino-test
+# r: pytest
+```
+
+**Version trap (this one bites):** Rhino 8's embedded Python is **3.9.10**. Pointing `# env:` at a 3.11 `.venv` yields a `pytest` whose 3.9 deps are absent — e.g. `ModuleNotFoundError: No module named 'exceptiongroup'` (stdlib in 3.11, so the venv never pip-installed it). `# venv:`/`# r:` sidesteps this by provisioning against py39-rh8 directly; with `# env:` you must supply a **3.9** site-packages. One shared interpreter per Rhino instance → pin versions in `# r:`.
+
+**Async gotcha (repeats the exit-0 rule below):** `rhinocode script` returns **exit 0 before the script finishes**. The script must flush incrementally to a file and write a terminal **sentinel line**; the caller polls that file for the sentinel before reading results. Always pass an **absolute** script path — a relative path silently runs nothing.
+
+Source: [Rhino pyvenvs guide](https://developer.rhino3d.com/guides/scripting/advanced-pyvenvs/) — `# venv:`/`# r:` are the documented directives; `# env:` is undocumented and reserved for external environments.
+
 ### Evidence Protocol
 Redirect all Lane A-live output to `Artifacts/Temp/` like any other verification command:
 
@@ -138,6 +159,7 @@ rhinocode script probes/check_plugin_state.py > Artifacts/Temp/<phase>_<step>_rh
 1. **Dialect**: Scripts run in Rhino's embedded CPython (~3.9) — all Rhino-internal dialect rules apply (`typing.List`, no `|` unions, `print()` only).
 2. **Not a pytest replacement**: Lane A-headless keeps fixtures, markers, coverage, and clean exit codes. `rhinocode script` is a coarser run-a-script channel — use it only when headless cannot prove the claim.
 3. **Verify the target**: Run `rhinocode list` before `script`/`command` to confirm the intended instance and document are active.
+4. **Environment via header, not `pip`**: To use `pytest`/pip packages in-process, declare `# venv: <name>` + `# r: <pkg>` (default) — never `# env:` unless deliberately targeting an existing external, Python-3.9-matched site-packages. See *Bringing packages into the in-process script* above.
 
 ## 📜 Key Rules
 1. **Load First**: `rhinoinside.load(8)` must be called BEFORE any Rhino imports.
