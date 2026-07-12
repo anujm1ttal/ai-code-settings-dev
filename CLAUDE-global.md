@@ -12,7 +12,7 @@ Orchestration layer for Claude Code sessions.
 ## Architecture
 
 - **Rules** (`rules/common/`): Canonical standards. All agents reference these.
-  - `orchestration.md` — routing, lifecycle, TODO authority, conflict resolution
+  - `orchestration.md` — routing, lifecycle, execution cadence, TODO authority, conflict resolution
   - `coding-style.md` — implementation standards, language patterns, domain rules
   - `standards.md` — interaction, formatting, token economy
   - `security.md` — secrets, defenses, incident response

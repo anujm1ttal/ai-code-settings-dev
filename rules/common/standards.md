@@ -110,6 +110,7 @@ To maintain architectural integrity, every project phase must define **Hard Rule
 Critical architectural decisions (e.g., Schema changes, Plan pivots) require explicit user sign-off.
 - **Task Marker**: `[user-approval]` in `Artifacts/TODO.md`.
 - **Gate**: The `auditor` cannot mark a `[user-approval]` task as `[x]` until the user has provided an explicit approval label (e.g., `[APPROVED] · [SAFE]`).
+- **Cadence**: Under the run-to-done cadence (`orchestration.md` §Execution Cadence), human sign-off concentrates at plan-approval and irreversible/HITL actions — *not* at every execution step. The decision-point gates named above remain mandatory regardless of cadence.
 
 ## Pre-Flight Checks
 

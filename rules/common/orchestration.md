@@ -119,7 +119,7 @@ this file where the two conflict (commit cadence, approval phrases).
   → /docs (scribe) → /sync (concierge) → /handoff (if ending)
 
 > [!IMPORTANT]
-> **Approval Discipline**: Every plan approval or execution request MUST follow the `Approval Rubric` defined in `standards.md`.
+> **Approval Discipline**: Plan approval and any stop-and-surface action (§Execution Cadence) MUST follow the `Approval Rubric` in `standards.md`. Under the run-to-done cadence, routine execution *steps* do not each require approval.
 ```
 
 ## Git Phase Branching
@@ -136,6 +136,30 @@ To ensure the stability of the `main` branch, all work must occur on isolated ph
 <HARD-GATE>
 No agent may begin implementation, write code, scaffold projects, or take any implementation action until Step 0 is complete AND the user has approved the plan. This applies to EVERY project regardless of perceived simplicity. "Simple" projects are where unexamined assumptions cause the most wasted work.
 </HARD-GATE>
+
+## Execution Cadence (Post-Approval)
+
+The HARD-GATE above governs the **one** mandatory pre-work stop: no implementation before Step 0 + plan approval. *After* the plan is approved, work runs to completion under a **run-to-done cadence** — the agent does not stop for per-step human approval. It stops only at genuine forks.
+
+**Orchestrator / executor split.** Opus orchestrates and verifies; Sonnet (coder) executes. Per step/slice: executor does the work → produces evidence → returns artifact paths + claim → the verifier (tiered per `model-routing.md` §Verification Tiering) checks the **raw artifact**, not the summary → advance autonomously on PASS.
+
+```
+YOU ── approve plan (once) ──► OPUS (orchestrate + verify) ──► SONNET (execute → evidence)
+                                     │  ▲ raw artifacts (not summary) │
+                                     │  └──────────────────────────────┘
+                                     ├─ PASS → advance to next step (no human stop)
+                                     └─ STOP & surface to YOU only on a trigger below
+```
+
+**Stop-and-surface triggers (the only reasons to halt for the user):**
+1. A `— Mode: HITL` task, or any **destructive / irreversible** action (commit, push, reset, deploy, live state mutation).
+2. A genuine ambiguity or decision the orchestrator cannot resolve from the plan, code, or sensible defaults.
+3. A verification **FAIL**, or a Semantic-Loop / Emergency trigger (§Safeguards, §Emergency Protocols).
+
+Everything else — reads, pure-logic, docs, reversible edits, passing gates — proceeds without a human stop. Human sign-off concentrates at **plan-approval** (HARD-GATE) and **irreversible actions**, not every step.
+
+- **Attended vs unattended.** This governs *attended* sessions, where the user can interrupt at any point. It differs from `/afk`'s Default-HITL fail-safe (§TODO Mode tag), which governs *unattended* auto-execution and conservatively stops on anything untagged.
+- **Precedence.** The `high-rigor-engineering` skill may tighten this back to synchronous per-gate stops for its declared phases; where the skill and this section conflict, the skill wins (as it already states).
 
 ## Artifacts/TODO.md Authority (Single Source)
 
