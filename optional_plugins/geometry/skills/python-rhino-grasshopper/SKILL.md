@@ -21,6 +21,7 @@ Load reference files ONLY when the following conditions are met:
 | `references/architecture.md` | New project setup or questions about structural alignment |
 | `references/performance.md` | Object count > 1,000 or performance is a project focus |
 | `references/ghpython-component.md` | Authoring/debugging a GHPython script component itself — `ghenv`, trees, native components, custom draw |
+| `references/gh-io-serialization.md` | Reading/writing `.gh`/`.ghx` headlessly (`GH_IO`) — definition-inspection CI tooling, no Rhino required |
 \r
 ## 🛠 Environment & Tooling\r
 \r
