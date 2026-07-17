@@ -1,6 +1,6 @@
 # TODO — Active & Queued Work
 
-**Updated:** 2026-07-09 · **Branch:** `main` (clean, pushed)
+**Updated:** 2026-07-17 · **Branch:** `main` (clean, pushed `ab7b558`)
 
 Completed initiatives (LH, OSH, CMD, OSA, DLR) archived → `Artifacts/History/COMPLETED_INITIATIVES.md`.
 Deferred findings live in `Artifacts/BACKLOG.md`.
@@ -21,6 +21,22 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 2. [AMENDED 2026-07-10, user override] No **executable** runner code ships in OXL — no scripts/hooks/JS/bash; `commands/afk.md` is markdown procedure only (see DECISION_LOG [OXL] 2026-07-10)
 3. No skill/command hidden without written rationale + runtime verification; `/handoff` + `/sync` stay model-visible
 4. Authoring-standards doc lives on-demand only — never in rules/common/ or any always-loaded surface
+
+---
+
+# Completed Initiative: GHP — Grasshopper Plugin Packaging + Rhino Graduation
+
+**Status:** GHP-1 COMPLETE (deployed, merged + pushed `ab7b558`) · User-driven (out of OXL sequence) · 2026-07-17
+**Origin:** user surfaced their `my_mcp_rhino` live-Rhino test-lane workflow + a new external Python-Grasshopper-plugin project; asked what graduates globally + web research on GH plugin packaging.
+
+- [x] **GHP-1 — Packaging skill + harness/gotchas graduation** — Success (all met, auditor GO): new `grasshopper-plugin-packaging` skill (140-line SKILL.md + `references/yak-cli.md`) routed into `geometry` type across 4 registry surfaces + skill-graph mirror; in-process bridge templates → `rhino-e2e-testing/resources/`; 9 Rhino gotchas → `python-rhino-grasshopper/pitfalls.md`; 131 pytest exit 0; deploy 6-step pass. Report: `Artifacts/AUDIT_REPORT.md`.
+
+### Initiative Hard Rules (verified at gate)
+1. No gBlox leakage — templates/gotchas project-agnostic (grep-verified zero matches)
+2. No re-documentation — each shared fact single-owner + pointers (HR2: failed once on parallel-dispatch duplication, then fixed)
+3. Two McNeel doc-ambiguities (distribution-tag targeting; `# r:` bundle-vs-runtime) shipped FLAGGED for live-Rhino verification, never as settled fact
+
+**Parked → BACKLOG:** `oxl_mcp-rhino-scaffold` — MCP-over-socket stack (LazyConnection, `marshal_to_rhino_thread`, sticky live-reload server, FastMCP template). Revive if a reusable Rhino-MCP scaffold is wanted.
 
 ---
 

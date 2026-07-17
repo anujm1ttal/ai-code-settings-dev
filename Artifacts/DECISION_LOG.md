@@ -6,6 +6,44 @@ Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
 
 ---
 
+## 2026-07-17 — GHP-1: graduate Rhino workflow globally + author GH-plugin packaging skill [GHP]
+
+**Context:** User surfaced their `my_mcp_rhino` live-Rhino test-lane workflow as "quite nice" and
+asked (a) what graduates globally, especially for a NEW external Python-Grasshopper-plugin
+project, and (b) web research on GH plugin dev + packaging. Three parallel research streams
+(map `my_mcp_rhino`, inventory existing global Rhino assets, web-research packaging).
+
+**Findings that shaped scope:**
+- Most of the lane workflow (rhinocode CLI, `# venv:`/`# r:` directives, exit-0 sentinel,
+  4-lane taxonomy) was ALREADY global in `rhino-e2e-testing` (graduated earlier). Net-new from
+  `my_mcp_rhino`: the concrete in-process bridge runner + a set of Rhino runtime gotchas.
+- The real gap (both project AND global): **Grasshopper plugin PACKAGING** — global repo had
+  exactly one `.yak` table cell; zero on Yak workflow, `.rhproj`, manifests, dependency bundling.
+
+**Decisions:**
+1. **Scope = both gaps, skip the MCP stack** (user choice). Build the packaging skill (the true
+   gap) AND graduate the 2 net-new items. MCP-over-socket scaffold parked → BACKLOG
+   `oxl_mcp-rhino-scaffold` (powerful but not needed for a GH-plugin project).
+2. **Recommended path in the skill:** Rhino 8 C#-free pipeline `#! python 3` → `.rhproj` →
+   `rhinocode project build` → `.yak` → `yak push`. `.ghpy` documented as deprecated; Python
+   CAN now produce a real `.gha`.
+3. **Two McNeel doc-ambiguities shipped FLAGGED** (HR3), not settled: distribution-tag version
+   targeting (lives in `--platform`/build-target, not `manifest.yml`); whether `# r:` deps bundle
+   into the `.yak` or pip-install on the user's machine at first run (vendor into `Libraries/` for
+   offline determinism). User has a live Rhino to confirm both.
+
+**Process note (→ learning):** Parallel fan-out of 4 doc-authoring coders produced HR2
+duplication — each independently re-documented shared facts (rhinocode exit-0 in ~5 files).
+Auditor caught it; fixed via single-owner (`rhino-e2e-testing`) + pointers. Filed as the mirror
+failure mode in `execution-rules/verify-centrally-after-fanout.md`: assign single-ownership of
+shared facts at DISPATCH time, not just verify after.
+
+**Outcome:** RESOLVED. 131 pytest exit 0, audit GO, deployed (6-step pass), merged + pushed
+`ab7b558`. Skill body activates in sessions on `geometry`-plugin refresh (`deploy.sh` doesn't
+ship plugins).
+
+---
+
 ## 2026-07-10 — AFK runner folded into OXL-1: user override of the 2026-07-09 deferral [OXL]
 
 **Decision:** User described their target operating model (interactive planning → Opus

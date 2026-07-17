@@ -5,6 +5,27 @@ Reference-on-demand (not boot-loaded). ID format: `<phase>_<component>_<n>`.
 
 ---
 
+## `oxl_mcp-rhino-scaffold` — graduate the MCP-over-socket "drive live Rhino" stack
+
+**Filed:** 2026-07-17 (GHP-1, user parked) · **Severity:** LOW (feature, no defect)
+
+The `my_mcp_rhino` project has a mature, reusable architecture for driving a LIVE Rhino from an
+external MCP server that was NOT graduated in GHP-1 (user chose to skip — not needed for a
+GH-plugin project). If a reusable Rhino-MCP scaffold is ever wanted, the graduation candidates
+(all verified project-agnostic in GHP-1 mapping) are:
+- `connection_utils.py` `LazyConnection` — length-prefixed JSON socket, reconnect/ping, drain-until-full recv (needed for >64KB payloads)
+- `threading_utils_base.py` `marshal_to_rhino_thread` — `RhinoApp.InvokeOnUiThread` + Event + timeout; the canonical "run RhinoCommon safely from a background socket thread" primitive
+- `server_base.py` — command whitelist + param sanitize + validator registry + automatic `BeginUndoRecord`/`EndUndoRecord` wrap; `COMMAND_METADATA` (`requires_document`/`modifies_document`)
+- `main.py` — `scriptcontext.sticky` server survival + `sys.modules` purge for live-reload of edited in-Rhino code
+- `rhino_mcp/rhinomcp/server.py` — FastMCP + env-configured host/port + one-file-per-tool `tools/` layout
+- (adjacent) viewport-capture-over-MCP tool (`CaptureToBitmap` → JPEG → base64 in the JSON envelope; CLR gotcha: JPEG quality must be `System.Int64`)
+
+**Action when picked up:** likely a new `rhino-mcp-server` skill (or architecture reference under
+`python-rhino-grasshopper`). Strip all gBlox command/channel specifics. Not routed under any
+project type until a consumer exists.
+
+---
+
 ## `oxl_routing-violations_1` — 21 historical model-routing violations in session transcripts
 
 **Filed:** 2026-07-10 (OXL-1 T9 smoke run, routing audit) · **Severity:** MEDIUM
