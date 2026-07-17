@@ -72,6 +72,7 @@ interaction → `standards.md`; implementation → `coding-style.md`; orchestrat
 | `banana-prompt` | creative-director | Optimized AI image prompts for thumbnails and decks (`optional_plugins/visual-storytelling/`) |
 | `pptx-slide-design` | creative-director | Copy-paste-ready PowerPoint slide design prompts for Copilot (`optional_plugins/visual-storytelling/`) |
 | `rhino-unit-testing` | `coder, auditor` | Lane B (Pure Python) testing for geometry-agnostic logic |
+| `grasshopper-plugin-packaging` | `coder, auditor` | Python Grasshopper plugin development + Yak packaging/deployment (Rhino 8) |
 | `high-rigor-engineering` | `coder, auditor, strategist` | Synchronous gate-passing, evidence, and patch protocol for geometry/production/regulatory phases (variant of standard orchestration) |
 | `/ideate` | strategist | YouTube video conceptualization |
 | `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |

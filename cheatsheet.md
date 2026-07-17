@@ -225,7 +225,7 @@ See [rules/common/testing-strategy.md](rules/common/testing-strategy.md) for det
 ### Example: "I need to optimize a Rhino component"
 ```
 → Search for "rhino"
-→ Found: python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing
+→ Found: python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, grasshopper-plugin-packaging
 → Check if auto-enabled for geometry projects
 ```
 

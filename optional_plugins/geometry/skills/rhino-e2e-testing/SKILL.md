@@ -155,6 +155,25 @@ rhinocode list --json > Artifacts/Temp/<phase>_<step>_rhinocode_list.txt 2>&1
 rhinocode script probes/check_plugin_state.py > Artifacts/Temp/<phase>_<step>_rhinocode_probe.txt 2>&1
 ```
 
+### Lane A in-process runner (pytest inside live Rhino)
+
+For a full `pytest` suite that must run **inside** a live Rhino instance (real RhinoCommon,
+not headless), use `resources/in_process_bridge_runner.py` (host-side, folds the run into
+your `python -m pytest` gate) paired with `resources/in_process_suite_runner.py` (the
+in-Rhino script `rhinocode script` invokes). Both are templates — copy in, fill the
+`# TODO:` placeholders, keep `REPORT_PATH`/`SENTINEL` identical across the pair.
+
+Four load-bearing gotchas (each documented in the resource docstrings, don't re-derive):
+1. **Exit-0-before-done**: the rhinocode exit-0-before-done trap [see the async gotcha above] is why the bridge polls the report file for a terminal sentinel line, never the subprocess return code.
+2. **py39-venv provisioning**: `# venv: <name>` + `# r: pytest` header directives in the runner provision a py39-Rhino8-matched venv, sidestepping the version trap of a 3.11+ host `.venv`.
+3. **`.venv` sys.modules purge**: the runner purges every cached module whose `__file__` resolves under the host `.venv` before `import pytest`, or the shared RhinoCode interpreter leaks a 3.11 build into the py39 venv.
+4. **faulthandler off**: `-p no:faulthandler` — Rhino has no real stderr fileno, so pytest's faulthandler plugin crashes at configure.
+
+Conventions to keep:
+- **Skip-guard rule**: skip (`pytest.skip`) only on `ConnectionError`/refused-connection — env absence ≠ regression. Any other exception must propagate; a live-but-broken Rhino fails loud.
+- **Marker-gated per-test cleanup**: an autouse fixture that only acts when `request.node.get_closest_marker("<your_marker>")` is set, so non-Lane-A tests pass through untouched; run cleanup before AND after each marked test.
+- **Isolated conftest**: the real-RhinoCommon suite (`SUITE_PATH`) lives outside `pytest` `testpaths` with a deliberately empty `conftest.py`, so it never inherits the headless suite's Rhino mocks.
+
 ### Key Rules
 1. **Dialect**: Scripts run in Rhino's embedded CPython (~3.9) — all Rhino-internal dialect rules apply (`typing.List`, no `|` unions, `print()` only).
 2. **Not a pytest replacement**: Lane A-headless keeps fixtures, markers, coverage, and clean exit codes. `rhinocode script` is a coarser run-a-script channel — use it only when headless cannot prove the claim.
@@ -210,6 +229,6 @@ Standard `pytest` commands are also available:
 
 ## 🔧 Troubleshooting
 
-- **DLL Collisions**: Common if multiple versions of Rhino are installed. Use `rhinoinside.load(8)` explicitly.
+- **DLL Collisions / wrong version loaded**: Common if multiple versions of Rhino are installed. A bare `rhinoinside.load()` silently defaults to **Rhino 7** (signature: `load(rhino_dir_or_major_version = 7, ...)`) with no warning — Rhino 8-only APIs (e.g. `ModelObject`) then fail in a way that masquerades as test rot. Always `rhinoinside.load(8)` explicitly; when Lane A behaves strangely on a multi-Rhino machine, verify `Rhino.RhinoApp.Version.Major` **before** triaging test failures.
 - **Missing Plugins**: Headless Rhino does not load all GH plugins by default. You may need to call `gh.Instances.ComponentServer.AddExternalObject()` manually in `conftest.py` — or escalate to Lane A-live (`rhinocode`), where the full plugin set is already loaded.
 - **License**: Rhino.Inside consumes a license just like a GUI session. Ensure your license server/Cloud Zoo is accessible.
