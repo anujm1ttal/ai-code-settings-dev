@@ -22,6 +22,13 @@ You are FORBIDDEN from guessing API signatures. Use the protocol below to verify
 grep_search(Query="M:Rhino.Geometry.Brep.CreateFromSweep", SearchPath="[ABS_PATH]/resources", Includes=["RhinoCommon.xml"])
 ```
 
+The same protocol applies to the Grasshopper SDK — do not skip this gate just because the
+member is `Grasshopper.Kernel.*` instead of `Rhino.Geometry.*`:
+
+```bash
+grep_search(Query="M:Grasshopper.Kernel.GH_ScriptInstance.DrawViewportWires", SearchPath="[ABS_PATH]/resources", Includes=["Grasshopper.xml"])
+```
+
 - **M:** denotes a Method.
 - **P:** denotes a Property.
 - **T:** denotes a Type (Class/Enum).
@@ -42,10 +49,13 @@ Commonly hallucinated members to AVOID (check API before using):
 
 | Hallucination | Correct Alternative | Context |
 | :--- | :--- | :--- |
-| `brep.BoundingBox` | `brep.GetBoundingBox(True)` | Methods often require a boolean for accuracy. |
+| `brep.BoundingBox` | `brep.GetBoundingBox(True)` | Methods often require a boolean for accuracy. On the GH SDK side, the analogous real member for a script component's custom-draw bounds is `GH_ScriptInstance.ClippingBox` (a property, XML-verified) — not `BoundingBox`. |
 | `rs.IsTextStyle` | No direct RhinoCommon equivalent | Check `doc.TextStyles` collection. |
 | `rs.CreateTextStyle` | `doc.TextStyles.Add("name")` | Use the collection Add method. |
 | `curve.Length` | `curve.GetLength()` | Curves usually have methods for length. |
 | `point.DistanceTo(p)` | `(p1 - p2).Length` or `DistanceTo` | Check if it's a static or instance method. |
 
 If a member is not found in the XML, it DOES NOT EXIST. Do not "invent" it.
+
+`GH_IO.XML` covers file **serialization** (`GH_Archive`, `GH_IReader`/`GH_IWriter`) — grep it
+only when reading/writing `.gh`/`.ghx` state, not for canvas/runtime members.

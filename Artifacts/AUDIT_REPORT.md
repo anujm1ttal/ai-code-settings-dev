@@ -1,425 +1,300 @@
-# AUDIT_REPORT.md — GHP-1 Packaging Phase Gate
+# AUDIT_REPORT.md — GHP-2 GHPython Component Contract Phase Gate
 
-**Auditor** · Branch `phase-ghp-1-packaging` · Working tree: dirty (pre-commit review — nothing
-committed on this branch yet; all changes are in the working tree)
-**Scope**: New `grasshopper-plugin-packaging` skill, `rhino-e2e-testing` in-process runner
-templates, `python-rhino-grasshopper` pitfalls graduation, registry surface edits
-(`skills.overview.md`, `orchestration.md`, `CLAUDE-global.md`, `cheatsheet.md`)
+**Auditor** · Branch `phase-ghp-2-ghpython-contract` · Working tree: dirty (pre-commit review —
+nothing committed on this branch yet; all changes are in the working tree)
+**Scope**: New `references/ghpython-component.md` reference file, one `SKILL.md` pointer row,
+2 new `pitfalls.md` rows, API-gate fix in `api-lookups.md` (Grasshopper.xml worked example +
+`.BoundingBox`/`ClippingBox` annotation) — all in the `python-rhino-grasshopper` skill.
 
 ---
 
 ## Project Profile (Phase 0)
 
-- **Language**: Markdown (skill/rule authoring) + Python (2 new template scripts: one
-  host-side 3.12+, one Rhino-internal ~3.9).
-- **Domain**: Rhino/Grasshopper plugin packaging (Yak) + Rhino E2E test-harness tooling.
-  Docs/skills-authoring phase — no production application code changed.
-- **Frameworks/APIs referenced**: RhinoCommon (`RhinoDoc`, `ObjectEnumeratorSettings`,
-  `RhinoApp.RunScript`), `rhinocode` CLI, Yak CLI, pytest.
-- **Build/Package**: N/A (docs repo). `pytest` for this repo's own test suite.
-- **Test/Lint**: `python -m pytest tests/ -v`, `python -m py_compile` on new `.py` templates,
-  `scripts/skill_graph_analyzer.py` / `scripts/model_router.py` as registry checks.
+- **Language**: Markdown (skill/reference authoring). No production application code changed.
+- **Domain**: Rhino 8 / Grasshopper — GHPython script-component runtime contract
+  (`ghenv.Component`, data trees, `sc.sticky`, custom viewport draw, IronPython→CPython3 port
+  notes).
+- **Frameworks/APIs referenced**: `Grasshopper.Kernel.GH_ScriptInstance`, `IGH_Component`,
+  `IGH_ActiveObject`, `Grasshopper.DataTree\`1`, `Grasshopper.Kernel.Data.GH_Path`,
+  `Rhino.Display.DisplayPipeline`, `ghpythonlib.treehelpers`, `ghpythonlib.components`,
+  `scriptcontext.sticky`.
+- **Build/Package**: N/A (docs repo).
+- **Test/Lint**: `python -m pytest tests/ -v` (this repo's own registry/hook/router test suite —
+  doc-only changes are not expected to move it).
 
 ---
 
-## Verdict: **NO-GO (initial gate) → GO (final, after consolidation)**
-
-> **Resolution (2026-07-17):** The HR2 duplication and the `skill_graph_analyzer.py` mirror gap
-> below were fixed in a consolidation pass (single-owner + pointers), a focused re-audit ran, a
-> final one-line residual was cleared, and single-ownership was verified on the raw files. **Final
-> gate: GO** — merged `ab7b558`, deployed (6-step pass). Full resolution trail at the bottom of
-> this report (§Resolution). The initial NO-GO findings below are retained as the audit record.
+## Verdict: **GO**
 
 | # | Success Metric | Verdict |
 |:---|:---|:---|
-| 1 | Registry integrity | **PASS with a finding** (see below — a *mirrored* table outside the officially-listed changed files is now stale) |
-| 2 | Tests green | **PASS** |
-| 3 | Skill quality (`grasshopper-plugin-packaging`) | **PASS** |
-| 4 | CLAUDE-surface standards | **PASS** |
+| 1 | Tests green | **PASS** — `131 passed`, exit code 0 (fresh run, see §Evidence) |
+| 2 | Reference quality (`ghpython-component.md`) | **PASS** |
+| 3 | API-gate fix (`api-lookups.md`) | **PASS** |
 
 | # | Hard Rule | Verdict |
 |:---|:---|:---|
-| HR1 | No gBlox/project-specific leakage | **PASS** |
-| HR2 | No re-documentation of lanes/directives owned by `testing-strategy.md`/`rhino-e2e-testing` | **FAIL** |
-| HR3 | Ambiguities flagged (distribution tag, `# r:` bundling) | **PASS** |
-| HR4 | Template sentinel consistency | **PASS** |
+| HR1 | No fictional members (independent XML re-verification) | **PASS** — all claimed members confirmed present/absent as documented (see §HR1 Evidence) |
+| HR2 | Single-ownership (no re-documentation) | **PASS** |
+| HR3 | Provenance honesty | **PASS** |
+| HR4 | Rhino 8 CPython 3 dialect | **PASS** |
 
 ---
 
 ## Strengths
 
-- **`grasshopper-plugin-packaging/SKILL.md` is well-scoped and honest about its gaps.** It
-  leads with the recommended pipeline, stays at 140 lines (under the 150 target), and — unlike
-  a lot of skill authoring — explicitly refuses to assert two facts the docs don't settle
-  (distribution-tag targeting, `# r:` bundle-vs-runtime-install) rather than papering over them.
-  That is exactly the epistemic honesty `standards.md` §Intellectual Honesty asks for.
-- **`api-lookups.md`'s new "XML First, Probe Only for Behavior" section is a genuine process
-  improvement**, not just a restatement — it names a *specific* fictional-member cascade
-  (`BrepFace.Area`/`IsPlane`/`Normal`/`Vertices`, `AreaMassProperties.Volume`, `Brep.Centroid`)
-  that a member-probe loop would have hit one at a time, and replaces it with a single grep.
-  I independently confirmed the cited absent members are in fact absent from `RhinoCommon.xml`.
-- **API Signature Gate evidence is real, not claimed.** I independently grepped
-  `RhinoCommon.xml` for every new/suspicious member the coder cites in `pitfalls.md` —
-  `ObjectEnumeratorSettings.{NormalObjects,LockedObjects,HiddenObjects}`,
-  `ObjectTable.GetObjectList(ObjectEnumeratorSettings)`, `RhinoApp.RunScript(String,Boolean)`,
-  `RhinoDoc.Undo` — all exist. `UndoRecordCount`/`DefaultLayerIndex` (added to the deny list)
-  are confirmed absent. The `doc.Undo()` "returns True but restores nothing" claim is a
-  runtime-observed behavior beyond what the XML doc comment says (`<summary> Undo the last
-  action </summary><returns> true on success </returns>`), correctly treated as probe-derived
-  rather than XML-derived — consistent with the skill's own new XML-vs-probe methodology.
-- **`in_process_bridge_runner.py` / `in_process_suite_runner.py` correctly split by runtime
-  dialect**: the bridge (host-side, `python -m pytest` gate) uses 3.12+ syntax (`str | None`);
-  the in-Rhino runner carries the `#! python 3` shebang and avoids union syntax, matching the
-  Python Runtime Matrix in `coding-style.md`.
-- **HR3 flags are precise, not hedge-everything boilerplate.** Both required flags name the
-  exact unresolved question and a concrete verification step ("confirm the derived tag on an
-  actual `yak build` output", "confirm on a real install before relying on it for offline
-  distribution") rather than a generic disclaimer.
-- **Registry row edits are surgical.** `CLAUDE-global.md` (+1 line), `orchestration.md`
-  (1 cell, `geometry` row), `skills.overview.md` (1 line), `cheatsheet.md` (1 line) — no rule
-  content duplicated, no adjacent prose touched.
+- **`ghpython-component.md` is disciplined about scope.** It opens with an explicit "load
+  on-demand" blockquote naming exactly what it covers (canvas contract) and what it doesn't
+  (RhinoCommon authoring, external-module extraction), then closes with an "Out of Scope Here"
+  section that re-affirms the same three pointers by name (`architecture.md`/`SKILL.md`,
+  `pitfalls.md`, `api-lookups.md`). This is the single-ownership discipline done right — a
+  fresh reader can find the boundary without cross-referencing git history.
+- **Provenance tagging is applied consistently, not just declared.** The frontmatter defines
+  `[live-verified]` / `[XML-verified]` / `[deck-sourced]` once, and every non-trivial claim in
+  the body carries one of the three tags inline (e.g. line 63 `DataTree[object]()` tagged
+  `[live-verified under CPython 3]`, line 100 the custom-draw section explicitly split into
+  "API XML-verified; runtime-behavior deck-sourced"). This is exactly the honesty bar HR3
+  requires, and it was clearly authored with the gate in mind rather than bolted on after.
+  Genuinely well-executed self-defense against hallucination.
+  - Directory: `optional_plugins/geometry/skills/python-rhino-grasshopper/references/`
+- **The `GH_Path(i, j)` treatment is the standout finding of this review.** Rather than either
+  asserting a fictional two-int constructor or silently omitting the (functionally real)
+  two-int calling convention, the doc states the XML contract precisely (4 ctors, no
+  `(Int32,Int32)` overload), separately reports the live-verified runtime behavior (extra
+  positional ints bind to the `int[]` ctor), and then recommends the array form as "the one the
+  XML actually documents." This is a correct and non-obvious resolution of tension between
+  "what the SDK declares" and "what actually works at runtime" — most doc-authoring passes
+  would flatten this into one claim and get it wrong in one direction or the other.
+- **The API-gate fix in `api-lookups.md` closes a real, previously-exploitable gap.** The old
+  worked example only demonstrated grepping `RhinoCommon.xml`; a coder pattern-matching the
+  example literally would never think to grep `Grasshopper.xml` for GH-SDK members. The new
+  example targets `Grasshopper.Kernel.GH_ScriptInstance.DrawViewportWires` against
+  `Grasshopper.xml` explicitly, and the added `GH_IO.XML` scope note (serialization only, not
+  canvas/runtime) prevents the opposite mistake of over-grepping the wrong file.
+- **`sc.doc`/ProxyDocument pitfall row is well-formed.** It documents the live-verified type
+  name (`RhinoCodePlatform.Rhino3D.Languages.GH1.Legacy.ProxyDocument`), gives a concrete
+  falsifiable check (`sc.doc is Rhino.RhinoDoc.ActiveDoc` → `False`), the fix
+  (`sc.doc = Rhino.RhinoDoc.ActiveDoc` + `finally` restore), and correctly scopes the trap to
+  component-context only (documents that Rhino-document-level `sc.doc`, e.g. via `rhinocode`,
+  is unaffected) — this avoids over-generalizing a component-specific gotcha into a blanket
+  rule that would mislead Lane A-live test authors.
 
 ---
 
-## Success Metric 1 — Registry Integrity
+## Success Metric Detail
 
-**Consistency across `skills.overview.md` / `orchestration.md` / `CLAUDE-global.md`**: PASS.
-All three name `grasshopper-plugin-packaging` identically; the skill's own `## 🔗
-Relationships` section cross-references `python-rhino-grasshopper`, `rhino-unit-testing`,
-`rhino-e2e-testing` — all three exist under `optional_plugins/geometry/skills/`:
-
-```
-optional_plugins/geometry/skills/
-  cd-foundations
-  grasshopper-plugin-packaging   (new)
-  python-rhino-grasshopper
-  rhino-e2e-testing
-  rhino-unit-testing
-```
-
-**Registry check run**: `python scripts/skill_graph_analyzer.py .` — output:
-`Total Skills: 32`, `geometry (12 skills)`. Direct reproduction of the script's internal
-merge (`load_skills()` + `load_plugin_skills()`) confirms `grasshopper-plugin-packaging` is
-one of those 32 (core 15 + plugin 17, plugin count including the new skill).
-
-**Finding (not one of the 8 explicitly-listed changed files, but a real drift this phase
-introduces)**: `scripts/skill_graph_analyzer.py` carries its own **inlined mirror** of the
-`geometry` project-type default-skills list (its own comment: *"inlined from the retired
-manifest_validator; mirror the routing table in `rules/common/orchestration.md`"*):
-
-```python
-DEFAULT_SKILLS: dict[str, list[str]] = {
-    ...
-    "geometry": ["cd-foundations", "python-rhino-grasshopper", "rhino-e2e-testing", "rhino-unit-testing", "python-patterns"],
-    ...
-}
-```
-
-This phase updated `orchestration.md`'s `geometry` row to add `grasshopper-plugin-packaging`
-but did **not** update this mirror. Reproduced directly:
-
-```
->>> skills['grasshopper-plugin-packaging'].project_types
-[]
-```
-
-Net effect: the new skill is loaded and counted, but shows **zero project-type affinity** —
-absent from the `geometry (N skills)` affinity list, absent from the singleton list (needs
-exactly 1 project type; it has 0), invisible to `/skill-graph`'s clustering. This is exactly
-the kind of dangling-registry-reference Success Metric 1 asks me to catch. Not one of HR1–HR4
-so I am not failing the gate on it alone, but it is a required fix before this phase is
-"done" — filing to `Artifacts/BACKLOG.md` is the auditor's correct channel (I am not adding
-a `Artifacts/TODO.md` task per my write-authority limits).
-
-**Fix required**: add `"grasshopper-plugin-packaging"` to the `"geometry"` entry in
-`scripts/skill_graph_analyzer.py`'s `DEFAULT_SKILLS` dict (line ~121).
-
----
-
-## Success Metric 2 — Tests Green
+### Metric 1 — Tests green
 
 ```
 $ python -m pytest tests/ -v
 ...
-============================ 131 passed in 26.41s =============================
+============================ 131 passed in 25.93s =============================
 ```
-Exit code: 0. All 131 tests pass, no skips/xfails introduced by this phase.
 
+Fresh run, this session, exit code 0. Matches the pre-registered expectation (doc-only change,
+no test-count movement from the prior baseline of 131).
+
+### Metric 2 — Reference quality
+
+- **Frontmatter matches siblings**: none of `pitfalls.md`, `performance.md`, `architecture.md`
+  use YAML frontmatter — the sibling convention is `# Title` + a `>` blockquote "load this
+  on-demand when..." note. `ghpython-component.md` follows the identical pattern (lines 1–11),
+  plus adds the provenance-tag legend inline in the same blockquote. **PASS.**
+- **Length**: 136 lines — within the ~≤140 guideline. **PASS.**
+- **Leads data trees with `treehelpers`**: "Data Trees in Code" section (lines 46–74) opens
+  with "Lead with the ergonomic helper module; drop to the explicit SDK only when you need
+  branch-path control the helper doesn't give you," then shows `list_to_tree`/`tree_to_list`
+  from `ghpythonlib.treehelpers` *before* the explicit `DataTree`/`GH_Path` SDK path. **PASS.**
+- **References rather than restates SKILL.md/architecture.md content**: the "Out of Scope Here"
+  closing section explicitly delegates "RhinoCommon authoring conventions, tolerance handling,
+  external-module extraction" to `architecture.md`/`SKILL.md` and does not restate any of that
+  material in the body. **PASS.**
+- **SKILL.md change is only the pointer row**: `git diff main --stat` shows `SKILL.md | 1 +`,
+  and the diff content is exactly one new row in the reference-loading table:
+  `| references/ghpython-component.md | Authoring/debugging a GHPython script component
+  itself — ghenv, trees, native components, custom draw |`. **PASS.**
+
+### Metric 3 — API-gate fix
+
+`api-lookups.md` diff adds:
 ```
-$ python -m py_compile optional_plugins/geometry/skills/rhino-e2e-testing/resources/in_process_bridge_runner.py
-BRIDGE OK
-$ python -m py_compile optional_plugins/geometry/skills/rhino-e2e-testing/resources/in_process_suite_runner.py
-SUITE OK
+grep_search(Query="M:Grasshopper.Kernel.GH_ScriptInstance.DrawViewportWires", SearchPath="[ABS_PATH]/resources", Includes=["Grasshopper.xml"])
 ```
-Both new template files compile cleanly (host Python 3.14.6, backward-compatible with the
-3.12+ syntax the bridge uses; the suite runner avoids `|` unions per the Rhino-internal
-dialect rule, so it also compiles clean — appropriately, since `py_compile` only compiles,
-it doesn't execute the `str | None` annotation in the bridge file, so this doesn't fully
-prove 3.9 compatibility for the suite runner's *runtime* behavior; only real Rhino execution
-would, and that lane is out of scope for this docs phase).
-
-## Success Metric 3 — Skill Quality (`grasshopper-plugin-packaging`)
-
-- **Frontmatter**: matches sibling format (`name`, `description`, `argument-hint`,
-  `metadata: {version, tags}`) — same shape as `rhino-unit-testing/SKILL.md`. No `model:`
-  override, correctly so (per `model-routing.md`, only `python-rhino-grasshopper`,
-  `typescript-mcp`, `systematic-debugging` carry overrides — `rhino-unit-testing` doesn't
-  either).
-- **Length**: 140 lines (`wc -l`), under the 150-line target.
-- **Packaging checklist**: present, `## ✅ Packaging Checklist`, 11 items.
-- **Leads with recommended pipeline**: first content section is `## 🚀 Recommended Pipeline
-  (Lead With This)`.
-- **References vs. restates**: "See `python-rhino-grasshopper` for RhinoCommon authoring
-  patterns — not restated here"; "Full `# venv:`/`# r:`/`# env:` semantics ... are owned by
-  `rhino-e2e-testing` §*Bringing packages into the in-process script* — not restated here."
-  I confirmed that referenced section heading actually exists in
-  `rhino-e2e-testing/SKILL.md:129` — not a dangling cross-reference.
-
-PASS.
-
-## Success Metric 4 — CLAUDE-surface Standards
-
-`CLAUDE-global.md` is 153 lines (target ≤250, hard cap 400) — the +1 row is the only change,
-no duplication of rule content. `rules/common/orchestration.md` is 347 lines — the diff is a
-single-cell edit to the `geometry` row (not a `CLAUDE.md`-tier file, so `claude-md-standards.md`
-size caps don't directly apply, but the edit is surgical regardless). `skills.overview.md` and
-`cheatsheet.md` each get a single-line addition. No adjacent prose touched, no rule content
-copy-pasted into any of the four files. PASS.
+— a worked example targeting `Grasshopper.xml`, addressing the prior gap where the deny-list
+protocol only demonstrated `RhinoCommon.xml`. The `.BoundingBox` deny-list row is annotated:
+"On the GH SDK side, the analogous real member for a script component's custom-draw bounds is
+`GH_ScriptInstance.ClippingBox` (a property, XML-verified) — not `BoundingBox`." **PASS.**
 
 ---
 
-## Hard Rule HR1 — No gBlox/Project-Specific Leakage
+## HR1 Evidence — Independent XML Re-Verification
 
-The task-suggested command (`git diff main -- optional_plugins/ | grep -in "gblox\|
-MCP_LANE_A_TEST\|SimpleBuilding"`) **only covers tracked-file diffs** — it silently misses the
-three new *untracked* paths (`grasshopper-plugin-packaging/` entirely, plus the two new
-`resources/*.py` files), since `git diff` does not show untracked content. I ran it as
-specified (no matches, exit 1) and then extended the check directly against the untracked
-files and the full `optional_plugins/geometry/` tree plus all four registry-surface files:
+All greps run fresh, this session, directly against
+`optional_plugins/geometry/skills/python-rhino-grasshopper/resources/{Grasshopper,RhinoCommon}.xml`
+— not the coder's claimed member list.
 
+**GH_ScriptInstance custom-draw members** (`Grasshopper.xml`):
 ```
-$ git diff main -- optional_plugins/ | grep -in "gblox\|MCP_LANE_A_TEST\|SimpleBuilding"
-(no output, exit 1)
-
-$ grep -rin "gblox\|MCP_LANE_A_TEST\|SimpleBuilding" optional_plugins/geometry/ \
-    CLAUDE-global.md rules/common/orchestration.md cheatsheet.md skills/skills.overview.md
-(no output, exit 1)
+31258:<member name="P:Grasshopper.Kernel.GH_ScriptInstance.ClippingBox">
+31263:<member name="M:Grasshopper.Kernel.GH_ScriptInstance.DrawViewportMeshes(Grasshopper.Kernel.IGH_PreviewArgs)">
+31268:<member name="M:Grasshopper.Kernel.GH_ScriptInstance.DrawViewportWires(Grasshopper.Kernel.IGH_PreviewArgs)">
 ```
+All three EXIST as claimed. **CONFIRMED.**
 
-Zero matches across the full changed surface, tracked and untracked. **PASS.**
-
-## Hard Rule HR2 — No Re-documentation of Lanes/Directives Owned Elsewhere
-
-**FAIL.** Three facts are freshly duplicated across files in this same phase instead of being
-referenced once from the owning location (`rhino-e2e-testing`):
-
-**1. `rhinocode script` exit-0-before-done timing** — already owned by
-`rhino-e2e-testing/SKILL.md` **before this phase** (pre-existing line, unchanged by this diff):
-
-> `rhinocode script` returns **exit 0 before the script finishes**. The script must flush
-> incrementally to a file and write a terminal **sentinel line**; the caller polls that file
-> for the sentinel before reading results. Always pass an **absolute** script path — a
-> relative path silently runs nothing.
-
-This phase adds a near-verbatim restatement as a **new row in `pitfalls.md`**, with no
-cross-reference to `rhino-e2e-testing`:
-
-> `rhinocode ... script` exit-code timing | Returns exit `0` **before** the script finishes;
-> a report read immediately is truncated and looks exactly like a mid-script abort | Probes
-> must flush output incrementally and write a terminal sentinel line; the caller waits for
-> that line before reading the report
-
-...and a second new `pitfalls.md` row restating the companion fact:
-
-> `rhinocode ... script <relative-path>` | Silently runs nothing and exits `0` | Always pass
-> an **absolute** script path
-
-...and the *same* fact is stated a third and fourth time in this phase's own new content: the
-new "Lane A in-process runner" section of `rhino-e2e-testing/SKILL.md` ("**Exit-0-before-done**:
-`rhinocode script` returns 0 before the script finishes...") and both new template docstrings
-(`in_process_bridge_runner.py`: *"Why this exists (the exit-0-before-done trap)"*;
-`in_process_suite_runner.py`: *"Why exit-0-before-done matters here too"*).
-
-**2. `rhinoinside.load()` defaulting to Rhino 7** — added to **two files in the same diff**
-simultaneously, not one referencing the other. `rhino-e2e-testing/SKILL.md`'s edited
-Troubleshooting section:
-
-> A bare `rhinoinside.load()` silently defaults to **Rhino 7** (signature:
-> `load(rhino_dir_or_major_version = 7, ...)`) with no warning — Rhino 8-only APIs (e.g.
-> `ModelObject`) then fail in a way that masquerades as test rot. Always `rhinoinside.load(8)`
-> explicitly; when Lane A behaves strangely on a multi-Rhino machine, verify
-> `Rhino.RhinoApp.Version.Major` **before** triaging test failures.
-
-`pitfalls.md`'s new row, same PR:
-
-> Bare `rhinoinside.load()` | Silently loads Rhino 7 on multi-version machines; Rhino 8-only
-> APIs fail, masquerading as test rot | Always `rhinoinside.load(8)`; verify
-> `Rhino.RhinoApp.Version.Major` **before** triaging Lane A failures
-
-Both `rhinoinside.load()` and `rhinocode script` are Lane A / `rhino-e2e-testing`-owned tooling
-by definition — not general RhinoCommon-authoring pitfalls. `pitfalls.md` (owned by
-`python-rhino-grasshopper`) is the wrong home for the full restatement; the skill's own
-established pattern elsewhere in this same diff (e.g. `grasshopper-plugin-packaging`'s "not
-restated here, see X") is the correct model and was not applied here.
-
-**Fix required** (either is acceptable, pick one):
-- Remove the two/three duplicated `pitfalls.md` rows entirely and replace with a single
-  one-line pointer, e.g. `Lane A / rhinocode gotchas (exit timing, rhinoinside version) →
-  rhino-e2e-testing`; or
-- Keep a one-clause pointer in `pitfalls.md` ("see `rhino-e2e-testing` Troubleshooting") and
-  delete the restated detail column, keeping the full explanation solely in
-  `rhino-e2e-testing`.
-- Either way, drop the redundant "4 gotchas" list items in the new "Lane A in-process runner"
-  section down to a bare pointer at the docstrings, since the docstrings already state (and
-  the skill text itself says) *"don't re-derive"* — the list re-derives what it just said not
-  to re-derive.
-
-This is not a nitpick: five separate locations now assert the exact same operational fact.
-`orchestration.md` §Artifact Separation and `claude-md-standards.md` §5 (Rule-echo) both treat
-this pattern as a maintenance-debt generator — a future correction to the exit-timing behavior
-requires remembering to edit five files, and drift between them is exactly how stale
-guidance survives an audit undetected next time.
-
-## Hard Rule HR3 — Ambiguities Flagged
-
-**PASS.** Both required claims are explicitly flagged as unverified, not stated as settled
-fact. Quoted directly from `grasshopper-plugin-packaging/SKILL.md`:
-
-Distribution-tag version-targeting (line 70):
-> **FLAG — verify against a live Rhino 8 build**: targeting a specific Rhino version is
-> controlled via the build target / referenced RhinoCommon assembly, not a YAML field. Not
-> settled from docs alone — confirm the derived tag on an actual `yak build` output before
-> shipping.
-
-`# r:` dependency bundle-vs-user-runtime (line 89):
-> **FLAG — verify against a live Rhino 8 build**: McNeel docs do NOT settle whether `# r:`
-> deps bundle into the `.yak` at build time or pip-install on the **end user's** machine at
-> first run. Evidence favors runtime install — first run "takes time and disables the
-> editor," implying a live install step — meaning end users would need internet access. Do
-> not treat this as settled; confirm on a real install before relying on it for offline
-> distribution.
-
-The companion `references/yak-cli.md` repeats the distribution-tag flag consistently
-("**Unresolved from docs (flag, do not assume)**...") rather than contradicting it.
-
-## Hard Rule HR4 — Template Sentinel Consistency
-
-**PASS.** Identical string, quoted from both files:
-
-`in_process_bridge_runner.py:44`:
-```python
-SENTINEL = "[inprocess] complete rc="   # must match the runner's SENTINEL constant exactly
+**`GH_ScriptInstance.BoundingBox`** (the member the doc says does NOT exist):
 ```
-
-`in_process_suite_runner.py:56`:
-```python
-SENTINEL = "[inprocess] complete rc="   # must match the bridge's SENTINEL constant exactly
+grep "GH_ScriptInstance\.BoundingBox" Grasshopper.xml → No matches found
 ```
+Genuinely ABSENT. **CONFIRMED.**
 
-Byte-identical. The bridge polls for `line.startswith(sentinel)`; the runner writes
-`SENTINEL + str(int(rc))` on every exit path (success, pytest-import failure, Rhino-import
-failure, pytest crash, and the outer fatal handler) — confirmed all five `emit(SENTINEL + ...)`
-call sites in `in_process_suite_runner.py` use the same `SENTINEL` constant, not a hardcoded
-copy.
+**Runtime messages** (`Grasshopper.xml`):
+```
+8814:<member name="T:Grasshopper.Kernel.GH_RuntimeMessageLevel">
+8819:<member name="F:Grasshopper.Kernel.GH_RuntimeMessageLevel.Blank">
+8824:<member name="F:Grasshopper.Kernel.GH_RuntimeMessageLevel.Remark">
+8829:<member name="F:Grasshopper.Kernel.GH_RuntimeMessageLevel.Warning">
+8834:<member name="F:Grasshopper.Kernel.GH_RuntimeMessageLevel.Error">
+8914:<member name="M:Grasshopper.Kernel.IGH_ActiveObject.AddRuntimeMessage(Grasshopper.Kernel.GH_RuntimeMessageLevel,System.String)">
+9026:<member name="M:Grasshopper.Kernel.GH_ActiveObject.AddRuntimeMessage(Grasshopper.Kernel.GH_RuntimeMessageLevel,System.String)">
+```
+Enum + all 4 values + `AddRuntimeMessage(GH_RuntimeMessageLevel,String)` all EXIST. **CONFIRMED.**
+
+**`IGH_Component.Message`** (`Grasshopper.xml`):
+```
+13179:<member name="P:Grasshopper.Kernel.IGH_Component.Message">
+```
+EXISTS. **CONFIRMED.**
+
+**`DataTree\`1` members** (`Grasshopper.xml`):
+```
+49259:<member name="M:Grasshopper.DataTree`1.Add(`0)">
+49266:<member name="M:Grasshopper.DataTree`1.Add(`0,Grasshopper.Kernel.Data.GH_Path)">
+49283:<member name="M:Grasshopper.DataTree`1.AddRange(System.Collections.Generic.IEnumerable{`0})">
+49290:<member name="M:Grasshopper.DataTree`1.AddRange(System.Collections.Generic.IEnumerable{`0},Grasshopper.Kernel.Data.GH_Path)">
+49231:<member name="M:Grasshopper.DataTree`1.Branch(System.Int32[])">
+49237:<member name="M:Grasshopper.DataTree`1.Branch(Grasshopper.Kernel.Data.GH_Path)">
+49243:<member name="M:Grasshopper.DataTree`1.Branch(System.Int32)">
+49328:<member name="M:Grasshopper.DataTree`1.Graft(Grasshopper.Kernel.Data.GH_Path,System.Boolean)">
+49336:<member name="M:Grasshopper.DataTree`1.Graft(System.Boolean)">
+49322:<member name="M:Grasshopper.DataTree`1.Flatten(Grasshopper.Kernel.Data.GH_Path)">
+49196:<member name="M:Grasshopper.DataTree`1.EnsurePath(System.Int32[])">
+49203:<member name="M:Grasshopper.DataTree`1.EnsurePath(Grasshopper.Kernel.Data.GH_Path)">
+```
+`Add`, `AddRange`, `Branch`, `Graft`, `Flatten`, `EnsurePath` all EXIST as claimed. **CONFIRMED.**
+
+**`GH_Path` constructors** (`Grasshopper.xml`):
+```
+22547:<member name="M:Grasshopper.Kernel.Data.GH_Path.#ctor">
+22552:<member name="M:Grasshopper.Kernel.Data.GH_Path.#ctor(System.Int32)">
+22558:<member name="M:Grasshopper.Kernel.Data.GH_Path.#ctor(System.Int32[])">
+22564:<member name="M:Grasshopper.Kernel.Data.GH_Path.#ctor(Grasshopper.Kernel.Data.GH_Path)">
+```
+Exactly the 4 ctors the doc claims — `()`, `(Int32)`, `(Int32[])`, `(GH_Path)` — and **no**
+`(Int32,Int32)` overload. The doc does NOT assert a fictional two-int constructor as
+XML-backed: it states "`GH_Path` only declares [the 4 ctors]... (no `GH_Path(int,int)`
+overload)," then separately frames the two-int *call* as a `[live-verified]` runtime-binding
+behavior ("the runtime binds extra positional ints to the `int[]` constructor"), not as a real
+overload, and recommends the array form as the documented contract. **CONFIRMED — correctly
+framed, not misrepresented as XML fact.**
+
+**`DisplayPipeline` draw methods** (`RhinoCommon.xml`) and **`IGH_PreviewArgs.Display`**
+(`Grasshopper.xml`) — checked as supporting evidence for the custom-draw example:
+```
+74473:<member name="M:Rhino.Display.DisplayPipeline.DrawPolyline(...)">
+74138:<member name="M:Rhino.Display.DisplayPipeline.DrawPoint(Rhino.Geometry.Point3d)">
+73996:<member name="M:Rhino.Display.DisplayPipeline.DrawMeshShaded(...)">
+30679:<member name="P:Grasshopper.Kernel.IGH_PreviewArgs.Display">
+```
+All EXIST. **CONFIRMED.**
+
+**HR1 verdict: PASS.** Every member claimed present is present; the one member claimed absent
+(`GH_ScriptInstance.BoundingBox`) is genuinely absent; the potentially-fictional two-int
+`GH_Path` overload is correctly NOT asserted as an XML-backed contract.
 
 ---
 
-## Spot-check (INFO) — `pitfalls.md` RhinoCommon idioms
+## HR2 Evidence — Single Ownership
 
-Independently grepped `optional_plugins/geometry/skills/python-rhino-grasshopper/resources/RhinoCommon.xml`:
+Grepped both files for the two named facts:
 
-- `Rhino.DocObjects.ObjectEnumeratorSettings.NormalObjects` / `.LockedObjects` /
-  `.HiddenObjects` — exist (properties, confirmed at their `<member>` entries).
-- `Rhino.DocObjects.Tables.ObjectTable.GetObjectList(Rhino.DocObjects.ObjectEnumeratorSettings)`
-  — exists.
-- `Rhino.RhinoApp.RunScript(System.String,System.Boolean)` — exists, matches the
-  `RhinoApp.RunScript("_Undo", False)` idiom cited in `pitfalls.md`.
-- `Rhino.RhinoDoc.Undo` — exists; XML summary (`"Undo the last action" / returns "true on
-  success"`) does not itself state the no-op behavior claimed in `pitfalls.md` — that claim is
-  correctly framed as a runtime-observed pitfall, not an XML-sourced fact, consistent with the
-  skill's new XML-vs-probe methodology.
-- `UndoRecordCount`, `DefaultLayerIndex` (added to the hallucination deny list) — confirmed
-  **absent** from `RhinoCommon.xml`.
+- **`sc.doc` ProxyDocument trap**: full statement (type name, falsifiable check, fix, scope
+  caveat) lives ONLY in `pitfalls.md`:
+  > `\`sc.doc\` inside a GHPython **component** | Live-verified \`sc.doc\` is
+  > \`RhinoCodePlatform.Rhino3D.Languages.GH1.Legacy.ProxyDocument\`, NOT the Rhino document —
+  > \`sc.doc is Rhino.RhinoDoc.ActiveDoc\` → \`False\`. ... | \`sc.doc = Rhino.RhinoDoc.ActiveDoc\`
+  > at the top of the script, restore the original in a \`finally\`. ...`
 
-No API-signature concerns. This satisfies the API Signature Gate for this phase's `pitfalls.md`
-additions.
+  `ghpython-component.md` contains zero occurrences of `sc.doc`/`ProxyDocument` — it only
+  points: `- \`sc.doc\` identity trap, GUID-without-Type-hint fix → \`pitfalls.md\` (owner).`
+- **GUID-without-Type-hint fix**: full statement (symptom + fix, `rs.coercegeometry`) lives
+  ONLY in `pitfalls.md`:
+  > `Referenced Rhino object with no Type hint on the GH input | Arrives as a **GUID string**...
+  > | Set the input's Type hint to the concrete type, or call \`rs.coercegeometry(guid)\``
 
----
+  `ghpython-component.md` states the *symptom* in one line ("a referenced Rhino object arrives
+  as a **GUID string**... one line here, full trap + fix owned by `pitfalls.md`") but does not
+  restate the fix (`rs.coercegeometry`) — it explicitly defers.
 
-## Overall Verdict: NO-GO
-
-**Blocking**: HR2 (re-documentation) — 2–3 duplicated rows in `pitfalls.md` plus a redundant
-gotchas list in `rhino-e2e-testing/SKILL.md`'s new section, restating facts already owned by
-`rhino-e2e-testing`.
-
-**Required before re-audit**:
-1. Remove/consolidate the duplicated `pitfalls.md` rows (`rhinoinside.load()` Rhino-7 default,
-   `rhinocode` relative-path, `rhinocode` exit-timing) into a single pointer to
-   `rhino-e2e-testing`, OR keep the pointer + delete the restated detail column.
-2. Trim the "4 load-bearing gotchas" list in `rhino-e2e-testing/SKILL.md`'s new "Lane A
-   in-process runner" section so it doesn't re-derive content the section's own text says not
-   to re-derive — a one-line pointer to the docstrings is sufficient given the docstrings are
-   already the stated source of truth.
-3. Update `scripts/skill_graph_analyzer.py`'s inlined `DEFAULT_SKILLS["geometry"]` mirror to
-   include `grasshopper-plugin-packaging`, so `/skill-graph` reflects the same routing
-   `orchestration.md` now states (filed as a required fix, not gating HR1–HR4, but blocking
-   "done" under Success Metric 1).
-
-Not blocking, but should accompany the fix: none of HR1, HR3, HR4, or Success Metrics 2–4 need
-rework. Tests are green (131/131, exit 0), no secrets/project leakage, both ambiguities
-correctly flagged, template sentinels consistent.
-
-No files were edited and no `Artifacts/TODO.md` entries were marked by this audit, per
-auditor write-authority limits. Findings above are for the strategist/coder to action; the
-registry-mirror gap (Metric 1) belongs in `Artifacts/BACKLOG.md` if not fixed in the same pass.
+**HR2 verdict: PASS.** No fix logic is duplicated across the two files.
 
 ---
 
-## Resolution (2026-07-17) — Initial NO-GO → Final GO
+## HR3 Evidence — Provenance Honesty
 
-The three required fixes above were actioned in one consolidation pass, then re-audited.
+Quoted labels, verified against what they're attached to:
 
-### Fixes applied
+- Custom viewport display section header: *"**API XML-verified; runtime-behavior deck-sourced**
+  (a full component-subclass draw wasn't exercised live this session — corroborate before
+  relying on it in production)."* — correctly downgrades the *behavior* (not the member
+  signatures) to deck-sourced, and the member table itself is separately marked `XML` per row.
+- `GH_Path(i, j)` binding: *"calling `GH_Path(i, j)` with two bare ints was **[live-verified]**
+  to resolve to the same `{i;j}` path... but the array form is the one the XML actually
+  documents."* — the runtime-binding behavior is tagged `[live-verified]`, not
+  `[XML-verified]`, and is never asserted as an XML-backed overload (cross-checked against HR1
+  grep above — no such overload exists).
+- `ghenv.Component` resolution: *"`ghenv.Component` [live-verified] resolves to
+  `RhinoCodePluginGH.Components.Python3Component`... Members below XML-verified on
+  `IGH_Component` / `IGH_ActiveObject`..."* — correctly splits the live-verified *identity*
+  claim from the XML-verified *member* claims.
+- 2021 workshop-deck callout: *"A 2021 IronPython-era workshop refers to overriding
+  `BoundingBox`... does **not** exist on `GH_ScriptInstance` in Rhino 8"* — correctly labels the
+  deck as the (wrong) source and the XML grep as the correction.
 
-1. **HR2 consolidation** — each duplicated fact reduced to a single owner (`rhino-e2e-testing`)
-   plus pointers everywhere else:
-   - `rhinocode` exit-0-before-done trap → owner `rhino-e2e-testing/SKILL.md`; the `pitfalls.md`
-     row, the "Lane A in-process runner" gotchas list, and both template docstrings are now
-     pointers / one-line mechanism notes.
-   - `rhinoinside.load()` Rhino-7 default → owner `rhino-e2e-testing/SKILL.md` Troubleshooting;
-     `pitfalls.md` row reduced to a pointer.
-2. **Registry mirror** — `scripts/skill_graph_analyzer.py` `DEFAULT_SKILLS["geometry"]` now
-   includes `grasshopper-plugin-packaging`, matching `orchestration.md` order.
+**HR3 verdict: PASS.** No deck-sourced or live-only claim is asserted as settled/XML-verified
+fact.
 
-### Re-audit (focused, HR2 + mirror)
+---
 
-Confirmed items 1–2 above resolved and no regression (131 pytest exit 0; `py_compile` clean;
-zero gBlox). Found **one residual**: the `rhinocode` relative-path `pitfalls.md` row was still a
-verbatim restatement (the consolidation pass fixed its two adjacent sibling rows but missed it).
+## HR4 Evidence — Rhino 8 CPython 3 Dialect
 
-### Final residual cleared
+```
+grep -n "print[^(]|<>|list\[|dict\[|Optional\[| \| None| \| str| \| int" ghpython-component.md
+124:| `print x` (statement) | `print(x)` |
+```
 
-The two `rhinocode` `pitfalls.md` rows (relative-path + exit-timing) were merged into a single
-pointer row → `rhino-e2e-testing` (Lane A-live section owns the absolute-path rule and the
-sentinel-poll pattern). Single-ownership verified directly on the raw files: the absolute-path
-rule now has exactly one full statement (`rhino-e2e-testing/SKILL.md:146`); `pitfalls.md:21` is a
-pointer.
+The only IronPython-2 syntax occurrence (`print x`) is inside the "Port Notes: IronPython 2.7 →
+CPython 3" contrast table, explicitly juxtaposed against `print(x)` — the permitted exception
+per the Hard Rule. No modern-Python union syntax (`X | Y`) or lowercase-generic type hints
+(`list[T]`, `dict[K, V]`) appear anywhere in the file; the file has no typed function signatures
+to begin with (it's narrative + short inline snippets), so there is no dialect violation to find.
 
-### Final verdict: **GO**
+**HR4 verdict: PASS.**
 
-| Check | Result |
-|:---|:---|
-| Success Metrics 1–4 | PASS (registry mirror fixed) |
-| HR1 no gBlox leakage | PASS |
-| HR2 no re-documentation | **PASS** (single-owner + pointers) |
-| HR3 ambiguities flagged | PASS |
-| HR4 sentinel consistency | PASS |
-| `pytest tests/ -v` | 131 passed, exit 0 |
-| Deploy | 6-step validation pass |
+---
 
-Shipped: feat `18ef340` → merge `ab7b558` (pushed); deployed to `~/.claude/`.
+## Findings (non-blocking)
 
-*(Note on authorship: the final one-line residual was cleared and verified by the Opus
-orchestrator on the raw artifact — a micro-edit directly implementing the auditor's prescribed
-fix — rather than a third full audit cycle. The HR2-consolidation and re-audit steps above were
-run by coder/auditor subagents.)*
+None rising to backlog-worthy severity. The one stylistic note — `ghpython-component.md` uses a
+markdown table with an escaped backtick literal `DataTree\`1\`` (line 73) which renders oddly in
+some viewers — is LOW severity and not worth a BACKLOG entry; flagging here for awareness only,
+no action required.
+
+---
+
+## Overall: GO
+
+All 3 success metrics PASS. All 4 Hard Rules PASS with independently-reproduced grep evidence
+against the raw XML (not the coder's summary). Tests green (131 passed, exit 0, fresh run).
+Auditor recommends merge to `main` and deploy per `DEPLOY.md`. Per TODO authority
+(`orchestration.md`), the auditor will mark the corresponding `Artifacts/TODO.md` line `[x]` —
+no new tasks added, no BACKLOG entries filed (no deferred findings).
