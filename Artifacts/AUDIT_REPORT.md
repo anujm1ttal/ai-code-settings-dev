@@ -22,7 +22,13 @@ templates, `python-rhino-grasshopper` pitfalls graduation, registry surface edit
 
 ---
 
-## Verdict: **NO-GO** — one Hard Rule (HR2) fails; one registry-integrity gap found
+## Verdict: **NO-GO (initial gate) → GO (final, after consolidation)**
+
+> **Resolution (2026-07-17):** The HR2 duplication and the `skill_graph_analyzer.py` mirror gap
+> below were fixed in a consolidation pass (single-owner + pointers), a focused re-audit ran, a
+> final one-line residual was cleared, and single-ownership was verified on the raw files. **Final
+> gate: GO** — merged `ab7b558`, deployed (6-step pass). Full resolution trail at the bottom of
+> this report (§Resolution). The initial NO-GO findings below are retained as the audit record.
 
 | # | Success Metric | Verdict |
 |:---|:---|:---|
@@ -366,3 +372,54 @@ correctly flagged, template sentinels consistent.
 No files were edited and no `Artifacts/TODO.md` entries were marked by this audit, per
 auditor write-authority limits. Findings above are for the strategist/coder to action; the
 registry-mirror gap (Metric 1) belongs in `Artifacts/BACKLOG.md` if not fixed in the same pass.
+
+---
+
+## Resolution (2026-07-17) — Initial NO-GO → Final GO
+
+The three required fixes above were actioned in one consolidation pass, then re-audited.
+
+### Fixes applied
+
+1. **HR2 consolidation** — each duplicated fact reduced to a single owner (`rhino-e2e-testing`)
+   plus pointers everywhere else:
+   - `rhinocode` exit-0-before-done trap → owner `rhino-e2e-testing/SKILL.md`; the `pitfalls.md`
+     row, the "Lane A in-process runner" gotchas list, and both template docstrings are now
+     pointers / one-line mechanism notes.
+   - `rhinoinside.load()` Rhino-7 default → owner `rhino-e2e-testing/SKILL.md` Troubleshooting;
+     `pitfalls.md` row reduced to a pointer.
+2. **Registry mirror** — `scripts/skill_graph_analyzer.py` `DEFAULT_SKILLS["geometry"]` now
+   includes `grasshopper-plugin-packaging`, matching `orchestration.md` order.
+
+### Re-audit (focused, HR2 + mirror)
+
+Confirmed items 1–2 above resolved and no regression (131 pytest exit 0; `py_compile` clean;
+zero gBlox). Found **one residual**: the `rhinocode` relative-path `pitfalls.md` row was still a
+verbatim restatement (the consolidation pass fixed its two adjacent sibling rows but missed it).
+
+### Final residual cleared
+
+The two `rhinocode` `pitfalls.md` rows (relative-path + exit-timing) were merged into a single
+pointer row → `rhino-e2e-testing` (Lane A-live section owns the absolute-path rule and the
+sentinel-poll pattern). Single-ownership verified directly on the raw files: the absolute-path
+rule now has exactly one full statement (`rhino-e2e-testing/SKILL.md:146`); `pitfalls.md:21` is a
+pointer.
+
+### Final verdict: **GO**
+
+| Check | Result |
+|:---|:---|
+| Success Metrics 1–4 | PASS (registry mirror fixed) |
+| HR1 no gBlox leakage | PASS |
+| HR2 no re-documentation | **PASS** (single-owner + pointers) |
+| HR3 ambiguities flagged | PASS |
+| HR4 sentinel consistency | PASS |
+| `pytest tests/ -v` | 131 passed, exit 0 |
+| Deploy | 6-step validation pass |
+
+Shipped: feat `18ef340` → merge `ab7b558` (pushed); deployed to `~/.claude/`.
+
+*(Note on authorship: the final one-line residual was cleared and verified by the Opus
+orchestrator on the raw artifact — a micro-edit directly implementing the auditor's prescribed
+fix — rather than a third full audit cycle. The HR2-consolidation and re-audit steps above were
+run by coder/auditor subagents.)*
