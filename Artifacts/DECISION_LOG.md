@@ -6,6 +6,39 @@ Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
 
 ---
 
+## 2026-07-17 — GHP-3: headless GH_IO serialization reference, read+write live-verified [GHP]
+
+**Context:** Follow-on from GHP-2. User asked to explain, then probe, then build a reference for
+the `GH_IO.XML` resource (Grasshopper's serialization layer for `.gh`/`.ghx`). Chose to probe
+before building.
+
+**Decision:** Build `python-rhino-grasshopper/references/gh-io-serialization.md`, scoped to the
+**headless definition-inspection** use case (the one with real leverage), after live-verifying
+both read AND write paths against the user's Rhino 8 via `rhinocode` + pythonnet.
+
+**What the probes verified / surfaced:**
+- READ: `GH_Archive().ReadFromFile` → `GetRootNode` (a `GH_Chunk`) → walk `Definition` →
+  `DefinitionObjects.ObjectCount` → `FindChunk("Object", i)`. Pulled a real 5-component inventory
+  from a sample `.gh`. Enumeration API is `Chunks`/`ChunkCount`/`Items`/`ItemCount` (the grep
+  missed these; the live member-dump caught them).
+- WRITE (round-trip): `CreateNewRoot(True)` (void) → `GetRootNode` writer → `Set*`/`CreateChunk`
+  → `Serialize_Xml()` → `Deserialize_Xml` read-back identical.
+- **3 pythonnet gotchas found only by probing** (now documented): `CreateNewRoot` returns void;
+  **`WriteToFile_Xml`/`_Binary` are in `GH_IO.XML` but NOT callable at runtime** (new provenance
+  tag `[XML-listed-but-not-callable]`); `TryGetX` out-params bind awkwardly → use `ItemExists`+`GetX`.
+- **Headline:** GH_IO is Rhino-free by design → a `.gh` audit/diff/migration CI tool needs only
+  `GH_IO.dll` + pythonnet, **no Rhino on the runner**. Honestly scoped YAGNI for authoring a
+  Python plugin.
+
+**Outcome:** RESOLVED. 131 pytest exit 0, auditor GO (members independently re-verified vs
+`GH_IO.XML`, `WriteToFile_Xml` framing + provenance + single-ownership confirmed), merged +
+deployed + pushed `e0984b9`. Prior GHP-2 audit report archived → `History/Reports/` (normalized
+a lowercase `history/` path the auditor created back to capital `History/` to avoid a
+case-duplicate dir on case-sensitive checkouts). **Reinforces the GHP-2 methodology win:
+probe-before-encode caught runtime facts the XML alone (and memory) would have gotten wrong.**
+
+---
+
 ## 2026-07-17 — GHP-2: GHPython component-contract reference, live-probe-verified [GHP]
 
 **Context:** User shared Anders Deleuran's "Grasshopper 103" Python workshop PDF (197 pages,

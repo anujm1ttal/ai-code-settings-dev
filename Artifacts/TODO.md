@@ -26,11 +26,12 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 
 # Completed Initiative: GHP — Grasshopper Plugin Packaging + Rhino Graduation
 
-**Status:** GHP-1 + GHP-2 COMPLETE (merged + pushed; GHP-1 `ab7b558`, GHP-2 `ba435ce`) · User-driven (out of OXL sequence) · 2026-07-17
-**Origin:** user surfaced their `my_mcp_rhino` live-Rhino test-lane workflow + a new external Python-Grasshopper-plugin project; asked what graduates globally + web research on GH plugin packaging. GHP-2 followed from reading Deleuran's GH103 (2021) Python workshop PDF.
+**Status:** GHP-1 + GHP-2 + GHP-3 COMPLETE (merged + pushed; GHP-1 `ab7b558`, GHP-2 `ba435ce`, GHP-3 `e0984b9`) · User-driven (out of OXL sequence) · 2026-07-17
+**Origin:** user surfaced their `my_mcp_rhino` live-Rhino test-lane workflow + a new external Python-Grasshopper-plugin project; asked what graduates globally + web research on GH plugin packaging. GHP-2/GHP-3 followed from reading Deleuran's GH103 (2021) Python workshop PDF, then probing GH_IO. Together they give `python-rhino-grasshopper` + `grasshopper-plugin-packaging` full coverage: authoring, testing, packaging, headless definition tooling.
 
 - [x] **GHP-1 — Packaging skill + harness/gotchas graduation** — Success (all met, auditor GO): new `grasshopper-plugin-packaging` skill (140-line SKILL.md + `references/yak-cli.md`) routed into `geometry` type across 4 registry surfaces + skill-graph mirror; in-process bridge templates → `rhino-e2e-testing/resources/`; 9 Rhino gotchas → `python-rhino-grasshopper/pitfalls.md`; 131 pytest exit 0; deploy 6-step pass. Report: `Artifacts/AUDIT_REPORT.md`.
 - [x] **GHP-2 — GHPython component-contract reference** — Success (all met, auditor GO): new `python-rhino-grasshopper/references/ghpython-component.md` (component I/O, `ghenv.Component`, data trees via `treehelpers`+SDK, `ghcomp`, `sc.sticky`, custom viewport draw); 2 pitfalls rows (`sc.doc` ProxyDocument trap, GUID-without-hint); `api-lookups.md` API-gate gap closed (Grasshopper.xml worked example + `.BoundingBox`→`ClippingBox` fix). Every fact **live-probed in Rhino 8 CPython 3.9.10 + XML-verified**; provenance-tagged. 131 pytest exit 0. Ships via geometry-plugin refresh (no deployed surface touched).
+- [x] **GHP-3 — Headless GH_IO serialization reference** — Success (all met, auditor GO): new `python-rhino-grasshopper/references/gh-io-serialization.md` (112L) — read/write `.gh`/`.ghx` via `GH_IO` (Rhino-free → definition-audit CI needs only `GH_IO.dll`+pythonnet). Both read+write paths **live round-trip-verified in Rhino 8** + every member XML-gated vs `GH_IO.XML`; new `[XML-listed-but-not-callable]` provenance tag for `WriteToFile_Xml`. 131 pytest exit 0. Ships via geometry-plugin refresh.
 
 ### Initiative Hard Rules (verified at gate)
 1. No gBlox leakage — templates/gotchas project-agnostic (grep-verified zero matches)
