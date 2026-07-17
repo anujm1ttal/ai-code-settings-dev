@@ -1,589 +1,368 @@
-# AUDIT_REPORT.md — OXL-1 T1–T4 Gate
+# AUDIT_REPORT.md — GHP-1 Packaging Phase Gate
 
-**Auditor** · Branch `phase-oxl-1-conventions` · Implementation commit `ae60542`
-**Scope**: Plan §T1–T4, Success Metrics 1–4, Hard Rules 1 & 3 (per audit dispatch)
-**Working tree**: clean, HEAD = `ae60542` (verified via `git status`)
+**Auditor** · Branch `phase-ghp-1-packaging` · Working tree: dirty (pre-commit review — nothing
+committed on this branch yet; all changes are in the working tree)
+**Scope**: New `grasshopper-plugin-packaging` skill, `rhino-e2e-testing` in-process runner
+templates, `python-rhino-grasshopper` pitfalls graduation, registry surface edits
+(`skills.overview.md`, `orchestration.md`, `CLAUDE-global.md`, `cheatsheet.md`)
 
 ---
 
-## Verdict: PASS (all 4 metrics + gated hard rules)
+## Project Profile (Phase 0)
 
-| Metric | Task | Verdict |
+- **Language**: Markdown (skill/rule authoring) + Python (2 new template scripts: one
+  host-side 3.12+, one Rhino-internal ~3.9).
+- **Domain**: Rhino/Grasshopper plugin packaging (Yak) + Rhino E2E test-harness tooling.
+  Docs/skills-authoring phase — no production application code changed.
+- **Frameworks/APIs referenced**: RhinoCommon (`RhinoDoc`, `ObjectEnumeratorSettings`,
+  `RhinoApp.RunScript`), `rhinocode` CLI, Yak CLI, pytest.
+- **Build/Package**: N/A (docs repo). `pytest` for this repo's own test suite.
+- **Test/Lint**: `python -m pytest tests/ -v`, `python -m py_compile` on new `.py` templates,
+  `scripts/skill_graph_analyzer.py` / `scripts/model_router.py` as registry checks.
+
+---
+
+## Verdict: **NO-GO** — one Hard Rule (HR2) fails; one registry-integrity gap found
+
+| # | Success Metric | Verdict |
 |:---|:---|:---|
-| 1 | T1 — `Tn:`/`Blocked by:` format spec | PASS |
-| 2 | T2 — dispatch independence cites `Blocked by:` | PASS |
-| 3 | T3 — slice test + expand–contract exception | PASS |
-| 4 | T4 — commit-as-handoff rule | PASS |
-| HR1 | Fields OPTIONAL, zero semantics/authority change | PASS |
-| HR3 | Blast radius confined to 3 named files | PASS |
+| 1 | Registry integrity | **PASS with a finding** (see below — a *mirrored* table outside the officially-listed changed files is now stale) |
+| 2 | Tests green | **PASS** |
+| 3 | Skill quality (`grasshopper-plugin-packaging`) | **PASS** |
+| 4 | CLAUDE-surface standards | **PASS** |
+
+| # | Hard Rule | Verdict |
+|:---|:---|:---|
+| HR1 | No gBlox/project-specific leakage | **PASS** |
+| HR2 | No re-documentation of lanes/directives owned by `testing-strategy.md`/`rhino-e2e-testing` | **FAIL** |
+| HR3 | Ambiguities flagged (distribution tag, `# r:` bundling) | **PASS** |
+| HR4 | Template sentinel consistency | **PASS** |
 
 ---
 
 ## Strengths
 
-- **Additions-only discipline**: `ae60542` touches exactly the 3 files named in the plan
-  (`rules/common/orchestration.md`, `skills/implementation-dispatch/SKILL.md`,
-  `skills/project-planner/SKILL.md`) — `git show --stat ae60542` shows 17 insertions, 1
-  deletion (a version-bump line in `implementation-dispatch/SKILL.md` frontmatter, not
-  content). No pre-existing prose in `orchestration.md` was touched.
-- **Commit message quality**: `ae60542`'s body already follows the new T4 commit-as-handoff
-  convention it introduces (decisions made + a serialization note for T5) — the coder ate
-  its own dog food in the same commit that ships the rule.
-- **Worked example is concrete and copy-pasteable**: the T1 example
-  (`[ ] [coder] T3: Wire schema validation into intake — Success: pytest tests/test_intake.py
-  exit 0 — Blocked by: T1, T2`) uses realistic field values, not placeholder text.
-- **T2's independence test is precise**: it names both failure modes (transitive blocking via
-  `Blocked by:`, and shared-file conflict via the existing Footprint Check) rather than a vague
-  "check dependencies" instruction.
+- **`grasshopper-plugin-packaging/SKILL.md` is well-scoped and honest about its gaps.** It
+  leads with the recommended pipeline, stays at 140 lines (under the 150 target), and — unlike
+  a lot of skill authoring — explicitly refuses to assert two facts the docs don't settle
+  (distribution-tag targeting, `# r:` bundle-vs-runtime-install) rather than papering over them.
+  That is exactly the epistemic honesty `standards.md` §Intellectual Honesty asks for.
+- **`api-lookups.md`'s new "XML First, Probe Only for Behavior" section is a genuine process
+  improvement**, not just a restatement — it names a *specific* fictional-member cascade
+  (`BrepFace.Area`/`IsPlane`/`Normal`/`Vertices`, `AreaMassProperties.Volume`, `Brep.Centroid`)
+  that a member-probe loop would have hit one at a time, and replaces it with a single grep.
+  I independently confirmed the cited absent members are in fact absent from `RhinoCommon.xml`.
+- **API Signature Gate evidence is real, not claimed.** I independently grepped
+  `RhinoCommon.xml` for every new/suspicious member the coder cites in `pitfalls.md` —
+  `ObjectEnumeratorSettings.{NormalObjects,LockedObjects,HiddenObjects}`,
+  `ObjectTable.GetObjectList(ObjectEnumeratorSettings)`, `RhinoApp.RunScript(String,Boolean)`,
+  `RhinoDoc.Undo` — all exist. `UndoRecordCount`/`DefaultLayerIndex` (added to the deny list)
+  are confirmed absent. The `doc.Undo()` "returns True but restores nothing" claim is a
+  runtime-observed behavior beyond what the XML doc comment says (`<summary> Undo the last
+  action </summary><returns> true on success </returns>`), correctly treated as probe-derived
+  rather than XML-derived — consistent with the skill's own new XML-vs-probe methodology.
+- **`in_process_bridge_runner.py` / `in_process_suite_runner.py` correctly split by runtime
+  dialect**: the bridge (host-side, `python -m pytest` gate) uses 3.12+ syntax (`str | None`);
+  the in-Rhino runner carries the `#! python 3` shebang and avoids union syntax, matching the
+  Python Runtime Matrix in `coding-style.md`.
+- **HR3 flags are precise, not hedge-everything boilerplate.** Both required flags name the
+  exact unresolved question and a concrete verification step ("confirm the derived tag on an
+  actual `yak build` output", "confirm on a real install before relying on it for offline
+  distribution") rather than a generic disclaimer.
+- **Registry row edits are surgical.** `CLAUDE-global.md` (+1 line), `orchestration.md`
+  (1 cell, `geometry` row), `skills.overview.md` (1 line), `cheatsheet.md` (1 line) — no rule
+  content duplicated, no adjacent prose touched.
 
 ---
 
-## Metric-by-Metric Evidence
+## Success Metric 1 — Registry Integrity
 
-### Metric 1 (T1) — PASS
+**Consistency across `skills.overview.md` / `orchestration.md` / `CLAUDE-global.md`**: PASS.
+All three name `grasshopper-plugin-packaging` identically; the skill's own `## 🔗
+Relationships` section cross-references `python-rhino-grasshopper`, `rhino-unit-testing`,
+`rhino-e2e-testing` — all three exist under `optional_plugins/geometry/skills/`:
 
-`git diff d445b63..HEAD -- rules/common/orchestration.md` (full diff, reproduced):
-
-```diff
-@@ -131,6 +131,7 @@ To ensure the stability of the `main` branch, all work must occur on isolated ph
- 3. **Trigger**: The `strategist` prompts for branch creation immediately after Step 0 approval in `/blueprint`.
- 4. **Merge Requirement**: A phase branch can only be merged to `main` after the `auditor` marks the final task of the phase as `[x]` and confirms all success metrics are met.
- 5. **Cleanup**: Delete the phase branch immediately after a successful merge.
-+6. **Commit-as-Handoff**: Task-completion commits (a commit that finishes a TODO task) carry the key decisions made and any blockers/notes for the next iteration in the commit body. Trivial/intermediate commits are exempt. Rationale: crash recovery between `/handoff`s — the git log becomes a self-maintaining brief that cannot drift.
-
-@@ -149,6 +150,12 @@ No agent may begin implementation, write code, scaffold projects, or take any im
- **Task format**: `[ ] [agent] Task description — Success: metric`
- - `[ ]` Not started | `[-]` In progress | `[x]` Auditor-verified complete
-
-+**Extended format (optional)**: `[ ] [agent] Tn: Task description — Success: metric — Blocked by: Tm[, Tk]`
-+- `Tn:` (task ID) and `Blocked by:` are both OPTIONAL — a task without them is fully valid. IDs are phase-local (`T1`..`Tn` within a `Phase-N-TODO.md`).
-+- Example: `[ ] [coder] T3: Wire schema validation into intake — Success: pytest tests/test_intake.py exit 0 — Blocked by: T1, T2`
-+- **Enforcement**: Auditor must not allow a task to be marked `[-]` while any listed blocker is not `[x]`.
-+- **Anti-pattern**: A linear chain (T2←T1, T3←T2, …) adds nothing over list order — omit `Blocked by:` there; use it only where the dependency graph diverges from list order.
+```
+optional_plugins/geometry/skills/
+  cd-foundations
+  grasshopper-plugin-packaging   (new)
+  python-rhino-grasshopper
+  rhino-e2e-testing
+  rhino-unit-testing
 ```
 
-Checklist:
-- Optional `Tn:` + `Blocked by:` — present, both explicitly labeled OPTIONAL. ✓
-- Exactly 1 worked example — present, exactly 1 (`T3: Wire schema validation...`). ✓
-- Auditor-enforcement line — present ("Auditor must not allow a task to be marked `[-]`..."). ✓
-- Linear-chain no-op anti-pattern note — present. ✓
-- Pre-existing `[ ]`/`[-]`/`[x]` semantics line byte-unchanged — confirmed: diff shows this line
-  only as unmodified context (no `-` line), and `Read` of current lines 150–151 matches original
-  verbatim: `` **Task format**: `[ ] [agent] Task description — Success: metric` `` /
-  `` - `[ ]` Not started | `[-]` In progress | `[x]` Auditor-verified complete ``.
-- TODO-authority table byte-unchanged — confirmed via `Read` of lines 140–148: table content
-  identical to pre-change version; diff hunks bracket the table (131–137, 150+) without touching
-  lines 140–148.
-- **Diff contains zero `-` (deletion) lines in `orchestration.md`** — additions only, confirmed
-  by inspecting the full diff (two hunks, both pure `+` insertions against unmodified context).
+**Registry check run**: `python scripts/skill_graph_analyzer.py .` — output:
+`Total Skills: 32`, `geometry (12 skills)`. Direct reproduction of the script's internal
+merge (`load_skills()` + `load_plugin_skills()`) confirms `grasshopper-plugin-packaging` is
+one of those 32 (core 15 + plugin 17, plugin count including the new skill).
 
-### Metric 2 (T2) — PASS
+**Finding (not one of the 8 explicitly-listed changed files, but a real drift this phase
+introduces)**: `scripts/skill_graph_analyzer.py` carries its own **inlined mirror** of the
+`geometry` project-type default-skills list (its own comment: *"inlined from the retired
+manifest_validator; mirror the routing table in `rules/common/orchestration.md`"*):
 
-`git diff d445b63..HEAD -- skills/implementation-dispatch/SKILL.md`:
+```python
+DEFAULT_SKILLS: dict[str, list[str]] = {
+    ...
+    "geometry": ["cd-foundations", "python-rhino-grasshopper", "rhino-e2e-testing", "rhino-unit-testing", "python-patterns"],
+    ...
+}
+```
 
-```diff
--  version: "2.2.0"
-+  version: "2.3.0"
+This phase updated `orchestration.md`'s `geometry` row to add `grasshopper-plugin-packaging`
+but did **not** update this mirror. Reproduced directly:
+
+```
+>>> skills['grasshopper-plugin-packaging'].project_types
+[]
+```
+
+Net effect: the new skill is loaded and counted, but shows **zero project-type affinity** —
+absent from the `geometry (N skills)` affinity list, absent from the singleton list (needs
+exactly 1 project type; it has 0), invisible to `/skill-graph`'s clustering. This is exactly
+the kind of dangling-registry-reference Success Metric 1 asks me to catch. Not one of HR1–HR4
+so I am not failing the gate on it alone, but it is a required fix before this phase is
+"done" — filing to `Artifacts/BACKLOG.md` is the auditor's correct channel (I am not adding
+a `Artifacts/TODO.md` task per my write-authority limits).
+
+**Fix required**: add `"grasshopper-plugin-packaging"` to the `"geometry"` entry in
+`scripts/skill_graph_analyzer.py`'s `DEFAULT_SKILLS` dict (line ~121).
+
+---
+
+## Success Metric 2 — Tests Green
+
+```
+$ python -m pytest tests/ -v
 ...
- - Verify dependencies are met (no predecessors still `[ ]` or `[-]`).
-+- **Parallel Independence Test**: Two tasks are parallel-dispatchable only if neither transitively blocks the other via `Blocked by:` AND the Footprint Check below passes (no shared-file conflict). Tasks without a `Blocked by:` field fall back to list-order judgment (the field is optional).
+============================ 131 passed in 26.41s =============================
 ```
+Exit code: 0. All 131 tests pass, no skips/xfails introduced by this phase.
 
-- `Blocked by:` grep hit: 1 (`grep -n "Blocked by:" skills/implementation-dispatch/SKILL.md` →
-  line 40). Meets "≥1" bar.
-- Independence test names both required conditions: transitive-blocking (`Blocked by:`) AND
-  shared-file conflict (Footprint Check cross-reference). ✓
-- 3+-independent-tasks trigger preserved in frontmatter `description:` — line 3 unchanged by
-  this diff (only `metadata.version` and the new bullet were touched); grep confirms the
-  "3+ independent tasks" substring is still intact in frontmatter.
-
-### Metric 3 (T3) — PASS
-
-`git diff d445b63..HEAD -- skills/project-planner/SKILL.md`:
-
-```diff
-+### Slice Sizing Test
-+A well-sized task/slice meets **all 3** criteria:
-+- **Full-stack cut**: crosses every affected layer (not "all models, then all services, then all UI").
-+- **Independently verifiable**: passes its own success metric without waiting on sibling slices.
-+- **Context-window-sized**: completable in a single session.
-+
-+**Exception — expand–contract for wide refactors**: wide refactors are not vertically sliced. Sequence as: (a) introduce the new form alongside the old, (b) migrate call sites in batches, (c) delete the old form. Each step keeps the system green.
 ```
+$ python -m py_compile optional_plugins/geometry/skills/rhino-e2e-testing/resources/in_process_bridge_runner.py
+BRIDGE OK
+$ python -m py_compile optional_plugins/geometry/skills/rhino-e2e-testing/resources/in_process_suite_runner.py
+SUITE OK
+```
+Both new template files compile cleanly (host Python 3.14.6, backward-compatible with the
+3.12+ syntax the bridge uses; the suite runner avoids `|` unions per the Rhino-internal
+dialect rule, so it also compiles clean — appropriately, since `py_compile` only compiles,
+it doesn't execute the `str | None` annotation in the bridge file, so this doesn't fully
+prove 3.9 compatibility for the suite runner's *runtime* behavior; only real Rhino execution
+would, and that lane is out of scope for this docs phase).
 
-- 3-criterion slice test present: full-stack cut / independently verifiable /
-  single-session ("context-window-sized ... single session"). ✓
-- Expand–contract exception present with exactly 3 sequenced steps (a/b/c). ✓
-- Purely additive hunk (all `+` lines, no `-` lines) — no adjacent content disturbed.
+## Success Metric 3 — Skill Quality (`grasshopper-plugin-packaging`)
 
-### Metric 4 (T4) — PASS
+- **Frontmatter**: matches sibling format (`name`, `description`, `argument-hint`,
+  `metadata: {version, tags}`) — same shape as `rhino-unit-testing/SKILL.md`. No `model:`
+  override, correctly so (per `model-routing.md`, only `python-rhino-grasshopper`,
+  `typescript-mcp`, `systematic-debugging` carry overrides — `rhino-unit-testing` doesn't
+  either).
+- **Length**: 140 lines (`wc -l`), under the 150-line target.
+- **Packaging checklist**: present, `## ✅ Packaging Checklist`, 11 items.
+- **Leads with recommended pipeline**: first content section is `## 🚀 Recommended Pipeline
+  (Lead With This)`.
+- **References vs. restates**: "See `python-rhino-grasshopper` for RhinoCommon authoring
+  patterns — not restated here"; "Full `# venv:`/`# r:`/`# env:` semantics ... are owned by
+  `rhino-e2e-testing` §*Bringing packages into the in-process script* — not restated here."
+  I confirmed that referenced section heading actually exists in
+  `rhino-e2e-testing/SKILL.md:129` — not a dangling cross-reference.
 
-Covered above (Metric 1 evidence block, first hunk): item 6 added to §Git Phase Branching,
-scoped to "task-completion commits (a commit that finishes a TODO task)", with explicit
-trivial-commit exemption ("Trivial/intermediate commits are exempt.") and stated rationale
-(crash recovery, self-maintaining brief). ✓
+PASS.
+
+## Success Metric 4 — CLAUDE-surface Standards
+
+`CLAUDE-global.md` is 153 lines (target ≤250, hard cap 400) — the +1 row is the only change,
+no duplication of rule content. `rules/common/orchestration.md` is 347 lines — the diff is a
+single-cell edit to the `geometry` row (not a `CLAUDE.md`-tier file, so `claude-md-standards.md`
+size caps don't directly apply, but the edit is surgical regardless). `skills.overview.md` and
+`cheatsheet.md` each get a single-line addition. No adjacent prose touched, no rule content
+copy-pasted into any of the four files. PASS.
 
 ---
 
-## Hard Rule Verification
+## Hard Rule HR1 — No gBlox/Project-Specific Leakage
 
-### Hard Rule 1 — New fields OPTIONAL, zero semantics/authority change — PASS
-
-- T1 extended format: both `Tn:` and `Blocked by:` explicitly labeled "OPTIONAL — a task without
-  them is fully valid."
-- `[ ]`/`[-]`/`[x]` semantics line: byte-identical pre/post (see Metric 1).
-- TODO-authority table (Strategist/Coder/Auditor/sync-ingest/Scribe-Concierge rows): byte-identical
-  pre/post (see Metric 1) — no agent's Allowed/Forbidden column was touched.
-
-### Hard Rule 3 — Doc-only blast radius confined to named files — PASS (scoped to `ae60542`)
-
-`git show --stat ae60542`:
+The task-suggested command (`git diff main -- optional_plugins/ | grep -in "gblox\|
+MCP_LANE_A_TEST\|SimpleBuilding"`) **only covers tracked-file diffs** — it silently misses the
+three new *untracked* paths (`grasshopper-plugin-packaging/` entirely, plus the two new
+`resources/*.py` files), since `git diff` does not show untracked content. I ran it as
+specified (no matches, exit 1) and then extended the check directly against the untracked
+files and the full `optional_plugins/geometry/` tree plus all four registry-surface files:
 
 ```
- rules/common/orchestration.md           | 7 +++++++
- skills/implementation-dispatch/SKILL.md | 3 ++-
- skills/project-planner/SKILL.md         | 8 ++++++++
- 3 files changed, 17 insertions(+), 1 deletion(-)
+$ git diff main -- optional_plugins/ | grep -in "gblox\|MCP_LANE_A_TEST\|SimpleBuilding"
+(no output, exit 1)
+
+$ grep -rin "gblox\|MCP_LANE_A_TEST\|SimpleBuilding" optional_plugins/geometry/ \
+    CLAUDE-global.md rules/common/orchestration.md cheatsheet.md skills/skills.overview.md
+(no output, exit 1)
 ```
 
-Exactly the 3 files named in Plan §T1–T3 (T4 is the same `orchestration.md` file as T1, no
-separate file). No Artifacts/ writes in this commit — all Artifacts/ churn visible in the wider
-`d445b63..HEAD` range (`DECISION_LOG.md`, `HANDOFF_BRIEF.md`, `IMPLEMENTATION_PLAN.md`,
-`Plans/OXL-1-Plan.md`, `Plans/OXL-1-TODO.md`, `TODO.md`, `learnings/HOT.md`) belongs to the
-separate strategist commit `cb319cb` (OXL-1 planning/expansion), not the `ae60542` implementation
-commit under audit. No violation.
+Zero matches across the full changed surface, tracked and untracked. **PASS.**
+
+## Hard Rule HR2 — No Re-documentation of Lanes/Directives Owned Elsewhere
+
+**FAIL.** Three facts are freshly duplicated across files in this same phase instead of being
+referenced once from the owning location (`rhino-e2e-testing`):
+
+**1. `rhinocode script` exit-0-before-done timing** — already owned by
+`rhino-e2e-testing/SKILL.md` **before this phase** (pre-existing line, unchanged by this diff):
+
+> `rhinocode script` returns **exit 0 before the script finishes**. The script must flush
+> incrementally to a file and write a terminal **sentinel line**; the caller polls that file
+> for the sentinel before reading results. Always pass an **absolute** script path — a
+> relative path silently runs nothing.
+
+This phase adds a near-verbatim restatement as a **new row in `pitfalls.md`**, with no
+cross-reference to `rhino-e2e-testing`:
+
+> `rhinocode ... script` exit-code timing | Returns exit `0` **before** the script finishes;
+> a report read immediately is truncated and looks exactly like a mid-script abort | Probes
+> must flush output incrementally and write a terminal sentinel line; the caller waits for
+> that line before reading the report
+
+...and a second new `pitfalls.md` row restating the companion fact:
+
+> `rhinocode ... script <relative-path>` | Silently runs nothing and exits `0` | Always pass
+> an **absolute** script path
+
+...and the *same* fact is stated a third and fourth time in this phase's own new content: the
+new "Lane A in-process runner" section of `rhino-e2e-testing/SKILL.md` ("**Exit-0-before-done**:
+`rhinocode script` returns 0 before the script finishes...") and both new template docstrings
+(`in_process_bridge_runner.py`: *"Why this exists (the exit-0-before-done trap)"*;
+`in_process_suite_runner.py`: *"Why exit-0-before-done matters here too"*).
+
+**2. `rhinoinside.load()` defaulting to Rhino 7** — added to **two files in the same diff**
+simultaneously, not one referencing the other. `rhino-e2e-testing/SKILL.md`'s edited
+Troubleshooting section:
+
+> A bare `rhinoinside.load()` silently defaults to **Rhino 7** (signature:
+> `load(rhino_dir_or_major_version = 7, ...)`) with no warning — Rhino 8-only APIs (e.g.
+> `ModelObject`) then fail in a way that masquerades as test rot. Always `rhinoinside.load(8)`
+> explicitly; when Lane A behaves strangely on a multi-Rhino machine, verify
+> `Rhino.RhinoApp.Version.Major` **before** triaging test failures.
+
+`pitfalls.md`'s new row, same PR:
+
+> Bare `rhinoinside.load()` | Silently loads Rhino 7 on multi-version machines; Rhino 8-only
+> APIs fail, masquerading as test rot | Always `rhinoinside.load(8)`; verify
+> `Rhino.RhinoApp.Version.Major` **before** triaging Lane A failures
+
+Both `rhinoinside.load()` and `rhinocode script` are Lane A / `rhino-e2e-testing`-owned tooling
+by definition — not general RhinoCommon-authoring pitfalls. `pitfalls.md` (owned by
+`python-rhino-grasshopper`) is the wrong home for the full restatement; the skill's own
+established pattern elsewhere in this same diff (e.g. `grasshopper-plugin-packaging`'s "not
+restated here, see X") is the correct model and was not applied here.
+
+**Fix required** (either is acceptable, pick one):
+- Remove the two/three duplicated `pitfalls.md` rows entirely and replace with a single
+  one-line pointer, e.g. `Lane A / rhinocode gotchas (exit timing, rhinoinside version) →
+  rhino-e2e-testing`; or
+- Keep a one-clause pointer in `pitfalls.md` ("see `rhino-e2e-testing` Troubleshooting") and
+  delete the restated detail column, keeping the full explanation solely in
+  `rhino-e2e-testing`.
+- Either way, drop the redundant "4 gotchas" list items in the new "Lane A in-process runner"
+  section down to a bare pointer at the docstrings, since the docstrings already state (and
+  the skill text itself says) *"don't re-derive"* — the list re-derives what it just said not
+  to re-derive.
+
+This is not a nitpick: five separate locations now assert the exact same operational fact.
+`orchestration.md` §Artifact Separation and `claude-md-standards.md` §5 (Rule-echo) both treat
+this pattern as a maintenance-debt generator — a future correction to the exit-timing behavior
+requires remembering to edit five files, and drift between them is exactly how stale
+guidance survives an audit undetected next time.
+
+## Hard Rule HR3 — Ambiguities Flagged
+
+**PASS.** Both required claims are explicitly flagged as unverified, not stated as settled
+fact. Quoted directly from `grasshopper-plugin-packaging/SKILL.md`:
+
+Distribution-tag version-targeting (line 70):
+> **FLAG — verify against a live Rhino 8 build**: targeting a specific Rhino version is
+> controlled via the build target / referenced RhinoCommon assembly, not a YAML field. Not
+> settled from docs alone — confirm the derived tag on an actual `yak build` output before
+> shipping.
+
+`# r:` dependency bundle-vs-user-runtime (line 89):
+> **FLAG — verify against a live Rhino 8 build**: McNeel docs do NOT settle whether `# r:`
+> deps bundle into the `.yak` at build time or pip-install on the **end user's** machine at
+> first run. Evidence favors runtime install — first run "takes time and disables the
+> editor," implying a live install step — meaning end users would need internet access. Do
+> not treat this as settled; confirm on a real install before relying on it for offline
+> distribution.
+
+The companion `references/yak-cli.md` repeats the distribution-tag flag consistently
+("**Unresolved from docs (flag, do not assume)**...") rather than contradicting it.
+
+## Hard Rule HR4 — Template Sentinel Consistency
+
+**PASS.** Identical string, quoted from both files:
+
+`in_process_bridge_runner.py:44`:
+```python
+SENTINEL = "[inprocess] complete rc="   # must match the runner's SENTINEL constant exactly
+```
+
+`in_process_suite_runner.py:56`:
+```python
+SENTINEL = "[inprocess] complete rc="   # must match the bridge's SENTINEL constant exactly
+```
+
+Byte-identical. The bridge polls for `line.startswith(sentinel)`; the runner writes
+`SENTINEL + str(int(rc))` on every exit path (success, pytest-import failure, Rhino-import
+failure, pytest crash, and the outer fatal handler) — confirmed all five `emit(SENTINEL + ...)`
+call sites in `in_process_suite_runner.py` use the same `SENTINEL` constant, not a hardcoded
+copy.
 
 ---
 
-## Scope Note
+## Spot-check (INFO) — `pitfalls.md` RhinoCommon idioms
 
-T5, T7, T8, T9, T6 (phase gate) were **not** in scope for this audit dispatch and were **not**
-touched — the corresponding lines in `Artifacts/Plans/OXL-1-TODO.md` are unchanged by this audit.
+Independently grepped `optional_plugins/geometry/skills/python-rhino-grasshopper/resources/RhinoCommon.xml`:
 
----
+- `Rhino.DocObjects.ObjectEnumeratorSettings.NormalObjects` / `.LockedObjects` /
+  `.HiddenObjects` — exist (properties, confirmed at their `<member>` entries).
+- `Rhino.DocObjects.Tables.ObjectTable.GetObjectList(Rhino.DocObjects.ObjectEnumeratorSettings)`
+  — exists.
+- `Rhino.RhinoApp.RunScript(System.String,System.Boolean)` — exists, matches the
+  `RhinoApp.RunScript("_Undo", False)` idiom cited in `pitfalls.md`.
+- `Rhino.RhinoDoc.Undo` — exists; XML summary (`"Undo the last action" / returns "true on
+  success"`) does not itself state the no-op behavior claimed in `pitfalls.md` — that claim is
+  correctly framed as a runtime-observed pitfall, not an XML-sourced fact, consistent with the
+  skill's new XML-vs-probe methodology.
+- `UndoRecordCount`, `DefaultLayerIndex` (added to the hallucination deny list) — confirmed
+  **absent** from `RhinoCommon.xml`.
 
-## Disposition
-
-All 4 metrics PASS with fresh evidence. Both gated Hard Rules (1, 3) PASS. No violations found —
-no `DONE_WITH_CONCERNS` items. `Artifacts/Plans/OXL-1-TODO.md` T1–T4 marked `[x]`.
-
----
----
-
-# T5 Gate — AFK/HITL mode tag (orchestration.md)
-
-**Auditor** · Branch `phase-oxl-1-conventions` · HEAD `7f04881`
-**Scope**: Plan §T5, Success Metric 5, Hard Rule 1 (tag OPTIONAL / additions-only), Blocker check (T5 ← T1)
-**Working tree**: `git status --short` — clean at HEAD `7f04881` (verified fresh this pass)
-
-## Verdict: PASS (Success Metric 5, Hard Rule 1, blocker gate)
-
-| Check | Verdict |
-|:---|:---|
-| Grep 1 — `Mode: AFK`/`Mode: HITL` optional tag, placement in extended format line | PASS |
-| Grep 2 — default-HITL line (untagged = HITL) | PASS |
-| Grep 3 — strategist-only tagging authority line | PASS |
-| Grep 4 — `/afk`-enforcement line (never dispatches HITL/untagged) | PASS |
-| Hard Rule 1 — tag OPTIONAL; `git diff a50002f..HEAD` additions-only, no T1 block modified/deleted | PASS |
-| Blocker — T5's `Blocked by: T1` is `[x]` in OXL-1-TODO.md | PASS |
-
-## Evidence
-
-**Live grep** (`rules/common/orchestration.md`, current HEAD, lines 159–163):
-
-```
-159:**Mode tag (optional)**: append `— Mode: AFK` or `— Mode: HITL` to gate `/afk` auto-execution: `[ ] [agent] Tn: Task description — Success: metric — Mode: AFK — Blocked by: Tm`
-161:- **Default-HITL**: an untagged task is HITL — nothing auto-runs by omission (fail-safe).
-162:- **Tagging authority**: strategist only, at planning time; no agent may retag at runtime.
-163:- **Enforcement**: `/afk` never dispatches a HITL or untagged task.
-```
-
-- Check 1: line 159 shows `Mode: AFK`/`Mode: HITL` both present, both parenthetically labeled
-  "(optional)", and placed inline in the extended task-format string alongside the T1 `Tn:` /
-  `Blocked by:` fields (`... — Success: metric — Mode: AFK — Blocked by: Tm`) — matches Plan
-  §T5's "alongside T1's fields" requirement. ✓
-- Check 2: line 161, exact "untagged task is HITL" semantics with explicit fail-safe rationale. ✓
-- Check 3: line 162, "strategist only, at planning time; no agent may retag at runtime" —
-  matches Plan §T5 tagging-authority clause verbatim in substance. ✓
-- Check 4: line 163, "`/afk` never dispatches a HITL or untagged task" — matches Plan §T5
-  enforcement clause verbatim. ✓
-
-**`git diff a50002f..HEAD -- rules/common/orchestration.md`** (full diff, reproduced):
-
-```diff
-@@ -156,6 +156,12 @@ No agent may begin implementation, write code, scaffold projects, or take any im
- - **Enforcement**: Auditor must not allow a task to be marked `[-]` while any listed blocker is not `[x]`.
- - **Anti-pattern**: A linear chain (T2←T1, T3←T2, …) adds nothing over list order — omit `Blocked by:` there; use it only where the dependency graph diverges from list order.
- 
-+**Mode tag (optional)**: append `— Mode: AFK` or `— Mode: HITL` to gate `/afk` auto-execution: `[ ] [agent] Tn: Task description — Success: metric — Mode: AFK — Blocked by: Tm`
-+- `AFK` = the `/afk` runner may auto-execute this task without user approval; `HITL` = user approval required before execution.
-+- **Default-HITL**: an untagged task is HITL — nothing auto-runs by omission (fail-safe).
-+- **Tagging authority**: strategist only, at planning time; no agent may retag at runtime.
-+- **Enforcement**: `/afk` never dispatches a HITL or untagged task.
-+
- ## Persistence
-```
-
-- Diff is a single hunk, **all `+` lines, zero `-` lines** — additions-only confirmed. ✓
-- The hunk is appended immediately after T1's `Blocked by:` block (context lines 156–158 shown
-  unmodified, `Anti-pattern` line intact) — T1's block from `ae60542` is untouched by this
-  commit. ✓
-- No other line in `orchestration.md` changed between `a50002f` and `HEAD` — confirmed by the
-  diff containing exactly one hunk. ✓ (Hard Rule 1 satisfied: tag presented as OPTIONAL in its
-  own defining line, and no pre-existing content modified or deleted.)
-
-**Blocker check** — `Artifacts/Plans/OXL-1-TODO.md`:
-
-```
-5:- [x] [coder] T1: `Blocked by:` + optional `Tn:` ID in orchestration.md task format — ...
-9:- [-] [strategist] T5: AFK/HITL tag spec in orchestration.md task format ... — Blocked by: T1
-```
-
-- T5 declares `Blocked by: T1`. T1 is `[x]` (verified `[x]` in the T1–T4 gate above, unchanged
-  since). Per the new §T5 enforcement rule itself and the pre-existing `Blocked by:` enforcement
-  line ("Auditor must not allow a task to be marked `[-]` while any listed blocker is not `[x]`"),
-  the dependency gate is satisfied. ✓
-
-## Note (non-blocking, INFO)
-
-`OXL-1-TODO.md` line 9 tags T5's agent as `[strategist]`, but the implementing commit
-(`7f04881`, `feat(oxl-1): T5 — ...`) is a doc-only orchestration.md edit consistent with either
-strategist or coder authorship per `orchestration.md`'s TODO-authority table (content edits to
-`rules/common/*` are not agent-restricted the way `Artifacts/TODO.md` status marks are). Not a
-gate criterion for this dispatch — flagged for awareness only, no action required.
-
-## Disposition
-
-Success Metric 5 (all 4 grep checks), Hard Rule 1 (tag optional, additions-only), and the T5←T1
-blocker gate all PASS with fresh evidence at HEAD `7f04881`. `Artifacts/Plans/OXL-1-TODO.md` T5
-marked `[x]`.
+No API-signature concerns. This satisfies the API Signature Gate for this phase's `pitfalls.md`
+additions.
 
 ---
----
 
-# T7 Gate — `commands/afk.md` runner procedure
-
-**Auditor** · Branch `phase-oxl-1-conventions` · HEAD `210d5f6`
-**Scope**: Plan §T7, Success Metric 6, Hard Rules 2 (amended) & 4, tag-syntax consistency vs
-`orchestration.md`, blocker check (T7 ← T2, T4, T5)
-**Working tree**: `git status --short` — clean at HEAD `210d5f6` (verified fresh this pass)
-
-## Verdict: PASS (Success Metric 6, Hard Rules 2 & 4, tag-syntax consistency, blocker gate)
-
-| # | Check | Verdict |
-|:--|:---|:---|
-| 1 | File exists at `commands/afk.md` | PASS |
-| 2 | All 8 §T7 plan elements present (enumerated below) | PASS |
-| 3 | Spot-grep: `hard-stop` / stop instruction for model tier | PASS — line 15 `## 1. Preconditions (hard-stops)`, line 19-20 stop message |
-| 4 | Spot-grep: `frontier` | PASS — defined §2, used throughout §3–8 |
-| 5 | Spot-grep: `afk-run-` | PASS — line 75 `Artifacts/Reports/afk-run-<YYYY-MM-DD>.md` |
-| 6 | Spot-grep: iteration cap `10` | PASS — line 9 `(default \`10\`)`, line 92 `default 10` |
-| 7 | Spot-grep: empty-frontier pause | PASS — line 91 `Frontier empty AND tasks remain` → `AFK-RUN PAUSED` |
-| 8 | Hard Rule 2 (amended) — pure markdown, no executable code blocks | PASS — 0 triple-backtick fences in file; inline `` `git status` `` citations only (permitted) |
-| 9 | Hard Rule 4 — `/afk` never dispatches HITL/untagged (via frontier definition) | PASS — line 35 |
-| 10 | Tag-syntax consistency vs `orchestration.md` Mode-tag block | PASS — exact match |
-| 11 | Blocker check — T7's `Blocked by: T2, T4, T5` all `[x]` | PASS |
-
-## Evidence
-
-### Check 1–2: File exists, 8 §T7 elements present
-
-`Read` of `commands/afk.md` (111 lines) confirms all 8 Plan §T7 elements, mapped section-by-section:
-
-1. **Preconditions** (§1, lines 15–24): 3 hard-stop checks in order — (a) model tier Opus-or-above,
-   stop + instruct `/model opus` if not (lines 19–20); (b) approved plan + phase TODO exist, stop +
-   instruct `/blueprint` if not (lines 21–22); (c) clean working tree via `git status`, stop if not
-   (lines 23–24). Matches plan verbatim ("hard-stop otherwise, instruct `/model opus`").
-2. **Frontier** (§2, lines 26–36): status `[ ]` AND `— Mode: AFK` AND all `Blocked by:` `[x]`
-   (lines 31–33), plus explicit default-HITL exclusion (line 35: "An untagged task or one tagged
-   `— Mode: HITL` is NEVER in the frontier").
-3. **Dispatch** (§3, lines 38–48): Agent tool per model bindings (coder→Sonnet, scribe→Haiku,
-   auditor→Sonnet, line 43), `implementation-dispatch/implementer-prompt.md` templates (line 45),
-   status codes `DONE`/`DONE_WITH_CONCERNS`/`NEEDS_CONTEXT`/`BLOCKED` (line 48).
-4. **Orchestrator review** (§4, lines 50–65): two-stage — Stage A Spec Compliance (lines 56–57),
-   Stage B Technical Quality (lines 58–59); FAIL → feedback + re-dispatch (line 61); fingerprint
-   loop-detection, FREEZE at 3 identical fingerprints (lines 63–65).
-5. **Auditor gate per task** (§5, lines 67–77): auditor subagent verifies fresh, marks `[x]` on
-   PASS (lines 71–73); findings appended as new dated section to
-   `Artifacts/Reports/afk-run-<YYYY-MM-DD>.md`, explicitly "never written to
-   `Artifacts/AUDIT_REPORT.md`" (lines 74–77).
-6. **Commit** (§6, lines 79–84): task-completion commit per `orchestration.md` §Git Phase
-   Branching item 6 (T4's commit-as-handoff rule) after auditor PASS.
-7. **Exits** (§7, lines 86–95): 4 rows — `AFK-RUN COMPLETE` (frontier empty ∧ all `[x]`),
-   `AFK-RUN PAUSED` (frontier empty ∧ tasks remain, with explicit "only pause trigger" semantics
-   parenthetical), `AFK-RUN CAPPED` (default 10, arg-overridable via `max_iterations`), loop-detect
-   FREEZE → escalate per `implementation-dispatch` §3.
-8. **TODO authority preserved** (§8, lines 97–101): "The orchestrator (this command) marks
-   **nothing** in any TODO file... coder subagent marks `[-]`; the dispatched auditor subagent
-   marks `[x]`."
-
-All 8 elements present, matching Plan §T7 items 1–8 one-to-one.
-
-### Check 3–7: Spot-greps
-
-`Grep` of `commands/afk.md` for `hard-stop|frontier|afk-run-|max_iterations|default \`10\`|empty|Mode: AFK|Blocked by: Tm`
-returned 12 hits covering every required term (lines 2, 3, 9, 15, 28, 32–36, 40, 64, 75, 90–92) —
-reproduced above per-check. All 5 spot-grep terms present.
-
-### Check 8: Hard Rule 2 (amended) — no executable code
-
-`Grep` for `` ``` `` (triple-backtick code fence) in `commands/afk.md` → **0 matches**. The only
-backtick usage in the file is single-backtick inline code spans citing file paths, tag syntax, and
-check commands (e.g. `` `git status` `` at line 23, `` `/model opus` `` at line 20) — these are
-checks/citations, not executable logic, per the amended Hard Rule 2's explicit carve-out. File is
-pure markdown procedure. PASS.
-
-### Check 9: Hard Rule 4 — never dispatches HITL/untagged
-
-Line 35: "An **untagged task or one tagged `— Mode: HITL` is NEVER in the frontier** (default-HITL
-rule — nothing auto-runs by omission)." Since dispatch (§3) only ever operates on "the frontier
-task," and the frontier definition (§2) structurally excludes HITL/untagged tasks, `/afk` cannot
-dispatch either by construction. PASS.
-
-### Check 10: Tag-syntax consistency vs `orchestration.md`
-
-`Grep` of `rules/common/orchestration.md` for the Mode-tag block:
-
-```
-153:**Extended format (optional)**: `[ ] [agent] Tn: Task description — Success: metric — Blocked by: Tm[, Tk]`
-159:**Mode tag (optional)**: append `— Mode: AFK` or `— Mode: HITL` to gate `/afk` auto-execution: `[ ] [agent] Tn: Task description — Success: metric — Mode: AFK — Blocked by: Tm`
-```
-
-`commands/afk.md` §2 cites: `— Mode: AFK` (line 32) — byte-identical to orchestration.md line 159's
-`— Mode: AFK` token. `— Blocked by: Tm[, Tk]` (line 33) — byte-identical to orchestration.md line
-153's canonical `Blocked by: Tm[, Tk]` syntax (afk.md correctly uses the fuller `[, Tk]` form for
-the general case, matching the canonical definition rather than line 159's abbreviated inline
-example). No drift. PASS.
-
-### Check 11: Blocker gate
-
-`Artifacts/Plans/OXL-1-TODO.md`:
-
-```
-6:- [x] [coder] T2: implementation-dispatch independence rule cites `Blocked by:` — ...
-8:- [x] [coder] T4: commit-as-handoff rule ... — ...
-9:- [x] [strategist] T5: AFK/HITL tag spec ... — ...
-10:- [-] [coder] T7: `commands/afk.md` runner procedure — ... — Blocked by: T2, T4, T5
-```
-
-T7 declares `Blocked by: T2, T4, T5`. All three are `[x]` (T2/T4 verified in the T1–T4 gate above,
-T5 verified in the T5 gate above, unchanged since). Dependency gate satisfied. PASS.
-
-## Strengths
-
-- **Report-destination discipline is explicit and repeated**: §5 and the Relationships section both
-  state, in different words, that `afk-run-<date>.md` is never conflated with `AUDIT_REPORT.md` —
-  a deliberate redundancy against a plausible orchestrator mistake.
-- **Pause semantics are self-documenting**: the §7 table's parenthetical ("No HITL task is ever
-  'reached' — an empty frontier with work remaining is the only pause trigger") preempts the
-  natural misreading that the runner "stops when it hits a HITL task," which the frontier
-  definition already rules out structurally.
-- **Zero drift from the T1/T4/T5 primitives it composes**: afk.md does not redefine `Blocked by:`,
-  `Mode:`, or the commit-as-handoff rule — it cites `orchestration.md` and
-  `implementation-dispatch/SKILL.md` by section, keeping a single source of truth (see Check 10).
-
-## Disposition
-
-Success Metric 6 (file exists, all 8 §T7 elements, all 5 spot-greps), Hard Rule 2 amended (pure
-markdown, zero executable code fences), Hard Rule 4 (structural HITL/untagged exclusion), tag-syntax
-consistency (byte-identical to `orchestration.md`), and the T7←T2,T4,T5 blocker gate all PASS with
-fresh evidence at HEAD `210d5f6`. `Artifacts/Plans/OXL-1-TODO.md` T7 marked `[x]`.
-
----
----
-
-# T8 Gate — Registry rows (`/afk` in `CLAUDE-global.md` + `cheatsheet.md`)
-
-**Auditor** · Branch `phase-oxl-1-conventions` · HEAD `f7f5e71`
-**Scope**: Plan §T8, Success Metric 7, registry cross-reference integrity (`/registry-audit`
-concern scoped to this change), blocker check (T8 ← T7), Hard Rule 3
-**Working tree**: `git status --short` — verified fresh this pass at HEAD `f7f5e71`
-
-## Verdict: PASS (Success Metric 7, registry cross-reference integrity, blocker gate, Hard Rule 3)
-
-| # | Check | Verdict |
-|:--|:---|:---|
-| 1 | `/afk` row in `CLAUDE-global.md` Commands table, owner + purpose filled | PASS |
-| 2 | `/afk` entry in `cheatsheet.md`, format consistent with its table | PASS |
-| 3 | Registry cross-reference integrity (`commands/afk.md` exists, frontmatter/owner/fleet consistency, no other command-enumerating file missing `/afk`) | PASS (1 pre-existing, already-tracked drift noted — not a T8 defect) |
-| 4 | Blocker gate — T7 `[x]` in `Artifacts/Plans/OXL-1-TODO.md` | PASS |
-| 5 | Hard Rule 3 — blast radius confined to `CLAUDE-global.md`, `cheatsheet.md`, TODO status line | PASS |
-
-## Evidence
-
-### Check 1: `CLAUDE-global.md` Commands table row
-
-`Grep` of `CLAUDE-global.md` line 87:
-
-```
-| `/afk` | coder (dispatch) / auditor (gates) | AFK task runner — dispatch, review, and audit AFK-tagged tasks until frontier empties or cap hits |
-```
-
-Owner and purpose columns both filled, table-row syntax (`| \`cmd\` | owner | purpose |`)
-matches the surrounding rows (`/triage` at line 86, `/learn` at line 88). The owner cell uses
-parenthetical role annotations (`coder (dispatch) / auditor (gates)`) — this is a new
-sub-pattern not used by the single-owner rows immediately adjacent, but it is not an
-inconsistency: it is the **literal wording specified in the Plan** (`Artifacts/Plans/OXL-1-Plan.md`
-line 75: "owner: coder dispatch / auditor gates") and it faithfully encodes real information
-(`/afk`'s two owners have genuinely different responsibilities — dispatch vs. gate — unlike
-`/deck`'s flat `concierge / coder / auditor` list where all three share one role). Judged
-plan-compliant, not a style defect.
-
-### Check 2: `cheatsheet.md` entry
-
-`Grep` of `cheatsheet.md` line 13:
-
-```
-| **Run AFK tasks** | `/afk` | coder (dispatch) / auditor (gates) | Execute frontier tasks automatically until empty or cap hit |
-```
-
-4-column format (`What You Want | Command | Owner | Use When`) matches the table header and
-every adjacent row (`/blueprint`, `/triage`, `/audit`, `/handoff`, ...). Owner cell mirrors
-`CLAUDE-global.md`'s wording verbatim. PASS.
-
-### Check 3: Registry cross-reference integrity
-
-- **`commands/afk.md` exists**: confirmed (`Glob commands/*` lists `commands/afk.md`;
-  previously read in full during the T7 gate, 111 lines).
-- **Frontmatter description vs. registry purpose text**: `commands/afk.md` frontmatter
-  (line 2): "AFK task runner — orchestrates dispatch, review, and audit of AFK-tagged tasks
-  without user presence, task by task, until the frontier empties or the cap hits." vs.
-  `CLAUDE-global.md` row: "AFK task runner — dispatch, review, and audit AFK-tagged tasks
-  until frontier empties or cap hits." Same claim, consistent wording — not byte-identical
-  but not required to be; no semantic drift. PASS.
-- **Owner agents exist in the fleet**: `coder` and `auditor` both present in
-  `CLAUDE-global.md` §Agents table (and `rules/common/orchestration.md` §The Fleet). PASS.
-- **No other command-enumerating registry surface missing `/afk`**:
-  - `skills/skills.overview.md` — read in full; it enumerates **skills only** (no Commands
-    table), so it is not a command-registry surface. Not applicable, no violation.
-  - `README.md` — contains two illustrative "Common Workflows" code blocks
-    (`/blueprint`, `/triage`, `/audit`, `/handoff`, `/sweep`, `/council`) that are curated
-    examples, not a full command enumeration — they already omit ~20 other pre-existing
-    commands (`/docs`, `/explain`, `/sync`, `/ingest`, `/deck`, `/snapshot`, `/ideate`,
-    `/script`, `/pack`, `/learn`, `/claude-md`, `/grill`, `/skill-graph`, `/registry-audit`,
-    `/graduate`, `/clean`, etc.) independent of this change. Not the "commands overview/index
-    file that enumerates all commands" the gate is watching for — no violation attributable
-    to T8.
-  - **`GEMINI.md`** *does* carry a full parallel "Commands" table modeled on
-    `CLAUDE-global.md`'s, and it is missing `/afk`. However this is **pre-existing drift, not
-    introduced by T8**: `GEMINI.md`'s Commands table was already missing 4 other entries
-    before this change (`/skill-graph`, `pptx-slide-design`, `high-rigor-engineering`,
-    `/claude-md` — confirmed by diffing its table against `CLAUDE-global.md`'s current table).
-    It is explicitly tracked as an open, unresolved product decision in
-    `Artifacts/BACKLOG.md` (`cmd_gemini-parity_1`, filed 2026-07-06: "GEMINI.md holds old
-    combined (pre-split) content... is Gemini parity still wanted?"). Plan §T8 names only
-    `CLAUDE-global.md` + `cheatsheet.md` as the surfaces to update, and Hard Rule 3 confines
-    T8's blast radius to files named in T1–T8 — `GEMINI.md` is not named, so editing it would
-    itself have been a Hard Rule 3 violation. **Not a T8 defect; no new BACKLOG entry filed
-    (duplicate of `cmd_gemini-parity_1`)** — flagged here for the strategist's awareness only.
-
-### Check 4: Blocker gate
-
-`Artifacts/Plans/OXL-1-TODO.md` line 10: `- [x] [coder] T7: ...` — T8's declared blocker
-(`Blocked by: T7`, line 11) is `[x]`. PASS.
-
-### Check 5: Hard Rule 3 — blast radius
-
-`git show f7f5e71 --stat`:
-
-```
- Artifacts/Plans/OXL-1-TODO.md | 2 +-
- CLAUDE-global.md              | 1 +
- cheatsheet.md                 | 1 +
- 3 files changed, 3 insertions(+), 1 deletion(-)
-```
-
-Exactly the 2 files named in Plan §T8 (`CLAUDE-global.md`, `cheatsheet.md`) plus the TODO
-status-line update. No other file touched. PASS.
-
-## Strengths
-
-- **Plan-literal owner wording**: the coder carried the Plan's exact `(dispatch)`/`(gates)`
-  owner annotation into both registry surfaces verbatim, rather than paraphrasing — zero
-  drift risk between the two tables.
-- **Minimal, single-purpose commit**: `f7f5e71` is a 3-line, 3-file diff with nothing
-  incidental — easiest possible commit to audit for blast-radius compliance.
-- **Correctly respected Hard Rule 3's scope boundary**: the coder did not attempt to "fix"
-  `GEMINI.md`'s pre-existing drift opportunistically, even though it would have been an easy
-  reach — that restraint is exactly what Hard Rule 3 requires, and over-reaching would have
-  been a violation, not a bonus.
-
-## Disposition
-
-Success Metric 7 (both registry rows present, correctly formatted), registry cross-reference
-integrity (commands/afk.md consistency, fleet membership, no in-scope registry surface
-missing `/afk`), the T8←T7 blocker gate, and Hard Rule 3 (blast radius) all PASS with fresh
-evidence at HEAD `f7f5e71`. `Artifacts/Plans/OXL-1-TODO.md` T8 marked `[x]`.
-
----
----
-
-# T9 Gate + T6 Phase Gate — Live-fire evidence, full metric re-verification, deploy
-
-**Auditor** · Branch `phase-oxl-1-conventions` · HEAD `2dc8f1f`
-**Scope**: Plan §T9 (Success Metric 8, amended); phase-gate re-verification of Success Metrics
-1–9 and Hard Rules 1–4 (Plan §Hard Rules)
-**Working tree**: `git status --short` → clean at HEAD `2dc8f1f` (verified fresh this pass)
-
-## Verdict: PASS (T9 gate + full T6 phase gate — all 9 Success Metrics, all 4 Hard Rules)
-
-## Part 1 — T9 Gate (Success Metric 8, amended)
-
-| # | Check | Verdict | Evidence |
-|:--|:---|:---|:---|
-| 1 | `Artifacts/Reports/afk-run-2026-07-10.md` exists, S1 gate section, per-check PASS | PASS | `Read` — 3/3 checks (file exists, content matches exactly, blast radius) all `PASS`, "Overall: PASS" |
-| 2 | Task-completion commit for smoke iteration | PASS | `git log --oneline` → `8f5e012 test(oxl-1): /afk smoke iteration 1 — S1 PASS, run-report created` |
-| 3 | `python scripts/model_routing_audit.py --since 2026-07-10 --violations-only` fresh | PASS | Output: `14 honored, 0 violated, 0 no-data across 15 subagent runs` (auditor 6/6, coder 5/5, scribe 1/1, strategist 2/2, all 100%) — **passed with exit 0** |
-| 4 | Sandbox cleaned: `Artifacts/Temp/afk-smoke/` no longer exists | PASS | `test -d Artifacts/Temp/afk-smoke` → absent, printed `ABSENT - PASS` |
-
-**T9 Disposition**: All 4 checks PASS with fresh evidence at HEAD `2dc8f1f`. `Artifacts/Plans/OXL-1-TODO.md` T9 marked `[x]`.
-
-## Part 2 — T6 Phase Gate (all 9 Success Metrics, re-verified fresh)
-
-| Metric | Description | Verdict | Fresh evidence (this pass) |
-|:--|:---|:---|:---|
-| 1 | orchestration.md extended format: optional `Tn:`+`Blocked by:`, 1 example, auditor-enforcement line, `[ ]/[-]/[x]` semantics unchanged | PASS | `grep` lines 150–159: line 150–151 semantics text byte-identical to pre-phase baseline; line 153 "Extended format (optional)"; line 155 exactly 1 example (`T3: Wire schema validation...`); line 157 anti-pattern/enforcement note present |
-| 2 | implementation-dispatch cites `Blocked by:` | PASS | `grep` line 40: "Parallel Independence Test... via `Blocked by:` AND the Footprint Check..." — 1 hit, meets ≥1 bar |
-| 3 | project-planner: 3-criterion slice test + expand–contract exception | PASS | `grep` lines 112–116: "Slice Sizing Test", "Full-stack cut", "Independently verifiable", "Context-window-sized" — all 3 criteria present (expand–contract exception confirmed present in prior gate, file unchanged since) |
-| 4 | orchestration.md §Git Phase Branching: commit-as-handoff + trivial-commit exemption | PASS | `grep` line 134: "**Commit-as-Handoff**... Trivial/intermediate commits are exempt." |
-| 5 | Mode tag block: `AFK`/`HITL` optional, default-HITL, strategist-only, `/afk`-enforcement (4 elements) | PASS | `grep` lines 159, 161–163: all 4 elements present verbatim |
-| 6 | `commands/afk.md` all 8 §T7 elements | PASS | `grep` confirms hard-stop (§1 line 15), frontier (§2 lines 28–36), dispatch, orchestrator review, auditor-gate/report-path (line 75 `afk-run-<YYYY-MM-DD>.md`), commit, exits (lines 90–92: `AFK-RUN COMPLETE`/`PAUSED`/`CAPPED`, iteration cap `default 10`/`max_iterations`), TODO-authority preservation. 0 triple-backtick code fences (Hard Rule 2). |
-| 7 | `/afk` row in CLAUDE-global.md + cheatsheet.md | PASS | `grep`: `CLAUDE-global.md:87` and `cheatsheet.md:13` both present, owner `coder (dispatch) / auditor (gates)` consistent across both |
-| 8 | Live-fire evidence: run-report + routing audit clean, scoped to run date | PASS | See Part 1 above — run-report exists, commit `8f5e012` exists, `--since 2026-07-10 --violations-only` → 0 violations, exit 0 |
-| 9 | `bash scripts/deploy.sh` exits 0 | PASS | Fresh run this pass: `[2/6] Running test suite... 131 passed in 37.69s`, `[6/6] ... all 7 enforced hook(s) present and wired`, `✓ DEPLOYMENT COMPLETE` — **exited with code 0** |
-
-### Hard Rules (Plan §Hard Rules, re-verified)
-
-| # | Rule | Verdict | Evidence |
-|:--|:---|:---|:---|
-| 1 | New fields/tags OPTIONAL everywhere; `[ ]/[-]/[x]` status semantics + TODO-authority untouched | PASS | Lines 150–151 byte-identical to pre-phase baseline (confirmed above); TODO-authority table untouched since T1 gate (no diff hunk in that line range across the full `d445b63..HEAD` range) |
-| 2 | No executable runner code; `commands/afk.md` markdown-only | PASS | `grep '```' commands/afk.md` → 0 matches (no code fences); `git diff --stat d445b63..HEAD -- hooks/ scripts/` → empty (zero touches to hooks/ or scripts/ across the entire phase) |
-| 3 | Doc-only blast radius confined to T1–T8 named files + smoke writes confined to `Artifacts/Temp/afk-smoke/` + `Artifacts/Reports/` | PASS | `git diff --stat d445b63..HEAD -- . ':!Artifacts'` → exactly 6 files: `CLAUDE-global.md`, `cheatsheet.md`, `commands/afk.md`, `rules/common/orchestration.md`, `skills/implementation-dispatch/SKILL.md`, `skills/project-planner/SKILL.md` (135 insertions, 1 deletion — the 1 deletion is a frontmatter version-bump line, confirmed via `git diff -- skills/implementation-dispatch/SKILL.md \| grep '^-'` → only `-  version: "2.2.0"`). `Artifacts/Temp/afk-smoke/` cleaned (absent, Part 1 check 4); `Artifacts/Reports/afk-run-2026-07-10.md` is the only new Reports/ file. |
-| 4 | `/afk` never dispatches HITL/untagged; untagged defaults to HITL | PASS | orchestration.md line 163: "`/afk` never dispatches a HITL or untagged task"; `commands/afk.md` line 35: frontier structurally excludes untagged/HITL tasks — both confirmed present and consistent |
-
-## Strengths
-
-- **Metric re-verification found zero drift** across all 5 previously-gated metrics (1–5):
-  every grep this pass reproduces the exact line numbers and text captured in the T1–T4 and T5
-  gate sections above, confirming no regression was introduced by the later T7/T8/T9 commits.
-- **Blast-radius discipline held across the entire phase, not just per-commit**: the
-  phase-wide diff (`d445b63..HEAD`, excluding `Artifacts/`) touches exactly the 6 files the
-  plan names across T1–T8 — no incidental file was ever touched, and the one deletion line in
-  the entire phase is a harmless frontmatter version bump.
-- **Metric 8's scoping amendment is honored correctly**: the live-fire evidence uses the
-  date-scoped `--since 2026-07-10` invocation as amended in the plan, not the unscoped
-  variant that surfaced the 21 pre-existing (out-of-scope) violations now correctly filed in
-  `Artifacts/BACKLOG.md` as `oxl_routing-violations_1`.
-- **Sandbox hygiene**: `Artifacts/Temp/afk-smoke/` was cleaned before this gate ran, and the
-  smoke run's only permanent trace is the report append (`afk-run-2026-07-10.md`) — exactly
-  the footprint Hard Rule 3 permits.
-
-## Disposition
-
-**T9 Gate**: PASS (4/4 checks, fresh evidence). `Artifacts/Plans/OXL-1-TODO.md` T9 marked `[x]`.
-
-**T6 Phase Gate**: PASS (9/9 Success Metrics, 4/4 Hard Rules, all fresh evidence at HEAD
-`2dc8f1f`). `Artifacts/Plans/OXL-1-TODO.md` T6 marked `[x]`.
-
-**Initiative**: OXL-1 — Work-Tracking & Planning Conventions + AFK Runner is phase-complete.
-`Artifacts/TODO.md` OXL-1 line marked `[x]`.
+## Overall Verdict: NO-GO
+
+**Blocking**: HR2 (re-documentation) — 2–3 duplicated rows in `pitfalls.md` plus a redundant
+gotchas list in `rhino-e2e-testing/SKILL.md`'s new section, restating facts already owned by
+`rhino-e2e-testing`.
+
+**Required before re-audit**:
+1. Remove/consolidate the duplicated `pitfalls.md` rows (`rhinoinside.load()` Rhino-7 default,
+   `rhinocode` relative-path, `rhinocode` exit-timing) into a single pointer to
+   `rhino-e2e-testing`, OR keep the pointer + delete the restated detail column.
+2. Trim the "4 load-bearing gotchas" list in `rhino-e2e-testing/SKILL.md`'s new "Lane A
+   in-process runner" section so it doesn't re-derive content the section's own text says not
+   to re-derive — a one-line pointer to the docstrings is sufficient given the docstrings are
+   already the stated source of truth.
+3. Update `scripts/skill_graph_analyzer.py`'s inlined `DEFAULT_SKILLS["geometry"]` mirror to
+   include `grasshopper-plugin-packaging`, so `/skill-graph` reflects the same routing
+   `orchestration.md` now states (filed as a required fix, not gating HR1–HR4, but blocking
+   "done" under Success Metric 1).
+
+Not blocking, but should accompany the fix: none of HR1, HR3, HR4, or Success Metrics 2–4 need
+rework. Tests are green (131/131, exit 0), no secrets/project leakage, both ambiguities
+correctly flagged, template sentinels consistent.
+
+No files were edited and no `Artifacts/TODO.md` entries were marked by this audit, per
+auditor write-authority limits. Findings above are for the strategist/coder to action; the
+registry-mirror gap (Metric 1) belongs in `Artifacts/BACKLOG.md` if not fixed in the same pass.

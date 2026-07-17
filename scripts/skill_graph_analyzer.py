@@ -118,7 +118,7 @@ DEFAULT_SKILLS: dict[str, list[str]] = {
     "youtube": ["youtube-strategy", "youtube-scriptwriting", "youtube-retention"],
     "pptx": ["pptx", "visual-composition", "python-patterns"],
     "pbi-report": ["powerbi-report", "visual-composition", "dax-modeling"],
-    "geometry": ["cd-foundations", "python-rhino-grasshopper", "rhino-e2e-testing", "rhino-unit-testing", "python-patterns"],
+    "geometry": ["cd-foundations", "python-rhino-grasshopper", "rhino-e2e-testing", "rhino-unit-testing", "grasshopper-plugin-packaging", "python-patterns"],
     "code": ["codebase-navigator", "systematic-debugging", "python-patterns", "python-mcp", "typescript-mcp"],
     "manuscript": ["manuscript-review", "glossary-extraction"],
     "data": ["dax-modeling", "powerbi-report", "python-patterns"],

@@ -26,6 +26,16 @@ grep_search(Query="M:Rhino.Geometry.Brep.CreateFromSweep", SearchPath="[ABS_PATH
 - **P:** denotes a Property.
 - **T:** denotes a Type (Class/Enum).
 
+### XML First, Probe Only for Behavior
+
+For any "does member X exist / what is its signature" question, grep `RhinoCommon.xml`
+**before** live member-probing on the object. The XML is definitive for the API *contract*
+and carries zero runtime risk — one grep resolves a whole fictional-member cascade at once
+(e.g. `BrepFace` has no `Area`/`IsPlane`/`Normal`/`Vertices`; `AreaMassProperties` has no
+`Volume`; `Brep` has no `Centroid`/`Face`), replacing a member-by-member probe loop that can
+wedge the runtime. Reserve live probing for *behavior* (actual values, degradation, side
+effects), and corroborate each source against the other.
+
 ## 🚫 Hallucination Deny List
 
 Commonly hallucinated members to AVOID (check API before using):

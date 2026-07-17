@@ -35,7 +35,7 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 
 ## Domain: Geometry (Rhino/GH)
 
-> Geometry skills (`cd-foundations`, `python-rhino-grasshopper`, `rhino-e2e-testing`, `rhino-unit-testing`) live in `optional_plugins/geometry/` (plugin `geometry`), not this repo's core skill set. See `optional_plugins/index.md`.
+> Geometry skills (`cd-foundations`, `python-rhino-grasshopper`, `rhino-e2e-testing`, `rhino-unit-testing`, `grasshopper-plugin-packaging`) live in `optional_plugins/geometry/` (plugin `geometry`), not this repo's core skill set. See `optional_plugins/index.md`.
 
 ## Domain: Specialized
 | Skill | Category | Purpose |

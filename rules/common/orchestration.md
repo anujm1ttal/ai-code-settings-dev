@@ -37,7 +37,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `youtube` | strategist, scribe, concierge | youtube-strategy, youtube-scriptwriting, youtube-retention | `enabledPlugins` |
 | `pptx` | strategist, creative-director, concierge | pptx, visual-composition, python-patterns | `enabledPlugins` |
 | `pbi-report` | strategist, creative-director, coder | powerbi-report, visual-composition, dax-modeling | `enabledPlugins` |
-| `geometry` | strategist, coder, auditor | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, python-patterns | `enabledPlugins` |
+| `geometry` | strategist, coder, auditor | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, grasshopper-plugin-packaging, python-patterns | `enabledPlugins` |
 | `code` | strategist, coder, auditor | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp | `enabledPlugins` |
 | `manuscript`| strategist, scribe, auditor | manuscript-review, glossary-extraction | `enabledPlugins` |
 | `data` | strategist, coder, auditor | dax-modeling, powerbi-report, python-patterns | `enabledPlugins` |
