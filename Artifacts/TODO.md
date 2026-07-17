@@ -26,10 +26,11 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 
 # Completed Initiative: GHP — Grasshopper Plugin Packaging + Rhino Graduation
 
-**Status:** GHP-1 COMPLETE (deployed, merged + pushed `ab7b558`) · User-driven (out of OXL sequence) · 2026-07-17
-**Origin:** user surfaced their `my_mcp_rhino` live-Rhino test-lane workflow + a new external Python-Grasshopper-plugin project; asked what graduates globally + web research on GH plugin packaging.
+**Status:** GHP-1 + GHP-2 COMPLETE (merged + pushed; GHP-1 `ab7b558`, GHP-2 `ba435ce`) · User-driven (out of OXL sequence) · 2026-07-17
+**Origin:** user surfaced their `my_mcp_rhino` live-Rhino test-lane workflow + a new external Python-Grasshopper-plugin project; asked what graduates globally + web research on GH plugin packaging. GHP-2 followed from reading Deleuran's GH103 (2021) Python workshop PDF.
 
 - [x] **GHP-1 — Packaging skill + harness/gotchas graduation** — Success (all met, auditor GO): new `grasshopper-plugin-packaging` skill (140-line SKILL.md + `references/yak-cli.md`) routed into `geometry` type across 4 registry surfaces + skill-graph mirror; in-process bridge templates → `rhino-e2e-testing/resources/`; 9 Rhino gotchas → `python-rhino-grasshopper/pitfalls.md`; 131 pytest exit 0; deploy 6-step pass. Report: `Artifacts/AUDIT_REPORT.md`.
+- [x] **GHP-2 — GHPython component-contract reference** — Success (all met, auditor GO): new `python-rhino-grasshopper/references/ghpython-component.md` (component I/O, `ghenv.Component`, data trees via `treehelpers`+SDK, `ghcomp`, `sc.sticky`, custom viewport draw); 2 pitfalls rows (`sc.doc` ProxyDocument trap, GUID-without-hint); `api-lookups.md` API-gate gap closed (Grasshopper.xml worked example + `.BoundingBox`→`ClippingBox` fix). Every fact **live-probed in Rhino 8 CPython 3.9.10 + XML-verified**; provenance-tagged. 131 pytest exit 0. Ships via geometry-plugin refresh (no deployed surface touched).
 
 ### Initiative Hard Rules (verified at gate)
 1. No gBlox leakage — templates/gotchas project-agnostic (grep-verified zero matches)

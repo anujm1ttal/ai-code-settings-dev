@@ -6,6 +6,44 @@ Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
 
 ---
 
+## 2026-07-17 — GHP-2: GHPython component-contract reference, live-probe-verified [GHP]
+
+**Context:** User shared Anders Deleuran's "Grasshopper 103" Python workshop PDF (197 pages,
+2021, IronPython 2.7). Two parallel readers digested it. Finding: ~70% is beginner Python or
+Rhino 6/7 IronPython-era (superseded), but it exposed a real gap — our `python-rhino-grasshopper`
+skill was strong on RhinoCommon + external-module architecture but light on the **GHPython
+component runtime contract** itself.
+
+**Decision:** Graduate a focused component-contract reference — but only after **verifying every
+interop-flavored claim against the user's live Rhino 8**, since the source is a 4-year-old
+IronPython deck. User had Rhino 8 + Grasshopper open; we probed via `rhinocode` (Lane A-live) +
+the `Grasshopper.xml` API-signature gate.
+
+**What verification caught (the point of doing it):**
+- Engine is CPython 3.9.10; `DataTree[object]()`, `ghpythonlib.treehelpers`/`.components`,
+  `sc.sticky` all confirmed working.
+- `sc.doc` INSIDE a GH component is `...GH1.Legacy.ProxyDocument` (`is RhinoDoc.ActiveDoc` →
+  False) — the deck's #1 trap is **real in R8** → graduated to pitfalls (single-owner).
+- `ghenv.Component` = `RhinoCodePluginGH.Components.Python3Component` (IGH_Component) — exists.
+- The deck's "provide a `BoundingBox`" for custom display is **WRONG for R8** — the member is
+  `GH_ScriptInstance.ClippingBox` (XML-verified). Corrected.
+- `GH_Path` has **no `(int,int)` ctor** — the two-int call binds to the `int[]` ctor at runtime;
+  documented as contract-vs-runtime-binding, not a fictional overload. (This corrected the
+  orchestrator's own task brief, not just the deck.)
+
+**Also fixed a gate gap the user flagged:** `api-lookups.md` named `Grasshopper.xml`/`GH_IO.XML`
+but every worked grep example targeted only `RhinoCommon.xml`, so GH-SDK members were
+under-grepped. Added a `Grasshopper.xml` worked example + corrected the `.BoundingBox` note.
+
+**Outcome:** RESOLVED. 131 pytest exit 0, auditor GO (members independently re-verified vs XML,
+single-ownership + provenance honesty confirmed), merged + pushed `ba435ce`. Ships via
+geometry-plugin refresh — no rules/global surface touched, so `deploy.sh` was a no-op validation.
+`GH_IO.XML` (serialization) parked for a future reference. **Methodology win: probe live runtime +
+XML gate before graduating a documentation source — it corrected both a 2021 deck and the
+orchestrator's brief** (reinforces `testing-strategy.md` "Inherited Triage Is a Hypothesis").
+
+---
+
 ## 2026-07-17 — GHP-1: graduate Rhino workflow globally + author GH-plugin packaging skill [GHP]
 
 **Context:** User surfaced their `my_mcp_rhino` live-Rhino test-lane workflow as "quite nice" and
