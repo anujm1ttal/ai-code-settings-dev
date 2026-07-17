@@ -20,6 +20,7 @@ Load reference files ONLY when the following conditions are met:
 | `references/pitfalls.md` | Mandatory before EVERY task — avoids hallucinations and traps |
 | `references/architecture.md` | New project setup or questions about structural alignment |
 | `references/performance.md` | Object count > 1,000 or performance is a project focus |
+| `references/ghpython-component.md` | Authoring/debugging a GHPython script component itself — `ghenv`, trees, native components, custom draw |
 \r
 ## 🛠 Environment & Tooling\r
 \r
