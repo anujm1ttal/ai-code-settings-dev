@@ -9,6 +9,7 @@ Quick reference for common commands, workflows, and navigation in Claude Code se
 | What You Want | Command | Owner | Use When |
 |:---|:---|:---|:---|
 | **Plan a feature/phase** | `/blueprint` | strategist | Starting a project or major refactor |
+| **Interview a foggy idea** | `/blueprint --interview` | strategist | Idea not yet stateable — need unbounded depth-first Q&A before Step 0 |
 | **Fix a bug** | `/triage` | coder | Investigating root cause before implementation |
 | **Run AFK tasks** | `/afk` | coder (dispatch) / auditor (gates) | Execute frontier tasks automatically until empty or cap hit |
 | **Review my work** | `/audit` | auditor | Before marking tasks complete |

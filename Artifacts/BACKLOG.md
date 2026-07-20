@@ -135,6 +135,36 @@ by /blueprint + one /grill session). **Revival trigger:** an initiative arrives 
 still can't be named after one grill session. Design as a `/blueprint` MODE, not a new command;
 map reuses existing artifact types.
 
+**Adjacent — do not conflate:** OXL-3 shipped `/blueprint --interview` (depth-first requirements
+traversal → problem statement + resolved-decision list). Same trigger neighborhood (foggy input),
+**different output**: wayfinder emits a map + child decision tickets; `--interview` emits a signed
+restatement feeding Step 0. `--foggy` remains reserved for this entry. If wayfinder is ever revived,
+first rule whether `--interview` already covers the demand — the OS must not ship two
+indistinguishable foggy-input modes.
+
+---
+
+## `oxl_interview_alias` — thin `/interview` alias for `/blueprint --interview`
+
+**Filed:** 2026-07-20 (OXL-3 Step 0, user-approved deferral) · **Severity:** LOW · **Needs:** demand evidence
+
+A one-line `/interview` command that does nothing but invoke `/blueprint --interview`. Purely a
+discoverability/ergonomics win — a mode flag is less findable than a slash command, and the user may
+want to reach for the interviewer *before* they've framed the work as "starting a blueprint."
+
+**Why this is cheap where standalone `/interview` was not.** OXL-3 rejected a standalone `/interview`
+(option (d)) because a *peer* command needs `/blueprint` to know an interview already happened, which
+forces an `INTERVIEW_BRIEF` artifact → a persistence row in `orchestration.md` → a staleness policy →
+an archive policy. An **alias invokes the same command**, so step 2 is still replaced exactly once and
+that whole chain evaporates. Cost is one file + registry rows, not a new artifact type.
+
+**Revival trigger:** the user reaches for a standalone interview entrypoint **twice** in real use
+(i.e. types `/interview` or asks for it when `--interview` exists).
+
+**Explicitly OUT of OXL-3 scope** — implementing it inside OXL-3 would violate OXL-3 Hard Rule 3
+("zero new surfaces"), which is what keeps that rule mechanically checkable. See
+`Artifacts/Plans/OXL-3-Plan.md` §2. Cross-ref: `oxl_wayfinder_1` (adjacent foggy-input mode).
+
 ---
 
 ## `vse2_yaml-dep_1` — PyYAML undeclared; YAML schema tests skip silently without it
