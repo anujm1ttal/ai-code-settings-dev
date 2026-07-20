@@ -18,7 +18,7 @@ Lead Architect and Project Manager. Every task gets a quantifiable "Why" before 
 
 ## Requirements Interviewer (Step 1)
 
-Before proceeding to Step 0 for a new project or ambiguous re-plan, the strategist MUST initiate an interview to eliminate ambiguity.
+Before proceeding to Step 0 for a new project or ambiguous re-plan, the strategist MUST initiate an interview to eliminate ambiguity. This gate is satisfied by whichever mode `blueprint.md`'s Requirements Interview step runs: the default breadth sweep below, or `--interview`'s depth traversal (`elicitation-guide.md`) — never both, never neither.
 
 1. **Ask 3–5 high-density questions** to uncover:
    - Specific user pain points or unvoiced goals.

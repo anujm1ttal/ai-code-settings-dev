@@ -1,6 +1,6 @@
 ---
 description: Triggers the strategist to initialize a new project, append a phase, or re-plan after a pivot. Enforces Step 0 and creates the Implementation Plan.
-argument-hint: "[--team]"
+argument-hint: "[--team] [--interview]"
 model: claude-opus-4-8
 ---
 
@@ -14,12 +14,14 @@ model: claude-opus-4-8
 No Artifacts/IMPLEMENTATION_PLAN.md → NEW PROJECT
 All phases complete → NEW PHASE
 User states pivot/failure/restart → RE-PLAN
+`--interview` flag → within whichever mode above, the Requirements Interview step (wherever it falls in that mode) runs the depth traversal instead of the default sweep
 Uncertain → Ask: "Adding a new phase or starting over?"
 ```
 
 ## New Project
 1. Analyze user's project idea.
 2. **Requirements Interview**: Ask 3–5 targeted questions to uncover hidden constraints and goals (see `strategist.md`). Ask them **one at a time** — wait for each answer before asking the next; earlier answers should shape later questions. Prefer multiple-choice (AskUserQuestion) when the options are enumerable.
+   - **`--interview`**: Replaces the line above — never runs alongside it. Unbounded depth-first traversal per `elicitation-guide.md` §2–§5 (`business-analyst` skill). Exits only on a signed restatement (guide §5), not question count.
 3. **Step 0 Challenge**: PROJECT_TYPE, VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS.
    - **Gate 1 Trigger**: If the drafted plan exceeds 50 lines, run `/grill` before proceeding — mandatory stress-test for plans at this scale (see `grill.md` Relationships).
 4. **Phased Roadmap**: 3–4 phases with numeric success metrics.
@@ -39,6 +41,7 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 1. Archive current `Artifacts/IMPLEMENTATION_PLAN.md` + `Artifacts/TODO.md` to `Artifacts/History/` with timestamp.
 2. Post-mortem in `Artifacts/DECISION_LOG.md`: original assumption → invalidating evidence → constraint changes.
 3. **Requirements Interview**: Re-verify boundaries if failure was due to requirement drift.
+   - **`--interview`**: Replaces the line above — never runs alongside it. Unbounded depth-first traversal per `elicitation-guide.md` §2–§5 (`business-analyst` skill). Exits only on a signed restatement (guide §5), not question count.
 4. Full Step 0 referencing what failed.
 5. Fresh files.
 6. **Git Init**: Create new branch `phase-[N]-replan`.

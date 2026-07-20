@@ -1,231 +1,169 @@
-# AUDIT_REPORT.md — GHP-3 Headless GH_IO Serialization Phase Gate
+# AUDIT_REPORT — OXL-3 Phase 2 Gate (T6)
 
-**Auditor** · Branch `phase-ghp-3-gh-io-serialization` · Working tree: dirty (pre-commit
-review — nothing committed on this branch yet; all changes are in the working tree)
-**Scope**: New `references/gh-io-serialization.md` reference file + one `SKILL.md` pointer
-row, in the `python-rhino-grasshopper` skill. (`Artifacts/GLOBAL_INBOX.md` modification is
-pre-existing/unrelated per task instructions — not in scope.)
-
-Prior gate report (GHP-2, GHPython component contract) archived to
-`Artifacts/History/Reports/GHP-2-AUDIT_REPORT.md` to keep this file scoped to the active gate.
+**Auditor run:** 2026-07-20 · **Branch:** `phase-oxl-3-interview-mode` (working tree, nothing committed)
+**Scope:** T6 only — Hard Rule 3 surface check + test run, gating T3-T5 (Phase 2 entrypoint wiring).
+**Verdict: GO** — T1-T6 verified by direct artifact inspection. T7-T11 untouched (Phase 3, not in scope).
 
 ---
 
 ## Project Profile (Phase 0)
 
-- **Language**: Markdown (skill/reference authoring). No production application code changed.
-- **Domain**: Rhino 8 / Grasshopper — headless `GH_IO.dll` serialization (`.gh`/`.ghx`
-  read/write) with no Rhino installation required.
-- **Frameworks/APIs referenced**: `GH_IO.Serialization.GH_Archive`, `GH_IO.Serialization.GH_Chunk`,
-  `GH_IO.Serialization.GH_IReader`/`GH_IWriter`, `GH_IO.GH_ISerializable`, `GH_IO.Types.GH_Point3D`.
-- **Build/Package**: N/A (docs repo).
-- **Test/Lint**: `python -m pytest tests/ -v` (this repo's own registry/hook/router suite —
-  doc-only change, not expected to move test count).
+- **Language/Domain:** Markdown-only instruction files (agent OS meta-repo, `code`/orchestration
+  project type). No source code, no runtime.
+- **Frameworks:** N/A — this is prompt/instruction engineering, not application code.
+- **Build/Test:** `pytest tests/` — repo self-tests registry integrity, hooks, model routing.
+- **Lint:** N/A for markdown; line-count caps are the enforced "lint" here.
 
----
-
-## Verdict: **GO**
-
-| # | Success Metric | Verdict |
-|:---|:---|:---|
-| 1 | Tests green (`pytest tests/ -v`, expect 131) | **PASS** — `131 passed`, exit code 0 |
-| 2 | Reference quality (convention, length, use-case lead, YAGNI framing, thin `SKILL.md` diff) | **PASS** |
-
-| # | Hard Rule | Verdict |
-|:---|:---|:---|
-| HR1 | No fictional members (independent XML re-verification) | **PASS** |
-| HR2 | `WriteToFile_Xml`/`WriteToFile_Binary` claim honestly framed | **PASS** |
-| HR3 | Provenance honesty (every claim tagged; persistent-data section labeled not live-exercised) | **PASS** |
-| HR4 | No re-documentation (single-ownership — points, doesn't restate) | **PASS** |
+No geometry, no visual/UI surface in this change → API-Signature Gate, E2E Coverage Gate, and the
+visual-composition subagent dispatch are **not applicable**.
 
 ---
 
 ## Strengths
 
-- **Provenance discipline matches the established convention.** The new doc opens with the same
-  three-part structure as the sibling `references/ghpython-component.md`: `# Title`, a `>`
-  load-on-demand blockquote naming what it covers and explicitly excludes, and a defined tag
-  legend (`[live-verified]` / `[XML-verified]` / `[XML-listed-but-not-callable]`). Every
-  non-trivial claim in the body carries one of these tags — this is not a declared-but-unused
-  convention, it's applied line-by-line (verified by grep, 14 tag occurrences across 112 lines).
-- **The `WriteToFile_Xml`/`WriteToFile_Binary` finding is a genuinely useful, precisely-scoped
-  caveat.** Rather than silently omitting these methods or wrongly claiming they don't exist,
-  the doc confirms they're real XML-documented members, reports the runtime binding failure
-  observed live from pythonnet this session, and gives the working alternative
-  (`Serialize_Xml()`/`Serialize_Binary()`/`WriteToFile(...)`) in the same breath. This is exactly
-  the kind of "gotcha found probing this API live" content the skill's provenance system exists
-  to capture — a coder trusting the doc would try the documented member, hit the same failure,
-  and immediately have the fix at hand instead of independently rediscovering it.
-- **Scope discipline is tight and self-aware.** The doc leads its final section with the honest
-  framing "Honestly out of scope for authoring a Python script-component plugin — YAGNI there,"
-  which is an unusually candid thing for a reference doc to say about itself — most docs err
-  toward justifying their own existence rather than bounding it. Combined with the two pointer
-  lines to `ghpython-component.md` and `grasshopper-plugin-packaging` (rather than restating
-  either), this is single-ownership done correctly.
-- **Real example data, not a synthetic stub.** The READ Path section's live-verified output
-  (`ObjectCount: 5`, real component names from a sample file) is concrete evidence the code was
-  actually executed against a real `.gh`/`.ghx` file, not just written and assumed to work.
+- **Hard Rule 1 is mechanically self-verifying, not just claimed.** Both default-branch lines
+  (`blueprint.md` New Project L23, Re-Plan L43) are **byte-identical** to `HEAD` — confirmed via direct
+  diff of the exact line ranges, not by trusting the coder's diff summary. The `--interview` branch is
+  additive only (a new bullet beneath), never a rewrite of the existing line.
+- **The previously-flagged coverage gap is genuinely closed.** Both paths that carry a Requirements
+  Interview step (New Project, Re-Plan) now have the `--interview` branch; New Phase — which has none
+  by design — was correctly left untouched. Verified by reading all three `## ` sections directly.
+- **Zero-new-surfaces is clean across every registry file checked.** `git diff` against
+  `rules/common/orchestration.md`, `CLAUDE-global.md`, `GEMINI.md` is empty. `INTERVIEW_BRIEF` (the
+  rejected option (d) artifact) appears only in prose describing why it was rejected
+  (`OXL-3-Plan.md`, `BACKLOG.md`) — never as a real file or a persistence-table row.
+- **R1/R2/R3 traceability is not aspirational — it's structural.** Each risk ID is a section header
+  bracket tag (`## 3. Codebase-First Gate [R2]` L34, `## 4. Recommendation Protocol [R3]` L39,
+  `## 5. Termination [R1]` L49) — grep-verifiable to an exact line, exactly as the plan promised.
+- **Category-text preservation verified byte-for-byte**, not by eyeball: extracted both the original
+  (`git show HEAD:...`) and new four-category block and ran `diff` — zero deletions confirmed.
+- **`oxl_interview_alias` (T2) correctly mirrors `oxl_wayfinder_1`'s format** and both entries
+  cross-reference each other, closing the loop the Plan worried about ("OS never ships two
+  indistinguishable foggy-input modes").
+- **Rule-echo avoided.** `blueprint.md`/`strategist.md` reference `elicitation-guide.md` by section
+  number rather than duplicating its content; the guide references `standards.md` §Intellectual
+  Honesty rather than restating it.
+- All three capped files land under their limits with margin except the guide, which is tight:
+  `blueprint.md` 60/70, `strategist.md` 79/85, `elicitation-guide.md` 69/70.
 
 ---
 
-## Success Metrics — Detail
+## Hard Rule Verification (mechanical, not narrative)
 
-### Metric 1 — Tests Green
+| Hard Rule | Check performed | Result |
+|:---|:---|:---|
+| **HR1 — default path untouched** | Extracted `blueprint.md` L20-24 (New Project) and L40-45 (Re-Plan) from `HEAD` and working tree, diffed the pre-existing numbered lines in isolation from the new `--interview` sub-bullets | **PASS** — identical |
+| **HR2 — exactly one interview per run** | Grepped repo-wide for `INTERVIEW_BRIEF`, `interview-state`, `INTERVIEW_STATE`; confirmed no matches outside prose explaining the *rejected* option | **PASS** — no handshake/state artifact exists |
+| **HR3 — zero new surfaces** | `git diff rules/common/orchestration.md CLAUDE-global.md GEMINI.md` → empty; no new command file created; `cheatsheet.md` diff shows exactly 1 line added, 0 removed | **PASS** |
 
-Fresh run this session:
+## T6 Success Metric (exact reproduction)
 
 ```
-python -m pytest tests/ -v
-...
-============================ 131 passed in 26.58s =============================
+git diff --name-only              → agents/strategist.md, cheatsheet.md, commands/blueprint.md   (3 files, T3-T5 scope)
+grep new rows in orchestration.md/CLAUDE-global.md/GEMINI.md → 0
+python -m pytest tests/ -v        → 131 passed in 24.39s (exit 0)
 ```
-
-131 passed, exit code 0. Matches the expected count for a doc-only change (no test files
-touched, no production code touched). **PASS.**
-
-### Metric 2 — Reference Quality
-
-| Check | Sibling convention (`ghpython-component.md`) | New doc (`gh-io-serialization.md`) | Verdict |
-|:---|:---|:---|:---|
-| `# Title` heading | Yes | Yes (`# Headless GH_IO Serialization...`) | Match |
-| `>` load-on-demand blockquote w/ scope + pointers | Yes | Yes (lines 3–11: scope, pointers to `ghpython-component.md` and `grasshopper-plugin-packaging`, provenance-tag legend) | Match |
-| Inline provenance tags | Yes | Yes (`[live-verified]`, `[XML-verified]`, `[XML-listed-but-not-callable]`) | Match |
-| Length | 136 lines | 112 lines | Within ~≤115 target |
-| Use-case section leads with the differentiator | N/A (component-authoring is its own topic) | "Use Cases & Scoping" section leads: *"Lead use case: **headless CI tooling** — audit, diff, or migrate a `.gh` library ... with no Rhino install in the pipeline."* | Correctly leads with headless-CI angle |
-| Honest YAGNI framing | N/A | *"Honestly out of scope for authoring a Python script-component plugin — YAGNI there."* | Present, precisely as required |
-| `SKILL.md` diff scope | — | `git diff main` shows exactly one added line: the pointer row `\| references/gh-io-serialization.md \| Reading/writing .gh/.ghx headlessly (GH_IO) — definition-inspection CI tooling, no Rhino required \|` | Confirmed — no other `SKILL.md` content touched |
-
-**PASS** on all sub-checks.
+All three T6 conditions met on evidence generated this session (commands above), not on a reported
+figure.
 
 ---
 
-## Hard Rule Evidence
+## Findings by Severity
 
-### HR1 — No Fictional Members (Independent XML Re-Verification)
+### MEDIUM
 
-Grepped `optional_plugins/geometry/skills/python-rhino-grasshopper/resources/GH_IO.XML`
-(6,467 lines) directly — did not trust the doc's own member list.
+**M1 — R3's Recommendation Protocol is only partially mechanical; the highest-risk failure mode has
+no operational check.** (Requested independent judgment call — answering plainly, not deferring.)
 
-**`GH_Archive`** (all 10 members named in the doc, confirmed present):
-```
-97:   <member name="P:GH_IO.Serialization.GH_Archive.GetRootNode">
-105:  <member name="M:GH_IO.Serialization.GH_Archive.CreateNewRoot(System.Boolean)">
-203:  <member name="M:GH_IO.Serialization.GH_Archive.WriteToFile(System.String,System.Boolean,System.Boolean)">
-216:  <member name="M:GH_IO.Serialization.GH_Archive.ReadFromFile(System.String)">
-232:  <member name="M:GH_IO.Serialization.GH_Archive.WriteToFile_Xml(System.String)">
-239:  <member name="M:GH_IO.Serialization.GH_Archive.WriteToFile_Binary(System.String)">
-246:  <member name="M:GH_IO.Serialization.GH_Archive.Serialize_Xml">
-253:  <member name="M:GH_IO.Serialization.GH_Archive.Deserialize_Xml(System.String)">
-261:  <member name="M:GH_IO.Serialization.GH_Archive.Serialize_Binary">
-268:  <member name="M:GH_IO.Serialization.GH_Archive.Deserialize_Binary(System.Byte[])">
-```
+`elicitation-guide.md` §4 gives two rules:
+1. Tag every recommendation `[HIGH]/[MED]/[LOW]` + basis.
+2. Preference calls get **no** recommendation.
 
-**`GH_Chunk`** (`FindChunk`/`ChunkCount`/`Items`/`ItemCount`/`Get*`/`Set*`/`ItemExists`/`CreateChunk`
-— all confirmed present, e.g.):
-```
-496:  <member name="P:GH_IO.Serialization.GH_Chunk.Name">
-530:  <member name="P:GH_IO.Serialization.GH_Chunk.ItemCount">
-535:  <member name="P:GH_IO.Serialization.GH_Chunk.Items">
-563:  <member name="M:GH_IO.Serialization.GH_Chunk.ItemExists(System.String)">
-655:  <member name="P:GH_IO.Serialization.GH_Chunk.ChunkCount">
-667:  <member name="M:GH_IO.Serialization.GH_Chunk.FindChunk(System.String)">
-713:  <member name="M:GH_IO.Serialization.GH_Chunk.CreateChunk(System.String)">
-833:  <member name="M:GH_IO.Serialization.GH_Chunk.SetInt32(System.String,System.Int32)">
-1447: <member name="M:GH_IO.Serialization.GH_Chunk.GetInt32(System.String)">
-```
-(full grep also confirmed `GetString`, `GetGuid`, `GetBoolean`, `GetPoint3D`, `SetString`,
-`SetGuid`, `SetBoolean`, `SetPoint3D`, `FindItem`, `ChunkExists`, `.Chunks`, `.Index` — all
-present, none fictional.)
+Rule 1 is genuinely mechanical — a transcript can be grepped for the tag on every recommendation,
+and "a `[LOW]` guess dressed as `[HIGH]`" is at least nameable as a violation after the fact.
 
-**`GH_IReader`/`GH_IWriter`** (interface members, confirmed same signatures exist independently
-of `GH_Chunk`):
-```
-2781: <member name="T:GH_IO.Serialization.GH_IWriter">
-2796: <member name="M:GH_IO.Serialization.GH_IWriter.CreateChunk(System.String)">
-2897: <member name="M:GH_IO.Serialization.GH_IWriter.SetInt32(System.String,System.Int32)">
-3454: <member name="T:GH_IO.Serialization.GH_IReader">
-3459: <member name="M:GH_IO.Serialization.GH_IReader.FindChunk(System.String)">
-3521: <member name="M:GH_IO.Serialization.GH_IReader.ItemExists(System.String)">
-3587: <member name="M:GH_IO.Serialization.GH_IReader.GetInt32(System.String)">
-```
+Rule 2 is **not** mechanical, and it is the rule that actually prevents anchoring. The section
+depends on the model correctly classifying "is this question fact-constrained or a preference call"
+— that classification is itself a judgment call, made by the same model whose bias R3 exists to
+contain. Nothing in §4 stops a preference question from being *mis-tagged* as fact-based and shipped
+with a confident `[HIGH]` recommendation; the guide gives no test for that failure, only for the
+presence/absence of a tag. There is also no rule on **ordering** — nothing requires the user's own
+answer to be solicited before a recommendation is shown, and showing a confident recommendation
+first is the classic anchoring vector regardless of tag accuracy.
 
-**`GH_ISerializable.Read`/`.Write`**:
-```
-6156: <member name="T:GH_IO.GH_ISerializable">
-6162: <member name="M:GH_IO.GH_ISerializable.Write(GH_IO.Serialization.GH_IWriter)">
-6169: <member name="M:GH_IO.GH_ISerializable.Read(GH_IO.Serialization.GH_IReader)">
-```
+**Verdict on the judgment call**: weak-but-not-empty. It is closer to aspirational prose than
+"mechanical" in the sense the Plan's own language implies ("Mechanical, not aspirational" — Plan §3
+R3 row). The tag-presence check is real; the classification-correctness and ordering problems are
+not caught by anything in §4. This is not fatal to the Phase 2 gate — the Plan already treats this
+gap as expected and puts the real backstop at **T10** (user unqualified-affirmation hard gate, FAIL
+on hedge), which is a human check specifically because a textual protocol can't fully close this
+loop. Recommend, at T8/T10 time: if the live-fire affirmation is even mildly hedged, treat it as
+evidence §4's classification step failed — not as "the wording needs polish" — and send it back to
+Phase 1 per the Plan's own FAIL clause. **Non-blocking for T6**, flagging for the Phase 3 gate owner.
 
-Every member named in the doc — including the full `Get*`/`Set*` typed-accessor family, both
-overload shapes (`name` / `name, index`), and all three top-level types — resolves to a real
-entry in `GH_IO.XML`. No fictional members found. **HR1: PASS.**
+**M2 — awkward sentence in `agents/strategist.md` L21** (style, requested explicit call flagged
+non-blocking per the task). Current:
 
-### HR2 — `WriteToFile_Xml`/`WriteToFile_Binary` Claim Honestly Framed
+> "This gate is satisfied by either mode `blueprint.md`'s Requirements Interview step runs — the
+> default breadth sweep below, or `--interview`'s depth traversal (`elicitation-guide.md`) — never
+> both, never neither."
 
-Confirmed both members exist in `GH_IO.XML`:
-```
-232:  <member name="M:GH_IO.Serialization.GH_Archive.WriteToFile_Xml(System.String)">
-233:      <summary>Serializes the current data tree into an Xml Grasshopper file.</summary>
-239:  <member name="M:GH_IO.Serialization.GH_Archive.WriteToFile_Binary(System.String)">
-240:      <summary>Serializes the current data tree into a Binary Grasshopper file.</summary>
-```
+The clause "satisfied by either mode `blueprint.md`'s ... step runs" has no clean subject-verb
+attachment — "either mode" and "runs" don't parse against each other without "whichever."
+Proposed exact replacement (single-clause edit, same length budget):
 
-Doc's exact wording (lines 91–95):
-> "2. **`WriteToFile_Xml(string)` / `WriteToFile_Binary(string)` are listed in `GH_IO.XML`**
-> (`M:GH_IO.Serialization.GH_Archive.WriteToFile_Xml`/`WriteToFile_Binary`) but pythonnet could
-> not call them at runtime this session. [XML-listed-but-not-callable] Public write API
-> confirmed working: `Serialize_Xml()`, `Serialize_Binary()`, `WriteToFile(string, bool, bool)`
-> [XML-verified + live-verified]."
+> "This gate is satisfied by whichever mode `blueprint.md`'s Requirements Interview step runs: the
+> default breadth sweep below, or `--interview`'s depth traversal (`elicitation-guide.md`) — never
+> both, never neither."
 
-This is precisely framed as a **runtime-binding observation** ("pythonnet could not call them
-at runtime this session"), not a "member doesn't exist" claim — the doc explicitly states they
-are XML-listed. The tag itself (`[XML-listed-but-not-callable]`) encodes the distinction in its
-name. This is the correct, non-fictional characterization. **HR2: PASS.**
+Non-blocking. Does not affect line count (79/85 either way).
 
-### HR3 — Provenance Honesty
+### LOW
 
-All claims carry one of the three declared tags (14 tag instances across the 112-line doc,
-confirmed by grep — no untagged non-trivial technical claim found). The specific
-component-persistent-data callout required by this gate:
+**L1 — Line-ending inconsistency in `elicitation-guide.md`.** The file is LF-only (69/69 lines);
+every other touched file (`strategist.md`, `cheatsheet.md`, `blueprint.md`) is CRLF, matching this
+repo's Windows checkout convention (`core.autocrlf=true`, `.gitattributes: * text=auto`). Git already
+warns on this (`LF will be replaced by CRLF the next time Git touches it`) — it self-heals on next
+commit/checkout via the clean/smudge filter, so this is cosmetic, not a functional defect. No action
+required beyond letting the normal commit path run.
 
-> "[XML-verified, not live-exercised this session — treat with more caution] Custom components
-> implement `GH_IO.GH_ISerializable` ... and override `Write(GH_IWriter)` / `Read(GH_IReader)`
-> to persist state into the `.gh`..."
+### INFO
 
-This is labeled exactly as required — **not** asserted as tested/live-verified, explicitly
-flagged "not live-exercised this session" with a caution note. **HR3: PASS.**
+**I1 — `Artifacts/GLOBAL_INBOX.md` is modified in the working tree but is unrelated to OXL-3** (it
+reflects a prior `/graduate` pass — see the pre-session git status baseline). Flagging so it is not
+swept into the OXL-3 commit at T11 phase-close as if it were part of this change; it should commit
+separately (or was already staged from earlier work) to keep the OXL-3 commit's diff scoped to what
+this audit actually verified.
 
-### HR4 — No Re-Documentation (Single-Ownership)
-
-Grep confirms both cross-references are pointer-only:
-
-- `.gh`-vs-`.ghx` version-control policy: doc says (line 6) *"...or for `.gh`-vs-`.ghx`
-  version-control policy (owned by `grasshopper-plugin-packaging`)"* and again (lines 25–27)
-  *"This is the mechanism behind the packaging skill's 'commit `.ghx`, not `.gh`' guidance —
-  see `grasshopper-plugin-packaging` for that policy, not restated here."* Confirmed the target
-  skill exists (`optional_plugins/geometry/skills/grasshopper-plugin-packaging/SKILL.md:113`,
-  `:134` carry the actual policy: *"Version control `.ghx` (XML, diffable), not `.gh` (binary)"*
-  and *"`.ghx` committed, not `.gh`."*). The new doc names the conclusion in a single clause for
-  reader orientation but does not restate the diffability rationale, CI implications, or the
-  numbered checklist that the packaging skill owns.
-- GHPython component-authoring content: doc says (lines 4–6) *"Not needed for authoring a
-  script component's own logic (see `ghpython-component.md`)"* — a bare pointer, no content
-  duplicated. The doc's own "Component Persistent Data" section covers `GH_ISerializable`,
-  which does **not** appear anywhere in `ghpython-component.md` (confirmed by reading that file
-  in full) — so this is new, non-overlapping content, not a restatement.
-
-No architecture.md content restated either (not referenced/needed here). **HR4: PASS.**
+**I2 — Skill Verification Gate applies to T8, not T6.** `elicitation-guide.md` is modified skill
+content; per standing auditor instructions it needs RED (baseline) / GREEN (compliance) pressure-test
+evidence before being treated as fully proven — that evidence is exactly what T8 (live-fire) is
+designed to produce. Not a T6 blocker; recording so the Phase 3 auditor treats T8's transcript as
+the pressure-test evidence, not a rerun of this gate.
 
 ---
 
-## Overall: GO
+## Verification Discipline Note
 
-All success metrics and all four Hard Rules pass with independently-verified evidence. No
-fixes required. Task remains marked by the coder as ready for auditor sign-off — per TODO
-Authority (`orchestration.md`), the auditor marks `[x]`; this report is the evidence trail for
-that mark, made in a separate step outside this report per the reporting boundary set for this
-audit.
+All PASS claims above are backed by commands run this session (`git diff`, `git show HEAD:...`,
+`diff` of extracted line ranges, `python -m pytest tests/ -v`) — none are taken from the coder's
+task descriptions or plan narrative. Line counts are `wc -l` output, not stated figures.
 
-**Recommendation**: Proceed to phase merge (`phase-ghp-3-gh-io-serialization` → `main`) per
-Git Phase Branching §4 (merge only after auditor confirms all success metrics met — confirmed
-above).
+---
+
+## TODO Status Changes (this session, `Artifacts/Plans/OXL-3-TODO.md`)
+
+Marked `[x]` — evidence verified directly, listed above:
+- **T1** — `elicitation-guide.md` rewrite: 69/70 lines, 4 categories byte-identical, worked
+  traversal with 4 dependency-ordered questions, R1/R2/R3 traceable to named lines.
+- **T2** — `oxl_interview_alias` BACKLOG entry: format mirrors `oxl_wayfinder_1`, cross-referenced,
+  explicitly out-of-scope.
+- **T3** — `blueprint.md`: 60/70 lines, HR1 byte-identical on both default branches.
+- **T4** — `strategist.md`: 79/85 lines, no new mandatory question on any path (M2 style flag is
+  non-blocking).
+- **T5** — `cheatsheet.md`: exactly 1 row added, 0 altered.
+- **T6** — this audit: exactly 3 files in T3-T5 diff, 0 new registry rows, `pytest` 131 passed exit 0.
+
+**Left untouched** (not verified this session, correctly so): T7-T11 (Phase 3 — deploy, live-fire,
+user R3 gate, phase close). No deploy was run, no live-fire occurred, nothing was merged or
+committed.

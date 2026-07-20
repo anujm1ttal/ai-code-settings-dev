@@ -10,10 +10,11 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 # Active Initiative: OXL — OS Cross-Learning
 
 **Status:** OXL-1 expanded (AFK runner folded in) · **Step 0:** approved 2026-07-09 · **Grill:** [REFACTORED] 2026-07-09 · **Grill-2:** [REFACTORED] 2026-07-10
-**Plans:** `Artifacts/Plans/OXL-1-Plan.md` + `OXL-1-TODO.md` · OXL-2 queued (phase gate after OXL-1)
+**Plans:** `Artifacts/Plans/OXL-1-Plan.md` + `OXL-1-TODO.md` · `OXL-3-Plan.md` + `OXL-3-TODO.md` (active) · OXL-2 queued (phase gate after OXL-1)
 **Origin:** mattpocock/skills + ralph pattern import — see IMPLEMENTATION_PLAN.md + DECISION_LOG [OXL]
 
 - [x] [coder] **OXL-1 — Work-Tracking & Planning Conventions + AFK Runner** (branch `phase-oxl-1-conventions`) — Success: 9 plan metrics (format spec + example, dispatch cite, slice test, commit-as-handoff, AFK/HITL tag spec, `commands/afk.md` 8 elements, registry rows, live-fire smoke evidence, deploy exit 0) — tasks: `Plans/OXL-1-TODO.md`
+- [ ] **OXL-3 — Interview Mode (`/blueprint --interview`)** (active, branch `phase-oxl-3-interview-mode`; Step 0 approved 2026-07-20) — Success: `elicitation-guide.md` ≤70 lines with 4 breadth categories intact + ≥4-question worked traversal; exactly 3 files wired in P2 with 0 new registry rows; deploy exit 0; live-fire ≤12 questions with ≥2 codebase-answered; **R3 hard gate — unqualified user affirmation, soft yes = FAIL** — tasks: `Plans/OXL-3-TODO.md`
 - [ ] **OXL-2 — Skill-Authoring Craft** (queued; gate: reassess after OXL-1) — Success: standards doc ≤150 lines on-demand; audit report covers 100% of commands; hides runtime-verified with measured token delta
 
 ### Initiative Hard Rules (Auditor Rejects on Violation)
