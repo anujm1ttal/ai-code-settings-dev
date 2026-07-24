@@ -19,7 +19,7 @@ SKILLS_DIR = REPO_ROOT / "skills"
 
 def test_agent_model_mandatory_binding():
     assert model_router.get_agent_model("coder") == ("sonnet", "claude-sonnet-5")
-    assert model_router.get_agent_model("strategist") == ("opus", "claude-opus-4-8")
+    assert model_router.get_agent_model("strategist") == ("opus", "claude-opus-5")
     assert model_router.get_agent_model("nonexistent-agent") is None
 
 

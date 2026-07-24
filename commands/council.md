@@ -1,7 +1,7 @@
 ---
 description: Launches a high-rigor multi-persona deliberation session. Owned by the council agent. Optimized for sequential local model processing.
 argument-hint: "<topic>"
-model: claude-opus-4-8
+model: claude-opus-5
 ---
 
 # Command: /council

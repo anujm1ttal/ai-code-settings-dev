@@ -1,7 +1,7 @@
 ---
 description: Codebase-wide discovery for tech debt, redundancy, deprecations, and missing docs. Orchestrated by the strategist.
 argument-hint: "[--registry] [scope]"
-model: claude-opus-4-8
+model: claude-opus-5
 ---
 
 # Command: /sweep
