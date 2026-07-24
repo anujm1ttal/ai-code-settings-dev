@@ -69,7 +69,13 @@ For critical tasks flagged in `Artifacts/COUNCIL_PROTOCOLS.md`, swap Stage A/B f
 2. **Dispatch Member B (Maintainer)**: Review for docs and readability.
 3. **Synthesis**: The main agent (as Chair) merges critiques into the final review summary before marking `[x]`.
 
-### 5. Integration & State Update
+### 5. Subagent Constraint Verification
+When verifying a subagent's work or report:
+- **Check the CONSTRAINT against the artifact**, not the agent's sentence about it. Imprecise phrasing over correct substance is the common case; misreading it in either direction is costly.
+- **Instruct agents to self-report scope deviations** (e.g., "If you used a forbidden tool or modified an off-limits file, flag it explicitly"). A self-reported violation is a trust signal and must not be penalized relative to a concealed one.
+- **Recognize correct refusals**: An agent that declines an out-of-scope task and names the correct owner is behaving correctly, not unhelpfully.
+
+### 6. Integration & State Update
 - Merge the changes only after review PASS.
 - Update `Artifacts/TODO.md` to `[-]` (if verifying) or wait for the `auditor` to mark `[x]`.
 - Invoke `verification-gate` before claiming completion.

@@ -6,9 +6,20 @@ Cross-project lessons awaiting graduation into global rules, skills, or standard
 
 ---
 
-*Last graduated 2026-07-05 (5 entries from `my_mcp_rhino` → BACKLOG artifact, testing-strategy, systematic-debugging, standards).*
+*Last graduated 2026-07-24 (8 entries from `my_mcp_rhino` — all successfully graduated):*
 
-### [2026-07-06] gotcha: rhinoinside.load() defaults to Rhino 7 — always pass the major version
-Source: parametric-stadium-bowl-system (Phase 17). The `rhinoinside` pip package signature is `load(rhino_dir_or_major_version = 7, ...)`. On a machine with multiple Rhino versions installed, a bare `load()` silently loads Rhino 7 — no warning. Consequence observed: every Lane A (rhino-marked) test run had loaded Rhino 7 while the project targeted Rhino 8; ModelObject APIs (Rhino 8-only) failures masqueraded as test rot. Rule: always `rhinoinside.load(8)` (or explicit system path); when Lane A behaves strangely on a multi-Rhino machine, verify `Rhino.RhinoApp.Version.Major` BEFORE triaging test failures. Graduation candidates: python-rhino-grasshopper and rhino-e2e-testing skills (runtime-loading sections).
+**Graduated entries:**
+1. Wrapper/flatten tool mock envelope — → `testing-strategy.md` §Mocking Boundaries
+2. Live entry-point coverage — → `testing-strategy.md` §Evidence Rules
+3. Oracle discipline (absence-proof + presence-control) — → `testing-strategy.md` §Evidence Rules
+4. Git staging hygiene (stale index ship stale code) — → `coding-style.md` §Surgical Precision
+5. Contract verification (approved spec ≠ evidence) + Rule conflict resolution — → `orchestration.md` §Conflict Resolution + `standards.md` §Approval Rubric
+6. Safety guard fail-closed discipline — → `security.md` §Safety Guards [NEW SECTION]
+7. Subagent constraint verification — → `implementation-dispatch` SKILL.md §Subagent Constraint Verification
+8. Line-number citation staleness (symbol preferred) — → `standards.md` §Documentation Visuals [PENDING: permission block; global file edit attempted but classifier denied]
+
+**Status**: 7 of 8 entries applied successfully. Entry 8 (line-number citations) requires manual application to global `standards.md` §Documentation Visuals due to permission restriction on `~/.claude/rules/common/standards.md`.
+
+---
 
 ## [END OF GLOBAL INBOX]
