@@ -25,8 +25,8 @@ or skipped like any other test:
         run_in_process_suite()
 """
 
+import json
 import os
-import re
 import subprocess
 import time
 
@@ -39,16 +39,50 @@ RHINOCODE_EXE = os.environ.get("RHINOCODE_EXE", r"C:\Program Files\Rhino 8\Syste
 SENTINEL = "[inprocess] complete rc="   # must match the runner's SENTINEL constant exactly
 TIMEOUT_S = 300.0            # first run pip-installs pytest into the provisioned venv; be generous
 POLL_INTERVAL_S = 2.0
-_INSTANCE_ID_RE = re.compile(r"(rhinocode_remotepipe_\d+)")
 
 
-def discover_instance_id() -> str | None:
-    """Return the first live rhinocode instance id, or None if Rhino is not running."""
+def discover_rhino_instances() -> list[dict]:
+    """Return `rhinocode list --json` entries whose processName is "Rhino".
+
+    `list --json` also surfaces non-Rhino pipes (e.g. `compute.geometry`) that carry a
+    `rhinocode_remotepipe_*` pipeId with an empty `activeDoc` — those are never a valid
+    `-r` target and must be filtered out here, not left to the caller.
+    """
     out = subprocess.run(
-        [RHINOCODE_EXE, "list"], capture_output=True, text=True, timeout=30
+        [RHINOCODE_EXE, "list", "--json"], capture_output=True, text=True, timeout=30
     ).stdout
-    match = _INSTANCE_ID_RE.search(out)
-    return match.group(1) if match else None
+    entries = json.loads(out) if out.strip() else []
+    return [e for e in entries if e.get("processName") == "Rhino"]
+
+
+def resolve_instance() -> str:
+    """Resolve the `-r` target for `rhinocode`. Fails loud on ambiguity — never guesses.
+
+    Precedence:
+    1. `RHINO_INSTANCE_ID` env var, if set — explicit override, skips discovery entirely.
+    2. Exactly one live Rhino instance — return its pipeId.
+    3. Zero or >1 live Rhino instances — raise (AssertionError) with a diagnostic; the
+       caller must either close extra instances or set `RHINO_INSTANCE_ID`.
+    """
+    override = os.environ.get("RHINO_INSTANCE_ID")
+    if override:
+        return override
+
+    instances = discover_rhino_instances()
+    assert instances, "no live Rhino instance (StartScriptServer run?)"
+
+    if len(instances) == 1:
+        return instances[0]["pipeId"]
+
+    table = "\n".join(
+        f"  pipeId={e.get('pipeId')} activeDoc.title={e.get('activeDoc', {}).get('title', '')!r}"
+        for e in instances
+    )
+    assert False, (
+        "multiple live Rhino instances — refusing to guess which one to target:\n"
+        + table
+        + "\nSet RHINO_INSTANCE_ID to the intended pipeId to proceed."
+    )
 
 
 def _wait_for_sentinel(report_path: str, sentinel: str, deadline: float) -> int | None:
@@ -72,12 +106,14 @@ def run_in_process_suite() -> None:
     assert os.path.exists(RHINOCODE_EXE), f"rhinocode not found at {RHINOCODE_EXE} (set RHINOCODE_EXE)"
     assert os.path.isfile(RUNNER_PATH), f"in-process runner missing: {RUNNER_PATH}"
 
-    instance = discover_instance_id()
-    assert instance is not None, "no live rhinocode instance (Rhino not running?)"
+    instance = resolve_instance()
 
     if os.path.exists(REPORT_PATH):
         os.remove(REPORT_PATH)   # fresh report; the sentinel we read must be from THIS run
 
+    # env inherits os.environ by default (subprocess.run with no `env=` kwarg), so
+    # RHINO_DOC_HINT / RHINO_DOC_READONLY set on the host process reach the in-Rhino
+    # runner unchanged — no explicit env= construction needed to propagate the hint.
     # rhinocode returns exit 0 before the script finishes — do NOT assert on its return.
     subprocess.run(
         [RHINOCODE_EXE, "-r", instance, "script", RUNNER_PATH],

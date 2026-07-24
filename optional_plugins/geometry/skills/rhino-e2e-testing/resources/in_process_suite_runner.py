@@ -64,6 +64,31 @@ def _run(report):
     emit("[inprocess] runner start")
     emit("python " + sys.version.replace("\n", " "))
 
+    # Doc-hint guard: refuse to run a document-mutating suite against the wrong open
+    # document. Must happen before any real work (sys.modules purge, pytest import).
+    hint = os.environ.get("RHINO_DOC_HINT")
+    readonly = os.environ.get("RHINO_DOC_READONLY") == "1"
+    try:
+        import Rhino
+        _active_doc = Rhino.RhinoDoc.ActiveDoc
+        title = _active_doc.Name if _active_doc is not None else ""
+    except Exception as exc:
+        emit("RHINO IMPORT FAILED: %r" % exc)
+        emit(SENTINEL + "98")
+        return
+
+    if not hint:
+        emit("doc-hint guard: RHINO_DOC_HINT unset — skipping guard")
+    elif hint.lower() in title.lower():
+        emit("doc-hint guard: OK (ActiveDoc '%s' matches hint '%s')" % (title, hint))
+    elif readonly:
+        emit("doc-hint guard: WARNING mismatch expected '%s' in ActiveDoc '%s' — "
+             "RHINO_DOC_READONLY=1, continuing" % (hint, title))
+    else:
+        emit("doc-hint guard: MISMATCH expected '%s' in ActiveDoc '%s' — ABORT" % (hint, title))
+        emit(SENTINEL + "94")
+        return
+
     # Purge every module cached from the host .venv so pytest and its plugins resolve
     # fresh from the RhinoCode-provisioned venv declared in the `# venv:`/`# r:` header.
     _host_venv = os.path.abspath(HOST_VENV_DIR).lower()

@@ -1,169 +1,189 @@
-# AUDIT_REPORT — OXL-3 Phase 2 Gate (T6)
+# AUDIT_REPORT — RDT-1 Gate (T6)
 
-**Auditor run:** 2026-07-20 · **Branch:** `phase-oxl-3-interview-mode` (working tree, nothing committed)
-**Scope:** T6 only — Hard Rule 3 surface check + test run, gating T3-T5 (Phase 2 entrypoint wiring).
-**Verdict: GO** — T1-T6 verified by direct artifact inspection. T7-T11 untouched (Phase 3, not in scope).
+**Auditor run:** 2026-07-24 (re-audited same day after HR1 fix) · **Branch:** `phase-rdt-1-rhinocode-doc-guard` (working tree, nothing committed)
+**Scope:** RDT-1 T1-T5 (Lane A-live harness hardening + rule codification), gating T6 (deploy — deferred to user, NOT run by this audit).
+**Verdict: GO** — HR1 fix to `SKILL.md` re-verified clean by direct read. T1-T5 all pass. T6 (deploy) remains user-held, not run by this audit.
+
+---
+
+## Re-audit addendum (2026-07-24, HR1 fix)
+
+Orchestrator applied a 4-line fix to `optional_plugins/geometry/skills/rhino-e2e-testing/SKILL.md`
+directly. Re-verified by reading the live file (not the orchestrator's summary):
+
+- `SKILL.md:123-124` — Subcommands table `script`/`command` rows now read `rhinocode -r <id> script <path.py>` / `rhinocode -r <id> command "..."` — both `-r`-qualified.
+- `SKILL.md:122,125` — `list` and `project build` rows explicitly note they take no `-r` (correct — neither targets a running instance's document).
+- `SKILL.md:127` — old "Target a specific instance ... when multiple are open" (the reintroduced-ambiguity framing) is gone; replaced with "**Always pass `-r <pipeId>` on `script`/`command`, never bare**" + a restated "no `-i` flag" line, consistent with Key Rule 3 (line 181).
+- `SKILL.md:156` (Evidence Protocol) — now `rhinocode -r <id> script /abs/path/probes/check_plugin_state.py` — gained `-r <id>` **and** the path is now absolute, fixing a second latent defect (the file's own async-gotcha note at line 146 already states a relative path "silently runs nothing" — the example previously violated its own adjacent warning).
+- Grep sweep (`rhinocode `) across the full file: the only remaining bare `rhinocode script` mentions are prose (lines 131, 146, 164, 168, 180) describing the subcommand's behavior generically, with no path/flags following — not copyable invocations. Confirmed out of HR1 scope, agreeing with the orchestrator's read.
+
+HR1 is now **PASS**. No other findings changed — HR2, HR3, all success metrics, and the pytest
+evidence below stand from the original pass (no code changed, re-run not required). T4 marked `[x]`.
 
 ---
 
 ## Project Profile (Phase 0)
 
-- **Language/Domain:** Markdown-only instruction files (agent OS meta-repo, `code`/orchestration
-  project type). No source code, no runtime.
-- **Frameworks:** N/A — this is prompt/instruction engineering, not application code.
-- **Build/Test:** `pytest tests/` — repo self-tests registry integrity, hooks, model routing.
-- **Lint:** N/A for markdown; line-count caps are the enforced "lint" here.
+- **Language/Domain:** Python (host CPython, repo's own venv) + Python ~3.9 embedded-Rhino dialect (`in_process_suite_runner.py`) + Markdown skill docs. `geometry` domain (settings-repo hardening of the `rhino-e2e-testing` Lane A-live harness) — **no new Rhino.Geometry object creation**, this is process/tooling code (subprocess orchestration, JSON parsing, env-var guards), not geometry math.
+- **Frameworks:** `subprocess`, `json`, stdlib only (host side); `Rhino.RhinoDoc` (in-Rhino side, ~3.9 embedded interpreter).
+- **Build/Test:** `python -m pytest tests/ -q` (Lane B, pure — per plan's own Test Lane section; no live Rhino instance required for this gate).
+- **Lint:** N/A formal linter; dialect compliance (no `|` unions, no `typing` imports, no f-strings) checked by direct read for the ~3.9 file.
 
-No geometry, no visual/UI surface in this change → API-Signature Gate, E2E Coverage Gate, and the
-visual-composition subagent dispatch are **not applicable**.
+Because no `Rhino.Geometry` objects (Brep/Mesh/Curve) are created or mutated by this change, the
+**E2E Coverage Gate** (closure/manifoldness/tolerance assertions) is **not applicable** — this is
+harness/guard code, not geometry-producing code. The **API Signature Gate** still applies to the
+two RhinoCommon members referenced in the new doc-hint guard (`RhinoDoc.ActiveDoc`, `RhinoDoc.Name`)
+— see Hard Rule / Gate findings below.
 
 ---
 
 ## Strengths
 
-- **Hard Rule 1 is mechanically self-verifying, not just claimed.** Both default-branch lines
-  (`blueprint.md` New Project L23, Re-Plan L43) are **byte-identical** to `HEAD` — confirmed via direct
-  diff of the exact line ranges, not by trusting the coder's diff summary. The `--interview` branch is
-  additive only (a new bullet beneath), never a rewrite of the existing line.
-- **The previously-flagged coverage gap is genuinely closed.** Both paths that carry a Requirements
-  Interview step (New Project, Re-Plan) now have the `--interview` branch; New Phase — which has none
-  by design — was correctly left untouched. Verified by reading all three `## ` sections directly.
-- **Zero-new-surfaces is clean across every registry file checked.** `git diff` against
-  `rules/common/orchestration.md`, `CLAUDE-global.md`, `GEMINI.md` is empty. `INTERVIEW_BRIEF` (the
-  rejected option (d) artifact) appears only in prose describing why it was rejected
-  (`OXL-3-Plan.md`, `BACKLOG.md`) — never as a real file or a persistence-table row.
-- **R1/R2/R3 traceability is not aspirational — it's structural.** Each risk ID is a section header
-  bracket tag (`## 3. Codebase-First Gate [R2]` L34, `## 4. Recommendation Protocol [R3]` L39,
-  `## 5. Termination [R1]` L49) — grep-verifiable to an exact line, exactly as the plan promised.
-- **Category-text preservation verified byte-for-byte**, not by eyeball: extracted both the original
-  (`git show HEAD:...`) and new four-category block and ran `diff` — zero deletions confirmed.
-- **`oxl_interview_alias` (T2) correctly mirrors `oxl_wayfinder_1`'s format** and both entries
-  cross-reference each other, closing the loop the Plan worried about ("OS never ships two
-  indistinguishable foggy-input modes").
-- **Rule-echo avoided.** `blueprint.md`/`strategist.md` reference `elicitation-guide.md` by section
-  number rather than duplicating its content; the guide references `standards.md` §Intellectual
-  Honesty rather than restating it.
-- All three capped files land under their limits with margin except the guide, which is tight:
-  `blueprint.md` 60/70, `strategist.md` 79/85, `elicitation-guide.md` 69/70.
+- **`discover_rhino_instances()` / `resolve_instance()` are exactly the design in the plan**, not an
+  approximation: JSON parse → filter `processName == "Rhino"` → precedence `RHINO_INSTANCE_ID` override
+  → 0/1/>1 branching, with the >1 branch building a diagnostic table naming every `pipeId` +
+  `activeDoc.title` before raising. Read directly in
+  `optional_plugins/geometry/skills/rhino-e2e-testing/resources/in_process_bridge_runner.py:44-85`.
+- **`_INSTANCE_ID_RE` is fully gone from every shipped resource.** `grep -rn "_INSTANCE_ID_RE|discover_instance_id"` across the repo returns matches only in `Artifacts/Plans/RDT-1-Plan.md` and `RDT-1-TODO.md` (prose describing the removal) — zero in `.py`/`SKILL.md`/`pitfalls.md`.
+- **Test coverage genuinely proves the four resolution paths**, not a pass-through: `tests/test_rdt_instance_resolution.py` mocks `subprocess.run` per-test and asserts (a) `compute.geometry` filtered out of `discover_rhino_instances()`, (b) single-Rhino → pipeId, (c) two-Rhino → `AssertionError` whose message contains **both** `activeDoc.title` strings (asserted individually, not just "raises"), (d) `RHINO_INSTANCE_ID` set → discovery never called (a `_fail` stub that itself raises if `subprocess.run` is invoked — a real negative-proof, not a spy that's merely unasserted). All 5 pass fresh (see Evidence).
+- **Doc-hint guard is correctly positioned before any real work**: `_run()` in `in_process_suite_runner.py` reads `RHINO_DOC_HINT`/`RHINO_DOC_READONLY`, imports `Rhino`, reads `ActiveDoc.Name`, and branches to `SENTINEL + "94"` + `return` on mismatch — all **before** the `sys.modules` purge (line 92) and `import pytest` (line 101). A mismatch genuinely runs nothing downstream.
+- **Both RhinoCommon members the guard depends on are real**, confirmed by this audit directly against `optional_plugins/geometry/skills/python-rhino-grasshopper/resources/RhinoCommon.xml`: `P:Rhino.RhinoDoc.ActiveDoc` (line 123535) and `P:Rhino.RhinoDoc.Name` (line 123550, "Returns the name of the currently loaded Rhino document").
+- **~3.9 dialect is clean in the guard's own code**: no `|` union hints, no `typing` imports, no f-strings (uses `%`-formatting consistent with the rest of the file); `grep` for those patterns in `in_process_suite_runner.py` returns zero matches.
+- **`pitfalls.md` row is correctly scoped**: names the defect (bare `rhinocode`, ambiguous/first-match resolution), the concrete failure mode (wrong document or a `compute.geometry` pipe), the fix (filter + always `-r` + `RHINO_DOC_HINT`), and explicitly attributes ownership to `rhino-e2e-testing` — matching T5's success criterion.
+- **No phantom `-i` prohibition** anywhere in the new `SKILL.md` text — the only `-i` mention is the factual "There is no `-i` flag; the only selector is `-r, --rhino <ID>`" (line 180), exactly as required.
+- **No pinned PID/instance-id literal** in any template or doc example (`grep` for `rhinocode_remotepipe_\d+|-r \d{4,}|--rhino \d{4,}` across the skill directory: zero hits outside the exempt test-fixture data in `tests/test_rdt_instance_resolution.py`).
 
 ---
 
-## Hard Rule Verification (mechanical, not narrative)
+## Hard Rule Findings
 
-| Hard Rule | Check performed | Result |
+### HR1 — PASS (fixed 2026-07-24, re-audited clean — see addendum above): stale bare-`rhinocode` examples corrected
+
+Plan Hard Rule 1 is unconditional: *"No `rhinocode` invocation in any shipped resource omits `-r`."*
+The coder added a correct new Key Rule 3 ("**Verify the target, always `-r`, never bare**" —
+`SKILL.md:180`) but did **not** touch the pre-existing content earlier in the same file, which now
+directly contradicts it:
+
+- `SKILL.md:122` — `` `rhinocode script <path.py>` `` (Subcommands table, no `-r`)
+- `SKILL.md:123` — `` `rhinocode command "_circle 0 0 0 20"` `` (Subcommands table, no `-r`)
+- `SKILL.md:127` — *"Target a specific instance with `--rhino <id>` **when multiple are open**."* — this literally reintroduces the rejected "bare is fine unless ambiguous" framing the plan's premise-corrections section explicitly ruled out (Plan.md line 20-21: first-match resolution is the defect regardless of instance count, because a `compute.geometry` pipe can appear even with exactly one Rhino open).
+- `SKILL.md:154-155` — the "Evidence Protocol" bash block: `rhinocode list --json > ...` (fine, no `-r` needed for `list`) then `rhinocode script probes/check_plugin_state.py > ...` — **no `-r`**, presented as the canonical copy-paste evidence-capture pattern.
+
+This is not a cosmetic gap — it is the exact failure mode RDT-1 exists to close, now modeled as
+the "correct" way to invoke `rhinocode` four lines above/below the rule that says never to do that.
+An agent skimming the Subcommands table or Evidence Protocol (both appear before the Key Rules
+section in reading order) will copy the bare form.
+
+**Required fix before `[x]`:** add `-r <pipeId>` (or `-r $(...)`/placeholder consistent with the
+new Key Rule) to lines 122, 123, 127, 155, and either remove line 127's "when multiple are open"
+qualifier or rewrite it to match "always `-r`, never bare" verbatim so the file does not contradict
+itself.
+
+### HR2 — PASS: instance resolution filters `processName == "Rhino"`, zero regex-based resolution survives
+
+Verified directly in code (`in_process_bridge_runner.py:55`) and by grep (`_INSTANCE_ID_RE`/
+`discover_instance_id` → 0 hits in any `.py`/`SKILL.md`/`pitfalls.md`).
+
+### HR3 — PASS: no pinned PID/instance-id literal in templates or docs
+
+Verified by grep across the skill directory; only occurrences are synthetic pytest fixture data in
+`tests/test_rdt_instance_resolution.py`, which is explicitly exempted by the audit scope.
+
+---
+
+## Success Metric Findings
+
+| Metric | Status | Evidence |
 |:---|:---|:---|
-| **HR1 — default path untouched** | Extracted `blueprint.md` L20-24 (New Project) and L40-45 (Re-Plan) from `HEAD` and working tree, diffed the pre-existing numbered lines in isolation from the new `--interview` sub-bullets | **PASS** — identical |
-| **HR2 — exactly one interview per run** | Grepped repo-wide for `INTERVIEW_BRIEF`, `interview-state`, `INTERVIEW_STATE`; confirmed no matches outside prose explaining the *rejected* option | **PASS** — no handshake/state artifact exists |
-| **HR3 — zero new surfaces** | `git diff rules/common/orchestration.md CLAUDE-global.md GEMINI.md` → empty; no new command file created; `cheatsheet.md` diff shows exactly 1 line added, 0 removed | **PASS** |
+| `discover_rhino_instances()` filters `processName=="Rhino"` | PASS | Code read + `test_discover_rhino_instances_filters_compute_geometry` PASSED |
+| `resolve_instance()`: >1 → `AssertionError` naming both titles; 1 → pipeId; override skips discovery | PASS | All 4 paths covered by dedicated tests, all PASSED (see Evidence) |
+| Suite runner emits `SENTINEL+"94"`, runs no pytest on mismatch; warn-only when unset/`READONLY=1` | PASS | Code read: guard at `in_process_suite_runner.py:67-90`, strictly before purge (line 92-98) and `import pytest` (line 101) |
+| Dialect: guard code is ~3.9-safe | PASS | No `|` unions/`typing` imports/f-strings; `%`-formatting throughout |
+| `RhinoDoc.ActiveDoc`/`.Name` are real members | PASS | Confirmed against shipped `RhinoCommon.xml` (lines 123535, 123550) |
+| `python -m pytest tests/ -q` exit 0 | PASS | Re-run by auditor, see Evidence below |
+| SKILL.md/pitfalls.md codify "always `-r`, never bare", no phantom `-i` ban, pitfalls row owned by rhino-e2e-testing | **PASS** (post-fix) | HR1 addendum above — all examples now `-r`-qualified, no self-contradiction |
 
-## T6 Success Metric (exact reproduction)
+---
 
+## API Signature Gate
+
+Coder evidence of searching `RhinoCommon.xml` before using `RhinoDoc.ActiveDoc`/`.Name`: **not found**
+in `Artifacts/BACKLOG.md`, `Artifacts/Temp/`, or commit history (working tree — nothing committed
+yet on this branch). This audit performed the lookup directly and confirmed both members exist
+(see Strengths). Flagged as a **MEDIUM** process finding, not a rejection basis, because the actual
+signatures are correct — but the coder should not have relied on tribal knowledge of a
+two-member, low-ambiguity surface without recording the lookup; do this going forward per the gate.
+
+## E2E Coverage Gate
+
+Not applicable — no `Rhino.Geometry` (Brep/Mesh/Curve) objects are created or mutated by this
+change. This is subprocess/env-var harness code. No geometric invariants to assert.
+
+## Visual QA Subagent
+
+Not applicable — no UI/layout/visual deliverable in this change.
+
+---
+
+## Evidence — pytest gate (re-run by auditor, not trusted from coder claim)
+
+Command:
 ```
-git diff --name-only              → agents/strategist.md, cheatsheet.md, commands/blueprint.md   (3 files, T3-T5 scope)
-grep new rows in orchestration.md/CLAUDE-global.md/GEMINI.md → 0
-python -m pytest tests/ -v        → 131 passed in 24.39s (exit 0)
+python -m pytest tests/ -q
 ```
-All three T6 conditions met on evidence generated this session (commands above), not on a reported
-figure.
+Tail:
+```
+........................................................................ [ 52%]
+................................................................         [100%]
+136 passed in 23.40s
+```
+Exit code: **0**
+
+Isolated re-run of the new RDT-1 test file for traceability:
+```
+python -m pytest tests/test_rdt_instance_resolution.py -v
+```
+```
+tests/test_rdt_instance_resolution.py::test_discover_rhino_instances_filters_compute_geometry PASSED [ 20%]
+tests/test_rdt_instance_resolution.py::test_resolve_instance_single_rhino_returns_pipe_id PASSED [ 40%]
+tests/test_rdt_instance_resolution.py::test_resolve_instance_multiple_rhino_raises_naming_both_docs PASSED [ 60%]
+tests/test_rdt_instance_resolution.py::test_resolve_instance_honors_env_override_without_discovery PASSED [ 80%]
+tests/test_rdt_instance_resolution.py::test_resolve_instance_no_rhino_instances_raises PASSED [100%]
+5 passed in 0.02s
+```
 
 ---
 
-## Findings by Severity
+## Other Findings
 
-### MEDIUM
-
-**M1 — R3's Recommendation Protocol is only partially mechanical; the highest-risk failure mode has
-no operational check.** (Requested independent judgment call — answering plainly, not deferring.)
-
-`elicitation-guide.md` §4 gives two rules:
-1. Tag every recommendation `[HIGH]/[MED]/[LOW]` + basis.
-2. Preference calls get **no** recommendation.
-
-Rule 1 is genuinely mechanical — a transcript can be grepped for the tag on every recommendation,
-and "a `[LOW]` guess dressed as `[HIGH]`" is at least nameable as a violation after the fact.
-
-Rule 2 is **not** mechanical, and it is the rule that actually prevents anchoring. The section
-depends on the model correctly classifying "is this question fact-constrained or a preference call"
-— that classification is itself a judgment call, made by the same model whose bias R3 exists to
-contain. Nothing in §4 stops a preference question from being *mis-tagged* as fact-based and shipped
-with a confident `[HIGH]` recommendation; the guide gives no test for that failure, only for the
-presence/absence of a tag. There is also no rule on **ordering** — nothing requires the user's own
-answer to be solicited before a recommendation is shown, and showing a confident recommendation
-first is the classic anchoring vector regardless of tag accuracy.
-
-**Verdict on the judgment call**: weak-but-not-empty. It is closer to aspirational prose than
-"mechanical" in the sense the Plan's own language implies ("Mechanical, not aspirational" — Plan §3
-R3 row). The tag-presence check is real; the classification-correctness and ordering problems are
-not caught by anything in §4. This is not fatal to the Phase 2 gate — the Plan already treats this
-gap as expected and puts the real backstop at **T10** (user unqualified-affirmation hard gate, FAIL
-on hedge), which is a human check specifically because a textual protocol can't fully close this
-loop. Recommend, at T8/T10 time: if the live-fire affirmation is even mildly hedged, treat it as
-evidence §4's classification step failed — not as "the wording needs polish" — and send it back to
-Phase 1 per the Plan's own FAIL clause. **Non-blocking for T6**, flagging for the Phase 3 gate owner.
-
-**M2 — awkward sentence in `agents/strategist.md` L21** (style, requested explicit call flagged
-non-blocking per the task). Current:
-
-> "This gate is satisfied by either mode `blueprint.md`'s Requirements Interview step runs — the
-> default breadth sweep below, or `--interview`'s depth traversal (`elicitation-guide.md`) — never
-> both, never neither."
-
-The clause "satisfied by either mode `blueprint.md`'s ... step runs" has no clean subject-verb
-attachment — "either mode" and "runs" don't parse against each other without "whichever."
-Proposed exact replacement (single-clause edit, same length budget):
-
-> "This gate is satisfied by whichever mode `blueprint.md`'s Requirements Interview step runs: the
-> default breadth sweep below, or `--interview`'s depth traversal (`elicitation-guide.md`) — never
-> both, never neither."
-
-Non-blocking. Does not affect line count (79/85 either way).
-
-### LOW
-
-**L1 — Line-ending inconsistency in `elicitation-guide.md`.** The file is LF-only (69/69 lines);
-every other touched file (`strategist.md`, `cheatsheet.md`, `blueprint.md`) is CRLF, matching this
-repo's Windows checkout convention (`core.autocrlf=true`, `.gitattributes: * text=auto`). Git already
-warns on this (`LF will be replaced by CRLF the next time Git touches it`) — it self-heals on next
-commit/checkout via the clean/smudge filter, so this is cosmetic, not a functional defect. No action
-required beyond letting the normal commit path run.
-
-### INFO
-
-**I1 — `Artifacts/GLOBAL_INBOX.md` is modified in the working tree but is unrelated to OXL-3** (it
-reflects a prior `/graduate` pass — see the pre-session git status baseline). Flagging so it is not
-swept into the OXL-3 commit at T11 phase-close as if it were part of this change; it should commit
-separately (or was already staged from earlier work) to keep the OXL-3 commit's diff scoped to what
-this audit actually verified.
-
-**I2 — Skill Verification Gate applies to T8, not T6.** `elicitation-guide.md` is modified skill
-content; per standing auditor instructions it needs RED (baseline) / GREEN (compliance) pressure-test
-evidence before being treated as fully proven — that evidence is exactly what T8 (live-fire) is
-designed to produce. Not a T6 blocker; recording so the Phase 3 auditor treats T8's transcript as
-the pressure-test evidence, not a rerun of this gate.
+- **INFO**: `Artifacts/GLOBAL_INBOX.md` shows as modified in `git status` but is unrelated to RDT-1
+  (133 insertions, no reference to RDT/rhinocode/doc-hint) — likely carried over from a prior
+  session on this working tree. Out of scope for this gate; flagged so it isn't silently swept into
+  an RDT-1 commit.
+- **LOW**: `SKILL.md:127`'s "Target a specific instance with `--rhino <id>` when multiple are open"
+  uses the long-form `--rhino` flag where the rest of the new text uses short-form `-r` — cosmetic
+  inconsistency, subsumed by the HR1 fix (this line needs rewriting anyway).
 
 ---
 
-## Verification Discipline Note
+## TODO Status
 
-All PASS claims above are backed by commands run this session (`git diff`, `git show HEAD:...`,
-`diff` of extracted line ranges, `python -m pytest tests/ -v`) — none are taken from the coder's
-task descriptions or plan narrative. Line counts are `wc -l` output, not stated figures.
+Per `orchestration.md` TODO Authority, auditor may only mark `[x]`; never add/remove tasks. Marked
+in `Artifacts/Plans/RDT-1-TODO.md`:
+
+- [x] T1 — JSON discovery + fail-loud resolution — PASS (HR2 clean, all resolution-path tests green)
+- [x] T2 — doc-hint guard in `in_process_suite_runner.py` — PASS (correct position, correct sentinel, 3.9-safe)
+- [x] T3 — Lane B tests for T1 — PASS (5/5 green, genuinely proves all 4 branches, re-run fresh by auditor)
+- [x] T4 — `SKILL.md` Key Rule — PASS (re-audited post-fix; HR1 addendum above)
+- [x] T5 — `pitfalls.md` row — PASS
+- [ ] T6 — deploy gate — **left unchecked**, deferred to user per task instructions (no deploy/merge/push performed by this audit)
 
 ---
 
-## TODO Status Changes (this session, `Artifacts/Plans/OXL-3-TODO.md`)
+## Verdict
 
-Marked `[x]` — evidence verified directly, listed above:
-- **T1** — `elicitation-guide.md` rewrite: 69/70 lines, 4 categories byte-identical, worked
-  traversal with 4 dependency-ordered questions, R1/R2/R3 traceable to named lines.
-- **T2** — `oxl_interview_alias` BACKLOG entry: format mirrors `oxl_wayfinder_1`, cross-referenced,
-  explicitly out-of-scope.
-- **T3** — `blueprint.md`: 60/70 lines, HR1 byte-identical on both default branches.
-- **T4** — `strategist.md`: 79/85 lines, no new mandatory question on any path (M2 style flag is
-  non-blocking).
-- **T5** — `cheatsheet.md`: exactly 1 row added, 0 altered.
-- **T6** — this audit: exactly 3 files in T3-T5 diff, 0 new registry rows, `pytest` 131 passed exit 0.
-
-**Left untouched** (not verified this session, correctly so): T7-T11 (Phase 3 — deploy, live-fire,
-user R3 gate, phase close). No deploy was run, no live-fire occurred, nothing was merged or
-committed.
+**GO.** T1-T5 all verified clean by direct artifact inspection (code reads, grep sweeps, fresh
+pytest run, and — for the HR1 fix — a full re-read of the corrected `SKILL.md` ranges plus a
+repo-wide `rhinocode ` grep to confirm no remaining bare copyable invocation exists). T6 (deploy)
+remains user-held per task instructions — this audit does not run `bash scripts/deploy.sh`, does
+not merge, and does not push.

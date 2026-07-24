@@ -119,12 +119,12 @@ The `rhinocode` CLI drives a **live, fully-loaded Rhino session** from the termi
 ### Subcommands
 | Command | Purpose |
 | :--- | :--- |
-| `rhinocode list --json` | List running Rhino instances (PID, ID, open docs) — verify the target before executing. |
-| `rhinocode script <path.py>` | Run a Python/C# script inside the live instance (all plugins + document state available). |
-| `rhinocode command "_circle 0 0 0 20"` | Execute a Rhino command remotely — smoke tests, repro setup. |
-| `rhinocode project build <path.rhproj>` | Compile a `.rhproj` into a `.yak` package — no running Rhino required; CI-friendly. |
+| `rhinocode list --json` | List running Rhino instances (PID, ID, open docs) — resolve the target from here (filter `processName == "Rhino"`) before executing. |
+| `rhinocode -r <id> script <path.py>` | Run a Python/C# script inside the targeted instance (all plugins + document state available). |
+| `rhinocode -r <id> command "_circle 0 0 0 20"` | Execute a Rhino command in the targeted instance — smoke tests, repro setup. |
+| `rhinocode project build <path.rhproj>` | Compile a `.rhproj` into a `.yak` package — no running Rhino required, so no `-r`; CI-friendly. |
 
-Target a specific instance with `--rhino <id>` when multiple are open.
+**Always pass `-r <pipeId>` on `script`/`command`, never bare** (see Key Rule 3). `list` and `project build` are the only subcommands that take no `-r`. There is no `-i` flag; `-r, --rhino <ID>` is the only instance selector.
 
 ### Bringing packages into the in-process script (`# venv:` / `# r:`)
 
@@ -152,7 +152,8 @@ Redirect all Lane A-live output to `Artifacts/Temp/` like any other verification
 
 ```bash
 rhinocode list --json > Artifacts/Temp/<phase>_<step>_rhinocode_list.txt 2>&1
-rhinocode script probes/check_plugin_state.py > Artifacts/Temp/<phase>_<step>_rhinocode_probe.txt 2>&1
+# resolve <id> = the pipeId whose processName is "Rhino" from the list above
+rhinocode -r <id> script /abs/path/probes/check_plugin_state.py > Artifacts/Temp/<phase>_<step>_rhinocode_probe.txt 2>&1
 ```
 
 ### Lane A in-process runner (pytest inside live Rhino)
@@ -177,8 +178,9 @@ Conventions to keep:
 ### Key Rules
 1. **Dialect**: Scripts run in Rhino's embedded CPython (~3.9) — all Rhino-internal dialect rules apply (`typing.List`, no `|` unions, `print()` only).
 2. **Not a pytest replacement**: Lane A-headless keeps fixtures, markers, coverage, and clean exit codes. `rhinocode script` is a coarser run-a-script channel — use it only when headless cannot prove the claim.
-3. **Verify the target**: Run `rhinocode list` before `script`/`command` to confirm the intended instance and document are active.
-4. **Environment via header, not `pip`**: To use `pytest`/pip packages in-process, declare `# venv: <name>` + `# r: <pkg>` (default) — never `# env:` unless deliberately targeting an existing external, Python-3.9-matched site-packages. See *Bringing packages into the in-process script* above.
+3. **Verify the target, always `-r`, never bare**: Resolve the instance from `rhinocode list --json` filtered to `processName == "Rhino"` (non-Rhino pipes like `compute.geometry` also appear with empty `activeDoc` — filter them out), then pass `-r <pipeId>` explicitly on every `script`/`command` invocation. A bare `rhinocode script ...` with no `-r` resolves ambiguously when >1 Rhino instance is open. On ambiguity (>1 live Rhino instance), fail loud and list each `pipeId` + `activeDoc.title` rather than guessing — see `discover_rhino_instances()`/`resolve_instance()` in `resources/in_process_bridge_runner.py`. There is no `-i` flag; the only selector is `-r, --rhino <ID>`. Never pin a PID/instance-id literal — instance ids are volatile across sessions.
+4. **Doc-hint guard for mutating probes**: Any document-mutating in-process script must guard against running against the wrong open document — set `RHINO_DOC_HINT` (matched case-insensitively as a substring of `RhinoDoc.Name`) and abort on mismatch; `RHINO_DOC_READONLY=1` downgrades a mismatch to a warning for read-only probes. See the guard at the top of `resources/in_process_suite_runner.py`.
+5. **Environment via header, not `pip`**: To use `pytest`/pip packages in-process, declare `# venv: <name>` + `# r: <pkg>` (default) — never `# env:` unless deliberately targeting an existing external, Python-3.9-matched site-packages. See *Bringing packages into the in-process script* above.
 
 ## 📜 Key Rules
 1. **Load First**: `rhinoinside.load(8)` must be called BEFORE any Rhino imports.
