@@ -6,7 +6,7 @@
 
 | Tier | Model | Agent | Use When |
 |:---|:---|:---|:---|
-| **Tier 1** | `claude-opus-4-8` | strategist, council | Strategic decisions, architecture, multi-phase planning, conflict resolution, stress-testing |
+| **Tier 1** | `claude-opus-5` | strategist, council | Strategic decisions, architecture, multi-phase planning, conflict resolution, stress-testing |
 | **Tier 2** | `claude-sonnet-5` | coder, auditor, geometry-validator | Implementation, refactoring, bug fixes, code review, test writing, schema design, geometric auditing |
 | **Tier 3** | `claude-haiku-4-5` | scribe, concierge, creative-director | Documentation, state management, mechanical tasks, routine cleanup |
 

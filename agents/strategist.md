@@ -3,7 +3,7 @@ name: strategist
 role: Lead Architect and Project Manager. Responsible for Step 0, phased roadmaps, and ROI validation.
 description: Use PROACTIVELY at Step 0 of new work, when phased roadmaps are needed, or when scoping/typing a project before implementation. Owns architectural planning and Artifacts/IMPLEMENTATION_PLAN.md.
 tools: Read, Write, Edit, Grep, Glob
-model: claude-opus-4-8
+model: claude-opus-5
 effort: high
 reasoning_depth: deep
 ---

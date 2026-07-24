@@ -20,18 +20,18 @@ def _write_agent(agents_dir: Path, filename: str, name: str, model: str) -> None
 def test_load_assigned_models_parses_frontmatter(tmp_path: Path):
     agents_dir = tmp_path / "agents"
     _write_agent(agents_dir, "coder.md", "coder", "claude-sonnet-5")
-    _write_agent(agents_dir, "strategist.md", "strategist", "claude-opus-4-8")
+    _write_agent(agents_dir, "strategist.md", "strategist", "claude-opus-5")
 
     assigned = mra.load_assigned_models(agents_dir)
 
-    assert assigned == {"coder": "claude-sonnet-5", "strategist": "claude-opus-4-8"}
+    assert assigned == {"coder": "claude-sonnet-5", "strategist": "claude-opus-5"}
 
 
 def test_load_assigned_models_skips_overview_and_abstract_files(tmp_path: Path):
     agents_dir = tmp_path / "agents"
     _write_agent(agents_dir, "coder.md", "coder", "claude-sonnet-5")
-    _write_agent(agents_dir, "agents.overview.md", "overview", "claude-opus-4-8")
-    _write_agent(agents_dir, "coder.abstract.md", "coder-abstract", "claude-opus-4-8")
+    _write_agent(agents_dir, "agents.overview.md", "overview", "claude-opus-5")
+    _write_agent(agents_dir, "coder.abstract.md", "coder-abstract", "claude-opus-5")
 
     assigned = mra.load_assigned_models(agents_dir)
 
@@ -41,7 +41,7 @@ def test_load_assigned_models_skips_overview_and_abstract_files(tmp_path: Path):
 def test_model_family_collapses_dated_snapshots():
     assert mra.model_family("claude-haiku-4-5-20251001") == "haiku"
     assert mra.model_family("claude-sonnet-5") == "sonnet"
-    assert mra.model_family("claude-opus-4-8") == "opus"
+    assert mra.model_family("claude-opus-5") == "opus"
     assert mra.model_family("gpt-4o") == "other"
 
 

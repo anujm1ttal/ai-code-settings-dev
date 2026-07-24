@@ -6,6 +6,32 @@ Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
 
 ---
 
+## 2026-07-25 — Tier 1 model bumped to Claude Opus 5 [MTU]
+
+**Decision:** Replace `claude-opus-4-8` with `claude-opus-5` as the Tier 1 model ID everywhere
+in the OS — `model-routing.md` Tier 1 row, `agents/{strategist,council}.md` frontmatter, 7
+`commands/*.md` frontmatter (afk, blueprint, council, grill, ideate, skill-graph, sweep),
+`scripts/model_router.py` (`ModelID` Literal, `AGENT_MODELS`, `MODEL_PRICING` key, both
+tier→id maps), `scripts/README.md`, and the two routing tests.
+
+**Rationale:** User-directed model upgrade. Verified against the `claude-api` skill's model
+table before editing: Claude Opus 5 is the current Opus-tier model at **the same $5/$25 per
+MTok as Opus 4.8**, so `MODEL_PRICING` stays at `15.0` (the file's input/output average) and
+the minimum-capable-model economics in `model-routing.md` are unchanged. A same-tier ID swap,
+not a tier change — no rule text needed rewriting.
+
+**Deliberately unchanged:** generic "Opus"/"Opus-tier" prose (tier names, still correct);
+`Artifacts/` history (no literal `claude-opus-4-8` present); `statusline.sh` /
+`subagent_statusline.sh` (they colour-match on the `opus` substring, so Opus 5 renders green
+with no edit); one stale `"Opus 4.8"` string in a `.claude/settings.local.json` permission
+allowlist entry (inert, flagged to user).
+
+**Status:** RESOLVED. 136 pytest exit 0; `deploy.sh` validation passed (7 hooks wired);
+deployed `~/.claude/{agents,commands,rules}` re-grepped and confirmed carrying `claude-opus-5`.
+Backup `~/.claude.backup-20260725-002827`. **Uncommitted** at handoff time.
+
+---
+
 ## 2026-07-24 — RDT-1: Lane A-live doc-targeting guard (premise-corrected via live probe) [RDT]
 
 **Context:** User asked to make correct-document targeting mandatory for `rhinocode` (Lane
@@ -365,26 +391,5 @@ installed sessions to pick it up (repo tests already exercise it).
 
 ---
 
-## 2026-07-06 — Retire the bespoke manifest system (full) [Phase OSA-2]
-
-**Decision:** Delete `manifest_validator.py`, `project.json` (+ 9 templates + schema), the `/manifest` command, 7 `plugin.yaml` sidecars, `plugin_manifest_schema.json`, 2 manifest test files, 4 dead migration scripts, and the dormant `guard-commit-evidence.js` hook. Native Claude Code plugins become the single plugin registry.
-
-**Rationale:** After the native-plugin conversion, the manifest layer was redundant and partly broken (`validate_plugins` checked pre-move skill paths; validator crashed on Windows). Its headline value — token savings via `auto_include` — was already shown to be illusory (real gate is `enabledPlugins`). Chose full retire (Option 3) over reconcile because two coexisting registries was exactly the problem Phase OSA set out to eliminate. `project_type` routing tables survive as strategist/concierge guidance.
-
-**Alternatives rejected:** (1) Reconcile — perpetuates two registries. (2) Partial retire — keeps `/manifest`, whose value was thin post-B4.
-
----
-
-## 2026-07-06 — Convert optional_plugins to native Claude Code plugins [Phase OSA]
-
-**Decision:** Convert all 7 `optional_plugins/*` groups to native plugins (`.claude-plugin/marketplace.json` + per-plugin `plugin.json` + `skills/` layout). Plugin name = directory name; version omitted (git-SHA versioning); enablement per-project via `enabledPlugins`.
-
-**Rationale:** The bespoke `plugin.yaml` format had no loader — it never surfaced skills. Only native plugins do. Proven live: the `code-mcp` pilot's skills appeared as slash commands after `/plugin install`. Repo is private, so "marketplace" stays personal (no publication).
-
----
-
-## 2026-07-06 — Model-routing "bypass" is a false positive [Phase OSA]
-
-**Decision:** Close the runtime-bypass finding as not-a-bug; add `--since` date filter to the audit tool.
-
-**Rationale:** Routing config existed only from July 3; the audit scanned June-onward history against it. Post-config scope (`--since 2026-07-05`) → 0 violations. The 21 "violations" were pre-config sessions + deliberate alternate-model runs (Fable, Qwen). Routing is honored.
+*Older RESOLVED entries (3 × 2026-07-06, Phase OSA/OSA-2) rotated →
+`Artifacts/History/DECISION_LOG-archive.md`.*

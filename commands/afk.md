@@ -1,7 +1,7 @@
 ---
 description: AFK task runner — orchestrates dispatch, review, and audit of AFK-tagged tasks without user presence, task by task, until the frontier empties or the cap hits.
 argument-hint: "[max_iterations]"
-model: claude-opus-4-8
+model: claude-opus-5
 ---
 
 # Command: /afk

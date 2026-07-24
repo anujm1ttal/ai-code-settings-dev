@@ -37,7 +37,7 @@ python scripts/model_router.py --lookup skill typescript-mcp coder
 {
   "agent": "strategist",
   "tier": "opus",
-  "model": "claude-opus-4-8",
+  "model": "claude-opus-5",
   "cost_per_100k_tokens": "$1.50"
 }
 ```
@@ -91,7 +91,7 @@ balanced projects (code + docs) ~60% reduction vs. all-Opus; thinking-heavy proj
 ```yaml
 # Agent frontmatter (agents/*.md) — canonical source for effort/reasoning_depth
 strategist:
-  model: claude-opus-4-8
+  model: claude-opus-5
   effort: high
   reasoning_depth: deep
 
