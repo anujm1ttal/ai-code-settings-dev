@@ -1,29 +1,31 @@
 # TODO — Active & Queued Work
 
-**Updated:** 2026-07-24 · **Branch:** `phase-rdt-1-rhinocode-doc-guard`
+**Updated:** 2026-07-24 (RDT-1 closed) · **Branch:** `main` (clean, pushed `dcd321a`)
 
 Completed initiatives (LH, OSH, CMD, OSA, DLR) archived → `Artifacts/History/COMPLETED_INITIATIVES.md`.
 Deferred findings live in `Artifacts/BACKLOG.md`.
 
 ---
 
-# Active Initiative: RDT — Rhinocode Doc-Targeting Guard
+# Completed Initiative: RDT — Rhinocode Doc-Targeting Guard
 
-**Status:** RDT-1 Step 0 approved 2026-07-24 · User-driven (out of OXL sequence) · Branch `phase-rdt-1-rhinocode-doc-guard`
-**Plans:** `Artifacts/Plans/RDT-1-Plan.md` + `RDT-1-TODO.md`
-**Origin:** user flagged wrong-document risk in Lane A-live (`rhinocode script`) with multiple Rhino instances open. Live probe corrected the premise: no `-i` flag exists (real defect = omitting `-r`); PIDs are volatile (resolve by doc-hint); `compute.geometry` publishes a `remotepipe_*` pipe the current first-match regex can wrongly target.
+**Status:** RDT-1 COMPLETE (merged `2b9f88d`, pushed) · User-driven (out of OXL sequence) · 2026-07-24
+**Origin:** user flagged wrong-document risk in Lane A-live (`rhinocode script`) with multiple Rhino instances open. Live probe corrected the premise: no `-i` flag exists (real defect = omitting `-r`); PIDs are volatile (resolve by doc-hint); `compute.geometry` publishes a `remotepipe_*` pipe the old first-match regex could wrongly target.
 
-- [ ] **RDT-1 — Harden the Lane A-live harness** (active) — Success: `discover_rhino_instances()` filters `processName=="Rhino"`; `resolve_instance()` fail-loud naming both docs on >1 instance; `_INSTANCE_ID_RE` removed; doc-hint guard aborts (`SENTINEL+"94"`) on `ActiveDoc` title mismatch; `python -m pytest tests/ -q` exit 0 — tasks: `Plans/RDT-1-TODO.md`
-- [ ] **RDT-2 — Codify the rule** (folded into RDT-1 branch) — Success: `rhino-e2e-testing/SKILL.md` "always `-r`, never bare" + doc-hint Key Rule; `pitfalls.md` row; 0 phantom `-i` prohibition; `bash scripts/deploy.sh` exit 0
+- [x] **RDT-1 — Harden the Lane A-live harness** — Success (all met, auditor GO): `discover_rhino_instances()` filters `processName=="Rhino"`; `resolve_instance()` fail-loud naming each doc on >1 instance (`RHINO_INSTANCE_ID` override); `_INSTANCE_ID_RE` removed; doc-hint guard aborts (`SENTINEL+"94"`) on `RHINO_DOC_HINT` ⊄ `ActiveDoc.Name`; 136 pytest exit 0. SKILL.md Key Rules 3–4 + pitfalls row.
+- [x] **RDT-2 — Codify the rule** (same branch) — Success: SKILL.md "always `-r`, never bare" + doc-hint rule; pitfalls row; 0 phantom `-i` prohibition; example commands `-r`-qualified (HR1 fix). Plans: `Artifacts/Plans/RDT-1-Plan.md` + `RDT-1-TODO.md`.
 
-### Initiative Hard Rules (Auditor Rejects on Violation)
-1. No `rhinocode` invocation in any shipped resource omits `-r`
-2. Instance resolution filters `processName == "Rhino"` — no bare pipe-id regex match survives
-3. No pinned PID / instance-id literal in any template or doc example
+### Initiative Hard Rules (verified at gate)
+1. No `rhinocode` invocation in any shipped resource omits `-r` ✅ (HR1 reject on SKILL.md examples → fixed)
+2. Instance resolution filters `processName == "Rhino"` — no bare pipe-id regex match survives ✅
+3. No pinned PID / instance-id literal in any template or doc example ✅
+
+**⚠ Activation:** ships via `/plugin` geometry refresh, NOT deploy.sh — not live in sessions until user reinstalls the geometry plugin.
+**Follow-up → BACKLOG** `rdt_graduate-source-vs-deployed_1`: harden `/graduate` to resolve destinations against repo source, not `~/.claude/`.
 
 ---
 
-# Queued Initiative: OXL — OS Cross-Learning
+# Active Initiative: OXL — OS Cross-Learning
 
 **Status:** OXL-1 expanded (AFK runner folded in) · **Step 0:** approved 2026-07-09 · **Grill:** [REFACTORED] 2026-07-09 · **Grill-2:** [REFACTORED] 2026-07-10
 **Plans:** `Artifacts/Plans/OXL-1-Plan.md` + `OXL-1-TODO.md` · `OXL-3-Plan.md` + `OXL-3-TODO.md` (active) · OXL-2 queued (phase gate after OXL-1)

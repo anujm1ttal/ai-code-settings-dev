@@ -5,6 +5,29 @@ Reference-on-demand (not boot-loaded). ID format: `<phase>_<component>_<n>`.
 
 ---
 
+## `rdt_graduate-source-vs-deployed_1` — /graduate resolves destinations to deployed dir
+
+**Filed:** 2026-07-24 (RDT session) · **Severity:** MEDIUM (process defect; caused unversioned edits)
+
+During `/graduate`, the concierge subagent applied 6/8 rule edits to `~/.claude/rules/common/*.md`
+(the **deployed** copies) instead of the repo source `rules/common/*.md`. Result: edits were
+unversioned and would be clobbered on the next `deploy.sh`. Caught via mtime diff and corrected
+(`dcd321a`), but the root cause is the command doc.
+
+**Root cause:** `commands/graduate.md` (and its mirror in `~/.claude/`) lists destinations as bare
+`rules/common/coding-style.md` etc. — ambiguous between repo source and the deployed tree. A
+subagent with `~/.claude/` on its path resolved them there.
+
+**Action when picked up:**
+- State in `graduate.md` that destinations are **repo source** (`<repo>/rules/common/…`), and that
+  `deploy.sh` is the only path to production — never edit `~/.claude/` directly.
+- Consider a guard: block `/graduate` (and graduation-authoring agents) from writing outside the
+  workspace root. Overlaps with the existing `guard-paths.js` scratch-gate philosophy.
+- General lesson (candidate `/learn`): any command whose destinations are bare relative paths is
+  ambiguous once a subagent has the deployed tree on its path — qualify source-vs-deployed.
+
+---
+
 ## `oxl_mcp-rhino-scaffold` — graduate the MCP-over-socket "drive live Rhino" stack
 
 **Filed:** 2026-07-17 (GHP-1, user parked) · **Severity:** LOW (feature, no defect)

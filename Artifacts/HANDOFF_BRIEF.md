@@ -1,74 +1,76 @@
-# Handoff Brief — GHP-1 Complete (2026-07-17)
+# Handoff Brief — RDT-1 Complete + /graduate Correction (2026-07-24)
 
-**Tier:** L3 Phase-Gate · **Branch:** `main` (clean, pushed `ab7b558`) · **Outcome:** GHP-1 shipped, deployed, live.
+**Tier:** L2 Session · **Branch:** `main` (clean, pushed `dcd321a`) · **Outcome:** RDT-1 shipped; 8 inbox learnings graduated (after fixing a wrong-layer write).
 
 ---
 
 ## Session Summary
 
-User surfaced their `my_mcp_rhino` live-Rhino test-lane workflow and asked: what graduates
-globally (especially for a NEW external Python-Grasshopper-plugin project), plus web research on
-GH plugin dev + packaging. Ran as a full initiative: 3-stream parallel discovery → Step 0 plan →
-approved → 4 parallel coders → audit gate → fix → deploy → merge → push.
+User asked to make correct-document targeting mandatory for `rhinocode` (Lane A-live). Ran as a
+full `/blueprint` initiative (RDT): Step 0 → 3 design decisions via AskUserQuestion → coder →
+audit (1 reject → fix → GO) → commit/merge/push. Then `/graduate` of 8 `my_mcp_rhino` inbox
+entries, which surfaced and corrected a deployment-model violation.
 
-**Agents active:** 2 Explore + 1 general-purpose (research); 5 coder (T1–T4 + HR2 fix); 2 auditor (gate + re-audit); concierge (this handoff). Orchestrator (Opus) verified raw artifacts throughout.
+**Agents active:** strategist (orchestrator/Opus), coder (RDT impl), auditor (gate + re-audit),
+concierge (graduation). Orchestrator verified raw artifacts throughout.
 
 ---
 
-## Completed (GHP-1)
+## Completed
 
 | Item | Outcome |
 |:---|:---|
-| New `grasshopper-plugin-packaging` skill | 140-line SKILL.md + `references/yak-cli.md`; Rhino 8 C#-free path (`.rhproj` → `rhinocode project build` → `.yak` → `yak push`); packaging checklist |
-| Registration | `skills.overview.md`, `orchestration.md` (geometry routing), `CLAUDE-global.md`, `cheatsheet.md`, + `skill_graph_analyzer.py` mirror |
-| Graduated: in-process bridge harness | `rhino-e2e-testing/resources/in_process_bridge_runner.py` + `in_process_suite_runner.py` (gBlox-stripped; sentinel `[inprocess] complete rc=`) + SKILL.md section |
-| Graduated: Rhino runtime gotchas | 9 entries → `python-rhino-grasshopper/pitfalls.md` (API idioms cross-checked vs `RhinoCommon.xml`) |
-| Gate | 131 pytest exit 0; audit NO-GO on HR2 → single-owner consolidation → GO; deploy 6-step pass |
-
-**Commit:** feat `18ef340` → merge `ab7b558` (pushed).
+| **RDT-1** — Lane A-live doc guard | `resolve_instance()` fail-loud on >1 Rhino instance (filters `processName=="Rhino"`; `RHINO_INSTANCE_ID` override); doc-hint guard aborts (`SENTINEL+"94"`) on `RHINO_DOC_HINT` ⊄ `ActiveDoc.Name`. `_INSTANCE_ID_RE` removed. SKILL.md Key Rules 3–4 + pitfalls row. 136 pytest exit 0, auditor GO. Merged `2b9f88d`. |
+| **Premise correction** (live probe) | No `-i` flag exists → rule is "always `-r`, never bare"; PIDs volatile (`37092` stale) → resolve by doc-hint; `compute.geometry` publishes a `remotepipe_*` pipe the old first-match regex could target. |
+| **/graduate** — 8 inbox learnings | All 8 graduated to source rules/skills. Inbox clean. Commits `48842c1` (entry 7 + inbox) + `dcd321a` (entries 1–6, 8 corrected into source). |
 
 ---
 
-## In Progress / Blocked
+## Key Correction (don't repeat)
 
-**None for GHP.** Terminal.
+`/graduate` initially wrote 6/8 rule edits to **deployed** `~/.claude/rules/common/*.md` instead of
+**repo source** `rules/common/*.md` — unversioned, would be clobbered on next `deploy.sh`. Detected
+via mtime diff (deployed 23:26–23:28 vs source 11:05–15:37, working tree clean). Ported to source,
+re-deployed (exit 0), pushed. **Filed → BACKLOG `rdt_graduate-source-vs-deployed_1`.**
 
 ---
 
-## Decisions (also in DECISION_LOG [GHP])
+## Blockers / Open
 
-1. Scope = both gaps, skip MCP stack → parked BACKLOG `oxl_mcp-rhino-scaffold`.
-2. Two McNeel doc-ambiguities shipped FLAGGED for live-Rhino verification (HR3), not settled fact.
-3. HR2 duplication from parallel fan-out → single-owner + pointers; learning filed.
+- **User action required**: RDT guard is **not live** until you `/plugin`-refresh the geometry
+  plugin — plugin files aren't carried by `deploy.sh`.
+- No code blockers.
+
+## Decisions (also in DECISION_LOG [RDT])
+
+1. RDT-1 premise corrected via live probe (no `-i`; volatile PIDs; compute.geometry pipe) → design.
+2. `/graduate` wrote to deployed dir → corrected into source + re-deployed; command-hardening deferred to BACKLOG.
 
 ---
 
 ## State File Health
 
-- `current_task.md` — ✅ updated (GHP shipped; next options)
-- `TODO.md` — ✅ GHP added as completed initiative; header dated
-- `DECISION_LOG.md` — ✅ [GHP] entry prepended (17 entries, no rotation needed)
-- `BACKLOG.md` — ✅ `oxl_mcp-rhino-scaffold` filed
-- `IMPLEMENTATION_PLAN.md` / `ARCH.md` — untouched, stable
-
----
+- `current_task.md` — ✅ updated (RDT-1 close + graduation correction)
+- `TODO.md` — ✅ RDT marked complete `[x]`; OXL restored as active initiative
+- `DECISION_LOG.md` — ✅ 2 entries appended (~23 entries total, under 40 — no rotation)
+- `BACKLOG.md` — ✅ finding filed
+- `IMPLEMENTATION_PLAN.md` / `ARCH.md` — stable, untouched
 
 ## Gate Telemetry
 
 | Hook | Deny | Nag | Last Fired |
 |:---|---:|---:|:---|
-| evidence-gate | 0 | 185 | 2026-07-17T10:06:09Z |
-| guard-commands | 149 | 0 | 2026-07-17T10:06:27Z |
-| guard-paths | 185 | 0 | 2026-07-17T10:06:27Z |
-| nudge-handoff | 0 | 5 | 2026-07-17T09:21:11Z |
+| evidence-gate | 0 | 250 | 2026-07-24T22:33:50Z |
+| guard-commands | 201 | 0 | 2026-07-24T22:34:11Z |
+| guard-paths | 250 | 0 | 2026-07-24T22:34:11Z |
+| nudge-handoff | 0 | 7 | 2026-07-22T12:58:08Z |
 
-**334 deny, 190 nag across 5 hooks** (cumulative all-time — not this session alone).
+451 deny, 257 nag across 5 hooks.
 
 ---
 
 ## Next Session
 
-1. **User's external GH-plugin project** — the new skill serves it now. **Refresh the `geometry` plugin (`/plugin`)** so the skill body loads in sessions (deploy.sh doesn't ship plugins). Worth a 5-min live-Rhino check of the 2 flagged ambiguities (distribution-tag targeting; `# r:` bundle-vs-runtime).
-2. **OXL-2 — Skill-Authoring Craft** (queued in this repo; gate now clear).
-
-**Loose ends:** `Artifacts/GLOBAL_INBOX.md` has a pre-existing uncommitted user edit (untouched). `Artifacts/Temp/` holds prior VSE/pptx evidence — NOT purged (not this session's artifacts; parked-project evidence).
+- **User**: `/plugin` refresh geometry → activate RDT guard in sessions.
+- **strategist**: resume **OXL-3** (interview mode) — now the active initiative; RDT was out-of-sequence.
+- **Deferred**: BACKLOG `rdt_graduate-source-vs-deployed_1` (harden `/graduate` source-vs-deployed).

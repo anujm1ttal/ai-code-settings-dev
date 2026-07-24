@@ -6,6 +6,50 @@ Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
 
 ---
 
+## 2026-07-24 — RDT-1: Lane A-live doc-targeting guard (premise-corrected via live probe) [RDT]
+
+**Context:** User asked to make correct-document targeting mandatory for `rhinocode` (Lane
+A-live), citing a `-i` flag to avoid and a pinned instance `remotepipe_37092`. Probed the live
+CLI before encoding anything.
+
+**Premise corrections (evidence, not opinion):**
+- **No `-i` flag exists** — `rhinocode --help`/`script --help` expose only `-r, --rhino <ID>`.
+  The real defect is *omitting* `-r`. Rule codified as "always `-r`, never bare".
+- **PIDs are volatile** — user's `37092` was already stale (live was `31340`). Guard resolves by
+  doc-hint, never a pinned id.
+- **`compute.geometry` publishes a `rhinocode_remotepipe_*` pipe** with empty `activeDoc`. The
+  old `_INSTANCE_ID_RE.search()` first-match could target it. Resolution now filters
+  `processName == "Rhino"`.
+
+**Decision:** Two-layer guard in `rhino-e2e-testing` resources: `resolve_instance()` fails loud
+on >1 Rhino instance (lists each doc; `RHINO_INSTANCE_ID` overrides); doc-hint guard in the suite
+runner aborts (`SENTINEL+"94"`) when `RHINO_DOC_HINT` ⊄ `RhinoDoc.ActiveDoc.Name` (warn-only when
+unset / `RHINO_DOC_READONLY=1`). SKILL.md Key Rules 3–4 + one pitfalls.md row.
+
+**Status:** RESOLVED. 136 pytest exit 0; auditor GO (after HR1 reject on bare example commands in
+SKILL.md → fixed). Merged `2b9f88d`, pushed. **Delivery caveat:** ships via `/plugin` geometry
+refresh, NOT `deploy.sh` — not live in sessions until user reinstalls the geometry plugin.
+
+## 2026-07-24 — /graduate wrote to deployed dir instead of repo source; corrected [RDT/OS]
+
+**Context:** During `/graduate` of 8 `my_mcp_rhino` inbox entries, the concierge subagent applied
+6 of 8 edits directly to `~/.claude/rules/common/*.md` (the **deployed** copies) instead of the
+repo source `rules/common/*.md`. Its commit `48842c1` captured only entry 7 (implementation-
+dispatch SKILL.md) + inbox cleanup; entries 1–6 were unversioned and would be clobbered on the
+next `deploy.sh`.
+
+**Detection:** mtime comparison — deployed rules 23:26–23:28 (just written), repo source
+11:05–15:37 (untouched), working tree clean. Confirmed via diff of deployed vs source.
+
+**Decision:** Ported the exact additions into repo source (5 files, 13 lines), committed `dcd321a`,
+ran `deploy.sh` (exit 0, 136 pytest) to re-sync production from versioned source, pushed.
+Entry 8 (standards.md, reported blocked for the subagent) also applied to source.
+
+**Status:** RESOLVED. **Follow-up finding (→ BACKLOG):** `/graduate` command doc lists
+destinations as bare `rules/common/*.md` — ambiguous between repo source and deployed; a subagent
+resolved them against `~/.claude/`. Harden the command to state "repo source, then deploy" and/or
+block writes outside the workspace.
+
 ## 2026-07-17 — GHP-3: headless GH_IO serialization reference, read+write live-verified [GHP]
 
 **Context:** Follow-on from GHP-2. User asked to explain, then probe, then build a reference for
