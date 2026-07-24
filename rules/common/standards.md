@@ -33,6 +33,7 @@ description: Interaction, presentation, and behavioral standards. Governs how ag
 
 - **ASCII diagrams mandatory** for: data flow, branching logic, state machines, data tree structures, agent orchestration flows.
 - **Staleness forbidden**: If code with a nearby diagram changes, update the diagram in the same pass. Scribe owns currency; coder flags changes.
+- **Cite symbols, not line numbers**: In durable documents, cite a function/class/constant name over a line number — line numbers rot silently the moment code is inserted above them. Where a line number is unavoidable, re-derive it at write time and date-stamp it; when a change inserts or deletes lines above a cited region, sweep every document that cites that file.
 
 ## Artifact Protocol
 

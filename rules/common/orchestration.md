@@ -262,6 +262,7 @@ To prevent information redundancy and "maintenance debt":
 - **Auditor rejection loop**: 1st → specific fix. 2nd → mandatory skill-file review. 3rd → escalate to strategist (task definition may be flawed).
 - **Agent disagreement**: Coder documents concern → routes to strategist. Strategist has final authority on success metrics.
 - **User override**: User says "Skip Step 0" → logged as `[STEP0-BYPASS]` in Artifacts/TODO.md → auditor flags HIGH severity.
+- **Binding Rule Conflict**: When two binding rules genuinely conflict, record the resolution, its scope, and its grounds in the durable `Artifacts/DECISION_LOG.md` — never only in a session/scratch file. Annotate the superseded rule in place so future readers will find the contradiction and its resolution without context-hopping. A contract or plan statement about code that ALREADY EXISTS is a claim requiring verification at authoring time, not an assertion — mark such claims explicitly and check them before approval.
 
 ## Global Repository (AI OS Settings)
 

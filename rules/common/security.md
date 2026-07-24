@@ -51,6 +51,13 @@ No task is "Done" until:
 - **Privacy levels**: Set explicitly. Default `Private`.
 - **Exports**: Disable underlying data export for PII/sensitive metrics.
 
+## Safety Guards (CRITICAL)
+
+A safety check MUST fail closed:
+- Never gate a guard on an optional argument being present — require it, or default it to the safe value and raise when it cannot be determined.
+- If a test lane needs to bypass a guard, the bypass must be explicit and named (e.g., an `unsafe_skip_check=True` flag), never the natural consequence of omitting an argument.
+- Rationale: A guard defaulting to "off" when not explicitly supplied protects the test path and nothing else for the entire life of the feature, silently disabling shipped capabilities with no error.
+
 ## MCP & Tool Security
 
 - **Read-only by default**. Write access scoped to project directory only.

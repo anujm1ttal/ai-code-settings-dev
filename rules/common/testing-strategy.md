@@ -37,6 +37,8 @@ Evidence is the currency of the **Verification Gate**.
 - **Freshness**: Test command must be fresh.
 - **Completeness**: Full output or summarized output with exit code required.
 - **Assertion Mode**: "Should pass" is forbidden; "Passed with exit code 0" is required.
+- **Entry-Point Coverage**: Evidence for a user-facing capability MUST be produced by exercising the outermost entry point that capability ships behind (HTTP route, CLI command, tool call), not an internal function it delegates to. A gate that calls the function beneath the entry point certifies a path no user can reach. **Corollary**: count route/command coverage separately from unit coverage — entry points with zero test coverage are where defects ship.
+- **Oracle Discipline**: Every absence-proof MUST carry a presence-control proving the probe can see what it claims is missing — absence of evidence is not evidence of absence. Read the actual type/struct before asserting on its fields; a mistyped field yields a silent false negative, not an error. An oracle must encode the CONTRACT, not a surface pattern. Recount any asserted ratio before publishing it.
 - **Asymmetry Rules**:
   - E2E evidence cannot substitute for unit evidence when pure logic changed.
   - Unit evidence cannot substitute for E2E evidence when Rhino geometry behavior changed.
@@ -64,6 +66,7 @@ Encode every known-but-deferred defect as an executable marker asserting the **c
 ## 5. Mocking Boundaries
 
 - **Rule**: Mock external systems; do not mock internal logic.
+- **Wrapper/Flatten Tools**: When a component's job is to transform, unwrap, or flatten another component's output, its mocks MUST mirror the real, fully-wrapped response shape (capture it from a live probe). The component MUST be exercised end-to-end against real data at least once before its unit-green is trusted. A degenerate/empty live result is a mock-vs-real envelope mismatch until proven otherwise.
 - **Rhino/GH Boundaries**:
   - Mock/stub `rhinoscriptsyntax`, `scriptcontext`, `Rhino.*` for import safety in pure tests.
   - Use `Rhino.Inside` when testing actual `RhinoCommon` geometry behavior.

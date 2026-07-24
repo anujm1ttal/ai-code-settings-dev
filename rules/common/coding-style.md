@@ -53,6 +53,7 @@ Never apply laziness to: input validation, error handling that prevents data los
 - **Match Style**: Match the existing style, naming conventions, and patterns of the file, even if they differ from your personal preference.
 - **Orphan Lifecycle**: Remove imports, variables, or functions that YOUR changes made unused. Do NOT remove pre-existing dead code unless explicitly requested.
 - **No Side Quests**: Every changed line must trace directly to a requirement in the current `Artifacts/TODO.md` phase.
+- **Git Hygiene**: Never `git add` to render a diff — use `git diff --no-index /dev/null <file>` for untracked files instead. Before any commit, re-stage every path whose status shows `AM` (index differs from working tree); test results attest to the working tree and say nothing about what is staged.
 
 ## 🐍 Python Runtime Matrix
 | Context | Environment | Syntax | Libraries | Logging |
