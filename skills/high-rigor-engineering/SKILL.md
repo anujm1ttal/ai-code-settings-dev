@@ -26,7 +26,7 @@ This discipline enforces **synchronous gate-passing**, **runtime verification**,
 1. **Evidence over assertion** — Behavioral claims must be backed by runtime output, not code inspection
 2. **Human in loop** — Every gate requires explicit approval; never infer permission from silence
 3. **Scope lockdown** — Work within an approved file list; violations halt work immediately
-4. **Verification-as-artifact** — All evidence lives in `Artifacts/Temp/` as traceable files
+4. **Verification-as-artifact** — All evidence lives in `Artifacts/Temp/` as traceable files; anything a durable record cites is promoted to `Artifacts/Evidence/<phase>/` before cleanup (`orchestration.md` §Evidence Retention)
 5. **One step per response** — No bundling, no proceeding without approval
 
 ---
@@ -207,19 +207,25 @@ One commit per phase, containing:
 - Implementation changes
 - Phase plan (`Artifacts/Plans/<phase>.md`)
 - Phase report (`Artifacts/Reports/<phase>.md`)
+- Promoted evidence (`Artifacts/Evidence/<phase>/`) — the files the phase report cites
 
-Evidence files (`Artifacts/Temp/` contents) are scratch and are **not part of the commit**.
+Working evidence (`Artifacts/Temp/` contents) is scratch and is **not part of the commit**.
 
 ### Pre-Commit Cleanup
 
-Before preparing the commit, delete all current-phase Temp files:
+**Promote first, then delete.** Any Temp file the phase report (or `AUDIT_REPORT.md` /
+`DECISION_LOG.md` / a `BACKLOG.md` finding) cites is promoted and repointed before the `rm` —
+`orchestration.md` §Evidence Retention. Deleting a cited file is a **hard-reset trigger** (§7:
+evidence contradicting reported state), not a cleanup detail.
 
 ```bash
+mkdir -p Artifacts/Evidence/<phase>
+mv Artifacts/Temp/<cited-file> Artifacts/Evidence/<phase>/     # per cited file, then repoint
 rm Artifacts/Temp/<phase>_*.txt Artifacts/Temp/<phase>_*.diff.txt
 git status > Artifacts/Temp/<phase>_cleanup_git_status.txt
 ```
 
-List the cleanup status file. Stop.
+`Artifacts/Evidence/` is **never** an `rm` target. List the cleanup status file. Stop.
 
 Prior-phase Temp files are out of scope for the current commit.
 

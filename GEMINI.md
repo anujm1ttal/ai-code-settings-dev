@@ -110,6 +110,7 @@ When creating or updating these files, you MUST use the absolute path of the wor
 - **Roadmap**: `Artifacts/TODO.md`, `Artifacts/DECISION_LOG.md`
 - **Context**: `Artifacts/MEMORY_ANCHORS.md`, `Artifacts/.agent/current_task.md`, `Artifacts/LOCAL_AGENT_PROFILES.json`
 - **Transient**: `Artifacts/Temp/` (MANDATORY for all scratch scripts, diagrams, and temporary analysis. Shadow `scratch/` is FORBIDDEN.)
+- **Durable Evidence**: `Artifacts/Evidence/<phase>/` (verification artifacts cited by a durable record; promoted out of `Temp/` before any purge and committed. **Never** purged — see `rules/common/orchestration.md` §Evidence Retention.)
 - **Briefs**: `Artifacts/HANDOFF_BRIEF.md`
 - **Learnings**: `Artifacts/learnings/` (Categorized knowledge registry)
 - **History**: `Artifacts/history/` subdirectory for archived plans, task lists, and learnings

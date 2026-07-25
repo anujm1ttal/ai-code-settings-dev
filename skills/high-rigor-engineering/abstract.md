@@ -5,7 +5,8 @@ validation, production deploys, regulatory compliance, or anything with zero-rew
 
 **Core Logic**:
 - **Evidence protocol**: Every claim-supporting command output redirects to
-  `Artifacts/Temp/<phase>_<step>_<command>.txt` — no pasted summaries.
+  `Artifacts/Temp/<phase>_<step>_<command>.txt` — no pasted summaries. Cited evidence is
+  promoted to `Artifacts/Evidence/<phase>/` and committed before any cleanup.
 - **Gate cadence**: One plan step per response; explicit approval only (never inferred).
   Commit requires the exact phrase `approved, proceed with commit`.
 - **Patch protocol**: Audit → Propose (real `git diff`) → Approve → Apply → Verify.

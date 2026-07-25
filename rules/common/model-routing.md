@@ -45,10 +45,11 @@ Under the **run-to-done cadence** (`orchestration.md` §Execution Cadence), the 
 | Tier | Executor | Verifier (checks the gate) | When |
 |:---|:---|:---|:---|
 | **High-rigor** | Sonnet (coder) | **Opus** — re-reads raw artifacts, re-runs cheap checks itself | geometry, production, regulatory, security-critical, or any git-mutating / irreversible gate (the `high-rigor-engineering` skill) |
-| **Normal** | Sonnet (coder) | Sonnet (auditor); **Opus reviews at phase end** or spot-checks | routine `code` / `data` implementation |
+| **Normal** | Sonnet (coder) — **produces the artifact**, returns its path | Sonnet (auditor) — **opens** that artifact; **Opus reviews at phase end** or spot-checks | routine `code` / `data` implementation |
 | **Micro** | executor only | executor (exit code) | MTP (≤1 file / ≤30 lines) |
 
 - **Verifier rule (all tiers)**: the verifier checks the **artifact** (real `git diff`, raw test output, probe sentinel) — never the executor's *summary* of it. A second model agreeing with a narrative is not verification.
+- **No artifact → no PASS**: the Normal tier is not a softer version of this rule, only a cheaper *seat*. An auditor with no artifact path to open returns **INCOMPLETE**, not PASS — see `orchestration.md` §Execution Cadence. Micro tier is the sole exemption.
 - **Independence**: for high-rigor gates the verifier prefers **re-running / re-reading** over reasoning-review — mechanical checks don't share the executor's reasoning blind spots.
 - **Cost note**: Opus verification is deliberately scoped to the high-rigor tier. Blanket Opus-checks-every-gate would double the cost of the most frequent operation and violate the minimum-capable-model principle above — do not globalize it past the high-rigor tier.
 

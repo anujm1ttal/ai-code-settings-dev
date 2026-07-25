@@ -143,6 +143,9 @@ The HARD-GATE above governs the **one** mandatory pre-work stop: no implementati
 
 **Orchestrator / executor split.** Opus orchestrates and verifies; Sonnet (coder) executes. Per step/slice: executor does the work → produces evidence → returns artifact paths + claim → the verifier (tiered per `model-routing.md` §Verification Tiering) checks the **raw artifact**, not the summary → advance autonomously on PASS.
 
+**Evidence is a file, not a claim [HARD-GATE].** The executor redirects every command whose output backs a gate claim to `Artifacts/Temp/<phase>_<step>_<command>.txt` and returns the **path** (naming and redirection detail: `testing-strategy.md` §3). A verifier **MAY NOT return PASS** on a claim backed only by narrative — no artifact path, or a path the verifier did not open, means the gate is **INCOMPLETE** (not FAIL) and the executor is sent back to produce one. INCOMPLETE is not a stop-and-surface trigger; the orchestrator resolves it by re-dispatching.
+- **Exempt**: MTP micro-tasks (§Micro-Task Protocol) verify at executor tier on exit code — there is no separate verifier to read a file.
+
 ```
 YOU ── approve plan (once) ──► OPUS (orchestrate + verify) ──► SONNET (execute → evidence)
                                      │  ▲ raw artifacts (not summary) │
@@ -202,7 +205,8 @@ Everything else — reads, pure-logic, docs, reversible edits, passing gates —
 | File | Owner (Create) | Owner (Maintain) | Purpose |
 |:---|:---|:---|:---|
 | `Artifacts/MEMORY_ANCHORS.md` | Strategist | Strategist | **Cold Storage**: Project-wide constants, constraints, and non-negotiables. (Persistent — never archived) |
-| `Artifacts/Temp/` | All | Concierge (Cleanup) | **Transient Storage**: One-off diagrams, scratch scripts, and temporary analysis. |
+| `Artifacts/Temp/` | All | Concierge (Cleanup) | **Transient Storage**: one-off diagrams, scratch scripts, and *uncited* verification output. Gitignored; purged freely. |
+| `Artifacts/Evidence/` | Executor (promotion) | Auditor | **Durable Evidence**: verification artifacts cited by a durable record. Committed with the phase. **Never purged** — see §Evidence Retention. |
 | `Artifacts/AUDIT_REPORT.md` | Auditor | Auditor | Gate-based quality review findings (Logic, Style, Hard Rules); see `/audit`. |
 | `Artifacts/.agent/current_task.md` | Concierge | Concierge | Session focus |
 | `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
@@ -244,6 +248,22 @@ To ensure project portability and auditability, agents MUST NOT use the system d
 - **Mandatory Path**: All one-off scripts, temporary data, and transient analysis files MUST be stored in `Artifacts/Temp/`.
 - **Enforcement**: Any agent writing to a shadow directory during execution is in violation of the Persistence Hard-Gate.
 
+### 📎 Evidence Retention [HARD-GATE]
+
+`Artifacts/Temp/` is scratch and **gitignored** — nothing in it survives a phase. Evidence a
+**durable record cites** must therefore be promoted before any purge, or the record ends up
+pointing at a deleted file.
+
+- **Promote when**: a phase report, `AUDIT_REPORT.md`, a `DECISION_LOG.md` entry, a
+  `BACKLOG.md` finding, or a `learnings/` entry cites the file.
+- **Promote to**: `Artifacts/Evidence/<phase>/<original-filename>`, committed with that phase.
+  Repoint the citing record to the new path **in the same pass** — a promoted file with a stale
+  citation is the same failure as a deleted one.
+- **Purge law (binds every cleanup path — `/clean`, `/handoff`, high-rigor pre-commit)**: purge
+  `Artifacts/Temp/`; **never** touch `Artifacts/Evidence/`. Promote cited files *before* purging.
+- **Uncited evidence is not promoted** — it did its job at the gate and dies with `Temp/`.
+  Promotion is the exception, not the default; `Evidence/` holds what a reader will actually
+  follow a citation to.
 
 ## Artifact Separation: Plan vs. TODO
 

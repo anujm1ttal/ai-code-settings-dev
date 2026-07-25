@@ -30,7 +30,7 @@ Quick reference for common commands, workflows, and navigation in Claude Code se
 | **Write a video script** | `/script` | scribe | After `Artifacts/VIDEO_PLAN.md` exists |
 | **Pack video metadata** | `/pack` | scribe | After `Artifacts/SCRIPT.md` exists — titles, tags, SEO |
 | **Audit the OS registry** | `/registry-audit` | auditor | Cross-reference integrity check across agents/commands/skills |
-| **Clean up temp files** | `/clean` | concierge | Purge `Artifacts/Temp/` and other transient files |
+| **Clean up temp files** | `/clean` | concierge | Purge `Artifacts/Temp/` and other transient files (never `Artifacts/Evidence/`) |
 | **Promote a project lesson** | `/graduate` | concierge | Move a project learning to the global OS settings |
 | **Capture a lesson** | `/learn` | concierge | Write a persistent lesson to `Artifacts/learnings/` |
 

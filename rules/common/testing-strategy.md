@@ -35,7 +35,9 @@ description: Canonical testing taxonomy, runtime-lane selection, evidence requir
 
 Evidence is the currency of the **Verification Gate**.
 - **Freshness**: Test command must be fresh.
-- **Completeness**: Full output or summarized output with exit code required.
+- **Artifact-backed [HARD-GATE]**: Any command output backing a claim a verifier must check is redirected to a file and cited by **path** — `<command> > Artifacts/Temp/<phase>_<step>_<command>.txt 2>&1`. The file is the evidence; chat prose only points at it. Applies at **every** rigor tier (`orchestration.md` §Execution Cadence owns the no-artifact-no-PASS rule and the MTP exemption).
+- **Completeness**: The artifact carries full output including exit code. A chat summary is a *pointer* to the artifact, never a substitute for it — a verifier that read only the summary has verified nothing.
+- **Retention**: Evidence cited by a durable record is promoted out of `Artifacts/Temp/` and committed — see `orchestration.md` §Evidence Retention. Uncited evidence is purged with `Temp/`.
 - **Assertion Mode**: "Should pass" is forbidden; "Passed with exit code 0" is required.
 - **Entry-Point Coverage**: Evidence for a user-facing capability MUST be produced by exercising the outermost entry point that capability ships behind (HTTP route, CLI command, tool call), not an internal function it delegates to. A gate that calls the function beneath the entry point certifies a path no user can reach. **Corollary**: count route/command coverage separately from unit coverage — entry points with zero test coverage are where defects ship.
 - **Oracle Discipline**: Every absence-proof MUST carry a presence-control proving the probe can see what it claims is missing — absence of evidence is not evidence of absence. Read the actual type/struct before asserting on its fields; a mistyped field yields a silent false negative, not an error. An oracle must encode the CONTRACT, not a surface pattern. Recount any asserted ratio before publishing it.
