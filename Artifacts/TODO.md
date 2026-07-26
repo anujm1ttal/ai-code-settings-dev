@@ -7,15 +7,15 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 
 ---
 
-# Active Initiative: BLR — BACKLOG Lifecycle & Rotation
+# Completed Initiative: BLR — BACKLOG Lifecycle & Rotation
 
-**Status:** BLR-1 active · **Step 0:** approved 2026-07-26 · **Grill:** [REFACTORED] 2026-07-26
+**Status:** BLR-1 COMPLETE (auditor PASS 2026-07-26; report `Artifacts/Reports/BLR-1-Report.md`) · **Step 0:** approved 2026-07-26 · **Grill:** [REFACTORED] 2026-07-26
 **Branch:** `phase-blr-1-backlog-lifecycle` · User-driven (out of OXL sequence — precedent: RDT, GHP, MTU, EVD)
 **Plans:** `Artifacts/Plans/BLR-1-Plan.md` + `BLR-1-TODO.md`
 **Origin:** cross-repo comparison against `my_mcp_rhino` — the OS specifies how work *enters*
 BACKLOG in three places and how it *leaves* in none.
 
-- [ ] **BLR-1 — BACKLOG Lifecycle & Rotation** — Success: §BACKLOG Lifecycle ≤20 lines; `backlog_audit.py` zero repo imports, exit 1/0 correct; this repo's BACKLOG ≤200 lines / ≤12 entries with 0 RESOLVED remaining; audit exit 0; pytest exit 0; deploy 6/6 — tasks: `Plans/BLR-1-TODO.md`
+- [x] **BLR-1 — BACKLOG Lifecycle & Rotation** — auditor PASS 2026-07-26; all 3 Hard Rules held (HR2 zero-loss verified 18→18 with presence control). **M3 recorded MISSED** (213 lines vs ≤200; metric deliberately NOT amended — see report §3). Success: §BACKLOG Lifecycle ≤20 lines; `backlog_audit.py` zero repo imports, exit 1/0 correct; this repo's BACKLOG ≤200 lines / ≤12 entries with 0 RESOLVED remaining; audit exit 0; pytest exit 0; deploy 6/6 — tasks: `Plans/BLR-1-TODO.md`
 
 ### Initiative Hard Rules (Auditor Rejects on Violation)
 1. No BACKLOG outside this repo is touched — `my_mcp_rhino` and all other projects untouched
