@@ -7,6 +7,23 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 
 ---
 
+# Active Initiative: IGH — Insights-Guided Hardening
+
+**Status:** IGH-1 active (plan authored, implementation not started) · **Step 0:** approved 2026-07-26 · **Grill:** [REFACTORED] 2026-07-26
+**Branch:** `phase-igh-1-mechanical-guards` · User-driven (out of OXL sequence)
+**Plans:** `Artifacts/Plans/IGH-1-Plan.md` + `IGH-1-TODO.md` · IGH-2 queued
+**Origin:** `/insights` over 141 sessions — six gaps verified by grep; the report's #1 suggestion struck as Rule-echo.
+
+- [ ] **IGH-1 — Mechanical Guards** — Success: T1 activation table with raw output; redirect guard denies source-writes while **allowlist tests prove Temp/ + Evidence/ still pass**; shared-state hook fires on subset-only run and is silent on full-suite; `deploy.sh` reports **8** enforced hooks; pytest exit 0; deploy 6/6 — tasks: `Plans/IGH-1-TODO.md`
+- [ ] **IGH-2 — Rules + Dispatch** (queued) — Success: read-back rule in testing-strategy.md; call-site sweep as ONE line in coding-style.md; scope discipline in standards.md; auditor blindness clause **not merged without live-fire dispatch evidence**
+
+### Initiative Hard Rules (Auditor Rejects on Violation)
+1. The redirect guard must not block the EVD evidence protocol — Temp/ + Evidence/ allowlist tests mandatory
+2. All hooks fail open; no new hook blocks a turn (feedback-only)
+3. No rule authored before the T1 activation check answers — a dormant rule needs reinstalling, not rewriting
+
+---
+
 # Completed Initiative: BLR — BACKLOG Lifecycle & Rotation
 
 **Status:** BLR-1 COMPLETE (auditor PASS 2026-07-26; report `Artifacts/Reports/BLR-1-Report.md`) · **Step 0:** approved 2026-07-26 · **Grill:** [REFACTORED] 2026-07-26
