@@ -27,7 +27,7 @@ implementer's own work (§4). An independent auditor would still be preferable.
 | M2 | Redirect-into-source blocked; **Temp/ + Evidence/ allowlist tests pass (HR1)** | **MET** — 23/23 adversarial cases correct vs deployed hook | `igh1_t5_adversarial.txt` |
 | M3 | Shared-state hook fires on subset-only run, silent on full suite, exits 0 on malformed input | **MET** — 52 tests in `test_igh_guards.py` | `igh1_t3_tests.txt` |
 | M4 | `deploy.sh` reports **8** enforced hooks wired | **MET** — "OK: all 8 enforced hook(s) present and wired" | `igh1_t4_wiring.txt`, `igh1_m6_deploy.txt` |
-| M5 | `python -m pytest tests/ -q` exit 0 | **MET** — **216 passed, exit 0** | `igh1_m5_pytest_full.txt` |
+| M5 | `python -m pytest tests/ -q` exit 0 | **MET** — **220 passed, exit 0** | `igh1_m5_pytest_full.txt` |
 | M6 | `bash scripts/deploy.sh` 6/6 | **MET** — exit 0, DEPLOYMENT COMPLETE | `igh1_m6_deploy.txt` |
 | M7 | BACKLOG carries T3 exit-condition entry; `backlog_audit.py` exit 0 | **MET** — `igh1_shared-state-hook_1` filed OPEN; audit clean, exit 0 | `igh1_t4_registry.txt` |
 | M8 | Auditor PASS on Logic, Style, all 3 Hard Rules | **MET** — this report | §3, §4 |
@@ -57,9 +57,12 @@ The phase touched only `hooks/`, `tests/`, and `Artifacts/`. T1 ran first and it
 
 ---
 
-## 4. Defect found and fixed at this gate
+## 4. Defects found and fixed at this gate
 
-**The T5 adversarial probe found a real bypass in T2, introduced by the implementer.**
+Two defects in T2, both introduced by the implementer, both found by exercising the **deployed**
+guard rather than reviewing its source.
+
+### 4.1 — Allowlist traversal bypass (found by the adversarial probe)
 
 `echo x > Artifacts/Temp/../../scripts/thing.py` was **ALLOWED**. The allowlist substring-matched
 `Artifacts/Temp/` anywhere in the path, so a `..` segment carried an allowlisted prefix straight
@@ -77,6 +80,33 @@ because the probe script contained `> scripts/thing.py` as literal test data. Th
 documented raw-string limitation firing within minutes of deploy, against its own author. The
 probe was rewritten to assemble cases from fragments (`Artifacts/Evidence/IGH-1/igh1_t5_probe.py`). The
 incident is genuine evidence about the guard's usability cost, not a curiosity — recorded in §6.
+
+### 4.2 — PowerShell branch armed by mere mention (found by the commit being denied)
+
+**Discovered after the gate verdict, while committing.** The commit message describing this
+phase named the three PowerShell write cmdlets. That armed the PS branch, which then scanned
+**every token in the command** for a source extension — finding `guard-commands.js`,
+`settings.json`, and others — and denied the commit. The guard blocked the commit that described it.
+
+Any command merely *naming* a write cmdlet while any source filename appeared elsewhere on the
+line was denied: `grep -rn 'Add-Content' hooks/README.md`, documentation edits, commit messages.
+Materially wider than the documented raw-string caveat, and a false positive on ordinary work.
+
+- **Cause:** the branch tested for the cmdlet, then scanned the whole command instead of the
+  cmdlet's own destination argument.
+- **Fix:** `PS_WRITE_TARGET_RE` now matches only the destination — the value of
+  `-Path`/`-FilePath`/`-LiteralPath`, or the first positional argument, skipping switch
+  parameters. The whole-command token scan is gone.
+- **Regression test:** `test_naming_a_write_cmdlet_does_not_arm_the_guard` (4 cases, including
+  the exact commit-message shape that triggered it).
+- **Re-verified:** **220 passed exit 0**; redeployed 6/6; adversarial probe 23/23; the
+  previously-denied commit message then committed cleanly as `56aad6d`.
+
+**Why the probe missed it.** The adversarial suite tested cmdlets that were *real writes* and
+asked "is this caught?" It never asked "does a non-write that mentions the cmdlet stay quiet?"
+The absence-side of the contract was untested. **Lesson: a guard needs its silence tested as
+rigorously as its firing** — every deny pattern deserves a paired must-not-fire control.
+Both defects were false-negative and false-positive respectively; source review found neither.
 
 ---
 
