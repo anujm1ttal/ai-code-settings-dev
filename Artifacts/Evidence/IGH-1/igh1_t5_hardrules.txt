@@ -1,0 +1,30 @@
+=== HR1: redirect guard must not block the EVD evidence protocol ===
+Allowlist tests present in test file (mandatory, not optional):
+7
+Named HR1 test functions:
+87:def test_allowlisted_and_nonsource_redirects_pass(command):
+130:def test_allowlist_cannot_be_escaped_by_traversal(command):
+135:def test_powershell_write_cmdlet_into_temp_passes():
+Live-fire result (deployed hook): see igh1_t5_adversarial.txt 'HR1' rows -> 3/3 ALLOW
+
+=== HR2: all hooks fail open; no new hook blocks a turn ===
+guard-shared-state.js contains any deny/block field?  : 0
+guard-shared-state.js exit codes used                : process.exit(0) 
+guard-commands.js exit codes used                    : process.exit(0) 
+Fail-open live check on malformed stdin (deployed):
+  stdout empty above, exit=0
+
+=== HR3: no rule authored before T1 answered ===
+Files changed this phase (must contain NO rules/skills/agents/commands prose):
+Artifacts/BACKLOG.md
+Artifacts/Plans/IGH-1-TODO.md
+hooks/README.md
+hooks/enforced-rules.json
+hooks/guard-commands.js
+hooks/settings-template.json
+tests/test_deploy_guard.py
+Artifacts/Evidence/IGH-1/
+hooks/guard-shared-state.js
+tests/test_igh_guards.py
+Changes under rules/ skills/ agents/ commands/ : 0
+0

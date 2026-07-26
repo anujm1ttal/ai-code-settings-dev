@@ -69,6 +69,11 @@
             "type": "command",
             "command": "node \"C:/Users/44547/.claude/hooks/evidence-gate.js\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"C:/Users/44547/.claude/hooks/guard-shared-state.js\"",
+            "timeout": 5
           }
         ]
       }

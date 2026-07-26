@@ -1,0 +1,21 @@
+=== File-presence sanity: is rhino-e2e-testing/SKILL.md even in the cache? ===
+--- 3e2e20b17381 ---
+  skills present: cd-foundations python-rhino-grasshopper rhino-e2e-testing rhino-unit-testing 
+  SKILL.md EXISTS (194 lines)
+  Key Rule 3 line: 141:3. **Verify the target**: Run `rhinocode list` before `script`/`command` to confirm the intended instance and document are active.
+  rhinocode -r mentions: 0
+--- 1c00fb3ae4ab ---
+  skills present: cd-foundations python-rhino-grasshopper rhino-e2e-testing rhino-unit-testing 
+  SKILL.md EXISTS (194 lines)
+  Key Rule 3 line: 141:3. **Verify the target**: Run `rhinocode list` before `script`/`command` to confirm the intended instance and document are active.
+  rhinocode -r mentions: 0
+--- 1.1.0 ---
+  skills present: cd-foundations grasshopper-plugin-packaging python-rhino-grasshopper rhino-e2e-testing rhino-unit-testing 
+  SKILL.md EXISTS (234 lines)
+  Key Rule 3 line: 169:3. **`.venv` sys.modules purge**: the runner purges every cached module whose `__file__` resolves under the host `.venv` before `import pytest`, or the shared RhinoCode interpreter leaks a 3.11 build into the py39 venv.
+  rhinocode -r mentions: 0
+
+=== Repo source comparison ===
+  SKILL.md EXISTS (236 lines)
+170:3. **`.venv` sys.modules purge**: the runner purges every cached module whose `__file__` resolves under the host `.venv` before `import pytest`, or the shared RhinoCode interpreter leaks a 3.11 build into the py39 venv.
+  rhinocode -r mentions: 2

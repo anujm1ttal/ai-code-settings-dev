@@ -1,6 +1,39 @@
 # Implementation Plan
 
-# Active Initiative: BLR — BACKLOG Lifecycle & Rotation
+# Active Initiative: IGH — Insights-Guided Hardening
+
+**Step 0 approved:** 2026-07-26 · **Grill:** [REFACTORED] 2026-07-26 · User-driven (out of OXL sequence)
+**Origin:** `/insights` telemetry over 141 sessions / 572h / 413 commits. Six gaps verified by grep
+(0 hits each in `rules/ skills/ commands/ agents/`). The report's own #1 recommendation — a
+"Verification Before Claiming" section — was **struck as Rule-echo**: it is the most-covered area
+in the OS (verification-gate skill, evidence-gate hook, testing-strategy §3, model-routing
+§Verification Tiering, EVD's no-artifact-no-PASS). The report cannot see the rule files.
+
+| Phase | Scope | Spec |
+|:---|:---|:---|
+| **IGH-1 — Mechanical Guards** (active) | Geometry-plugin activation check (runs first — a dormant rule needs reinstalling, not rewriting); source-redirect deny in `guard-commands.js` with mandatory Temp/Evidence allowlist; shared-state Stop hook with a telemetry-based self-delete condition | `Artifacts/Plans/IGH-1-Plan.md` |
+| **IGH-2 — Rules + Dispatch** (queued) | Read-back rule (`testing-strategy.md`, n=3); call-site sweep as ONE line in `coding-style.md` §Surgical Precision; scope discipline (`standards.md`); auditor blindness — one clause in `reviewer-prompt.md`, **gated on live-fire dispatch evidence** | IGH-2-Plan.md at phase start |
+
+**Grill outcome [REFACTORED]** — four cuts. (1) Fix Protocol demoted from a new section to one
+line: decomposed to 2× n=1 plus a duplicate of Semantic Loop Detection. (2) Test hook narrowed
+from subset-detection (fires most turns → nag fatigue, and this is already the third Stop hook)
+to a shared-state grep with an explicit exit condition. (3) Auditor blindness re-scoped from
+"Tier-3 architecture" to one clause — `implementation-dispatch` **already** has a two-stage review
+with `reviewer-prompt.md`. (4) The priority argument "hooks deploy but rules don't" was
+**withdrawn as factually wrong** — `deploy.sh:102` ships `rules` too.
+
+**Self-deleting guardrail:** IGH-1 T3 is honestly n=1. Rather than argue it, it ships with a
+BACKLOG exit condition — `gate_telemetry.py` already counts per-hook fires, so zero fires across
+20 sessions triggers deletion. The guardrail reports its own uselessness.
+
+**Live-fire debt:** no subagent ran during the session that planned this, so auditor blindness has
+zero runtime evidence. IGH-2 may not merge it without a real implementer+blind-reviewer dispatch
+transcript — the same standard applied to Rhino work.
+
+---
+---
+
+# Completed Initiative: BLR — BACKLOG Lifecycle & Rotation
 
 **Step 0 approved:** 2026-07-26 · **Grill:** [REFACTORED] 2026-07-26 · User-driven (out of OXL sequence)
 **Origin:** user compared this repo's BACKLOG against `my_mcp_rhino`'s to find what the OS was

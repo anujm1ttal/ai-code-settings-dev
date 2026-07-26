@@ -11,6 +11,39 @@ Health check: `python scripts/backlog_audit.py`
 
 ---
 
+## `igh1_shared-state-hook_1` — delete `guard-shared-state.js` if it never fires
+
+**Status:** OPEN · **Filed:** 2026-07-26 (IGH-1 T4) · **Severity:** LOW (self-imposed exit condition)
+**Exit:** `trigger:20-session telemetry review — delete if zero fires`
+
+`hooks/guard-shared-state.js` shipped on an honest **n=1** evidence base: the 2026-07-26
+incident where a `sys.stdout` reassignment passed its own subset test run while breaking 279
+tests elsewhere in the suite. One incident does not justify a permanent Stop hook, and this is
+the **third** Stop hook — nag fatigue degrades the two that are already earning their place.
+
+Rather than argue the case, the hook is instrumented to report its own uselessness. Every fire
+is logged by `hooks/lib/gate-log.js` under `ruleId: guard-shared-state`.
+
+**Check when picked up:**
+
+```bash
+python scripts/gate_telemetry.py --since 2026-07-26
+```
+
+- **Zero fires across ~20 sessions** → delete `hooks/guard-shared-state.js`, its rows in
+  `hooks/enforced-rules.json` + `hooks/settings-template.json` + `hooks/README.md`, and the T3
+  block in `tests/test_igh_guards.py`. Mark this entry RESOLVED. The hook guarded nothing.
+- **Fires with true positives** → the n has grown past 1; mark RESOLVED as vindicated and
+  consider promoting the rule text into `rules/common/testing-strategy.md`.
+- **Fires that were all false positives** → tighten `SHARED_STATE_PATTERNS` or delete; a nag
+  that cries wolf is worse than no nag.
+
+**General lesson (candidate `/learn`):** a guardrail shipped on n=1 should carry a mechanical
+exit condition at ship time, not a promise to revisit. The telemetry that would settle the
+question already exists — wire the guardrail into it and schedule the decision.
+
+---
+
 ## `rdt_graduate-source-vs-deployed_1` — /graduate resolves destinations to deployed dir
 
 **Status:** OPEN · **Filed:** 2026-07-24 (RDT session) · **Severity:** MEDIUM (process defect; caused unversioned edits)

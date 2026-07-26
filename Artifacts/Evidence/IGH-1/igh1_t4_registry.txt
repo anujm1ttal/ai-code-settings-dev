@@ -1,0 +1,17 @@
+=== M7a: backlog_audit.py ===
+BACKLOG health — Artifacts\BACKLOG.md
+  246 lines / 12 entries (threshold 250/20: ok)
+  clean — no lifecycle violations
+EXIT=0
+
+=== M4: hook wiring (expect 8 enforced hooks) ===
+usage: verify_hook_wiring.py [-h] --manifest MANIFEST --hooks-dir HOOKS_DIR
+                             --settings-file SETTINGS_FILE
+verify_hook_wiring.py: error: the following arguments are required: --hooks-dir
+usage: verify_hook_wiring.py [-h] --manifest MANIFEST --hooks-dir HOOKS_DIR
+                             --settings-file SETTINGS_FILE
+verify_hook_wiring.py: error: the following arguments are required: --manifest, --hooks-dir, --settings-file
+EXIT=2
+
+=== enforced-rules count ===
+8 rules
