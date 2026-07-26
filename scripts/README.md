@@ -229,3 +229,47 @@ summary.
 **Used by**: routing self-audit; CI gate on model discipline.
 
 Exit code: 0 if every managed subagent honored its assignment, 1 on any mismatch.
+
+---
+
+## `backlog_audit.py`
+
+Reports lifecycle violations in an `Artifacts/BACKLOG.md` against
+`rules/common/orchestration.md` §BACKLOG Lifecycle.
+
+BACKLOG is **searchable memory, not a work queue** — nothing schedules off it. So this
+tool checks *hygiene* (small enough to search, every entry classifiable), never "is this
+item overdue". **An aged OPEN entry is not a violation** — that is the artifact working
+as intended.
+
+**Usage**:
+```bash
+# Audit this project's backlog (default: Artifacts/BACKLOG.md)
+python scripts/backlog_audit.py
+
+# Audit an arbitrary file
+python scripts/backlog_audit.py path/to/BACKLOG.md
+
+# Silent when clean — for /handoff wiring and CI
+python scripts/backlog_audit.py --violations-only
+```
+
+**Checks**:
+| # | Check | Violation when |
+|:--|:---|:---|
+| 1 | Size | >250 lines OR >20 entries |
+| 2 | Rotation due | RESOLVED entries still present **while over threshold** |
+| 3 | Unmarked | entry carries no `OPEN`/`RESOLVED` status marker |
+| 4 | Phase-dump | `## N. … findings` headings — per-phase append sections instead of entries |
+
+Check 4 targets the failure mode measured in `my_mcp_rhino`: 1228 lines across 17 such
+sections, none ever triaged into the real backlog.
+
+**Read-only by contract** — never edits, rotates, or deletes. Rotation is performed by
+the concierge at `/handoff`; mutation stays human-confirmed (see `/clean`).
+
+**Portability**: single file, stdlib only, **zero repo imports** — copyable into any
+project. `deploy.sh` does not ship `scripts/`, so this is repo-local until the deploy
+policy question (`lh3_telemetry-deploy_1`) is resolved.
+
+Exit code: 0 clean, 1 on any violation.
