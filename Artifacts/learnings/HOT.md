@@ -12,14 +12,14 @@ Concierge reads this first during `/sync` boot. Promotes/demotes during `/handof
 
 | # | Category | Title | Source | Last Referenced |
 |:---|:---|:---|:---|:---|
-| 1 | execution-rule | Deploy.sh Rollback: Scoped-Item Replace, Never Full-Wipe | execution-rules/index.md | 2026-07-08 |
-| 2 | pattern | Guard Hook — Recursive Deletes & Dangerous Strings Require Manual Execution | patterns/index.md | 2026-07-10 (OXL: hooks don't parse TODO format — additive fields safe) |
+| 1 | execution-rule | Deploy.sh Rollback: Scoped-Item Replace, Never Full-Wipe | execution-rules/index.md | 2026-07-26 (BLR gate verification, deploy 6/6) |
+| 2 | pattern | Guard Hook — Recursive Deletes & Dangerous Strings Require Manual Execution | patterns/index.md | 2026-07-26 (IGH-1 designing redirect guard with HR1 allowlist test) |
 | 3 | pattern | Scan Exclusions (skip venv, dist, .git) | patterns/index.md | 2026-05-07 |
 | 4 | anti-pattern | Artifact Path Validation | anti-patterns/index.md | 2026-04-30 |
-| 5 | execution-rule | Mirroring Rule (HARD-GATE) | execution-rules/index.md | 2026-05-07 |
-| 6 | project-note | Native Plugins Are the Skill Loader | project-notes/index.md | 2026-07-07 |
+| 5 | execution-rule | Mirroring Rule (HARD-GATE) | execution-rules/index.md | 2026-07-26 (EVD evidence protocol, Temp/Evidence allowlist) |
+| 6 | project-note | Native Plugins Are the Skill Loader | project-notes/index.md | 2026-07-26 (IGH-1 T1 — RDT-1 guards may be dormant in installed plugin) |
 | 7 | anti-pattern | Audit All History vs New Config = False Positives | anti-patterns/index.md | 2026-07-07 |
-| 8 | execution-rule | Verify Centrally After Parallel Fan-Out | execution-rules/index.md | 2026-07-07 |
+| 8 | execution-rule | Verify Centrally After Parallel Fan-Out | execution-rules/index.md | 2026-07-26 (BLR-1 auditor gate re-derived all claims from raw artifacts) |
 | 9 | anti-pattern | Deploy Script Stale After Subsystem Retire | anti-patterns/index.md | 2026-07-07 |
 | 10 | project-note | Global vs Project CLAUDE.md Split | project-notes/index.md | 2026-07-07 |
 | 11 | anti-pattern | Enforcement Config Never Runtime-Verified | anti-patterns/index.md | 2026-07-07 |

@@ -6,6 +6,67 @@ Archive of rotated entries → `Artifacts/History/DECISION_LOG-archive.md`.
 
 ---
 
+## 2026-07-26 — IGH: Four grill cuts on insights-driven plan [IGH]
+
+**Context:** `/insights` report (141 sessions, 572h, 413 commits) identified six gaps (0 grep
+hits). Blueprint shaped the plan; Gate 1 (grill) ran as mandatory stress-test per §Blueprint.
+Skeptical architect attacked the plan on four dimensions.
+
+**Cuts:**
+
+1. **Fix Protocol section struck, one line added instead.** Plan proposed a 3-clause section
+   (call-site sweep, shared-I/O full-suite re-run, first-fix root-cause). Auditor evidence: 2×n=1
+   (04b_concourse.py signature, 279-test stdout break) + 0 (re-root-cause is already Semantic
+   Loop Detection in `systematic-debugging` + `orchestration.md`). Non-blocking; folded
+   call-site sweep as a single line in `coding-style.md` §Surgical Precision where it belongs.
+
+2. **Test hook narrowed from subset-detection to shared-state grep.** Plan proposed a Stop hook
+   that nags on any subset test run (fires most turns → nag fatigue on the third hook).
+   Refactored to grep the diff for `sys.stdout`, `sys.stderr`, `logging.`, `TextIOWrapper`,
+   `reconfigure`, `os.environ`. Fires only when those are touched AND no full-suite run. Evidence:
+   n=1 (2026-07-26, 279 teardown errors from stdout reassignment). **Self-deleting guardrail:**
+   `gate_telemetry.py` counts per-hook fires; zero fires across 20 sessions → auto-delete via a
+   BACKLOG exit-condition entry.
+
+3. **Auditor blindness re-scoped, live-fire gate added.** Plan proposed Tier-3 architecture
+   refactor. Grill discovered `implementation-dispatch` **already** carries a two-stage review
+   (Spec → Quality) with `reviewer-prompt.md` template. Redefined as one clause: a blind auditor
+   receives git diff + contract only, never the implementer summary. **Gated on live-fire dispatch
+   evidence**: no subagent ran this session, so this clause doesn't merge without a real
+   coder/blind-auditor transcript proving it works.
+
+4. **Priority argument withdrawn.** Plan claimed hooks deserve priority because they deploy
+   globally while rules don't. Grill checked `deploy.sh:102` and found `DEPLOYED_ITEMS=(agents
+   rules skills …)` — rules deploy too. Same reach, same priority. Argument was factually wrong.
+
+**Status:** OPEN (IGH-1 execution pending, IGH-2 planned, live-fire gate gates one IGH-2 item).
+
+---
+
+## 2026-07-26 — BLR-1: Auditor PASS, M3 recorded MISSED [BLR]
+
+**Context:** BLR-1 (BACKLOG lifecycle, rotation, checker) shipped T1–T4. Auditor gate (T5) ran
+independently against raw artifacts.
+
+**Ruling:** PASS. All 3 Hard Rules verified: HR1 my_mcp_rhino has zero content change (the `M`
+flag is a CRLF normalization artifact, pre-existing). HR2 zero-loss confirmed 18 entries
+before→after with a presence control (injected fake entry, oracle correctly reported it lost).
+HR3 no write operations in `backlog_audit.py` (stdlib-only). M1–M2, M4–M8 all verified.
+
+**M3 recorded MISSED (not amended).** Metric was ≤200 lines; result 213. Nine other gates pass +
+all Hard Rules. **Auditor refused to amend the metric** — rewriting a threshold to match the
+result is the move an auditor exists to prevent. Lesson for handoff: **derive metrics from
+enforced thresholds, not pre-write estimates.** The rule's enforced threshold is 250
+(`backlog_audit.py`); entries are 11/20 ✅. Metric intent satisfied, MISSED recorded honestly.
+
+**Report:** `Artifacts/Reports/BLR-1-Report.md`. Caveat stated in §1: auditor self-audit is the
+weakest verification. Every claim re-derived or re-run rather than carried forward; independence
+would be preferable.
+
+**Status:** RESOLVED. Merged `621e42a`, **uncommitted at handoff time**.
+
+---
+
 ## 2026-07-25 — Tier 1 model bumped to Claude Opus 5 [MTU]
 
 **Decision:** Replace `claude-opus-4-8` with `claude-opus-5` as the Tier 1 model ID everywhere

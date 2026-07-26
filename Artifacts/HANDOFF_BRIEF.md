@@ -1,101 +1,106 @@
-# Handoff Brief — MTU: Tier 1 → Claude Opus 5 (2026-07-25)
+# Handoff Brief — Session Checkpoint
 
-**Tier:** L1 Checkpoint (`--lite`) · **Branch:** `main` (**dirty — 14 files uncommitted**) · **Outcome:** model swap done, tested, deployed; not yet committed.
+**Tier:** L2 Session (`/handoff` default) · **Date:** 2026-07-26 15:30 UTC · **Context:** BLR-1 closed, IGH-1 planned
+**Branch:** `phase-igh-1-mechanical-guards` (uncommitted plans) + unpushed 3 commits on `main`
 
 ---
 
 ## Session Summary
 
-Single user-directed task: *"change opus 4.8 to opus 5 in all of my setup."* Ran as a micro-task
-(MTP) — mechanical, same-tier ID rename with no architectural change. No subagents dispatched;
-orchestrator executed and verified directly.
+**Duration:** ~1 compacted session (~2 hours), continuation from earlier context
+**Agents:** Strategist (planning), Auditor (BLR-1 gate), Coder (no impl), Concierge (this handoff)
 
-**Skill loaded:** `claude-api` (per its own trigger rule — the prompt named a Claude model), which
-supplied the authoritative model ID and the pricing/capability facts below.
+Three major tasks: (1) BLR-1 auditor gate, (2) IGH `/insights` analysis + blueprint + grill, (3) State sync.
 
 ---
 
 ## Completed
 
-| Item | Outcome |
+| Task | Outcome |
 |:---|:---|
-| **Model-ID swap** | `claude-opus-4-8` → `claude-opus-5` in 14 files: `rules/common/model-routing.md` (Tier 1 row), `agents/{strategist,council}.md`, `commands/{afk,blueprint,council,grill,ideate,skill-graph,sweep}.md`, `scripts/model_router.py` (×5), `scripts/README.md` (×2), `tests/test_model_router.py`, `tests/test_routing_audit_parsing.py` (×5). |
-| **Verification** | `python -m pytest tests/ -q` → **136 passed**, exit 0. Post-edit grep: zero `claude-opus-4-8` outside `Artifacts/`. |
-| **Deploy** | `bash scripts/deploy.sh --skip-tests` → validation passed (7 enforced hooks wired). Deployed `~/.claude/{agents,commands,rules}` re-grepped → all carry `claude-opus-5`. Backup: `~/.claude.backup-20260725-002827`. |
-| **DECISION_LOG rotation** | Log hit the >400-line threshold on append; 3 oldest RESOLVED entries (2026-07-06, Phase OSA/OSA-2) moved → `Artifacts/History/DECISION_LOG-archive.md` (first entries in that archive). |
+| **BLR-1 T5 auditor gate** | PASS. 9 metrics verified + all 3 Hard Rules (HR2 zero-loss with presence control). M3 deliberately recorded MISSED (213 lines vs ≤200); metric not amended. Report: `Artifacts/Reports/BLR-1-Report.md`. |
+| **BLR-1 merge** | Merged `621e42a`, branch deleted. **Unpushed** (see Blockers). |
+| **IGH Step 0** | Approved. VALUE_CHECK: mechanically-enforceable gaps from `/insights`. MINIMALISM verified at Gate 1 grill. |
+| **IGH Gate 1 grill** | **[REFACTORED]** Plan cut from 50→30 lines via four reductions: Fix Protocol → 1 line, test hook → narrow + telemetry, auditor blindness → live-fire gate, priority argument withdrawn. |
+| **IGH-1 artifacts** | Created `Artifacts/Plans/IGH-1-{Plan,TODO}.md` + appended IMPLEMENTATION_PLAN/TODO. **Uncommitted**. |
+| **HOT.md refresh** | Updated 5 entries' Last Referenced dates. Added 4 new learnings to category indexes (not HOT yet). |
+| **DECISION_LOG** | Appended IGH + BLR decisions; rotation already complete from prior session. |
 
 ---
 
-## Key Facts Established (don't re-derive)
+## In Progress
 
-- **Opus 5 is a same-tier, same-price swap.** `claude-opus-5` is $5/$25 per MTok — identical to
-  Opus 4.8. `MODEL_PRICING["claude-opus-5"] = 15.0` (the file's input/output average) is therefore
-  still correct, and no minimum-capable-model rule text in `model-routing.md` needed rewriting.
-- **Tier-inference code is version-agnostic.** `model_router._tier_for_model()` and
-  `model_routing_audit.model_family()` both match on the `"opus"` substring, so no regex or
-  parser needed updating for the un-suffixed `claude-opus-5` ID.
-- **Statusline needs no edit.** `~/.claude/statusline.sh` and `subagent_statusline.sh` colour by
-  substring (`opus` → green), so Opus 5 renders correctly as-is.
-- **`Artifacts/` had no literal `claude-opus-4-8`** — only "Opus" tier prose, which stays valid.
-  Nothing historical was rewritten.
+| Task | State |
+|:---|:---|
+| **IGH-1 implementation** | Not started. T1–T5 queued in `phase-igh-1-mechanical-guards` TODO. T1 gates remaining work — must verify RDT-1's geometry guards are **live** in installed plugin (not just repo source) before authoring any new rules. |
 
 ---
 
-## Blockers / Open
+## Blockers & Procedural
 
-- **Uncommitted work**: 14 modified files on `main`. Per `orchestration.md` §Git Phase Branching,
-  implementation shouldn't sit on `main` — branch + commit, or commit directly if treating this as
-  an accepted MTP. **Needs a user decision; deliberately not committed this session** (commits are
-  a stop-and-surface / irreversible action).
-- **Cosmetic, flagged not fixed**: `.claude/settings.local.json:74` holds a stale permission
-  allowlist entry containing the string `"Opus 4.8"` (an old statusline echo-test command). Inert —
-  prune only if you want the tidiness.
+**Uncommitted state:**
+- **3 commits on `main`:** EVD merge + BLR-1 T1–T4 + BLR-1 gate closure. Ready to push.
+- **IGH-1 plan files:** `Artifacts/Plans/IGH-1-{Plan,TODO}.md` + IMPLEMENTATION_PLAN/TODO edits on `phase-igh-1-mechanical-guards`. Ready to stage/commit.
+
+**No technical blockers.** Both are clean git states awaiting a commit+push before next session.
 
 ---
 
-## Carried Forward (unchanged from 2026-07-24)
+## Decisions
 
-- **User action**: `/plugin` refresh the geometry plugin to activate the RDT Lane A-live guard —
-  plugin files are **not** carried by `deploy.sh`, so RDT-1 is still not live in sessions.
-- **Deferred → BACKLOG** `rdt_graduate-source-vs-deployed_1`: harden `/graduate` to resolve
-  destinations against repo source, not `~/.claude/`.
-- **Queued**: OXL-3 (interview mode) resumes as the active initiative.
+| Decision | Rationale | Status |
+|:---|:---|:---|
+| **BLR-1: M3 MISSED, not amended** | Auditor refuses to rewrite a metric to match the result. Derived metrics from pre-write estimates (≤200) will drift from enforced thresholds (250). Next time, source metrics from the rule itself. Lesson filed to `/learn` candidates. | RESOLVED |
+| **IGH: Four grill cuts** | (1) Fix Protocol → 1 line (call-site sweep only, re-root-cause is duplicate). (2) Test hook → narrow shared-state grep + self-delete via telemetry (0 fires across 20 sessions). (3) Auditor blindness → live-fire gate (no subagent evidence this session). (4) Priority argument withdrawn (rules deploy too). | OPEN (IGH-1/2 execute) |
+| **IGH-1: T1 gates T2+** | No prose written before T1 returns. If RDT-1 guards are dormant (not live), fix is plugin reinstall. Hard Rule 3. | OPEN (T1 pending) |
 
 ---
 
 ## State File Health
 
-| File | Status |
-|:---|:---|
-| `Artifacts/.agent/current_task.md` | ✅ Updated — MTU latest, dirty-tree warning, RDT demoted to *Previous* |
-| `Artifacts/TODO.md` | ✅ Unchanged (130 lines) — MTU was an MTP, no task markers to move; no `[x]` written (concierge boundary) |
-| `Artifacts/IMPLEMENTATION_PLAN.md` | ✅ Stable — untouched |
-| `Artifacts/ARCH.md` | ✅ Stable — untouched |
-| `Artifacts/DECISION_LOG.md` | ✅ MTU entry prepended; rotated back under threshold (<400 lines / <40 entries) |
-
-**Hygiene:** `Artifacts/Temp/` already empty (L1 flags rather than purges). No stray `*.tmp` /
-`debug.log` / uncommitted scratch files found — the 14 dirty files are all intended source edits.
+✅ All five durable files healthy and synchronized:
+- `Artifacts/.agent/current_task.md` — updated, IGH-1 context
+- `Artifacts/TODO.md` — BLR-1 marked `[x]`, IGH-1 appended
+- `Artifacts/IMPLEMENTATION_PLAN.md` — IGH phases appended
+- `Artifacts/ARCH.md` — stable (no changes needed)
+- `Artifacts/DECISION_LOG.md` — appended, rotated (prior session)
 
 ---
 
 ## Gate Telemetry
 
+```
 | Hook | Deny | Nag | Last Fired |
 |:---|---:|---:|:---|
-| evidence-gate | 0 | 255 | 2026-07-24T23:27:56.660Z |
-| guard-commands | 205 | 0 | 2026-07-24T23:28:17.647Z |
-| guard-paths | 255 | 0 | 2026-07-24T23:28:17.290Z |
+| evidence-gate | 0 | 280 | 2026-07-26T19:51:59.115Z |
+| guard-commands | 225 | 0 | 2026-07-26T19:52:14.357Z |
+| guard-paths | 280 | 0 | 2026-07-26T19:52:13.956Z |
 | nudge-handoff | 0 | 8 | 2026-07-24T23:28:45.805Z |
 | unknown | 0 | 0 | 2026-07-08T11:46:59.712Z |
 
-**460 deny, 263 nag across 5 hook(s).**
+Total: 505 deny, 288 nag
+```
 
 ---
 
-## Next Session
+## Next Session — Critical Context
 
-1. **user / coder** — decide commit strategy for the 14 dirty files (branch vs. direct-to-`main`
-   as an accepted MTP), then commit + push. Suggested message: `chore(routing): bump Tier 1 model
-   to claude-opus-5`.
-2. **user** — `/plugin` refresh geometry (still outstanding from RDT-1).
-3. **strategist** — resume OXL-3 (interview mode).
+**Immediate:** Stage & commit IGH-1 plan files; push unpushed commits to origin. Then start IGH-1 T1 (auditor, AFK mode).
+
+**T1 detailed**: Determine whether RDT-1's `-r` rule and `sc.doc` pitfall are **live in the
+installed Rhino geometry plugin** or dormant in repo source only. If live → proceed to T2 (redirect guard). If dormant → the remedy is `/plugin` refresh, not new prose. This answer gates T2–T5.
+
+**Carried into IGH-2 (do not start yet)**: Read-back rule; call-site sweep; scope discipline; auditor blindness (live-fire gate). IGH-2 queued for after IGH-1 closes.
+
+**Deferred (IGH BACKLOG entry filed)**: T3 test hook exits if zero fires across 20 sessions — future telemetry review will trigger deletion. Reusable pattern.
+
+---
+
+## Learnings Proposed (awaiting user confirmation)
+
+1. Derive metrics from enforced thresholds, not pre-write estimates
+2. Presence controls in zero-loss verification
+3. Self-deleting guardrails via telemetry
+4. Auditor self-audit caveat: state independence gaps explicitly
+
+User to confirm which go to `/learn`.

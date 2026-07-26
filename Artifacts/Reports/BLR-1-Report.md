@@ -28,7 +28,7 @@ A genuinely independent auditor pass remains preferable and is not claimed here.
 | M3 | BACKLOG ≤200 lines **and** ≤12 entries; 7 in archive; 0 RESOLVED remaining | re-counted | **213 lines ❌ / 11 entries ✅ / 7 archived ✅ / 0 RESOLVED ✅** |
 | M4 | `backlog_audit.py` exit 0 | re-run | ✅ |
 | M5 | `pytest tests/ -q` exit 0 | re-run | **164 passed** ✅ |
-| M6 | `deploy.sh` 6/6 | `Artifacts/Temp/blr_10_deploy.txt`; deployed files re-grepped | ✅ |
+| M6 | `deploy.sh` 6/6 | `Artifacts/Evidence/BLR-1/blr_10_deploy.txt` (promoted from `Temp/` at handoff per §Evidence Retention); deployed files re-grepped | ✅ |
 | M7 | Auditor PASS on Logic, Style, Hard Rules | this report | ✅ |
 
 ---
