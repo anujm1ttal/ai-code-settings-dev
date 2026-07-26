@@ -7,6 +7,28 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 
 ---
 
+# Active Initiative: BLR — BACKLOG Lifecycle & Rotation
+
+**Status:** BLR-1 active · **Step 0:** approved 2026-07-26 · **Grill:** [REFACTORED] 2026-07-26
+**Branch:** `phase-blr-1-backlog-lifecycle` · User-driven (out of OXL sequence — precedent: RDT, GHP, MTU, EVD)
+**Plans:** `Artifacts/Plans/BLR-1-Plan.md` + `BLR-1-TODO.md`
+**Origin:** cross-repo comparison against `my_mcp_rhino` — the OS specifies how work *enters*
+BACKLOG in three places and how it *leaves* in none.
+
+- [ ] **BLR-1 — BACKLOG Lifecycle & Rotation** — Success: §BACKLOG Lifecycle ≤20 lines; `backlog_audit.py` zero repo imports, exit 1/0 correct; this repo's BACKLOG ≤200 lines / ≤12 entries with 0 RESOLVED remaining; audit exit 0; pytest exit 0; deploy 6/6 — tasks: `Plans/BLR-1-TODO.md`
+
+### Initiative Hard Rules (Auditor Rejects on Violation)
+1. No BACKLOG outside this repo is touched — `my_mcp_rhino` and all other projects untouched
+2. Rotation never deletes — archive append-only; OPEN entries never rotate regardless of age
+3. `backlog_audit.py` reports, never edits — no auto-rotation; mutation stays human-confirmed
+
+**⚠ Drift flagged (auditor-owned):** OXL-3 below is marked `[ ]` citing branch
+`phase-oxl-3-interview-mode`, which does not exist — its deliverables are on `main`
+(`elicitation-guide.md`; `--interview` in `blueprint.md`). Shipped-but-unmarked, or R3 live-fire
+gate genuinely unmet. Only the auditor may resolve.
+
+---
+
 # Completed Initiative: RDT — Rhinocode Doc-Targeting Guard
 
 **Status:** RDT-1 COMPLETE (merged `2b9f88d`, pushed) · User-driven (out of OXL sequence) · 2026-07-24

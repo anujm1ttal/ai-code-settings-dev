@@ -1,5 +1,35 @@
 # Implementation Plan
 
+# Active Initiative: BLR — BACKLOG Lifecycle & Rotation
+
+**Step 0 approved:** 2026-07-26 · **Grill:** [REFACTORED] 2026-07-26 · User-driven (out of OXL sequence)
+**Origin:** user compared this repo's BACKLOG against `my_mcp_rhino`'s to find what the OS was
+missing. Measured: 7/18 entries here are unrotated corpses (39%); my_mcp_rhino is 1228 lines with
+17 per-phase findings sections and a 465-line reference doc (38%) squatting inside. Both repos
+independently improvised the missing mechanism — the gap is the OS's.
+
+| Phase | Scope | Spec |
+|:---|:---|:---|
+| **BLR-1 — BACKLOG Lifecycle & Rotation** (active) | BACKLOG contract (memory-not-queue; stable ID + `OPEN`/`RESOLVED` marker); DLR-parallel rotation (>250 lines OR >20 entries → `History/BACKLOG-archive.md`, never delete) + 1-line eviction clause; `scripts/backlog_audit.py` (stdlib-only, read-only, 4 checks) wired into `/handoff`; dogfood migration of this repo's BACKLOG as the acceptance test | `Artifacts/Plans/BLR-1-Plan.md` |
+
+**Grill outcome [REFACTORED]** — the Step 0 draft treated BACKLOG as a work queue. Refuted by the
+user's own data: 8/11 open entries already carry a `Needs:` field and none caused a pickup in
+17–19 days; user confirms items don't get picked up at all. BACKLOG's evidenced job is
+**searchable institutional memory**. **Struck:** 4-group blocker taxonomy, `Exit:` trigger
+vocabulary, `/blueprint` consume point, and any restatement of `orchestration.md:364`/`:365` —
+both of those rules were already live while all the measured damage accumulated.
+
+**Known limitation (surfaced, not resolved):** `deploy.sh` excludes `scripts/`, so
+`backlog_audit.py` is repo-local and does not help `my_mcp_rhino`. Identical to the deferred
+`lh3_telemetry-deploy_1`. Mitigated by zero repo imports (copyable) + the proven graceful-skip
+wiring pattern; the deploy-policy decision stays deferred.
+
+**Precedent:** DLR (DECISION_LOG Rotation, `ca03928`) — same artifact class, same growth pattern,
+one phase, auditor first-pass PASS.
+
+---
+---
+
 # Active Initiative: OXL — OS Cross-Learning
 
 **Step 0 approved:** 2026-07-09 · **Grill:** [REFACTORED] 2026-07-09 (3 phases → 2 — see DECISION_LOG [OXL])

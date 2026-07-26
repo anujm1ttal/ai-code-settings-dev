@@ -212,7 +212,7 @@ Everything else — reads, pure-logic, docs, reversible edits, passing gates —
 | `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
 | `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist | **The "How & Why"**: Technical design and rationale. |
 | `Artifacts/TODO.md` | Strategist | All (see authority) | **The "Who & When"**: High-level execution status. |
-| `Artifacts/BACKLOG.md` | Strategist/Coder (first deferral) | All | **Deferred-work registry**: unscheduled deferred work, filed findings, pending product decisions. Reference-on-demand (NOT boot-loaded). Lazy-created on first deferral, never scaffolded at init. Scoped/phase-shaped work → PLAN; loose item/finding/product-decision → BACKLOG; scheduled/status → TODO; decisions → DECISION_LOG. |
+| `Artifacts/BACKLOG.md` | Strategist/Coder (first deferral) | All | **Deferred-work registry**: unscheduled deferred work, filed findings, pending product decisions. Reference-on-demand (NOT boot-loaded). Lazy-created on first deferral, never scaffolded at init. Rotates (never prunes) past threshold — see **BACKLOG Lifecycle** below. Scoped/phase-shaped work → PLAN; loose item/finding/product-decision → BACKLOG; scheduled/status → TODO; decisions → DECISION_LOG. |
 | `Artifacts/ARCH.md` | Strategist | Scribe (formatting) | Long-term system architecture |
 | `Artifacts/COUNCIL_PROTOCOLS.md` | Strategist | Strategist | Deliberation rules for high-rigor decisions |
 | `Artifacts/DECISION_LOG.md` | Council | Council | Pivot tracking & high-stakes resolutions. Rotates (never prunes) past threshold — see **DECISION_LOG Rotation** below. |
@@ -238,6 +238,22 @@ Everything else — reads, pure-logic, docs, reversible edits, passing gates —
 - **Never delete** — the archive is append-only; rotation only moves entries, it does not prune them.
 - Maintain a forward-pointer line at the top of the active log → the archive.
 - **Trigger owner**: concierge at `/handoff`; manual via `/clean`.
+
+**BACKLOG Lifecycle** (memory, not a queue — rotate, never prune):
+- **Contract**: `BACKLOG.md` is **searchable memory** of deferred work and decisions-not-to-do.
+  Nothing schedules off it — an item resurfaces when the thing it describes does. Optimize for
+  findability and size, not for pickup.
+- **Per entry**: a stable ID (`<phase>_<component>_<n>`) and a status marker (`OPEN` / `RESOLVED`).
+  The marker is what makes rotation mechanical. Grouping and ordering are **project-local** — the
+  OS does not constrain them.
+- **Rotation trigger**: active `BACKLOG.md` exceeds **>250 lines OR >20 entries**.
+- **Action**: move the oldest **RESOLVED** entries to `Artifacts/History/BACKLOG-archive.md`
+  (prepend, preserving newest-first) until back under threshold. Maintain a forward-pointer line
+  at the top of the active file → the archive.
+- **Never delete** — the archive is append-only. **OPEN entries never rotate**, regardless of age.
+- **Eviction**: an entry another durable doc cites as authoritative is a **reference**, not
+  backlog — extract it to its own artifact rather than rotating it.
+- **Trigger owner**: concierge at `/handoff` (`scripts/backlog_audit.py` reports it); manual `/clean`.
 
 > [!NOTE]
 > **Transient State Exception**: Platform-level logs for background commands (e.g., in system Temp directories) are managed by the host binary and are inherently transient. They are exempt from the `Artifacts/` persistence requirement.
