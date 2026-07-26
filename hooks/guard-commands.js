@@ -13,7 +13,82 @@
  * Fail-open: script errors exit 0 to avoid blocking legitimate work.
  */
 
+// --- Source-redirect guard (IGH-1 T2) -------------------------------------
+// Shell redirection into a tracked source file bypasses the Write/Edit tools:
+// it leaves no reviewable diff, silently truncates on `>`, and is the observed
+// route by which shell/encoding damage reaches source files.
+//
+// Blast radius is deliberately narrow: a redirect is denied ONLY when its
+// target ends in a tracked source extension. Every other redirect — including
+// all evidence capture under Artifacts/Temp/ and Artifacts/Evidence/ — passes
+// untouched. That narrowness also makes fd-duplication noise (`2>&1`, `>&2`)
+// inert: those targets can never match a source extension, so they need no
+// special case.
+const SOURCE_EXTENSIONS = /\.(py|pyi|ts|tsx|js|jsx|mjs|cjs|md|json|ya?ml|tmdl|csproj|cs|dax|sh|ps1)$/i;
+
+// Paths where writing IS legitimate. Artifacts/Temp and Artifacts/Evidence are
+// load-bearing: rules/common/testing-strategy.md §3 *mandates*
+// `<command> > Artifacts/Temp/<phase>_<step>_<command>.txt 2>&1` for evidence.
+// A guard without these would fight the evidence protocol (IGH-1 Hard Rule 1).
+const REDIRECT_ALLOWLIST = [
+  /(^|[\\/])Artifacts[\\/]Temp[\\/]/i,
+  /(^|[\\/])Artifacts[\\/]Evidence[\\/]/i,
+  /(^|[\\/])scratch[\\/]/i,
+  /^\/tmp\//,
+  /^[a-zA-Z]:[\\/]tmp[\\/]/,
+  /^\/dev\/null$/,
+];
+
+// Capture the target of a shell output redirect.
+// The negative lookbehind keeps `->`, `=>`, `>=` and `!>` from being read as
+// redirects — without it, a commit message like `rename a.py -> b.py` would be
+// denied as if it wrote to b.py.
+const REDIRECT_TARGET_RE = /(?<![-=<>!])\d?>>?\s*(['"]?)([^\s;|&<>()]+)\1/g;
+
+// PowerShell is this environment's primary shell (settings matcher is
+// "Bash|PowerShell"), where these cmdlets — not `>` — are the idiomatic way to
+// write a file. Guarding only `>` would leave the guard trivially bypassable on
+// the shell most likely to be used.
+// Only the cmdlet's own destination counts. Scanning every token in the command
+// instead would deny any command that merely NAMES one of these cmdlets while a
+// source filename appears elsewhere in the same line — observed 2026-07-26, when
+// a commit message describing this guard was denied by it.
+const PS_WRITE_TARGET_RE =
+  /\b(?:Out-File|Set-Content|Add-Content)\b\s+(?:-(?:Encoding|NoNewline|Force|Append|Confirm|WhatIf)\b\s*)*(?:-(?:File|Literal)?Path\s+)?(['"]?)([^\s;|&<>()]+)\1/i;
+
+function stripQuotes(token) {
+  return token.replace(/^['"]|['"]$/g, '');
+}
+
+function isProtectedTarget(rawTarget) {
+  const target = stripQuotes(rawTarget);
+  if (!SOURCE_EXTENSIONS.test(target)) return false;
+  // A `..` segment can carry an allowlisted prefix straight back out into the
+  // tree (`Artifacts/Temp/../../scripts/thing.py`), so a traversing target is
+  // never allowlisted — the prefix no longer says where the write lands.
+  if (/(^|[\\/])\.\.([\\/]|$)/.test(target)) return true;
+  return !REDIRECT_ALLOWLIST.some((allowed) => allowed.test(target));
+}
+
+function redirectsIntoSource(command) {
+  for (const match of command.matchAll(REDIRECT_TARGET_RE)) {
+    if (isProtectedTarget(match[2])) return true;
+  }
+  const psWrite = command.match(PS_WRITE_TARGET_RE);
+  if (psWrite && isProtectedTarget(psWrite[2])) return true;
+  return false;
+}
+
 const BLOCKED_PATTERNS = [
+  // Source-redirect guard (IGH-1 T2) — see helpers above.
+  {
+    pattern: { test: redirectsIntoSource },
+    reason:
+      'Shell redirect writes into a tracked source file, bypassing review. ' +
+      'Use the Write or Edit tool instead. ' +
+      'Redirects into Artifacts/Temp/ and Artifacts/Evidence/ remain allowed for evidence capture.',
+  },
+
   // Destructive filesystem operations — Unix
   { pattern: /rm\s+(-[a-zA-Z]+\s+)*\/\*?([\s;|&]|$)/, reason: 'Recursive delete at filesystem root.' },
   { pattern: /rm\s+(-[a-zA-Z]+\s+)*~/, reason: 'Recursive delete of home directory.' },

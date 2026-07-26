@@ -14,8 +14,9 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 **Plans:** `Artifacts/Plans/IGH-1-Plan.md` + `IGH-1-TODO.md` · IGH-2 queued
 **Origin:** `/insights` over 141 sessions — six gaps verified by grep; the report's #1 suggestion struck as Rule-echo.
 
-- [ ] **IGH-1 — Mechanical Guards** — Success: T1 activation table with raw output; redirect guard denies source-writes while **allowlist tests prove Temp/ + Evidence/ still pass**; shared-state hook fires on subset-only run and is silent on full-suite; `deploy.sh` reports **8** enforced hooks; pytest exit 0; deploy 6/6 — tasks: `Plans/IGH-1-TODO.md`
+- [x] **IGH-1 — Mechanical Guards** — auditor PASS 2026-07-26; all 8 metrics met, all 3 Hard Rules held. Report: `Artifacts/Reports/IGH-1-Report.md`. **T5 adversarial probe found and fixed a real allowlist-traversal bypass in T2** (`Artifacts/Temp/../../src.py` was allowed). 216 pytest exit 0; deploy 6/6; both guards runtime-verified live from `~/.claude/`. **T1: RDT-1 is DORMANT in all 3 installed geometry plugins — the gap is distribution, not prose.** Success: T1 activation table with raw output; redirect guard denies source-writes while **allowlist tests prove Temp/ + Evidence/ still pass**; shared-state hook fires on subset-only run and is silent on full-suite; `deploy.sh` reports **8** enforced hooks; pytest exit 0; deploy 6/6 — tasks: `Plans/IGH-1-TODO.md`
 - [ ] **IGH-2 — Rules + Dispatch** (queued) — Success: read-back rule in testing-strategy.md; call-site sweep as ONE line in coding-style.md; scope discipline in standards.md; auditor blindness clause **not merged without live-fire dispatch evidence**
+  - **⚠ Scope cut by IGH-1 T1:** no Rhino rule authoring — RDT-1's guards exist and are correct but are dormant in all installed plugins. Remedy is a `/plugin` geometry reinstall per project, not prose.
 
 ### Initiative Hard Rules (Auditor Rejects on Violation)
 1. The redirect guard must not block the EVD evidence protocol — Temp/ + Evidence/ allowlist tests mandatory

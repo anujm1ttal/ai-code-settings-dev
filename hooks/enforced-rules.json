@@ -49,6 +49,13 @@
       "event": "Stop",
       "matcher": "",
       "blocking": false
+    },
+    {
+      "rule_id": "guard-shared-state",
+      "hook_file": "guard-shared-state.js",
+      "event": "Stop",
+      "matcher": "",
+      "blocking": false
     }
   ]
 }

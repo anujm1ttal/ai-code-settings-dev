@@ -152,9 +152,9 @@ def test_cli_absent_settings_warns_and_exits_zero(tmp_path: Path):
 def test_real_manifest_is_valid_json_and_loadable():
     """The repo's own hooks/enforced-rules.json must parse and be non-empty."""
     manifest = vhw.load_manifest(REPO_ROOT / "hooks" / "enforced-rules.json")
-    assert len(manifest) == 7
+    assert len(manifest) == 8
     rule_ids = {r["rule_id"] for r in manifest}
     assert rule_ids == {
         "session-boot", "guard-paths", "guard-commands", "auto-lint",
-        "audit-trail", "nudge-handoff", "evidence-gate",
+        "audit-trail", "nudge-handoff", "evidence-gate", "guard-shared-state",
     }

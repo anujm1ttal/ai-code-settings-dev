@@ -38,6 +38,7 @@ You should see all 7 hooks listed:
 - `PostToolUse (*)` → `audit-trail.js`
 - `Stop` → `nudge-handoff.js`
 - `Stop` → `evidence-gate.js`
+- `Stop` → `guard-shared-state.js`
 
 > **Note on output schemas.** Guards deny via the documented PreToolUse schema
 > (`hookSpecificOutput.permissionDecision: "deny"` + `permissionDecisionReason`,
@@ -56,6 +57,7 @@ You should see all 7 hooks listed:
 | `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
 | `nudge-handoff.js` | `Stop` | Nudges to run `/handoff` if git tree is dirty and no handoff this session (feedback only) |
 | `evidence-gate.js` | `Stop` | Nags when completion claims made without fresh test evidence this session (feedback only) |
+| `guard-shared-state.js` | `Stop` | Nags when process-global state (stdout/stderr, logging, os.environ) changed without a full-suite run (feedback only) |
 
 ## Design Philosophy
 
@@ -89,8 +91,30 @@ To customize, edit the `BLOCKED_*` constants in `guard-paths.js`.
 - `DROP TABLE`, `DELETE FROM` (without WHERE), `TRUNCATE TABLE`
 - Fork bombs, block-device writes, piped curl-to-shell
 - **Commit messages with AI attribution trailers**: `Co-Authored-By: Claude` or `Generated with Claude Code` (standards.md deny-list; both shells detected)
+- **Shell redirects into tracked source files** — see below
 
 To customize, edit the `BLOCKED_PATTERNS` array in `guard-commands.js`.
+
+### Source-Redirect Guard
+Writing source through the shell (`echo … > module.py`, `cat > config.yaml <<'EOF'`,
+PowerShell `Set-Content`/`Out-File`/`Add-Content`) bypasses the Write/Edit tools: it
+leaves no reviewable diff and truncates silently on `>`. The guard denies a redirect
+**only when the target ends in a tracked source extension** (`.py .ts .js .md .json
+.yaml .tmdl .csproj .cs .dax .sh .ps1`), and names Write/Edit as the alternative.
+
+Deliberately allowed:
+- Anything under `Artifacts/Temp/` or `Artifacts/Evidence/` — `testing-strategy.md` §3
+  *mandates* `<command> > Artifacts/Temp/<phase>_<step>_<command>.txt 2>&1` for evidence.
+  A guard without this allowlist would fight the evidence protocol.
+- `/tmp`, `scratch/`, `/dev/null`, and every non-source target (`> results.txt`).
+- Fd duplication (`2>&1`, `>&2`) — inert, since those targets can never carry a source
+  extension.
+- Arrows and comparisons (`a.py -> b.py` in a commit message, `>=`) — a negative
+  lookbehind keeps them from reading as redirects.
+
+Known limitation (shared with the attribution-trailer check): matching is raw-string,
+not shell-parsed, so a source-file redirect quoted *inside* a string literal still
+denies. Use the Write tool, or move the text to a file.
 
 ### Audit-trail hygiene
 `audit-trail.js` only logs inside repos that already contain an `Artifacts/`
@@ -98,12 +122,20 @@ directory (it never scaffolds `Artifacts/` into a foreign repo) and rotates
 `audit_trail.jsonl` once it exceeds 5 MB.
 
 ### Stop Hooks (Turn-End Feedback)
-Two Stop hooks fire at session end without blocking:
+Three Stop hooks fire at session end without blocking. **Three is the ceiling** — a
+fourth is a redesign, not an addition (nag fatigue degrades every existing hook).
 
 - **`nudge-handoff.js`** — If the workspace has uncommitted changes (`git status --porcelain`) and no `/handoff` invocation appears in the transcript this session, nudges the user to run `/handoff` before ending. Rate-limited to once per session.
 - **`evidence-gate.js`** — If the final assistant message contains a completion claim (done/fixed/passing/complete/finished) AND source edits occurred this session BUT no fresh passing test/lint output follows the last source edit, nags that the Iron Law requires evidence. Feedback only — never blocks.
+- **`guard-shared-state.js`** — If an edit introduced a change to process-global state (`sys.stdout`, `sys.stderr`, `logging.`, `TextIOWrapper`, `reconfigure`, `os.environ`) AND no full-suite run followed it, nags that a subset run cannot observe this class of breakage. A run counts as full-suite when it invokes `pytest` with no selector (`.py` path, `::` node id, or `-k`); `deploy.sh` counts. Feedback only — never blocks.
 
-Both are fail-open: any hook error exits 0 with no output, logging only to stderr.
+All three are fail-open: any hook error exits 0 with no output, logging only to stderr.
+
+> **`guard-shared-state.js` ships with an exit condition.** Its evidence base is n=1
+> (2026-07-26: a stdout reassignment that a subset run reported green while 279 tests
+> broke). Every fire is recorded by `gate-log` under `ruleId: guard-shared-state`.
+> BACKLOG `igh1_shared-state-hook_1` schedules deletion if it records **zero fires
+> across 20 sessions** — check with `python scripts/gate_telemetry.py`.
 
 ## Troubleshooting
 
