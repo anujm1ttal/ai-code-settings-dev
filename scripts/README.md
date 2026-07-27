@@ -272,4 +272,54 @@ the concierge at `/handoff`; mutation stays human-confirmed (see `/clean`).
 project. `deploy.sh` does not ship `scripts/`, so this is repo-local until the deploy
 policy question (`lh3_telemetry-deploy_1`) is resolved.
 
+---
+
+## `todo_graph.py`
+
+Validates the task-dependency grammar defined in `rules/common/orchestration.md`
+§Artifacts/TODO.md Authority and consumed by `commands/afk.md` §2 Frontier Definition:
+
+```
+- [ ] [agent] Tn: Description — Success: metric — Mode: AFK — Blocked by: Tm, Tk
+```
+
+Until this tool existed the grammar was defined in one file, consumed by another, and
+checked by nothing.
+
+**Usage**:
+```bash
+# Validate every phase TODO (default: Artifacts/Plans/*-TODO.md)
+python scripts/todo_graph.py
+
+# Validate one file
+python scripts/todo_graph.py Artifacts/Plans/IGH-3-TODO.md
+
+# Silent when clean — for /handoff wiring and CI
+python scripts/todo_graph.py --violations-only
+```
+
+**Checks**:
+| # | Check | Severity | Fires when |
+|:--|:---|:---|:---|
+| 1 | Cycle | VIOLATION | blocker loop — deadlocks `/afk` as "frontier empty, work remains" |
+| 2 | Unknown ID | VIOLATION | `Blocked by:` names a task absent from the file |
+| 3 | Malformed | VIOLATION | status marker not `[ ]`/`[-]`/`[x]`, or task line with no `[agent]` |
+| 4 | Empty parse | VIOLATION | non-empty TODO parsing to zero tasks — the blind-zero guard |
+| 5 | Redundant edge | **ADVISORY** | blocker set is exactly `{immediately preceding task}` |
+
+**Advisories never change the exit code.** Check 5 is defined tightly to avoid false
+positives: a non-adjacent blocker or a multi-blocker fan-in is never flagged, because
+those are exactly the cases where the graph diverges from list order and the clause
+earns its place.
+
+**Scope**: phase TODOs only. The top-level `Artifacts/TODO.md` uses an initiative-level
+format (`- [x] **NAME — Title**`, no `[agent]` field) and is deliberately not a target.
+
+**Read-only by contract** — never edits, marks, or rotates. Marking `[-]` and `[x]` stays
+with the coder and auditor per TODO Authority. It reports; it does **not** schedule —
+`commands/afk.md` computes its own frontier and is not wired to this tool.
+
+**Portability**: single file, stdlib only, **zero repo imports**. Same repo-local
+limitation as `backlog_audit.py` above — third instance of `lh3_telemetry-deploy_1`.
+
 Exit code: 0 clean, 1 on any violation.

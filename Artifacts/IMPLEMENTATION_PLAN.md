@@ -11,8 +11,9 @@ in the OS (verification-gate skill, evidence-gate hook, testing-strategy §3, mo
 
 | Phase | Scope | Spec |
 |:---|:---|:---|
-| **IGH-1 — Mechanical Guards** (active) | Geometry-plugin activation check (runs first — a dormant rule needs reinstalling, not rewriting); source-redirect deny in `guard-commands.js` with mandatory Temp/Evidence allowlist; shared-state Stop hook with a telemetry-based self-delete condition | `Artifacts/Plans/IGH-1-Plan.md` |
+| **IGH-1 — Mechanical Guards** (complete) | Geometry-plugin activation check (runs first — a dormant rule needs reinstalling, not rewriting); source-redirect deny in `guard-commands.js` with mandatory Temp/Evidence allowlist; shared-state Stop hook with a telemetry-based self-delete condition | `Artifacts/Plans/IGH-1-Plan.md` |
 | **IGH-2 — Rules + Dispatch** (queued) | Read-back rule (`testing-strategy.md`, n=3); call-site sweep as ONE line in `coding-style.md` §Surgical Precision; scope discipline (`standards.md`); auditor blindness — one clause in `reviewer-prompt.md`, **gated on live-fire dispatch evidence** | IGH-2-Plan.md at phase start |
+| **IGH-3 — Task-Graph Validator** (active) | `scripts/todo_graph.py` — stdlib-only, read-only checker for the `Blocked by:` / `Mode:` grammar (cycle, unknown blocker ID, malformed line, redundant-chain advisory); wired into `/handoff` §7 with the proven graceful-skip pattern. **`/afk` untouched — reports, never schedules.** | `Artifacts/Plans/IGH-3-Plan.md` |
 
 **Grill outcome [REFACTORED]** — four cuts. (1) Fix Protocol demoted from a new section to one
 line: decomposed to 2× n=1 plus a duplicate of Semantic Loop Detection. (2) Test hook narrowed
@@ -29,6 +30,24 @@ BACKLOG exit condition — `gate_telemetry.py` already counts per-hook fires, so
 **Live-fire debt:** no subagent ran during the session that planned this, so auditor blindness has
 zero runtime evidence. IGH-2 may not merge it without a real implementer+blind-reviewer dispatch
 transcript — the same standard applied to Rhino work.
+
+**IGH-3 grill outcome [REFACTORED]** — scope cut ~40%, one fatal gap closed. (1) The Step 0
+VALUE_ROI cited "17 untagged tasks"; recounted against **open** tasks only it is **zero** — every
+untagged task sits in a closed phase, and the live graph is 6 open tasks, 100% tagged. Claim
+**retracted**, and frontier/AFK-reach reporting cut with it. (2) **Fatal:** the script had no
+invocation point — all 6 sibling scripts have automatic callers, this one would run only when a
+human remembered. Fixed by wiring `/handoff` §7 with the pattern already proven twice in that
+file; `/afk` stays untouched. (3) `/afk` has run **once**, on a single-task smoke — recorded as a
+limit, not argued away. (4) Third script stranded by `deploy.sh` excluding `scripts/` — n=3 now
+meets IGH's own bar, so the deploy-policy fix earns its own phase and is filed, not absorbed.
+
+**Framing corrected post-implementation:** Step 0 and the grill both recorded IGH-3 as "cheap
+insurance, not evidenced need" at **n=1**. The finished tool's first run returned **n=12** —
+redundant chain edges across **5 of 7** phase TODOs (IGH-1 ×4, BLR-1 ×4, RDT-1 ×2, OXL-1 ×1,
+OXL-3 ×1). BLR-1 is a complete linear chain identical to IGH-1 and also passed a full auditor
+gate, so the defect is the house pattern rather than a one-off. Hand-inspection undercounted it
+12×, which is itself the argument for the checker. The grill's skepticism on the speculative
+checks held: cycles and unknown IDs remain **n=0** after the full run.
 
 ---
 ---
