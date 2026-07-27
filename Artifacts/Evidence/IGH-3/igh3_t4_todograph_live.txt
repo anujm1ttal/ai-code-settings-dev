@@ -1,0 +1,28 @@
+Task graph — Artifacts\Plans\BLR-1-TODO.md
+  5 tasks / 4 dependency edges
+  [ADVISORY]  REDUNDANT_EDGE — T2: `Blocked by: T1` is implied by list order — omit it (orchestration.md §TODO Authority)
+  [ADVISORY]  REDUNDANT_EDGE — T3: `Blocked by: T2` is implied by list order — omit it (orchestration.md §TODO Authority)
+  [ADVISORY]  REDUNDANT_EDGE — T4: `Blocked by: T3` is implied by list order — omit it (orchestration.md §TODO Authority)
+  [ADVISORY]  REDUNDANT_EDGE — T5: `Blocked by: T4` is implied by list order — omit it (orchestration.md §TODO Authority)
+Task graph — Artifacts\Plans\IGH-1-TODO.md
+  5 tasks / 4 dependency edges
+  [ADVISORY]  REDUNDANT_EDGE — T2: `Blocked by: T1` is implied by list order — omit it (orchestration.md §TODO Authority)
+  [ADVISORY]  REDUNDANT_EDGE — T3: `Blocked by: T2` is implied by list order — omit it (orchestration.md §TODO Authority)
+  [ADVISORY]  REDUNDANT_EDGE — T4: `Blocked by: T3` is implied by list order — omit it (orchestration.md §TODO Authority)
+  [ADVISORY]  REDUNDANT_EDGE — T5: `Blocked by: T4` is implied by list order — omit it (orchestration.md §TODO Authority)
+Task graph — Artifacts\Plans\IGH-3-TODO.md
+  4 tasks / 3 dependency edges
+  clean — no graph violations
+Task graph — Artifacts\Plans\OXL-1-TODO.md
+  9 tasks / 15 dependency edges
+  [ADVISORY]  REDUNDANT_EDGE — T8: `Blocked by: T7` is implied by list order — omit it (orchestration.md §TODO Authority)
+Task graph — Artifacts\Plans\OXL-3-TODO.md
+  11 tasks / 12 dependency edges
+  [ADVISORY]  REDUNDANT_EDGE — T8: `Blocked by: T7` is implied by list order — omit it (orchestration.md §TODO Authority)
+Task graph — Artifacts\Plans\RDT-1-TODO.md
+  6 tasks / 6 dependency edges
+  [ADVISORY]  REDUNDANT_EDGE — T2: `Blocked by: T1` is implied by list order — omit it (orchestration.md §TODO Authority)
+  [ADVISORY]  REDUNDANT_EDGE — T5: `Blocked by: T4` is implied by list order — omit it (orchestration.md §TODO Authority)
+Task graph — Artifacts\Plans\VSE-2-TODO.md
+  7 tasks / 0 dependency edges
+  clean — no graph violations

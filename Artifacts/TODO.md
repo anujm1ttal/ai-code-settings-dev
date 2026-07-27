@@ -1,6 +1,6 @@
 # TODO — Active & Queued Work
 
-**Updated:** 2026-07-24 (RDT-1 closed) · **Branch:** `main` (clean, pushed `dcd321a`)
+**Updated:** 2026-07-26 (IGH-1 closed, IGH-3 planned) · **Branch:** `phase-igh-3-task-graph-validator`
 
 Completed initiatives (LH, OSH, CMD, OSA, DLR) archived → `Artifacts/History/COMPLETED_INITIATIVES.md`.
 Deferred findings live in `Artifacts/BACKLOG.md`.
@@ -9,14 +9,19 @@ Deferred findings live in `Artifacts/BACKLOG.md`.
 
 # Active Initiative: IGH — Insights-Guided Hardening
 
-**Status:** IGH-1 active (plan authored, implementation not started) · **Step 0:** approved 2026-07-26 · **Grill:** [REFACTORED] 2026-07-26
-**Branch:** `phase-igh-1-mechanical-guards` · User-driven (out of OXL sequence)
-**Plans:** `Artifacts/Plans/IGH-1-Plan.md` + `IGH-1-TODO.md` · IGH-2 queued
+**Status:** IGH-1 COMPLETE (merged `d5f2a2f`) · IGH-3 active (plan authored, implementation not started) · IGH-2 queued
+**Step 0:** IGH-3 approved 2026-07-26 · **Grill:** [REFACTORED] 2026-07-26
+**Branch:** `phase-igh-3-task-graph-validator` · User-driven (out of OXL sequence)
+**Plans:** `Artifacts/Plans/IGH-1-Plan.md` · `IGH-3-Plan.md` + `IGH-3-TODO.md`
 **Origin:** `/insights` over 141 sessions — six gaps verified by grep; the report's #1 suggestion struck as Rule-echo.
 
 - [x] **IGH-1 — Mechanical Guards** — auditor PASS 2026-07-26; all 8 metrics met, all 3 Hard Rules held. Report: `Artifacts/Reports/IGH-1-Report.md`. **T5 adversarial probe found and fixed a real allowlist-traversal bypass in T2** (`Artifacts/Temp/../../src.py` was allowed). 216 pytest exit 0; deploy 6/6; both guards runtime-verified live from `~/.claude/`. **T1: RDT-1 is DORMANT in all 3 installed geometry plugins — the gap is distribution, not prose.** Success: T1 activation table with raw output; redirect guard denies source-writes while **allowlist tests prove Temp/ + Evidence/ still pass**; shared-state hook fires on subset-only run and is silent on full-suite; `deploy.sh` reports **8** enforced hooks; pytest exit 0; deploy 6/6 — tasks: `Plans/IGH-1-TODO.md`
 - [ ] **IGH-2 — Rules + Dispatch** (queued) — Success: read-back rule in testing-strategy.md; call-site sweep as ONE line in coding-style.md; scope discipline in standards.md; auditor blindness clause **not merged without live-fire dispatch evidence**
   - **⚠ Scope cut by IGH-1 T1:** no Rhino rule authoring — RDT-1's guards exist and are correct but are dormant in all installed plugins. Remedy is a `/plugin` geometry reinstall per project, not prose.
+- [x] **IGH-3 — Task-Graph Validator** — auditor PASS 2026-07-27; all 8 metrics met, all 3 Hard Rules held. Report: `Artifacts/Reports/IGH-3-Report.md`. **First run found 12 redundant edges across 5 of 7 phases — Step 0 estimated 1.** `scripts/todo_graph.py`, read-only checker for the `Blocked by:` / `Mode:` grammar, wired into `/handoff` §7. **`/afk` untouched.** Success: zero repo imports + zero write calls; cycle / unknown-ID / malformed → exit 1; frozen IGH-1 fixture → exactly 4 redundant-edge advisories at exit 0; presence control on all 6 live TODOs; pytest exit 0 ≥220; deploy 6/6 — tasks: `Plans/IGH-3-TODO.md`
+  - **Grill [REFACTORED]:** "17 untagged tasks" **retracted** (all in closed phases; live graph is 6 open, 100% tagged) → AFK-reach reporting cut. Fatal no-caller gap fixed via `/handoff` wiring. Deploy-policy debt (n=3, `scripts/` not deployed) filed for its own phase.
+  - **Framing corrected post-implementation:** Step 0 and the grill both recorded n=1 ("cheap insurance, not evidenced need"). First tool run returned **n=12** across **5 of 7** phase TODOs (IGH-1 ×4, BLR-1 ×4, RDT-1 ×2, OXL-1 ×1, OXL-3 ×1). **BLR-1 is a full linear chain identical to IGH-1 and also passed a full auditor gate** — the defect is the house pattern. Cycles/unknown-IDs remain n=0, as the grill suspected.
+  - **Phase Hard Rules** (IGH-3-specific, see `Plans/IGH-3-TODO.md`): read-only · no blind zeros · no scheduler.
 
 ### Initiative Hard Rules (Auditor Rejects on Violation)
 1. The redirect guard must not block the EVD evidence protocol — Temp/ + Evidence/ allowlist tests mandatory
