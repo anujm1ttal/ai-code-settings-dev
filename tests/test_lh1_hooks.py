@@ -341,3 +341,121 @@ def test_nudge_handoff_non_git_cwd_fails_open_silently(tmp_path: Path, nudge_ses
     result = run_hook("nudge-handoff.js", payload)
     assert result.returncode == 0
     assert result.stdout.strip() == ""
+
+
+# ---------------------------------------------------------------------------
+# PUB-2 — nested Artifacts/ state repo (private-state-repo arrangement)
+# ---------------------------------------------------------------------------
+
+def _commit_outer(repo_dir: Path, *, ignore_artifacts: bool) -> None:
+    """Leave the OUTER repo with a clean tree, mirroring the real arrangement
+    where Artifacts/ is gitignored by the public repo. Without this the outer
+    dirty-tree nudge fires on the untracked Artifacts/ and masks what these
+    tests are actually asserting."""
+    if ignore_artifacts:
+        (repo_dir / ".gitignore").write_text("Artifacts/\n")
+    subprocess.run(["git", "add", "-A"], cwd=repo_dir, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "base"],
+        cwd=repo_dir, check=True, capture_output=True,
+    )
+
+
+def _init_state_repo(repo_dir: Path, *, dirty: bool, with_upstream: bool) -> None:
+    """Build <repo>/Artifacts as its own git repo, optionally with an upstream."""
+    artifacts = repo_dir / "Artifacts"
+    artifacts.mkdir(parents=True, exist_ok=True)
+    (artifacts / "TODO.md").write_text("- [ ] task\n")
+    run = lambda *a: subprocess.run(a, cwd=artifacts, check=True,
+                                    capture_output=True)
+    run("git", "init", "-q", "-b", "main")
+    run("git", "add", "-A")
+    run("git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "init")
+    if with_upstream:
+        bare = repo_dir / "state-remote.git"
+        subprocess.run(["git", "init", "-q", "--bare", str(bare)], check=True,
+                       capture_output=True)
+        run("git", "remote", "add", "origin", str(bare))
+        run("git", "push", "-q", "-u", "origin", "main")
+    if dirty:
+        (artifacts / "DECISION_LOG.md").write_text("new decision\n")
+
+
+def test_nudge_state_repo_dirty_warns_even_when_outer_tree_clean(
+    tmp_path: Path, nudge_session: str
+):
+    """The core risk: notes written, no code touched. Outer repo is clean, so
+    the pre-existing dirty-tree check sees nothing to nudge about."""
+    _init_git_repo(tmp_path, dirty=False)
+    _init_state_repo(tmp_path, dirty=True, with_upstream=True)
+    _commit_outer(tmp_path, ignore_artifacts=True)
+    payload = json.dumps({"cwd": str(tmp_path), "session_id": nudge_session})
+    result = run_hook("nudge-handoff.js", payload)
+    assert result.returncode == 0
+    hso = json.loads(result.stdout)["hookSpecificOutput"]
+    assert "Artifacts" in hso["additionalContext"]
+    assert "permissionDecision" not in hso  # Nudge only — never a deny.
+
+
+def test_nudge_state_repo_unpushed_commits_warn(tmp_path: Path, nudge_session: str):
+    _init_git_repo(tmp_path, dirty=False)
+    _init_state_repo(tmp_path, dirty=False, with_upstream=True)
+    _commit_outer(tmp_path, ignore_artifacts=True)
+    artifacts = tmp_path / "Artifacts"
+    (artifacts / "BACKLOG.md").write_text("item\n")
+    subprocess.run(["git", "add", "-A"], cwd=artifacts, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "wip"],
+        cwd=artifacts, check=True, capture_output=True,
+    )
+    payload = json.dumps({"cwd": str(tmp_path), "session_id": nudge_session})
+    result = run_hook("nudge-handoff.js", payload)
+    assert "Artifacts" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_nudge_state_repo_no_upstream_warns(tmp_path: Path, nudge_session: str):
+    """No remote configured means there is nothing to be backed up TO."""
+    _init_git_repo(tmp_path, dirty=False)
+    _init_state_repo(tmp_path, dirty=False, with_upstream=False)
+    _commit_outer(tmp_path, ignore_artifacts=True)
+    payload = json.dumps({"cwd": str(tmp_path), "session_id": nudge_session})
+    result = run_hook("nudge-handoff.js", payload)
+    assert "Artifacts" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_nudge_state_repo_clean_and_pushed_is_silent(tmp_path: Path, nudge_session: str):
+    _init_git_repo(tmp_path, dirty=False)
+    _init_state_repo(tmp_path, dirty=False, with_upstream=True)
+    _commit_outer(tmp_path, ignore_artifacts=True)
+    payload = json.dumps({"cwd": str(tmp_path), "session_id": nudge_session})
+    result = run_hook("nudge-handoff.js", payload)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_nudge_state_repo_warns_despite_recent_handoff(tmp_path: Path, nudge_session: str):
+    """/handoff having run is a proxy; unpushed state is a measured fact."""
+    _init_git_repo(tmp_path, dirty=False)
+    _init_state_repo(tmp_path, dirty=True, with_upstream=True)
+    _commit_outer(tmp_path, ignore_artifacts=True)
+    transcript = tmp_path / "transcript.jsonl"
+    transcript.write_text('{"role":"user","content":"/handoff"}\n')
+    payload = json.dumps({
+        "cwd": str(tmp_path), "session_id": nudge_session,
+        "transcript_path": str(transcript),
+    })
+    result = run_hook("nudge-handoff.js", payload)
+    assert "Artifacts" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def test_nudge_plain_artifacts_dir_is_not_a_state_repo(tmp_path: Path, nudge_session: str):
+    """Presence control: an ordinary tracked Artifacts/ (no nested .git) must
+    stay silent — otherwise this fires in every project that has one."""
+    _init_git_repo(tmp_path, dirty=False)
+    (tmp_path / "Artifacts").mkdir()
+    (tmp_path / "Artifacts" / "TODO.md").write_text("- [ ] task\n")
+    _commit_outer(tmp_path, ignore_artifacts=False)  # tracked normally, tree clean
+    payload = json.dumps({"cwd": str(tmp_path), "session_id": nudge_session})
+    result = run_hook("nudge-handoff.js", payload)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""

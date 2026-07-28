@@ -45,6 +45,22 @@ const REDIRECT_ALLOWLIST = [
 // denied as if it wrote to b.py.
 const REDIRECT_TARGET_RE = /(?<![-=<>!])\d?>>?\s*(['"]?)([^\s;|&<>()]+)\1/g;
 
+// Angle-bracket placeholders (`<author>`, `<you>`, `<phase>_<step>`) are prose,
+// but their closing `>` reads as a redirect operator and the text after it as a
+// target: `C:/Users/<author>/.claude/hooks/*.js` was denied as a write to a
+// `.js` file (observed 2026-07-28, a commit message describing this very hook —
+// the second time a message about the guard tripped the guard; see the note on
+// PS_WRITE_TARGET_RE below for the first).
+//
+// Stripping placeholders before scanning removes the spurious operator. It can
+// only ever REMOVE a `>` from the scanned string, never introduce one, so it
+// cannot open a bypass: `echo x>module.py` has no placeholder and still denies.
+// Rejected alternative: widening the lookbehind to exclude `\w`. It kills this
+// false positive but silently stops catching the space-free `x>module.py` form
+// — trading a false positive for a false negative, the wrong direction for a
+// guard.
+const ANGLE_PLACEHOLDER_RE = /<[A-Za-z0-9_.-]+>/g;
+
 // PowerShell is this environment's primary shell (settings matcher is
 // "Bash|PowerShell"), where these cmdlets — not `>` — are the idiomatic way to
 // write a file. Guarding only `>` would leave the guard trivially bypassable on
@@ -70,7 +86,8 @@ function isProtectedTarget(rawTarget) {
   return !REDIRECT_ALLOWLIST.some((allowed) => allowed.test(target));
 }
 
-function redirectsIntoSource(command) {
+function redirectsIntoSource(rawCommand) {
+  const command = rawCommand.replace(ANGLE_PLACEHOLDER_RE, '');
   for (const match of command.matchAll(REDIRECT_TARGET_RE)) {
     if (isProtectedTarget(match[2])) return true;
   }
