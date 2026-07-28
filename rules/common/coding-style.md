@@ -172,7 +172,7 @@ All automated or manual codebase sweeps (e.g., `grep_search`, `find_by_name`, `l
 
 This OS runs **Windows-only**. Every session has two shells: the **Bash tool** (Git Bash / POSIX `sh`) and the **PowerShell tool** — each takes its own syntax. Assume Windows; do not write Unix-only assumptions into commands or command specs.
 
-- **Bash-tool paths — forward slashes ONLY.** Backslashes are escape chars: `c:\Users\44547\...` collapses to `c:Users44547...` (bash eats `\U`, `\s`, `\4`, …), silently producing wrong paths and **false "not found"** results. For a Windows absolute path in bash write `/c/Users/44547/...`; better, prefer **repo-relative** paths (`scripts/x.py`).
+- **Bash-tool paths — forward slashes ONLY.** Backslashes are escape chars: `c:\Users\you\src...` collapses to `c:Usersyousrc...` (bash eats `\U`, `\s`, `\4`, …), silently producing wrong paths and **false "not found"** results. For a Windows absolute path in bash write `/c/Users/you/src/...`; better, prefer **repo-relative** paths (`scripts/x.py`).
 - **Command specs & docs**: reference files by **repo-relative, forward-slash** path — never a backslash absolute path. An agent copying it into the Bash tool will mangle it.
 - **Existence checks in bash**: `test -f path/to/file` (forward slashes), not `ls c:\...`.
 - **Python tools**: invoke via `python -m <tool>` (e.g. `python -m pytest`), not the bare `.exe` launcher — Windows launchers raise `WinError 6` on subprocess-spawning code.

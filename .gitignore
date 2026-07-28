@@ -3,9 +3,15 @@
 .env.local
 .env.*.local
 
-# Transient artifact directories
-Artifacts/.agent/
-Artifacts/Temp/
+# Working state — this repo's own project notes.
+# Artifacts/ is a separate PRIVATE repo nested here (its own .git), so it stays
+# versioned and backed up without being published. See CLAUDE.md § Local law.
+Artifacts/
+
+# Superseded / machine-specific working notes
+history/
+REGISTRY_HEALTH_REPORT.md
+powershell-command.md
 
 # Node and build artifacts
 node_modules/

@@ -34,7 +34,7 @@ ai-code-settings/  ──deploy.sh──▶  ~/.claude/  ──inherited──�
 | `hooks/` | Lifecycle enforcement scripts (see `hooks/README.md`) |
 | `templates/` | Project scaffolds + `CLAUDE.md.template` |
 | `scripts/` | Dev tooling (deploy, model-routing audit, skill-graph) — not deployed |
-| `Artifacts/` | This repo's own project state (plans, TODO, learnings) |
+| `Artifacts/` | This repo's own project state — **separate private repo**, see Local law |
 
 ## Commands
 
@@ -55,6 +55,15 @@ ai-code-settings/  ──deploy.sh──▶  ~/.claude/  ──inherited──�
   this file. Never mix the two (see `rules/common/claude-md-standards.md` §2).
 - **State lives in `Artifacts/`.** This repo follows the same Artifacts discipline it defines;
   never write project state to the shadow `~/.claude/projects/` only.
+- **`Artifacts/` is its own private repo [HARD-GATE].** This repo is public; its working notes
+  are not. `Artifacts/` is gitignored here and is a **nested git repo** with its own remote
+  (`anujm1ttal/ai-code-settings-state`, private). Two consequences:
+  1. **Committing here does not back up state.** Any session that writes to `Artifacts/` must
+     also `git -C Artifacts commit && git -C Artifacts push` — otherwise that state exists on
+     one disk only. `/handoff` owns this step.
+  2. **Never `git add` anything under `Artifacts/` to the public repo**, and never relocate
+     state out of `Artifacts/` to make it public. The file sets are disjoint by design; that
+     is what keeps them from drifting.
 - **Cross-project learnings** stage in `Artifacts/GLOBAL_INBOX.md`; `/graduate` promotes them.
 
 ## Pointers

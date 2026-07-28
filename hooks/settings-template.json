@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/.claude/hooks/session-boot.js\"",
+            "command": "node \"$HOME/.claude/hooks/session-boot.js\"",
             "timeout": 5
           }
         ]
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/.claude/hooks/guard-paths.js\"",
+            "command": "node \"$HOME/.claude/hooks/guard-paths.js\"",
             "timeout": 3
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/.claude/hooks/guard-commands.js\"",
+            "command": "node \"$HOME/.claude/hooks/guard-commands.js\"",
             "timeout": 3
           }
         ]
@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/.claude/hooks/auto-lint.js\"",
+            "command": "node \"$HOME/.claude/hooks/auto-lint.js\"",
             "timeout": 20
           }
         ]
@@ -50,7 +50,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/.claude/hooks/audit-trail.js\"",
+            "command": "node \"$HOME/.claude/hooks/audit-trail.js\"",
             "timeout": 5
           }
         ]
@@ -62,17 +62,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/.claude/hooks/nudge-handoff.js\"",
+            "command": "node \"$HOME/.claude/hooks/nudge-handoff.js\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/.claude/hooks/evidence-gate.js\"",
+            "command": "node \"$HOME/.claude/hooks/evidence-gate.js\"",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "node \"C:/Users/44547/.claude/hooks/guard-shared-state.js\"",
+            "command": "node \"$HOME/.claude/hooks/guard-shared-state.js\"",
             "timeout": 5
           }
         ]

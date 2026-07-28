@@ -20,7 +20,7 @@ These directories and files are **production** — they get copied to ~/.claude/
 
 ```bash
 # Navigate to ai-code-settings repo root
-cd c:\Users\44547\source\repos\ai-code-settings
+cd /path/to/ai-code-settings   # your clone
 
 # Copy runtime directories (production-only). Remove the destination first —
 # `cp -r dir/ dest/dir/` on an existing dest nests source-inside-dest instead
@@ -69,7 +69,7 @@ ls -la ~/.claude/hooks/
 
 # Spot-check one skill (should match source)
 diff -r \
-  c:\Users\44547\source\repos\ai-code-settings\skills\codebase-navigator \
+  skills/codebase-navigator \
   ~/.claude/skills/codebase-navigator
 # Should show no differences
 ```
