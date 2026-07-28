@@ -64,6 +64,12 @@ ai-code-settings/  ──deploy.sh──▶  ~/.claude/  ──inherited──�
   2. **Never `git add` anything under `Artifacts/` to the public repo**, and never relocate
      state out of `Artifacts/` to make it public. The file sets are disjoint by design; that
      is what keeps them from drifting.
+  3. **Public docs must not cite an `Artifacts/` path as a source.** `README.md`,
+     `CHANGELOG.md`, release notes, and every other tracked file are read by people who
+     cannot open it — a citation there is a dead reference. State the evidence *claim*
+     ("269 pytest exit 0; deploy 6/6") and stop; the path belongs in the commit body and
+     the private state repo. Describing the `Artifacts/` **convention** is fine and
+     expected (see `cheatsheet.md`) — this bars pointing at *specific* private files.
 - **Cross-project learnings** stage in `Artifacts/GLOBAL_INBOX.md`; `/graduate` promotes them.
 
 ## Pointers

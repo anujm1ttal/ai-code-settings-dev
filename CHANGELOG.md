@@ -28,7 +28,7 @@ All notable changes to the Agent OS Skill System will be documented in this file
   enforcement.
 
 Evidence: 269 pytest exit 0 (13 new tests); `deploy.sh` 6/6; both hooks live-fired from
-the deployed `~/.claude/hooks/` across 6 cases, run twice — `Artifacts/Evidence/PUB-2/`.
+the deployed `~/.claude/hooks/` across 6 cases, run twice.
 
 ## [12.0.0] - 2026-07-28
 
