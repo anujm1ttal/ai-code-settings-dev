@@ -75,6 +75,7 @@ against that:
    - **Promote** (all tiers, **before any purge**): move every `Artifacts/Temp/` file cited by a durable record (phase report, `AUDIT_REPORT.md`, `DECISION_LOG.md`, `BACKLOG.md` finding, `learnings/` entry) to `Artifacts/Evidence/<phase>/` and repoint the citation in the same pass — `rules/common/orchestration.md` §Evidence Retention.
    - **Purge** (L2/L3): Delete all files in `Artifacts/Temp/`. **Never** delete `Artifacts/Evidence/`.
    - **Flag** (L1/L2/L3): Identify and propose deletion of stray transient files (e.g., `*.tmp`, `debug.log`, uncommitted scratch files not in `.gitignore`).
+7.5. **State-Repo Push** (all tiers, **last write of the session**): `test -d Artifacts/.git` — when present, `Artifacts/` is a **nested repo with its own remote** and committing the outer workspace backs up none of it. Run `git -C Artifacts add -A && git -C Artifacts commit -m "state: <session summary>" && git -C Artifacts push`. Runs **after** steps 1–7 so the brief, learnings, and TODO edits are included. **Skip when absent** — in the ordinary arrangement `Artifacts/` is tracked by the workspace repo and this is a no-op. The `nudge-handoff.js` Stop hook independently checks this and nags on uncommitted/unpushed state; a nag here means the push did not happen.
 8. **Memory Graduation**: Extract new constraints/constants and graduate them to `Artifacts/MEMORY_ANCHORS.md`.
 9. **Plan Pruning**: Move technical specs of completed phases from `Artifacts/IMPLEMENTATION_PLAN.md` to `Artifacts/History/Plans/Phase-[N]-Plan.md`.
 

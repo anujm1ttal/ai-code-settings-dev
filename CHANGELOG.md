@@ -2,6 +2,34 @@
 
 All notable changes to the Agent OS Skill System will be documented in this file.
 
+## [12.0.1] - 2026-07-28
+
+### Fixed
+- **`guard-commands.js` no longer denies commit messages containing `<placeholder>` paths.**
+  An angle-bracket placeholder's closing `>` parsed as a redirect operator and the text
+  after it as the target, so `C:/Users/<author>/.claude/hooks/*.js` read as a write to a
+  `.js` file. This is the second time a commit message describing the guard was denied by
+  the guard (the first is recorded inline at `PS_WRITE_TARGET_RE`). Placeholders are now
+  stripped before the redirect scan — an operation that can only remove a `>` from the
+  scanned string, never add one, so no bypass is opened. A `\w` lookbehind was tried first
+  and **rejected**: it fixed the false positive but stopped catching the space-free
+  `echo x>module.py` form, trading a false positive for a false negative.
+
+### Added
+- **`nudge-handoff.js` detects an unbacked nested state repo.** When `Artifacts/.git`
+  exists, `Artifacts/` is its own repo with its own remote and committing the workspace
+  backs up none of it. The hook now nags when that repo has uncommitted changes, commits
+  ahead of upstream, or no upstream at all. Silent unless `Artifacts/.git` exists, so it
+  costs nothing in the ordinary arrangement. Deliberately **not** suppressed by a recent
+  `/handoff` — that is a proxy, whereas unpushed state is a measured fact. Extends the
+  existing Stop hook rather than adding a fourth, per the three-hook ceiling in
+  `hooks/README.md`.
+- **`/handoff` step 7.5 — State-Repo Push**, so the documented procedure matches the
+  enforcement.
+
+Evidence: 269 pytest exit 0 (13 new tests); `deploy.sh` 6/6; both hooks live-fired from
+the deployed `~/.claude/hooks/` across 6 cases, run twice — `Artifacts/Evidence/PUB-2/`.
+
 ## [12.0.0] - 2026-07-28
 
 **First public release.** The repo is now installable by someone who is not its author.

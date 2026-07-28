@@ -109,6 +109,37 @@ def test_non_redirect_source_mentions_pass(command):
 @pytest.mark.parametrize(
     "command",
     [
+        # PUB-2: an angle-bracket placeholder's closing `>` is prose, not a
+        # redirect operator. Observed 2026-07-28 — a commit message describing
+        # this hook was denied by this hook, the second such self-trip.
+        'git commit -m "fix: template hardcoded C:/Users/<author>/.claude/hooks/*.js"',
+        'git commit -m "docs: settings live at C:/Users/<you>/.claude/settings.json"',
+        'git commit -m "evidence lands in Artifacts/Temp/<phase>_<step>.py"',
+        'echo "see <VERSION_NUMBER>/notes.md for details"',
+    ],
+)
+def test_angle_bracket_placeholders_are_not_redirects(command):
+    assert_allowed(command)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        # PUB-2 bypass controls: stripping placeholders must not blunt the
+        # guard. The space-free form in particular is what the rejected
+        # `\w`-lookbehind fix would have silently stopped catching.
+        "echo x>module.py",
+        "echo x><placeholder>module.py",
+        "cat > <name>/config.yaml",
+    ],
+)
+def test_placeholder_stripping_opens_no_bypass(command):
+    assert_denied(command)
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
         "Set-Content -Path hooks/guard.js -Value $x",
         "$out | Out-File -FilePath scripts/model_router.py",
         "Add-Content rules/common/coding-style.md 'text'",

@@ -54,17 +54,54 @@ function markNudged(sessionId) {
   }
 }
 
+function git(cwd, args) {
+  return execFileSync('git', args, {
+    cwd,
+    encoding: 'utf-8',
+    timeout: 5000,
+    stdio: ['pipe', 'pipe', 'pipe'],
+  });
+}
+
 function isGitDirty(cwd) {
   try {
-    const output = execFileSync('git', ['status', '--porcelain'], {
-      cwd,
-      encoding: 'utf-8',
-      timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-    return output.trim().length > 0;
+    return git(cwd, ['status', '--porcelain']).trim().length > 0;
   } catch {
     return false; // Not a git repo, git unavailable, or command failed — nothing to nudge about.
+  }
+}
+
+// A project may keep Artifacts/ as its OWN nested repo with a private remote,
+// so the OS's working notes stay versioned without being published (the
+// ai-code-settings arrangement). When it does, committing the outer repo backs
+// up no state at all — Artifacts/ has to be committed AND pushed separately, or
+// it lives on one disk only.
+//
+// Silent no-op unless Artifacts/.git exists, so this costs nothing in the
+// overwhelming majority of projects, where Artifacts/ is tracked by the repo
+// itself and the outer dirty check above already covers it.
+//
+// "Unbacked" = uncommitted changes, OR commits ahead of upstream, OR no
+// upstream at all (nothing to be backed up TO). Fail-open: any git error
+// returns false rather than nagging on a condition we could not establish.
+function isStateRepoUnbacked(cwd) {
+  const stateRepo = path.join(cwd, 'Artifacts');
+  try {
+    if (!fs.existsSync(path.join(stateRepo, '.git'))) return false;
+  } catch {
+    return false;
+  }
+  try {
+    if (git(stateRepo, ['status', '--porcelain']).trim().length > 0) return true;
+  } catch {
+    return false;
+  }
+  try {
+    // Throws when no upstream is configured — nothing to push to, so unbacked.
+    const ahead = git(stateRepo, ['rev-list', '--count', '@{u}..HEAD']).trim();
+    return ahead !== '' && ahead !== '0';
+  } catch {
+    return true;
   }
 }
 
@@ -110,21 +147,33 @@ function main() {
       process.exit(0);
     }
 
-    if (!isGitDirty(cwd)) {
+    const stateUnbacked = isStateRepoUnbacked(cwd);
+    const treeDirty = isGitDirty(cwd);
+
+    if (!treeDirty && !stateUnbacked) {
       process.exit(0);
     }
 
+    // A recent /handoff suppresses the ordinary dirty-tree nudge, but NOT the
+    // state-repo warning: /handoff having run is a proxy, while unpushed state
+    // is a fact we just measured. Deferring to the proxy over the measurement
+    // is how state gets lost.
     const tail = readTranscriptTail(data.transcript_path);
-    if (/\/handoff/i.test(tail)) {
+    if (/\/handoff/i.test(tail) && !stateUnbacked) {
       process.exit(0);
     }
+
+    const context = stateUnbacked
+      ? 'Artifacts/ is a nested git repo and has uncommitted or unpushed state. Committing ' +
+        'this workspace does NOT back it up. Run: git -C Artifacts add -A && git -C Artifacts ' +
+        'commit && git -C Artifacts push — otherwise that state exists on one disk only.'
+      : 'Uncommitted changes are present in this workspace and no /handoff has run this ' +
+        'session. Run /handoff before ending the session to capture learnings and TODO state.';
 
     const output = {
       hookSpecificOutput: {
         hookEventName: 'Stop',
-        additionalContext:
-          'Uncommitted changes are present in this workspace and no /handoff has run this ' +
-          'session. Run /handoff before ending the session to capture learnings and TODO state.',
+        additionalContext: context,
       },
     };
     process.stdout.write(JSON.stringify(output));
@@ -133,7 +182,7 @@ function main() {
       event: 'Stop',
       decision: 'nag',
       tool: null,
-      ruleId: 'nudge-handoff',
+      ruleId: stateUnbacked ? 'nudge-handoff-state-repo' : 'nudge-handoff',
       cwd,
     });
     markNudged(sessionId);

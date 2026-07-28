@@ -132,6 +132,13 @@ Three Stop hooks fire at session end without blocking. **Three is the ceiling** 
 fourth is a redesign, not an addition (nag fatigue degrades every existing hook).
 
 - **`nudge-handoff.js`** — If the workspace has uncommitted changes (`git status --porcelain`) and no `/handoff` invocation appears in the transcript this session, nudges the user to run `/handoff` before ending. Rate-limited to once per session.
+  **Nested state repo**: if `Artifacts/.git` exists, `Artifacts/` is its own repo with its own
+  remote and committing the workspace backs up none of it. The hook additionally nags when that
+  repo has uncommitted changes, commits ahead of upstream, or **no upstream at all** (nothing to
+  back up to). This branch is silent unless `Artifacts/.git` exists, so it costs nothing in the
+  ordinary arrangement where `Artifacts/` is tracked by the workspace repo. Unlike the dirty-tree
+  nudge, a recent `/handoff` does **not** suppress it — `/handoff` having run is a proxy, whereas
+  unpushed state is a measured fact.
 - **`evidence-gate.js`** — If the final assistant message contains a completion claim (done/fixed/passing/complete/finished) AND source edits occurred this session BUT no fresh passing test/lint output follows the last source edit, nags that the Iron Law requires evidence. Feedback only — never blocks.
 - **`guard-shared-state.js`** — If an edit introduced a change to process-global state (`sys.stdout`, `sys.stderr`, `logging.`, `TextIOWrapper`, `reconfigure`, `os.environ`) AND no full-suite run followed it, nags that a subset run cannot observe this class of breakage. A run counts as full-suite when it invokes `pytest` with no selector (`.py` path, `::` node id, or `-k`); `deploy.sh` counts. Feedback only — never blocks.
 
