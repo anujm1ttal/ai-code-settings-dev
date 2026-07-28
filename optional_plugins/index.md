@@ -32,7 +32,7 @@ Plugins are distributed via a Claude Code **marketplace**. This repository is it
 
 1. **Add the marketplace** (once per machine):
    ```
-   /plugin marketplace add c:\Users\44547\source\repos\ai-code-settings
+   /plugin marketplace add anujm1ttal/ai-code-settings
    ```
 2. **Install a plugin**:
    ```

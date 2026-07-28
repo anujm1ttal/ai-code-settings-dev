@@ -15,12 +15,18 @@ repo working copy.)
 ### 2. Point settings.json at the deployed hooks
 
 Open (or create) `~/.claude/settings.json` and merge the `hooks` block from
-`settings-template.json` into it. The template points at `C:/Users/44547/.claude/hooks/…`
-— adjust the absolute path to your own home if different.
+`settings-template.json` into it verbatim — no path editing required.
 
-**On Windows**, the settings file is at:
+The template invokes `node "$HOME/.claude/hooks/<hook>.js"`. Hook commands without an
+`args` key run in **shell form** (`sh -c` on macOS/Linux, Git Bash on Windows, falling
+back to PowerShell), so `$HOME` is expanded by the shell before `node` sees it. It
+resolves correctly on all three — `$HOME` is a valid variable in PowerShell too.
+
+Settings file locations:
 ```
-C:\Users\<your-username>\.claude\settings.json
+Windows   C:\Users\<you>\.claude\settings.json
+macOS     ~/Library/…  → just use ~/.claude/settings.json
+Linux     ~/.claude/settings.json
 ```
 
 ### 3. Verify hooks are active
@@ -30,7 +36,7 @@ In any Claude Code session, type:
 /hooks
 ```
 
-You should see all 7 hooks listed:
+You should see all 8 hooks listed:
 - `SessionStart` → `session-boot.js`
 - `PreToolUse (Edit|MultiEdit|Write)` → `guard-paths.js`
 - `PreToolUse (Bash|PowerShell)` → `guard-commands.js`
@@ -141,7 +147,10 @@ All three are fail-open: any hook error exits 0 with no output, logging only to 
 
 ### Hooks not firing
 - Ensure `~/.claude/settings.json` has valid JSON (no trailing commas)
-- Check that the absolute paths in the `command` fields point to the correct location
+- Confirm the scripts actually landed: `ls ~/.claude/hooks/*.js` should list 8 files.
+  If not, run `bash scripts/deploy.sh` first.
+- If `$HOME` did not expand (rare — a shell that doesn't set it), substitute your
+  literal home path in the `command` fields.
 - Run `claude --debug` to see verbose hook logs
 
 ### Hook blocking something it shouldn't

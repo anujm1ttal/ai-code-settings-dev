@@ -2,7 +2,40 @@
 
 All notable changes to the Agent OS Skill System will be documented in this file.
 
-## [Unreleased] - 2026-07-06
+## [12.0.0] - 2026-07-28
+
+**First public release.** The repo is now installable by someone who is not its author.
+
+### Added
+- **`LICENSE`** — MIT. The repo was public with no license, which left it legally
+  all-rights-reserved (readable, but not usable or forkable).
+- **README rewritten for a first-time reader**: what it is → install → use → contribute,
+  with a requirements list and both install paths (OS layer via `deploy.sh`, plugins via
+  the marketplace). Stale counts corrected — 15 core skills, not 9.
+
+### Changed
+- **Hook template is now portable.** `hooks/settings-template.json` invoked
+  `node "C:/Users/<author>/.claude/hooks/*.js"` for all 8 hooks — on anyone else's machine
+  those resolved to nothing and, being fail-open, failed *silently*. Now `$HOME`, which the
+  shell expands in hook shell-form on macOS, Linux, Git Bash, and PowerShell alike.
+- **Plugin install no longer requires a clone**: `/plugin marketplace add
+  anujm1ttal/ai-code-settings` replaces the author's local absolute path in
+  `optional_plugins/README.md` and `index.md`.
+- **`skills/skills.overview.md`**: 6 abstract links were absolute `file:///c:/Users/…` URLs,
+  dead for every reader but one. Now repo-relative.
+- **`DEPLOY.md`, `rules/common/coding-style.md`**: author-specific paths genericized.
+- **`hooks/README.md`**: documented the `$HOME` expansion; corrected the verification step
+  from "7 hooks" to 8.
+
+### Removed
+- **Working state is no longer published.** `Artifacts/` (plans, phase reports, decision log,
+  learnings, handoff briefs, evidence dumps), root `history/`, `REGISTRY_HEALTH_REPORT.md`,
+  and `powershell-command.md` are untracked and gitignored — 11,365 lines of internal notes.
+  They remain versioned and backed up in a separate private repo nested at `Artifacts/`, so
+  the OS's Artifacts-at-project-root discipline is unchanged. Git history before this release
+  is intact and not rewritten.
+
+## [11.1.0] - 2026-07-06
 
 ### Added
 - **CLAUDE.md standard**: `rules/common/claude-md-standards.md` — canonical quality bar (global-vs-project content split, 6 scored dimensions, 6 anti-patterns, size caps).

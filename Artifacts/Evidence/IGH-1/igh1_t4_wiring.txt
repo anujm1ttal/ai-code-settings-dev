@@ -1,3 +1,0 @@
-=== M4: hook wiring (expect 8 enforced hooks) ===
-OK: all 8 enforced hook(s) present and wired.
-EXIT=0

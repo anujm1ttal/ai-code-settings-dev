@@ -43,7 +43,7 @@ Every plugin listed there is a directory with its own `.claude-plugin/plugin.jso
 
 1. **Register the marketplace** (once per machine):
    ```
-   /plugin marketplace add c:\Users\44547\source\repos\ai-code-settings
+   /plugin marketplace add anujm1ttal/ai-code-settings
    ```
 2. **Install the plugin you need**:
    ```
