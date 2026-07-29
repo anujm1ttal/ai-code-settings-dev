@@ -1,6 +1,6 @@
 ---
 name: rhino-e2e-testing
-description: Use this skill whenever you are performing rigorous, headless end-to-end testing of RhinoCommon geometry, Grasshopper definitions, or plugin state using Rhino.Inside and pytest. It implements the "Lane A protocol" for verifying geometric invariants like manifoldness, intersections, and tolerance-aware comparisons. Trigger when you are fixing a geometric bug, adding a new Grasshopper component, or verifying a complex Brep operation. Do NOT use for geometry-agnostic logic that can be tested in pure Python (Lane B); use rhino-unit-testing instead.
+description: Use this skill whenever you are performing rigorous, headless end-to-end testing of RhinoCommon geometry, Grasshopper definitions, or plugin state using Rhino.Inside and pytest, OR running any script inside a live Rhino session via the `rhinocode` CLI. It implements the "Lane A protocol" for verifying geometric invariants like manifoldness, intersections, and tolerance-aware comparisons. Trigger when you are fixing a geometric bug, adding a new Grasshopper component, verifying a complex Brep operation, or writing a one-off probe script to inspect a running Rhino instance's document, plugins, or settings — `rhinocode` has two traps (it returns exit 0 before your script finishes, and its stdout never reaches you) that make an unguided probe silently misreport. Do NOT use for geometry-agnostic logic that can be tested in pure Python (Lane B); use rhino-unit-testing instead.
 argument-hint: "[--run-tests|--setup-reproduction]"
 metadata:
   version: "1.2.0"
@@ -147,14 +147,46 @@ The `rhinocode` CLI drives a **live, fully-loaded Rhino session** from the termi
 
 Source: [Rhino pyvenvs guide](https://developer.rhino3d.com/guides/scripting/advanced-pyvenvs/) — `# venv:`/`# r:` are the documented directives; `# env:` is undocumented and reserved for external environments.
 
+### The two traps, and why a probe must write its own output
+
+`rhinocode script` fails in two ways that **look identical to a script that did nothing**:
+
+| Trap | What you observe | What is actually happening |
+|:---|:---|:---|
+| **Async return** | exit 0, then an empty/truncated report | Exit 0 means *dispatched*, not *finished*. An immediate read races the script. |
+| **No stdout** | the redirect file is empty | `print()` output never travels back to the CLI. It is not lost — it was never sent. |
+
+Together they manufacture a convincing false diagnosis. An instant `cat` of an empty file after
+an exit 0 reads exactly like a silent no-op, and the natural "fix" — retry — appears to work,
+because dispatching a second invocation burns enough wall-clock for the *first* one to finish
+writing. **A retry that fixes it is evidence of the race, not a workaround for it.**
+
+Both remedies are the same one line: **the probe writes its own output to a file and ends with a
+terminal sentinel; the caller polls for that sentinel before reading.** Never assert on the
+subprocess return code, and never read the report before the sentinel appears.
+
+> [!WARNING]
+> Retrying is actively unsafe for a **mutating** probe — the accidental-sleep effect means a
+> retry can double-apply a mutation that the first invocation had not yet finished. See
+> *Mutating probes* under Key Rules.
+
 ### Evidence Protocol
-Redirect all Lane A-live output to `Artifacts/Temp/` like any other verification command:
+Two different files, and confusing them is the trap above:
 
 ```bash
 rhinocode list --json > Artifacts/Temp/<phase>_<step>_rhinocode_list.txt 2>&1
 # resolve <id> = the pipeId whose processName is "Rhino" from the list above
-rhinocode -r <id> script /abs/path/probes/check_plugin_state.py > Artifacts/Temp/<phase>_<step>_rhinocode_probe.txt 2>&1
+
+# This redirect captures DISPATCH STATUS ONLY — it will be empty even on success.
+# It is not the probe's output and must never be cited as the probe's evidence.
+rhinocode -r <id> script /abs/path/probes/check_plugin_state.py > Artifacts/Temp/<phase>_<step>_rhinocode_dispatch.txt 2>&1
+
+# The probe's REAL evidence is the file the probe itself wrote, read only after its
+# sentinel line appears. Cite this path, not the dispatch file.
+cat Artifacts/Temp/<phase>_<step>_rhinocode_probe.txt
 ```
+
+Use `resources/probe_harness.py` rather than hand-rolling the flush/sentinel/poll dance.
 
 ### Lane A in-process runner (pytest inside live Rhino)
 
@@ -181,6 +213,7 @@ Conventions to keep:
 3. **Verify the target, always `-r`, never bare**: Resolve the instance from `rhinocode list --json` filtered to `processName == "Rhino"` (non-Rhino pipes like `compute.geometry` also appear with empty `activeDoc` — filter them out), then pass `-r <pipeId>` explicitly on every `script`/`command` invocation. A bare `rhinocode script ...` with no `-r` resolves ambiguously when >1 Rhino instance is open. On ambiguity (>1 live Rhino instance), fail loud and list each `pipeId` + `activeDoc.title` rather than guessing — see `discover_rhino_instances()`/`resolve_instance()` in `resources/in_process_bridge_runner.py`. There is no `-i` flag; the only selector is `-r, --rhino <ID>`. Never pin a PID/instance-id literal — instance ids are volatile across sessions.
 4. **Doc-hint guard for mutating probes**: Any document-mutating in-process script must guard against running against the wrong open document — set `RHINO_DOC_HINT` (matched case-insensitively as a substring of `RhinoDoc.Name`) and abort on mismatch; `RHINO_DOC_READONLY=1` downgrades a mismatch to a warning for read-only probes. See the guard at the top of `resources/in_process_suite_runner.py`.
 5. **Environment via header, not `pip`**: To use `pytest`/pip packages in-process, declare `# venv: <name>` + `# r: <pkg>` (default) — never `# env:` unless deliberately targeting an existing external, Python-3.9-matched site-packages. See *Bringing packages into the in-process script* above.
+6. **Mutating probes: tag them, run them once, never retry**. Every probe declares its blast radius next to itself — `read-only` (inspects only, safe to re-run) or `mutating` (writes document objects, **app-global settings, or plugin state**). An undeclared probe is treated as mutating. A mutating probe gets **exactly one invocation**: no retry-on-timeout, no retry-on-empty-report. The async trap makes retry the instinctive response to an empty file, and it is precisely wrong here — the second dispatch merely buys the first one time to finish, so a "retry that worked" can double-apply a mutation. When a mutating probe's sentinel does not appear, **investigate; do not re-run**. Note that Key Rule 4's `RHINO_DOC_HINT` guards the wrong-*document* case only — it offers no protection at all for app-global state, which is exactly where a double-apply is hardest to undo. Use `resources/probe_harness.py`, which carries the `MUTATING` tag, the doc guard, stdout capture, and the sentinel in one place.
 
 ## 📜 Key Rules
 1. **Load First**: `rhinoinside.load(8)` must be called BEFORE any Rhino imports.
