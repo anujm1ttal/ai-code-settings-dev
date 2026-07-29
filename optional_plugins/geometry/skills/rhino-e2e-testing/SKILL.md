@@ -143,7 +143,17 @@ The `rhinocode` CLI drives a **live, fully-loaded Rhino session** from the termi
 
 **Version trap (this one bites):** Rhino 8's embedded Python is **3.9.10**. Pointing `# env:` at a 3.11 `.venv` yields a `pytest` whose 3.9 deps are absent — e.g. `ModuleNotFoundError: No module named 'exceptiongroup'` (stdlib in 3.11, so the venv never pip-installed it). `# venv:`/`# r:` sidesteps this by provisioning against py39-rh8 directly; with `# env:` you must supply a **3.9** site-packages. One shared interpreter per Rhino instance → pin versions in `# r:`.
 
-**Async gotcha (repeats the exit-0 rule below):** `rhinocode script` returns **exit 0 before the script finishes**. The script must flush incrementally to a file and write a terminal **sentinel line**; the caller polls that file for the sentinel before reading results. Always pass an **absolute** script path — a relative path silently runs nothing.
+**Async gotcha (repeats the exit-0 rule below):** `rhinocode script` returns **exit 0 before the script finishes**. The script must flush incrementally to a file and write a terminal **sentinel line**; the caller polls that file for the sentinel before reading results.
+
+**Always pass an absolute script path.** A relative path silently runs nothing — the in-process
+script's `os.getcwd()` is **`C:\Program Files\Rhino 8\System`** (the Rhino install directory),
+*not* the directory you invoked the CLI from, so a relative path is resolved against a location
+that does not contain your script. Verified 2026-07-29 against Rhino 8.28: absolute path →
+sentinel in 0.76s; identical script by filename with the CLI's cwd set to the script's own
+directory → no sentinel in 45s, **exit 0 and empty stdout both times**. That combination —
+relative path, exit 0, no output — is indistinguishable from success, which is why this is a
+trap rather than an error. The same `cwd` fact applies inside the probe: build every path it
+touches from an absolute base, never a relative one.
 
 Source: [Rhino pyvenvs guide](https://developer.rhino3d.com/guides/scripting/advanced-pyvenvs/) — `# venv:`/`# r:` are the documented directives; `# env:` is undocumented and reserved for external environments.
 
