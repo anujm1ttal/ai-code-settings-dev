@@ -41,6 +41,36 @@ cp README.md   ~/.claude/README.md
 `~/.claude/plugins/` via `/plugin marketplace add` + `/plugin install` from
 `.claude-plugin/marketplace.json`, not a raw folder copy.
 
+### Shipping a plugin change [required order]
+
+`deploy.sh` does **not** ship plugins. A plugin edit reaches a project only after both
+steps below, **in this order**:
+
+1. **Bump the version** in `optional_plugins/<plugin>/.claude-plugin/plugin.json`. The
+   install cache is keyed on *version* (`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/`),
+   so an unchanged version means the fix may never be copied.
+2. **Refresh the marketplace, then reinstall — per project:**
+   ```
+   /plugin marketplace update ai-code-settings
+   /plugin install <plugin>@ai-code-settings
+   ```
+
+**Skipping step 2's update is a silent no-op.** The installer compares against the cached
+marketplace catalogue; if that catalogue predates your bump it concludes the installed
+version is current and copies nothing — no error, no warning. Verified 2026-07-29: a
+reinstall without the update left the cache untouched with an mtime twelve days old.
+
+Propagation is **per project**. Other projects stay on their old cache directory until
+each is reinstalled — check with:
+
+```bash
+python -c "import json,pathlib;d=json.loads(pathlib.Path.home().joinpath('.claude/plugins/installed_plugins.json').read_text());[print(e['version'],e['projectPath']) for e in d['plugins']['<plugin>@ai-code-settings']]"
+```
+
+**Verify from a consuming project, never from this repo.** Relative paths and skill
+triggers both resolve differently there, so a check run inside `ai-code-settings` can pass
+while the installed copy is broken.
+
 ---
 
 ## What NOT to Copy
