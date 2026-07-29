@@ -249,8 +249,11 @@ class TestMyFunction:
 Use the standardized runner script. Run with `--help` for options. **Do NOT read the source code.**
 
 ```bash
-python scripts/run_headless.py tests/e2e --cov=src
+python "${CLAUDE_PLUGIN_ROOT}/skills/rhino-e2e-testing/scripts/run_headless.py" tests/e2e --cov=src
 ```
+
+The runner ships with this skill, so it is addressed via `${CLAUDE_PLUGIN_ROOT}` — a bare
+`scripts/run_headless.py` resolves against the consuming project's cwd and is not found.
 
 Standard `pytest` commands are also available:
 - `pytest` : Basic run.
