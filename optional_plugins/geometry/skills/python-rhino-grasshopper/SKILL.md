@@ -11,6 +11,25 @@ metadata:
 
 # Skill: Python for Rhino & Grasshopper
 
+## Environment and Paths (substituted at invocation, use verbatim)
+
+- **API_RESOURCES** (offline API signature databases): `${CLAUDE_PLUGIN_ROOT}/skills/python-rhino-grasshopper/resources`
+
+`${CLAUDE_PLUGIN_ROOT}` is substituted **only in this file**, because this file is injected
+into context at invocation. Files under `references/` are *read on demand* — a `Read` returns
+raw bytes, so the variable arrives there as an uninterpreted literal. That is why those files
+refer to **API_RESOURCES** by name and never spell the variable themselves: resolve the token
+from this block, then use the resulting absolute path.
+
+**If the value above still contains a literal `${CLAUDE_PLUGIN_ROOT}` when you use it, the
+substitution failed: say so and stop. Do not fall back to guessing API signatures** — an
+unavailable oracle is a blocker to report, not a licence to hallucinate. (This check applies to
+*this* block only. Seeing the literal inside a `references/` file is normal and is not a
+failure.)
+
+A relative path (`resources/`, `skills/python-rhino-grasshopper/resources/`) resolves against
+the **consuming project's** cwd, finds nothing, and silently disables the gate — verified.
+
 ## Deep-Load Protocol
 Load reference files ONLY when the following conditions are met:
 
@@ -47,14 +66,13 @@ and GH_IO signature databases offline — grep them:
 ```
 Grep(
   pattern="M:Rhino.Geometry...",
-  path="${CLAUDE_PLUGIN_ROOT}/skills/python-rhino-grasshopper/resources",
+  path="<API_RESOURCES>",      # from the Environment and Paths block above
   glob="RhinoCommon.xml",
   output_mode="content"
 )
 ```
 *Note: Cross-check M: (Method) and P: (Property).*
-*`${CLAUDE_PLUGIN_ROOT}` is a harness substitution, not a shell variable — a relative path
-resolves against the consuming project and finds nothing. See `references/api-lookups.md`.*
+*Full protocol and the Hallucination Deny List: `references/api-lookups.md`.*
 
 ### Step 3: Architecture & Performance Selection
 Load `references/performance.md` if the set size exceeds 1,000 objects.

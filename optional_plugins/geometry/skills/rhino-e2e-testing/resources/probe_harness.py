@@ -73,8 +73,12 @@ SENTINEL = "[probe] END (harness status: "   # must match the host poller exactl
 #   "mutating"  — writes document objects, app settings, or plugin state. NOT re-runnable.
 MUTATING = True
 
-# Guards the wrong-document case for probes that touch the active document. Matched
-# case-insensitively as a substring of RhinoDoc.Name. Ignored when DOC_HINT is None.
+# Guards the wrong-document case. Matched case-insensitively as a substring of RhinoDoc.Name.
+#
+# REQUIRED when MUTATING is True — a mutating probe with no DOC_HINT aborts. The guard must
+# fail CLOSED: if it defaulted to "allow" when unset, every mutating probe that forgot to set
+# it would run unguarded against whatever document happened to be open, with no error. Only a
+# probe that has declared itself read-only may leave this None.
 DOC_HINT = None  # type: Optional[str]
 
 
@@ -91,8 +95,14 @@ def emit(handle, line):
 
 def _check_document(handle):
     # type: (object) -> bool
-    """Abort a document-targeted probe that is pointed at the wrong file."""
+    """Abort a probe pointed at the wrong document. Fails CLOSED for mutating probes."""
     if DOC_HINT is None:
+        if MUTATING:
+            emit(handle, "[probe] ABORT — MUTATING probe declares no DOC_HINT. Set DOC_HINT to "
+                         "a substring of the intended document name, or set MUTATING=False if "
+                         "this probe really only reads.")
+            return False
+        emit(handle, "[probe] doc guard N/A — probe declares MUTATING=False, no DOC_HINT needed")
         return True
     name = sc.doc.Name or "<unsaved>"
     if DOC_HINT.lower() in name.lower():

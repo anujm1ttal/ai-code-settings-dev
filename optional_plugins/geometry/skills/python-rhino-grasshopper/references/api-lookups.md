@@ -10,18 +10,17 @@ This document defines the mandatory lookup protocol for the RhinoCommon and Gras
 
 ### Resource Directory
 
-```
-${CLAUDE_PLUGIN_ROOT}/skills/python-rhino-grasshopper/resources/
-```
+Every lookup below runs against **API_RESOURCES** — the resources path from the *Environment
+and Paths* block in `SKILL.md`. Resolve that token to its absolute value first, then substitute
+it wherever `<API_RESOURCES>` appears here.
 
-`${CLAUDE_PLUGIN_ROOT}` is substituted by the harness with this plugin's install directory. It
-is **not** a shell variable — a *relative* path such as `resources/` or
-`skills/python-rhino-grasshopper/resources/` resolves against the **consuming project's** cwd
-and finds nothing, which silently disables this entire gate.
+This file is **read on demand**, not injected, so it deliberately does not spell
+`${CLAUDE_PLUGIN_ROOT}` itself — a `Read` would hand you the literal text rather than the
+substituted path. `SKILL.md` is the single place that value is defined, and the only place the
+substitution-failed check applies.
 
-**If the path comes through with a literal `${CLAUDE_PLUGIN_ROOT}` in it, the substitution
-failed: say so and stop. Do not fall back to guessing signatures** — an unavailable oracle is a
-blocker to report, not a licence to hallucinate.
+A relative path (`resources/`, `skills/python-rhino-grasshopper/resources/`) resolves against
+the **consuming project's** cwd, finds nothing, and silently disables this entire gate.
 
 ### Target Files
 - `RhinoCommon.xml`: Core Rhino geometry and document operations.
@@ -34,7 +33,7 @@ You are FORBIDDEN from guessing API signatures. Use the protocol below to verify
 ```
 Grep(
   pattern="M:Rhino.Geometry.Brep.CreateFromSweep",
-  path="${CLAUDE_PLUGIN_ROOT}/skills/python-rhino-grasshopper/resources",
+  path="<API_RESOURCES>",
   glob="RhinoCommon.xml",
   output_mode="content"
 )
@@ -46,7 +45,7 @@ member is `Grasshopper.Kernel.*` instead of `Rhino.Geometry.*`:
 ```
 Grep(
   pattern="M:Grasshopper.Kernel.GH_ScriptInstance.DrawViewportWires",
-  path="${CLAUDE_PLUGIN_ROOT}/skills/python-rhino-grasshopper/resources",
+  path="<API_RESOURCES>",
   glob="Grasshopper.xml",
   output_mode="content"
 )
