@@ -2,6 +2,58 @@
 
 All notable changes to the Agent OS Skill System will be documented in this file.
 
+## [12.1.0] - 2026-07-31
+
+### Fixed
+- **The geometry plugin's RhinoCommon XML gate was unreachable from every consuming project.**
+  The documented lookup path resolved against the *consuming project's* cwd, not the skill
+  directory, so the anti-hallucination gate that is supposed to stop invented RhinoCommon APIs
+  has been silently inert in every install since it shipped. Four candidate path forms were
+  probed with a presence control (a real API sentinel that must be found, and a fictional one
+  that must not); the two documented forms resolved to nothing. Pointers now use an
+  `API_RESOURCES` token defined in the injected `SKILL.md` under a *"substituted at invocation,
+  use verbatim"* heading, with read-on-demand `references/` naming the token rather than the
+  raw variable — `${CLAUDE_PLUGIN_ROOT}` is **not** substituted in files read on demand, and an
+  earlier fix that assumed it was turned a working gate into a false blocker on every healthy
+  read.
+- **Bundled scripts were invoked by bare relative path** in `rhino-e2e-testing` and
+  `pptx-slide-design` — including one literal dev-repo path that cannot resolve outside this
+  repository. All first-party sites now address plugin-owned scripts by plugin root.
+- **`probe_harness.py`'s document guard failed open.** A mutating probe that declared no
+  document hint was allowed to run against whatever document happened to be active. It now
+  fails closed: mutating without a hint aborts.
+- **Tool-call examples used a `grep_search(Query=…)` signature that does not exist.** Replaced
+  with real `Grep(pattern, path, glob)` calls, executed to confirm.
+
+### Added
+- **`probe_harness.py`** — a one-off Rhino probe runner that survives the three `rhinocode`
+  traps at once: the CLI returns exit 0 *before* the script finishes, its stdout never reaches
+  the caller, and a relative script path runs nothing at all. All three look identical to
+  success. The harness uses absolute paths, captures output in-script, and writes a terminal
+  sentinel the caller polls for.
+- **Mutating-probe safety rules.** A probe declares `read-only` or `mutating`; undeclared is
+  treated as mutating. A mutating probe gets exactly one invocation — no retry on timeout, no
+  retry on an empty report. Retry is the instinctive response to an empty file and is precisely
+  wrong: the second dispatch merely buys the first one time to finish, so a "retry that worked"
+  can double-apply a mutation.
+- **`DEPLOY.md` §"Shipping a plugin change"** — the plugin release order. **A version bump alone
+  does not propagate.** `/plugin install` compares against a cached marketplace catalogue; if
+  that catalogue predates the bump, the installer concludes the old version is current and
+  **silently no-ops while reporting success**. Refresh the marketplace *first*, then reinstall,
+  then confirm a new cache directory exists.
+- **Documented why a relative `rhinocode` path runs nothing**: an in-process script's
+  `os.getcwd()` is Rhino's *install* directory, not the caller's — a directory that cannot
+  contain the script. Paths built inside a probe must also use an absolute base.
+
+### Changed
+- `geometry` plugin 1.1.0 → **1.3.0**; `visual-storytelling` 2.2.0 → **2.3.0**.
+- `strategist` agent granted the `Bash` tool.
+
+> Verification: 270 pytest exit 0; all fixes re-verified from an **installed plugin cache** in a
+> real consuming project rather than from this repository, each absence-proof paired with a
+> presence control. Propagation is per-project — other projects keep their pinned version until
+> individually reinstalled.
+
 ## [12.0.1] - 2026-07-28
 
 ### Fixed
