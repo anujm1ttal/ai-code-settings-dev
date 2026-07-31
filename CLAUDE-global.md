@@ -102,8 +102,8 @@ interaction → `standards.md`; implementation → `coding-style.md`; orchestrat
 
 ## Project Type Routing
 
-Canonical table (project types, core agents, default skills, foundational skills, docx/xlsx
-note): `rules/common/orchestration.md` §Project Type Routing.
+Canonical table (project types, core agents, default skills, foundational skills, and the note
+on Office skills not being shipped): `rules/common/orchestration.md` §Project Type Routing.
 
 ## YouTube Pipeline
 

@@ -16,8 +16,14 @@ engineering rules, slash-command workflows, and enforcement hooks — installed 
 | **23 commands** | `/blueprint` `/audit` `/triage` `/handoff` `/sweep` `/council` `/docs` `/explain` … one procedure per file |
 | **9 rule files** | Canonical standards for coding style, architecture, security, testing strategy, orchestration, and token economics |
 | **15 core skills** | Always-on modules: `systematic-debugging`, `test-driven-development`, `verification-gate`, `codebase-navigator`, `project-planner`, … |
-| **7 plugins / 17 skills** | Installed on demand: `geometry` (Rhino/Grasshopper), `ms-office`, `pbi-report`, `code-mcp`, `youtube`, `manuscript`, `visual-storytelling` |
+| **6 plugins / 14 skills** | Installed on demand: `geometry` (Rhino/Grasshopper), `pbi-report`, `code-mcp`, `youtube`, `manuscript`, `visual-storytelling` |
 | **8 hooks** | Mechanical guardrails — block writes to secrets and binaries, block `rm -rf`/force-push, inject session state, log an audit trail |
+
+> **Not included: Office document skills (`docx`/`pptx`/`xlsx`).** These are Anthropic's, and
+> their license bars redistribution, so this repo does not ship them — obtain them from
+> Anthropic. A `pptx` project still routes to `creative-director` and `visual-composition` for
+> planning, and `pptx-slide-design` (first-party, in `visual-storytelling`) still emits slide
+> prompts; only the OOXML renderers are absent.
 
 The premise: **prose rules get rationalized away, mechanical gates don't.** Rules define
 the standard; hooks enforce the subset that can be enforced.

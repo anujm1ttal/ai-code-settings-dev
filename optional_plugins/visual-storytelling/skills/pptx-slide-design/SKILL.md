@@ -127,7 +127,7 @@ Every emitted prompt follows this structure (from `reference-slides.md` anatomy 
 
 ## 🔐 Hard Rules (Auditor Rejects on Violation)
 
-1. **Never generate files or invoke renderers.** Output is text prompts only. No `.pptx`, no python-pptx, no pptxgenjs, no external API calls. (Note: `ms-office` skills ARE renderers; they are exempt.)
+1. **Never generate files or invoke renderers.** Output is text prompts only. No `.pptx`, no python-pptx, no pptxgenjs, no external API calls. (Any separately-obtained OOXML renderer skill is exempt — this rule binds *this* skill.)
 
 2. **Output prompts use concrete hex + named fonts resolved from the deck profile.** Never emit abstract token names like `palette.primary` or `type.scale.body` into the prompt. Machine-verified by `validate_prompt.py` rule VP-02 (exit 0 = clean).
 
