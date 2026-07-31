@@ -231,8 +231,13 @@ def test_live_phase_todos_parse_to_at_least_one_task(todo: Path) -> None:
 
 
 def test_live_plans_dir_is_not_empty() -> None:
-    """Control for the parametrised test above: zero files would vacuously pass it."""
-    assert len(list(LIVE_PLANS_DIR.glob("*-TODO.md"))) >= 6
+    """Control for the parametrised test above: zero files would vacuously pass it.
+
+    Asserts non-vacuity only. A phase count is not an invariant here — completed phases are
+    archived to History/ by design (orchestration.md §Phase Lifecycle), so any floor above 1
+    fails the moment the OS follows its own archive rule.
+    """
+    assert len(list(LIVE_PLANS_DIR.glob("*-TODO.md"))) >= 1
 
 
 # --------------------------------------------------------------------------- read-only (HR1)
