@@ -3,6 +3,13 @@
 .env.local
 .env.*.local
 
+# Third-party licensed content — NOT ours to redistribute.
+# The ms-office skills are Anthropic material; their bundled LICENSE.txt bars
+# reproducing, creating derivative works from, or distributing them to third
+# parties. They stay on disk so Office capability works locally, but they must
+# never be tracked in this public repo. See CLAUDE.md § Local law.
+optional_plugins/ms-office/
+
 # Working state — this repo's own project notes.
 # Artifacts/ is a separate PRIVATE repo nested here (its own .git), so it stays
 # versioned and backed up without being published. See CLAUDE.md § Local law.

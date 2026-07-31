@@ -45,7 +45,10 @@ The `strategist` classifies every project during Step 0. This determines active 
 
 **All project types** also have access to foundational skills: `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate`, `test-driven-development`, `receiving-code-review`, `project-planner`, `project-journal`, `doc-updater`.
 
-> `docx`/`xlsx` live alongside `pptx` in `optional_plugins/ms-office/`. See `optional_plugins/index.md`.
+> **Office document skills (`docx`/`xlsx`/`pptx`) are not shipped by this repo.** They are
+> Anthropic-licensed material whose terms bar redistribution; obtain them from Anthropic. A
+> `pptx` project type still routes to `creative-director` + `visual-composition` for planning —
+> only the OOXML renderers are absent.
 
 ## Command Fleet (Operational Layer)
 

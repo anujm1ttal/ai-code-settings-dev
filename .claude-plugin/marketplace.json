@@ -1,7 +1,7 @@
 {
   "name": "ai-code-settings",
   "owner": { "name": "Anuj Mittal" },
-  "description": "Personal AI-OS plugins: MCP tooling, geometry, Office, Power BI, YouTube, and visual-storytelling skills.",
+  "description": "Personal AI-OS plugins: MCP tooling, geometry, Power BI, YouTube, manuscript, and visual-storytelling skills.",
   "plugins": [
     {
       "name": "code-mcp",
@@ -17,11 +17,6 @@
       "name": "manuscript",
       "source": "./optional_plugins/manuscript",
       "description": "Manuscript and academic writing support. Provides manuscript review workflows for domain-specific terminology."
-    },
-    {
-      "name": "ms-office",
-      "source": "./optional_plugins/ms-office",
-      "description": "OOXML file manipulation for Microsoft Office documents. Provides pptx, docx, and xlsx creation, editing, and validation via a shared office engine."
     },
     {
       "name": "pbi-report",

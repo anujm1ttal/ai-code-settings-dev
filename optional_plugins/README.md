@@ -68,8 +68,7 @@ See [`index.md`](index.md) for the full catalog (skills per plugin, counts). Qui
 |:---|:---|
 | `code-mcp` | python-mcp, typescript-mcp |
 | `geometry` | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing |
-| `manuscript` | business-analyst, manuscript-review |
-| `ms-office` | docx, pptx, xlsx |
+| `manuscript` | manuscript-review |
 | `pbi-report` | powerbi-report |
 | `visual-storytelling` | banana-prompt, pptx-slide-design |
 | `youtube` | youtube-retention, youtube-scriptwriting, youtube-strategy |

@@ -31,7 +31,9 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 |:---|:---|
 | `visual-composition` | Cross-medium design principles and brand governance. |
 
-> `docx`/`xlsx`/`pptx` moved to `optional_plugins/ms-office/` (plugin `ms-office`). See `optional_plugins/index.md`.
+> **`docx`/`xlsx`/`pptx` are not shipped by this repo** — Anthropic-licensed material whose
+> terms bar redistribution. Obtain them from Anthropic. `pptx-slide-design`
+> (`optional_plugins/visual-storytelling/`) is first-party and unaffected.
 
 ## Domain: Geometry (Rhino/GH)
 

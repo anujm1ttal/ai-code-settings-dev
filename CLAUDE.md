@@ -70,6 +70,12 @@ ai-code-settings/  ──deploy.sh──▶  ~/.claude/  ──inherited──�
      ("269 pytest exit 0; deploy 6/6") and stop; the path belongs in the commit body and
      the private state repo. Describing the `Artifacts/` **convention** is fine and
      expected (see `cheatsheet.md`) — this bars pointing at *specific* private files.
+- **No third-party licensed content in tracked paths [HARD-GATE].** This repo is public and
+  MIT — every tracked file is offered to strangers under terms only its owner can grant. Content
+  carrying someone else's license (an `All rights reserved` header, a vendored `LICENSE.txt`)
+  must be gitignored and obtained by users from its source, never redistributed here. Precedent:
+  `optional_plugins/ms-office/` was 184 Anthropic-licensed files published for ~3 days before
+  anyone read the license, which explicitly barred copying, derivative works, and distribution.
 - **Cross-project learnings** stage in `Artifacts/GLOBAL_INBOX.md`; `/graduate` promotes them.
 
 ## Pointers
