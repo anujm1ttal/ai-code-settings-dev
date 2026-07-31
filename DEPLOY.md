@@ -73,6 +73,54 @@ while the installed copy is broken.
 
 ---
 
+## Publishing a public snapshot release
+
+This repository is the **private development repo** (`ai-code-settings-dev`). The public
+repository at `ai-code-settings` is a **curated snapshot** of tracked files — it deliberately
+carries no development history.
+
+**Why a snapshot rather than the real history:** this repo once vendored Anthropic-licensed
+Office skills whose licence bars redistribution. They are gone from `HEAD` but remain in every
+historical commit. Publishing a snapshot means the licensed content **was never present** in the
+public repository — a guarantee, rather than a rewrite whose completeness depends on platform
+garbage collection.
+
+### Pushing an update
+
+```bash
+# 1. Stage a snapshot from TRACKED FILES ONLY.
+#    git archive is the whole point: it emits the HEAD tree, so gitignored paths
+#    (Artifacts/, optional_plugins/ms-office/) cannot leak in. Never use cp -r or rsync.
+SNAP=$(mktemp -d)
+git archive main | tar -x -C "$SNAP"
+
+# 2. Verify before pushing — absence proof plus a presence control.
+find "$SNAP" -path '*/docx/*' -o -path '*/xlsx/*' -o -path '*/pptx/*' | wc -l   # must be 0
+test -d "$SNAP/Artifacts" && echo "LEAK — Artifacts/ present" || echo "OK"
+ls "$SNAP/optional_plugins/geometry/skills" | wc -l                             # control: must be >0
+
+# 3. Commit and force-push the snapshot to the public remote.
+cd "$SNAP" && git init -q && git add -A
+git commit -q -m "snapshot: <version>"
+git push --force https://github.com/anujm1ttal/ai-code-settings.git HEAD:main
+```
+
+Step 3 replaces the public repo's single commit each release; the public repo intentionally has
+no incremental history to preserve. Run `scripts/deploy.sh` and the test suite **before**
+snapshotting — the snapshot ships whatever `main` holds.
+
+> [!IMPORTANT]
+> **A snapshot that is never re-pushed rots silently** and misrepresents the project to anyone
+> reading it. Publish a snapshot with every release that changes tracked files, or the public
+> repo becomes a lie of omission rather than a curated view.
+
+> [!WARNING]
+> **Never add licensed third-party content to a tracked path** — see `CLAUDE.md` §Local law.
+> The step-2 check is a backstop, not a licence to be careless: it only catches the paths it
+> knows about.
+
+---
+
 ## What NOT to Copy
 
 These stay in ai-code-settings only (development/testing):
