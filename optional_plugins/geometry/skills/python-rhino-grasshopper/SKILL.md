@@ -1,6 +1,6 @@
 ---
 name: python-rhino-grasshopper
-description: "Expert in RhinoCommon API, GhPython, and computational design scripting for Rhino 8. Mandates the use of 'Rhino.Geometry', high-rigor patterns, and strict CPython 3.9 compliance. Use this skill whenever writing, refactoring, or reviewing Python code that interacts with the Rhino runtime or Grasshopper SDK. Trigger when the user mentions 'Rhino', 'Grasshopper', 'geometry', or 'brep'. Use whenever implementing structural logic or data tree management. Do NOT use for pure Python math or logic that doesn't depend on Rhino (use rhino-unit-testing instead)."
+description: "Expert in RhinoCommon API, GhPython, and computational design scripting for Rhino 8. Ships the RhinoCommon, Grasshopper, and GH_IO XML signature databases offline — use it to verify any Rhino/GH member signature instead of guessing, and whenever checking whether a class, method, or property actually exists. Mandates the use of 'Rhino.Geometry', high-rigor patterns, and strict CPython 3.9 compliance. Use this skill whenever writing, refactoring, or reviewing Python code that interacts with the Rhino runtime or Grasshopper SDK. Trigger when the user mentions 'Rhino', 'Grasshopper', 'geometry', 'brep', or asks what a RhinoCommon/Grasshopper API member does. Use whenever implementing structural logic or data tree management. Do NOT use for pure Python math or logic that doesn't depend on Rhino (use rhino-unit-testing instead)."
 argument-hint: "[stadium|facade|landscape|furniture|general] <geometric goal>"
 model: claude-sonnet-5
 metadata:
@@ -10,6 +10,25 @@ metadata:
 ---
 
 # Skill: Python for Rhino & Grasshopper
+
+## Environment and Paths (substituted at invocation, use verbatim)
+
+- **API_RESOURCES** (offline API signature databases): `${CLAUDE_PLUGIN_ROOT}/skills/python-rhino-grasshopper/resources`
+
+`${CLAUDE_PLUGIN_ROOT}` is substituted **only in this file**, because this file is injected
+into context at invocation. Files under `references/` are *read on demand* — a `Read` returns
+raw bytes, so the variable arrives there as an uninterpreted literal. That is why those files
+refer to **API_RESOURCES** by name and never spell the variable themselves: resolve the token
+from this block, then use the resulting absolute path.
+
+**If the value above still contains a literal `${CLAUDE_PLUGIN_ROOT}` when you use it, the
+substitution failed: say so and stop. Do not fall back to guessing API signatures** — an
+unavailable oracle is a blocker to report, not a licence to hallucinate. (This check applies to
+*this* block only. Seeing the literal inside a `references/` file is normal and is not a
+failure.)
+
+A relative path (`resources/`, `skills/python-rhino-grasshopper/resources/`) resolves against
+the **consuming project's** cwd, finds nothing, and silently disables the gate — verified.
 
 ## Deep-Load Protocol
 Load reference files ONLY when the following conditions are met:
@@ -42,11 +61,18 @@ Determine the geometric scale and success metrics.
 - Is it **General** (algorithmic utility)?
 
 ### Step 2: API Lookup (Requirement Gate)
-You are FORBIDDEN from guessing API signatures. Use the protocol below to verify:
-```bash
-grep_search(Query="M:Rhino.Geometry...", SearchPath="[ABS_PATH]/resources", Includes=["RhinoCommon.xml"])
+You are FORBIDDEN from guessing API signatures. This skill ships the RhinoCommon, Grasshopper,
+and GH_IO signature databases offline — grep them:
+```
+Grep(
+  pattern="M:Rhino.Geometry...",
+  path="<API_RESOURCES>",      # from the Environment and Paths block above
+  glob="RhinoCommon.xml",
+  output_mode="content"
+)
 ```
 *Note: Cross-check M: (Method) and P: (Property).*
+*Full protocol and the Hallucination Deny List: `references/api-lookups.md`.*
 
 ### Step 3: Architecture & Performance Selection
 Load `references/performance.md` if the set size exceeds 1,000 objects.

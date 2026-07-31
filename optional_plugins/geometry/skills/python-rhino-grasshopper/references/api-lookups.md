@@ -5,10 +5,22 @@ This document defines the mandatory lookup protocol for the RhinoCommon and Gras
 ## 📖 API Reference Lookups (MANDATORY)
 
 > [!CAUTION]
-> LLMs frequently hallucinate properties (e.g., `.BoundingBox` vs `.GetBoundingBox()`). You MUST use the **absolute path** to the resources directory in your `grep_search`.
+> LLMs frequently hallucinate properties (e.g., `.BoundingBox` vs `.GetBoundingBox()`). This
+> skill ships the real signature database offline — grep it, never guess.
 
 ### Resource Directory
-`skills/python-rhino-grasshopper/resources/` (Resolve to absolute path before use)
+
+Every lookup below runs against **API_RESOURCES** — the resources path from the *Environment
+and Paths* block in `SKILL.md`. Resolve that token to its absolute value first, then substitute
+it wherever `<API_RESOURCES>` appears here.
+
+This file is **read on demand**, not injected, so it deliberately does not spell
+`${CLAUDE_PLUGIN_ROOT}` itself — a `Read` would hand you the literal text rather than the
+substituted path. `SKILL.md` is the single place that value is defined, and the only place the
+substitution-failed check applies.
+
+A relative path (`resources/`, `skills/python-rhino-grasshopper/resources/`) resolves against
+the **consuming project's** cwd, finds nothing, and silently disables this entire gate.
 
 ### Target Files
 - `RhinoCommon.xml`: Core Rhino geometry and document operations.
@@ -18,15 +30,25 @@ This document defines the mandatory lookup protocol for the RhinoCommon and Gras
 ### Search Protocol
 You are FORBIDDEN from guessing API signatures. Use the protocol below to verify:
 
-```bash
-grep_search(Query="M:Rhino.Geometry.Brep.CreateFromSweep", SearchPath="[ABS_PATH]/resources", Includes=["RhinoCommon.xml"])
+```
+Grep(
+  pattern="M:Rhino.Geometry.Brep.CreateFromSweep",
+  path="<API_RESOURCES>",
+  glob="RhinoCommon.xml",
+  output_mode="content"
+)
 ```
 
 The same protocol applies to the Grasshopper SDK — do not skip this gate just because the
 member is `Grasshopper.Kernel.*` instead of `Rhino.Geometry.*`:
 
-```bash
-grep_search(Query="M:Grasshopper.Kernel.GH_ScriptInstance.DrawViewportWires", SearchPath="[ABS_PATH]/resources", Includes=["Grasshopper.xml"])
+```
+Grep(
+  pattern="M:Grasshopper.Kernel.GH_ScriptInstance.DrawViewportWires",
+  path="<API_RESOURCES>",
+  glob="Grasshopper.xml",
+  output_mode="content"
+)
 ```
 
 - **M:** denotes a Method.

@@ -88,13 +88,13 @@ If fallback defaults were used: `[fallback: visual-composition defaults]`
 ### Step 5: Enforcement
 Before presenting the prompt to the user, validate it machine-first:
 1. **Run `validate_prompt.py`** on the emitted prompt text:
-   - `python optional_plugins/visual-storytelling/skills/pptx-slide-design/scripts/validate_prompt.py <prompt_file>` [--no-layout-spec]`
+   - `python "${CLAUDE_PLUGIN_ROOT}/skills/pptx-slide-design/scripts/validate_prompt.py" <prompt_file> [--no-layout-spec]`
    - Pass `--no-layout-spec` if no `LAYOUT_SPEC.md` was available (fallback was used)
    - **Exit 0 = clean** → proceed. **Exit 1 = violations** → fix the prompt and re-run until exit 0.
    - Violations printed to stdout as `RULE-ID: message` (e.g., `VP-02: abstract token leakage: 'palette.primary'`)
 
 2. **Run `contrast_check.py`** if a `LAYOUT_SPEC.md` was loaded:
-   - `python optional_plugins/visual-storytelling/skills/pptx-slide-design/scripts/contrast_check.py <path/to/LAYOUT_SPEC.md>`
+   - `python "${CLAUDE_PLUGIN_ROOT}/skills/pptx-slide-design/scripts/contrast_check.py" <path/to/LAYOUT_SPEC.md>`
    - **Exit 0 = all WCAG 2.1 ratios pass** → proceed. **Exit 1 = contrast failures** → palette misconfiguration detected; escalate to `creative-director`.
 
 Never present a prompt that failed validation (exit 1). Validation is synchronous; block until clean.
