@@ -307,6 +307,35 @@ The `strategist` uses these questions to ensure the phased roadmap is grounded i
 - **Orphan tasks**: Tasks in Artifacts/TODO.md with no parent phase. Every task traces to a phase.
 - **Infinite Phase 1**: A first phase that tries to do everything. Phase 1 should be the smallest demonstrable win.
 
+## 🖼 Visual Plan Publishing
+
+`/blueprint` publishes `Artifacts/IMPLEMENTATION_PLAN.md` as a Claude `Artifact` whenever the
+same Gate 1 threshold that triggers `/grill` fires (plan exceeds 50 lines) — one trigger, two
+consequences: stress-test the content, then render it. Below threshold, chat markdown is
+sufficient; do not publish.
+
+- **Order**: publish *after* Gate 1's `/grill` pass and after the plan file is written, so the
+  Artifact reflects the reviewed plan, not a pre-refactor draft.
+- **Load `artifact-design` skill first** — mandatory before any `Artifact` write, per that tool's
+  contract.
+- **Compose from the plan file, don't re-author it**: Step 0 summary, a phase table, one Mermaid
+  diagram rendering the `## Dependency Map` section as a graph, the deliverable/file map, each
+  phase's Hard Rules, and a single Open Questions section at the bottom (mirrors the "one bottom
+  open-questions block" discipline — don't scatter unresolved items through the doc).
+- **Stable identity**: title = project name, favicon fixed at first publish (e.g. `🗺️`) — never
+  change either on a republish.
+- **Record the URL**: add `**Visual Plan**: <url>` as a header line in
+  `Artifacts/IMPLEMENTATION_PLAN.md` immediately after publishing.
+- **Updating**: New Phase / Re-Plan appends republish to the *same* URL (`Artifact` `url:` param)
+  so the link stays stable — never create a second Artifact for a live project. A Re-Plan writes
+  fresh files (per the Re-Plan mode), so it publishes fresh rather than reusing the archived
+  plan's URL.
+- **Scope**: `IMPLEMENTATION_PLAN.md` only. `Phase-N-Plan.md` / `Phase-N-TODO.md` stay
+  markdown — they're thin execution-tracking documents, not reviewer-facing.
+- **Canonical source stays the file**: the Artifact is a rendered view regenerated from
+  `Artifacts/IMPLEMENTATION_PLAN.md`, never an independently authored copy. On drift, the file
+  wins (per `standards.md` § Artifact Protocol Mirroring Rule).
+
 ## 📄 Output Templates
 
 ### /blueprint Response Block
@@ -314,6 +343,8 @@ When initializing or updating a plan, the `strategist` must present the summary 
 
 ```markdown
 # 🗺 Blueprint: [Project Name]
+
+**Visual Plan**: [link, or "N/A — below Gate 1 threshold"]
 
 ## 🎯 Step 0: Value Check
 - **Value**: [One-sentence rationale]

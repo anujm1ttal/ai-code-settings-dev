@@ -26,8 +26,9 @@ Uncertain → Ask: "Adding a new phase or starting over?"
    - **Gate 1 Trigger**: If the drafted plan exceeds 50 lines, run `/grill` before proceeding — mandatory stress-test for plans at this scale (see `grill.md` Relationships).
 4. **Phased Roadmap**: 3–4 phases with numeric success metrics.
 5. **Create files**: `Artifacts/IMPLEMENTATION_PLAN.md`, `Artifacts/TODO.md`, `Artifacts/ARCH.md`, `Artifacts/Plans/Phase-1-Plan.md`, `Artifacts/Plans/Phase-1-TODO.md`.
-6. **Git Init**: Create new branch `phase-1-[description]`.
-7. **Handoff**: Identify first agent + task.
+6. **Publish Visual Plan**: If `Artifacts/IMPLEMENTATION_PLAN.md` exceeds the Gate 1 threshold (50 lines), publish it as an Artifact per `project-planner` skill § Visual Plan Publishing. Below threshold, skip.
+7. **Git Init**: Create new branch `phase-1-[description]`.
+8. **Handoff**: Identify first agent + task. If a Visual Plan was published, lead the response with its link.
 
 ## New Phase
 1. Run `/sync` via concierge to validate current state.
@@ -35,7 +36,8 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 3. Step 0 for new phase only (VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS).
    - **Gate 1 Trigger**: If the appended phase spec exceeds 50 lines, run `/grill` before proceeding.
 4. Append to `Artifacts/IMPLEMENTATION_PLAN.md` and `Artifacts/TODO.md`. Update `Artifacts/ARCH.md` if needed. Create `Artifacts/Plans/Phase-N-Plan.md` and `Artifacts/Plans/Phase-N-TODO.md` for the new phase.
-5. **Git Init**: Create new branch `phase-[N]-[description]`.
+5. **Publish Visual Plan**: Re-run the Gate 1 threshold check against the updated file. If a `**Visual Plan**:` URL is already recorded, republish to that same URL. Otherwise apply step 6 of New Project.
+6. **Git Init**: Create new branch `phase-[N]-[description]`.
 
 ## Re-Plan
 1. Archive current `Artifacts/IMPLEMENTATION_PLAN.md` + `Artifacts/TODO.md` to `Artifacts/History/` with timestamp.
@@ -44,8 +46,9 @@ Uncertain → Ask: "Adding a new phase or starting over?"
    - **`--interview`**: Replaces the line above — never runs alongside it. Unbounded depth-first traversal per `elicitation-guide.md` §2–§5 (`business-analyst` skill). Exits only on a signed restatement (guide §5), not question count.
 4. Full Step 0 referencing what failed.
 5. Fresh files.
-6. **Git Init**: Create new branch `phase-[N]-replan`.
-7. Restart pipeline.
+6. **Publish Visual Plan**: Apply step 6 of New Project — a Re-Plan is a fresh file, so publish fresh (do not reuse the archived plan's old URL).
+7. **Git Init**: Create new branch `phase-[N]-replan`.
+8. Restart pipeline.
 
 ## Parallel Team Execution (`/blueprint --team`)
 Leverages Claude Agent Teams to independently challenge the architecture. If token context limits are hit, automatically fall back to standard execution.
