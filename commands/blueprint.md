@@ -32,23 +32,25 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 
 ## New Phase
 1. Run `/sync` via concierge to validate current state.
-2. Confirm prior phase success metrics met (auditor-verified).
-3. Step 0 for new phase only (VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS).
+2. **BACKLOG Reconciliation**: Walk **every OPEN entry** in `Artifacts/BACKLOG.md`. Assign each a verdict — **(a) pull into this phase** (fold into the phase's `Phase-N-Plan.md` / `Phase-N-TODO.md`), **(b) keep OPEN** with a one-line "why not now", or **(c) mark RESOLVED** (done elsewhere / won't-do). No OPEN entry passes unexamined. This is a decision gate, not auto-scheduling — an unpicked entry stays OPEN with a recorded reason; BACKLOG stays memory, not a queue (`rules/common/orchestration.md` §BACKLOG Lifecycle). Skip if no `Artifacts/BACKLOG.md`.
+3. Confirm prior phase success metrics met (auditor-verified).
+4. Step 0 for new phase only (VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS).
    - **Gate 1 Trigger**: If the appended phase spec exceeds 50 lines, run `/grill` before proceeding.
-4. Append to `Artifacts/IMPLEMENTATION_PLAN.md` and `Artifacts/TODO.md`. Update `Artifacts/ARCH.md` if needed. Create `Artifacts/Plans/Phase-N-Plan.md` and `Artifacts/Plans/Phase-N-TODO.md` for the new phase.
-5. **Publish Visual Plan**: Re-run the Gate 1 threshold check against the updated file. If a `**Visual Plan**:` URL is already recorded, republish to that same URL. Otherwise apply step 6 of New Project.
-6. **Git Init**: Create new branch `phase-[N]-[description]`.
+5. Append to `Artifacts/IMPLEMENTATION_PLAN.md` and `Artifacts/TODO.md`. Update `Artifacts/ARCH.md` if needed. Create `Artifacts/Plans/Phase-N-Plan.md` and `Artifacts/Plans/Phase-N-TODO.md` for the new phase.
+6. **Publish Visual Plan**: Re-run the Gate 1 threshold check against the updated file. If a `**Visual Plan**:` URL is already recorded, republish to that same URL. Otherwise apply step 6 of New Project.
+7. **Git Init**: Create new branch `phase-[N]-[description]`.
 
 ## Re-Plan
 1. Archive current `Artifacts/IMPLEMENTATION_PLAN.md` + `Artifacts/TODO.md` to `Artifacts/History/` with timestamp.
 2. Post-mortem in `Artifacts/DECISION_LOG.md`: original assumption → invalidating evidence → constraint changes.
-3. **Requirements Interview**: Re-verify boundaries if failure was due to requirement drift.
+3. **BACKLOG Reconciliation**: Walk **every OPEN entry** in `Artifacts/BACKLOG.md` — the failure may relate to work already parked there. Assign each a verdict — **(a) pull into the re-plan**, **(b) keep OPEN** with a one-line "why not now", or **(c) mark RESOLVED**. No OPEN entry passes unexamined. Decision gate, not auto-scheduling (`rules/common/orchestration.md` §BACKLOG Lifecycle). Skip if no `Artifacts/BACKLOG.md`.
+4. **Requirements Interview**: Re-verify boundaries if failure was due to requirement drift.
    - **`--interview`**: Replaces the line above — never runs alongside it. Unbounded depth-first traversal per `elicitation-guide.md` §2–§5 (`business-analyst` skill). Exits only on a signed restatement (guide §5), not question count.
-4. Full Step 0 referencing what failed.
-5. Fresh files.
-6. **Publish Visual Plan**: Apply step 6 of New Project — a Re-Plan is a fresh file, so publish fresh (do not reuse the archived plan's old URL).
-7. **Git Init**: Create new branch `phase-[N]-replan`.
-8. Restart pipeline.
+5. Full Step 0 referencing what failed.
+6. Fresh files.
+7. **Publish Visual Plan**: Apply step 6 of New Project — a Re-Plan is a fresh file, so publish fresh (do not reuse the archived plan's old URL).
+8. **Git Init**: Create new branch `phase-[N]-replan`.
+9. Restart pipeline.
 
 ## Parallel Team Execution (`/blueprint --team`)
 Leverages Claude Agent Teams to independently challenge the architecture. If token context limits are hit, automatically fall back to standard execution.

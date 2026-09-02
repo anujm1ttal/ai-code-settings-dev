@@ -49,6 +49,7 @@ The Concierge monitors context usage and triggers `/handoff` when:
 To ensure knowledge survives a context reset, agents file **Findings** to `Artifacts/BACKLOG.md`
 (the single home for deferred work and findings — see `orchestration.md` §Findings Protocol):
 - They document specific technical discoveries, variable names, or logic traps for the next agent.
+- `/sync` surfaces OPEN findings each session; `/blueprint` New Phase & Re-Plan triage them — see `orchestration.md` §Findings Protocol.
 - During `/handoff`, the Concierge promotes persistent findings to the `Artifacts/learnings/` registry.
 
 ---
