@@ -32,6 +32,16 @@
             "timeout": 3
           }
         ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/task-diff-guard.js\"",
+            "timeout": 5
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -42,6 +52,16 @@
             "type": "command",
             "command": "node \"$HOME/.claude/hooks/auto-lint.js\"",
             "timeout": 20
+          }
+        ]
+      },
+      {
+        "matcher": "Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/task-diff-guard.js\"",
+            "timeout": 10
           }
         ]
       },

@@ -35,6 +35,11 @@ When intent is ambiguous, apply routing per `orchestration.md` Automatic Routing
   A `/handoff --phase` deferred until the window is full can overflow the input limit while
   running (its learnings-capture and task-mining steps resist compaction), so nudge *before*
   that point. If the user delays past ~60%, recommend `/compact` before the phase handoff.
+- **Before a long unattended run** — an `/afk` frontier, a parallel verification/audit fleet,
+  a multi-step sweep the user is walking away from — suggest `/handoff --lite` first. A
+  usage-limit interrupt or crash mid-run then resumes from a checkpoint brief, not from
+  scratch. This is independent of context %: it is about run length and the user not being
+  present to re-orient a fresh session.
 - **Preserve**: current task, active file paths, recent decisions, active learnings.
 - **Discard**: resolved debugging threads, superseded plans, completed reviews.
 

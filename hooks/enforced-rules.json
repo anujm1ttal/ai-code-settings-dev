@@ -30,6 +30,20 @@
       "blocking": false
     },
     {
+      "rule_id": "task-diff-guard-pre",
+      "hook_file": "task-diff-guard.js",
+      "event": "PreToolUse",
+      "matcher": "Task",
+      "blocking": false
+    },
+    {
+      "rule_id": "task-diff-guard-post",
+      "hook_file": "task-diff-guard.js",
+      "event": "PostToolUse",
+      "matcher": "Task",
+      "blocking": false
+    },
+    {
       "rule_id": "audit-trail",
       "hook_file": "audit-trail.js",
       "event": "PostToolUse",

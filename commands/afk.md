@@ -23,6 +23,10 @@ Check in order; on any failure, output **only** the stated stop message and take
 3. **Clean tree**: `git status` shows a clean working tree (all prior work committed). If not:
    stop, tell the user to commit or stash before running `/afk`.
 
+Once all three pass, **write or refresh a `/handoff --lite` checkpoint brief before the first
+dispatch** — the run is unattended, so a mid-run usage-limit interrupt or crash resumes from a
+checkpoint, not from scratch.
+
 ## 2. Frontier Definition
 
 The **frontier** is the next task in the active TODO where, per `orchestration.md`
