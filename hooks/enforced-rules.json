@@ -33,14 +33,14 @@
       "rule_id": "task-diff-guard-pre",
       "hook_file": "task-diff-guard.js",
       "event": "PreToolUse",
-      "matcher": "Task",
+      "matcher": "Task|Agent",
       "blocking": false
     },
     {
       "rule_id": "task-diff-guard-post",
       "hook_file": "task-diff-guard.js",
       "event": "PostToolUse",
-      "matcher": "Task",
+      "matcher": "Task|Agent",
       "blocking": false
     },
     {

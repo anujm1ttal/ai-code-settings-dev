@@ -148,7 +148,7 @@ Claude Code hooks provide **hard guardrails** that cannot be rationalized away.
 | `guard-commands.js` | `PreToolUse` | **Blocks** dangerous commands (`rm -rf`, force push, SQL drops) and commits with AI attribution trailers (`Co-Authored-By: Claude`, `Generated with Claude Code`) |
 | `auto-lint.js` | `PostToolUse` | Reports lint violations and injects "fix before proceeding" directive (not auto-fixing) |
 | `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
-| `task-diff-guard.js` | `PreToolUse`+`PostToolUse` (`Task`) | Surfaces protected `Artifacts/` files a subagent changed, with a capped diff — verify the artifact, not the subagent's summary (feedback only) |
+| `task-diff-guard.js` | `PreToolUse`+`PostToolUse` (`Task|Agent`) | Surfaces protected `Artifacts/` files a subagent changed, with a capped diff — verify the artifact, not the subagent's summary (feedback only) |
 | `nudge-handoff.js` | `Stop` | Nudges to run `/handoff` if git tree is dirty and no handoff this session (feedback only) |
 | `evidence-gate.js` | `Stop` | Nags when completion claims made without fresh test evidence this session (feedback only) |
 | `guard-shared-state.js` | `Stop` | Nags when process-global state (stdout/stderr, logging, `os.environ`) changed without a full-suite run (feedback only) |
