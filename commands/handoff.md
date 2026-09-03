@@ -96,7 +96,7 @@ Concierge proactively suggests `/handoff` when:
 - Context window >60% estimated capacity.
 - 3+ distinct tasks discussed in one session.
 - Extended work without sync/handoff.
-- **Before a long unattended run** (`/afk` frontier, parallel verification fleet, long sweep) — suggest `--lite` so a mid-run interrupt resumes from a checkpoint.
+- **Before a long unattended run** (`/afk` frontier, parallel verification fleet, long sweep) — suggest `/handoff --lite` so a mid-run interrupt resumes from a checkpoint.
 
 ## Boundaries
 Does NOT: mark `[x]`, modify active implementation logic, run `/sync`, execute code.
