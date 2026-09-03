@@ -11,7 +11,7 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 |:---|:---|:---|
 | **strategist** | Architecture, ROI, roadmaps | **Write**: `IMPLEMENTATION_PLAN.md`, `TODO.md` |
 | **coder** | Implementation, refactoring | **Write**: Source code, test files, `[-]` status |
-| **auditor** | QA, technical review | **Write**: `AUDIT_REPORT.md`, `Artifacts/TODO.md` (`[x]`) |
+| **auditor** | QA, technical review | **Write**: `AUDIT_REPORT.md`, `Artifacts/TODO.md` (`[x]` only), `BACKLOG.md` (loose findings). **Reports, never applies** — a needed source/test/evidence change is a report line, not an edit (`agents/auditor.md` §Write Scope). |
 | **scribe** | Documentation, teaching | **Write**: Artifacts docs not owned by another agent (exception: `README.md`) |
 | **council** | Synthesis, stress-testing | **Write**: `DECISION_LOG.md` |
 | **creative-director** | Visual spec, hierarchy | **Write**: `Artifacts/LAYOUT_SPEC.md` |
@@ -173,7 +173,7 @@ Everything else — reads, pure-logic, docs, reversible edits, passing gates —
 |:---|:---|:---|
 | **Strategist** | Create, restructure, add/remove tasks | Mark status |
 | **Coder** | Mark `[-]` (in-progress) | Mark `[x]`, add/remove tasks |
-| **Auditor** | Mark `[x]` (complete) after all gates pass | Add/remove tasks |
+| **Auditor** | Mark `[x]` (complete) after all gates pass | Add/remove tasks; edit task text; edit source/tests/evidence (report it instead — `agents/auditor.md` §Write Scope) |
 | **`/sync`, `/ingest`** | Propose completion (flag for auditor) | Mark `[x]` directly |
 | **Scribe, Concierge** | Read-only (concierge may archive to `Artifacts/History/`) | Modify content or status |
 
