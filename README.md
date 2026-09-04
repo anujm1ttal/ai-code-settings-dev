@@ -138,7 +138,7 @@ can't break a live session. **Editing source has no effect until you deploy.**
 | [skills/](skills/) | 16 always-on core skills |
 | [commands/](commands/) | One `.md` procedure per slash command |
 | [optional_plugins/](optional_plugins/) | 6 installable plugins |
-| [hooks/](hooks/) | 8 lifecycle enforcement scripts |
+| [hooks/](hooks/) | 9 lifecycle enforcement scripts |
 | [templates/](templates/) | Phase plan/TODO and `CLAUDE.md` scaffolds |
 | [scripts/](scripts/) | Dev tooling — deploy, routing audit, skill graph. Not deployed |
 | [tests/](tests/) | 15 pytest modules validating the registry |
