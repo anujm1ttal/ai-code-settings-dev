@@ -19,7 +19,8 @@ ai-code-settings/  ──deploy.sh──▶  ~/.claude/  ──inherited──�
   Edit *that* file to change global OS behavior — **not** this `CLAUDE.md`.
 - Plugins are **not** copied by deploy.sh; they install via `/plugin marketplace add` +
   `/plugin install` from `.claude-plugin/marketplace.json`.
-- `GEMINI.md` is a parallel mirror for Gemini; it is not deployed. Keep it in sync manually.
+- `GEMINI.md` is intentionally divergent and unmaintained — a stale pre-split mirror for Gemini,
+  not deployed. Parity is not tracked; do **not** sync it when `rules/` or `CLAUDE-global.md` change.
 
 ## Layout
 

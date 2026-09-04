@@ -2,7 +2,7 @@
 
 This overview maps the available skills in the Agent OS. Load only the necessary skills per task. For high-use skills, refer to the L0 Abstract before loading the full definition.
 
-**Total**: 15 core skills across 4 domains (plus the optional-plugin skills — see `optional_plugins/index.md` for that catalog and count).
+**Total**: 16 core skills across 4 domains (plus the optional-plugin skills — see `optional_plugins/index.md` for that catalog and count).
 
 ## Core Orchestration
 | Skill | Abstract (L0) | Purpose |
@@ -24,6 +24,7 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 | Skill | Purpose |
 |:---|:---|
 | `python-patterns` | PEP 8, types, and Python 3.12+ best practices. |
+| `react-frontend` | Vite + React + TypeScript SPA standards: hooks, components, state, styling, forms, a11y. |
 | `doc-updater` | Generating and auditing project documentation. |
 
 ## Domain: Design & Visuals

@@ -81,7 +81,7 @@ optional_plugins/
 
 ## Token Impact
 
-Enabling only the plugins a project needs avoids loading unused skill metadata into context. A project that only needs `geometry` installs and enables that one plugin instead of all 16 skills across all 7 plugins.
+Enabling only the plugins a project needs avoids loading unused skill metadata into context. A project that only needs `geometry` installs and enables that one plugin instead of all 14 skills across all 6 plugins.
 
 ---
 

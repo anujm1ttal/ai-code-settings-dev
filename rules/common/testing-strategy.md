@@ -31,6 +31,18 @@ description: Canonical testing taxonomy, runtime-lane selection, evidence requir
 
 **Default Rule**: Use the cheapest lane that proves the claim. Lane order: B → A-headless → A-live → A-full.
 
+## 2b. Frontend Runtime Lanes
+
+| Lane | Use for | Requires browser? |
+| :--- | :--- | :--- |
+| **F-unit** | pure logic, hooks (`renderHook`), reducers, utils | No (jsdom) |
+| **F-component** | component render + interaction (RTL + user-event), MSW for network | No (jsdom) |
+| **F-a11y** | axe assertions on rendered components | No (jsdom) |
+| **F-e2e** | full user journeys, real routing, real build | Yes (Playwright) |
+| **F-visual** | screenshot regression (optional, per project) | Yes (Playwright) |
+
+**Default Rule**: Use the cheapest lane that proves the claim. Lane order: F-unit → F-component → F-a11y → F-e2e.
+
 ## 3. Evidence Rules
 
 Evidence is the currency of the **Verification Gate**.
@@ -70,6 +82,7 @@ Encode every known-but-deferred defect as an executable marker asserting the **c
 
 - **Rule**: Mock external systems; do not mock internal logic.
 - **Wrapper/Flatten Tools**: When a component's job is to transform, unwrap, or flatten another component's output, its mocks MUST mirror the real, fully-wrapped response shape (capture it from a live probe). The component MUST be exercised end-to-end against real data at least once before its unit-green is trusted. A degenerate/empty live result is a mock-vs-real envelope mismatch until proven otherwise.
+- **Frontend/Web Boundaries**: Mock the network (MSW), never your own components; a hook that wraps a fetch is exercised against a real (mocked-transport) response once before its unit-green is trusted.
 - **Rhino/GH Boundaries**:
   - Mock/stub `rhinoscriptsyntax`, `scriptcontext`, `Rhino.*` for import safety in pure tests.
   - Use `Rhino.Inside` when testing actual `RhinoCommon` geometry behavior.
@@ -79,7 +92,7 @@ Encode every known-but-deferred defect as an executable marker asserting the **c
 
 | Project Type | Required Evidence |
 | :--- | :--- |
-| **code** | unit + integration + lint/typecheck |
+| **code** | unit + integration + lint/typecheck — for a UI: component render tests + `jsx-a11y`/axe pass + ≥1 E2E on the primary user journey |
 | **geometry** | unit for pure logic + Rhino E2E for runtime invariants |
 | **data** | model validation + manual matrix |
 | **pptx** | script test + output file existence + visual spot-check |
