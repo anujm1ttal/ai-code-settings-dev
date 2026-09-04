@@ -385,7 +385,7 @@ If an agent performs the same action type on the same file/state 3 times without
 ### 3. Findings Protocol (Phase Handoff)
 To ensure technical continuity across session boundaries:
 1. **Produce**: At the end of every task, the agent files technical specifics (variable names, logic traps, API quirks) into `Artifacts/BACKLOG.md` — the single home for deferred work and findings — rather than scattering them across per-phase "still open" sections.
-2. **Consume**: Two scheduled hooks, not ad-hoc intake — `/sync` **surfaces** OPEN entries every session (count + oldest few; `commands/sync.md` step 5); `/blueprint` New Phase & Re-Plan run a **BACKLOG Reconciliation** gate that forces a verdict on every OPEN entry — pull in / keep with reason / resolve (`commands/blueprint.md`).
+2. **Consume**: Two scheduled hooks, not ad-hoc intake — `/sync` **surfaces** OPEN entries every session (count + first few in file order; `commands/sync.md` step 5); `/blueprint` New Phase & Re-Plan run a **BACKLOG Reconciliation** gate that forces a verdict on every OPEN entry — pull in / keep with reason / resolve (`commands/blueprint.md`).
 3. **Graduate**: The Concierge promotes persistent findings to the `Artifacts/learnings/` registry during `/handoff`; scheduled items graduate out to a PLAN phase.
 
 ### 4. Slicing & Economics

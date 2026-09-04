@@ -15,7 +15,7 @@ Owned by the **concierge**. The "Truth Engine" — reconciles manual work with t
 2. **Inventory Delta**: `git status --short`, `git diff --name-only HEAD~1`, recent file modifications.
 3. **Domain Recon**: Rhino/GH (`.gh`, `.py` in CAD dirs) | Power BI (`.dax`, `.sql`) | MCP/Dev (`src/`, `package.json`, configs) | C# (`.cs`, `.csproj`, NuGet) | Docs (stale README, ARCH).
 4. **State File Validation**: `Artifacts/TODO.md` ↔ `Artifacts/IMPLEMENTATION_PLAN.md` sync. `Artifacts/.agent/current_task.md` freshness. `Artifacts/DECISION_LOG.md` unresolved entries — the log is newest-first: read the **head** (recent entries) and scan for unresolved, not the whole file.
-5. **BACKLOG Surface**: If `Artifacts/BACKLOG.md` exists, report the **OPEN** entry count and list the oldest 3–5 (id + one-line title). Surface only — `/sync` assigns no verdicts and edits nothing. Deep triage (pull in / keep / resolve) is the strategist's **BACKLOG Reconciliation** gate at `/blueprint` New Phase & Re-Plan.
+5. **BACKLOG Surface**: If `Artifacts/BACKLOG.md` exists, report the **OPEN** entry count and list the first 3–5 in file order (id + one-line title). Surface only — `/sync` assigns no verdicts and edits nothing. Deep triage (pull in / keep / resolve) is the strategist's **BACKLOG Reconciliation** gate at `/blueprint` New Phase & Re-Plan.
 6. **Reconciliation**: Cross-reference changes against `Artifacts/TODO.md` → categorize.
 7. **State Refresh**: Update `Artifacts/.agent/current_task.md` with validated next step.
 8. **Output**: Sync Report.
@@ -30,7 +30,7 @@ Owned by the **concierge**. The "Truth Engine" — reconciles manual work with t
 ## Sync Report Format
 
 - **Session Delta**: Files modified/created, time since last sync.
-- **BACKLOG**: OPEN count + oldest 3–5 entries (skip if no `Artifacts/BACKLOG.md`).
+- **BACKLOG**: OPEN count + first 3–5 in file order (skip if no `Artifacts/BACKLOG.md`).
 - **Reconciliation Summary**: Table of category | count | items.
 - **State File Health**: `Artifacts/TODO.md`, `Artifacts/IMPLEMENTATION_PLAN.md`, `Artifacts/.agent/current_task.md`, `Artifacts/DECISION_LOG.md`, `Artifacts/ARCH.md` — status each.
 - **Recommended Next Step**: Agent → specific task.
