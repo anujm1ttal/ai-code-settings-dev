@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Claude Code — PreToolUse + PostToolUse Hook (matcher: Task): Task Diff Guard
+ * Claude Code — PreToolUse + PostToolUse Hook (matcher: Task|Agent): Task Diff Guard
  *
  * A dispatched subagent returns a NARRATIVE summary of what it did.
  * `model-routing.md` §Verification Tiering requires the orchestrator to verify the
@@ -311,9 +311,12 @@ function main() {
       process.exit(0);
     }
 
-    // Only act on the Task tool. The matcher in settings-template.json already
-    // scopes this, but a mis-wire must not make the hook touch other tools.
-    if ((data.tool_name || '') !== 'Task') {
+    // Only act on the subagent-dispatch tool. This runtime names it 'Agent';
+    // other/older runtimes name it 'Task' — accept both. The matcher in
+    // settings-template.json already scopes this, but a mis-wire must not make
+    // the hook touch other tools.
+    const toolName = data.tool_name || '';
+    if (toolName !== 'Task' && toolName !== 'Agent') {
       process.exit(0);
     }
 

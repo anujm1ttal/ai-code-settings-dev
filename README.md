@@ -15,7 +15,7 @@ engineering rules, slash-command workflows, and enforcement hooks — installed 
 | **8 agents** | `strategist`, `coder`, `auditor`, `scribe`, `council`, `creative-director`, `concierge`, `geometry-validator` — each with an explicit capability boundary (who may write what, who may mark work complete) |
 | **23 commands** | `/blueprint` `/audit` `/triage` `/handoff` `/sweep` `/council` `/docs` `/explain` … one procedure per file |
 | **9 rule files** | Canonical standards for coding style, architecture, security, testing strategy, orchestration, and token economics |
-| **15 core skills** | Always-on modules: `systematic-debugging`, `test-driven-development`, `verification-gate`, `codebase-navigator`, `project-planner`, … |
+| **16 core skills** | Always-on modules: `systematic-debugging`, `test-driven-development`, `verification-gate`, `codebase-navigator`, `project-planner`, … |
 | **6 plugins / 14 skills** | Installed on demand: `geometry` (Rhino/Grasshopper), `pbi-report`, `code-mcp`, `youtube`, `manuscript`, `visual-storytelling` |
 | **8 hooks** | Mechanical guardrails — block writes to secrets and binaries, block `rm -rf`/force-push, inject session state, log an audit trail |
 
@@ -135,9 +135,9 @@ can't break a live session. **Editing source has no effect until you deploy.**
 | [CLAUDE.md](CLAUDE.md) | Guidance for maintaining *this repo* — not deployed |
 | [agents/](agents/) | Agent definitions; `agents.overview.md` is the routing map |
 | [rules/common/](rules/common/) | Canonical standards, deployed to `~/.claude/rules/` |
-| [skills/](skills/) | 15 always-on core skills |
+| [skills/](skills/) | 16 always-on core skills |
 | [commands/](commands/) | One `.md` procedure per slash command |
-| [optional_plugins/](optional_plugins/) | 7 installable plugins |
+| [optional_plugins/](optional_plugins/) | 6 installable plugins |
 | [hooks/](hooks/) | 8 lifecycle enforcement scripts |
 | [templates/](templates/) | Phase plan/TODO and `CLAUDE.md` scaffolds |
 | [scripts/](scripts/) | Dev tooling — deploy, routing audit, skill graph. Not deployed |

@@ -40,9 +40,9 @@ You should see all 9 hooks listed:
 - `SessionStart` → `session-boot.js`
 - `PreToolUse (Edit|MultiEdit|Write)` → `guard-paths.js`
 - `PreToolUse (Bash|PowerShell)` → `guard-commands.js`
-- `PreToolUse (Task)` → `task-diff-guard.js`
+- `PreToolUse (Task|Agent)` → `task-diff-guard.js`
 - `PostToolUse (Edit|MultiEdit|Write)` → `auto-lint.js`
-- `PostToolUse (Task)` → `task-diff-guard.js`
+- `PostToolUse (Task|Agent)` → `task-diff-guard.js`
 - `PostToolUse (*)` → `audit-trail.js`
 - `Stop` → `nudge-handoff.js`
 - `Stop` → `evidence-gate.js`
@@ -66,7 +66,7 @@ as `task-diff-guard-pre` / `task-diff-guard-post` so the wiring guard verifies b
 | `guard-commands.js` | `PreToolUse` | **Blocks** dangerous shell commands (rm -rf, force push, SQL drops) and AI attribution trailers in commits |
 | `auto-lint.js` | `PostToolUse` | Reports lint violations and injects "fix before proceeding" directive (no auto-fix) |
 | `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
-| `task-diff-guard.js` | `PreToolUse` + `PostToolUse` (`Task`) | Snapshots protected `Artifacts/` files before a subagent dispatch; after it returns, surfaces any that changed with a capped diff so the orchestrator verifies the artifact, not the subagent's summary (feedback only) |
+| `task-diff-guard.js` | `PreToolUse` + `PostToolUse` (`Task|Agent`) | Snapshots protected `Artifacts/` files before a subagent dispatch; after it returns, surfaces any that changed with a capped diff so the orchestrator verifies the artifact, not the subagent's summary (feedback only) |
 | `nudge-handoff.js` | `Stop` | Nudges to run `/handoff` if git tree is dirty and no handoff this session (feedback only) |
 | `evidence-gate.js` | `Stop` | Nags when completion claims made without fresh test evidence this session (feedback only) |
 | `guard-shared-state.js` | `Stop` | Nags when process-global state (stdout/stderr, logging, os.environ) changed without a full-suite run (feedback only) |

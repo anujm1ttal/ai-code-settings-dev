@@ -38,7 +38,7 @@ The `strategist` classifies every project during Step 0. This determines active 
 | `pptx` | strategist, creative-director, concierge | pptx, visual-composition, python-patterns | `enabledPlugins` |
 | `pbi-report` | strategist, creative-director, coder | powerbi-report, visual-composition, dax-modeling | `enabledPlugins` |
 | `geometry` | strategist, coder, auditor | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, grasshopper-plugin-packaging, python-patterns | `enabledPlugins` |
-| `code` | strategist, coder, auditor | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp | `enabledPlugins` |
+| `code` | strategist, coder, auditor | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp, react-frontend | `enabledPlugins` |
 | `manuscript`| strategist, scribe, auditor | manuscript-review, glossary-extraction | `enabledPlugins` |
 | `data` | strategist, coder, auditor | dax-modeling, powerbi-report, python-patterns | `enabledPlugins` |
 | `hybrid` | concierge, strategist | All applicable (per detected files) | `enabledPlugins` |

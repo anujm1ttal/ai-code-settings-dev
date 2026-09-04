@@ -39,6 +39,12 @@ No task is "Done" until:
 - **Destructive tools**: Must include `[DESTRUCTIVE]` warning + `AskUserQuestion` confirmation.
 - **Deps**: Pin in `package-lock.json`. Audit with `npm audit`.
 
+### TypeScript / Web Frontend
+- **No secret in client code** or `VITE_*` / `import.meta.env` — anything the bundle imports ships to the browser.
+- **XSS**: no `dangerouslySetInnerHTML` without DOMPurify + a comment; never build HTML from user input.
+- **Auth token storage**: httpOnly cookie preferred; if `localStorage`, document the XSS-exposure acceptance.
+- **CSP**: set a Content-Security-Policy; audit deps with `npm audit` / `pnpm audit` in CI.
+
 ### C#
 - **NuGet**: Pin versions. No floating ranges. Audit for vulnerabilities.
 - **Assembly trust**: Only load from verified sources. No dynamic loading from user paths.

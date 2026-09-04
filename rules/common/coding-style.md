@@ -96,11 +96,23 @@ Overrides for the constrained Rhino 8 runtime:
 - **Full reference**: `python-rhino-grasshopper`
 
 ### TypeScript
+
+**TypeScript (language)** — every TS project:
 - **Strict**: `noImplicitAny: true`, `strictNullChecks: true`.
-- **Validation**: Zod on all external inputs.
+- **Types**: `unknown` over `any` (narrow before use); `interface` for object shapes; `as const` for literals.
+- **Validation**: Zod at every external boundary.
+
+**TypeScript — MCP server**:
 - **Error Codes**: JSON-RPC standard codes for MCP tools.
 - **Logging**: `console.error` for debug. `stdout` reserved for JSON-RPC transport.
 - **Full reference**: `typescript-mcp`
+
+**TypeScript / React — web UI**:
+- **Styling**: CSS Modules by default; utility CSS (Tailwind) only if the repo's `CLAUDE.md` declares it.
+- **Server state**: TanStack Query — explicit loading/error/empty; never fetch in `useEffect`.
+- **Testing**: Vitest + `@testing-library/react` + jsdom.
+- **A11y**: `eslint-plugin-jsx-a11y` recommended ruleset = error; semantic HTML before ARIA.
+- **Full reference**: `react-frontend`
 
 ### C#
 - **Target**: .NET 6+ / RhinoCommon SDK.
