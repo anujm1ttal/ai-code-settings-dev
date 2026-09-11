@@ -23,12 +23,26 @@
  * `igh1_shared-state-hook_1` schedules deletion if it records zero fires across
  * 20 sessions. The guardrail is instrumented to report its own uselessness.
  *
+ * OHF-2 tightening (2026-09-11): telemetry showed 828 nags, 0 deny, over ~7
+ * weeks. Correlating every fire cluster against Artifacts/.agent/audit_trail.jsonl
+ * found the fires were near-entirely triggered by editing PROSE that discusses
+ * these tokens (this file's own MESSAGE string, hooks/README.md, BACKLOG.md,
+ * rules/common/security.md's `os.environ["KEY"]` example, SKILL.md/TODO/Plan
+ * files) — not by genuine process-global mutations in application code. Only
+ * one real true positive was found (scripts/todo_graph.py's guarded
+ * `sys.stdout.reconfigure`, correctly nagged until the full suite ran). Fix:
+ * gate on `isSourcePath` (the same path-gate `evidence-gate.js` already uses
+ * to exclude `.md`/`Artifacts/`/`Temp/` prose) so only edits to actual source
+ * paths can arm the guard — cuts the demonstrated false-positive class while
+ * preserving the one demonstrated true positive. See
+ * `Artifacts/BACKLOG.md` `igh1_shared-state-hook_1` for the full evidence trail.
+ *
  * Fail-open: any error (bad stdin, unreadable transcript, parse failure)
  * exits 0 with no output.
  */
 
 const fs = require('fs');
-const { parseTranscript, extractToolUses } = require('./lib/evidence');
+const { parseTranscript, extractToolUses, isSourcePath, getToolTargetPath } = require('./lib/evidence');
 
 // Process-global state whose mutation escapes the module under test.
 const SHARED_STATE_PATTERNS = [
@@ -102,6 +116,9 @@ function lastSharedStateEditIndex(entries) {
   let last = -1;
   for (const use of extractToolUses(entries)) {
     if (!EDIT_TOOL_NAMES.has(use.name)) continue;
+    // Path-gate first (OHF-2): prose describing these tokens (docs, BACKLOG
+    // entries, this hook's own message string) is not a shared-state edit.
+    if (!isSourcePath(getToolTargetPath(use))) continue;
     if (touchesSharedState(writtenText(use.input || {}))) {
       last = Math.max(last, use.entryIndex);
     }

@@ -314,8 +314,11 @@ module.exports = {
   hasFreshEvidence,
   parseTranscript,
   extractFinalAssistantText,
-  // Exported for direct unit testing of internals.
+  // Exported for direct unit testing of internals, and for reuse by sibling
+  // Stop hooks (guard-shared-state.js OHF-2 tightening — same path-gate that
+  // already excludes .md/Artifacts/Temp prose from evidence-gate's own checks).
   isSourcePath,
+  getToolTargetPath,
   extractToolUses,
   extractToolResults,
   lastSourceEditIndex,

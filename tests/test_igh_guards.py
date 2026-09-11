@@ -306,6 +306,32 @@ def test_shared_state_detects_multiedit_payloads(tmp_path: Path):
     assert run_shared_state(tmp_path, steps).stdout.strip() != ""
 
 
+# OHF-2 tightening: path-gated on isSourcePath (telemetry showed 828 nags, 0
+# deny, near-entirely from editing PROSE that mentions these tokens rather
+# than genuine process-global mutations — see BACKLOG `igh1_shared-state-hook_1`).
+@pytest.mark.parametrize(
+    "tool_input",
+    [
+        {"file_path": "Artifacts/BACKLOG.md", "new_string": "incident where a `sys.stdout` reassignment passed"},
+        {"file_path": "rules/common/security.md", "new_string": 'Python: `os.environ["KEY"]` or Pydantic'},
+        {"file_path": "hooks/README.md", "new_string": "Nags when process-global state (stdout/stderr, logging, os.environ...)"},
+        {"file_path": "Artifacts/Temp/probe.py", "new_string": "sys.stdout = io.TextIOWrapper(buf)"},
+    ],
+)
+def test_shared_state_silent_on_non_source_paths(tmp_path: Path, tool_input: dict):
+    """Prose/state paths (.md, Artifacts/**, Temp/**) never arm the guard, even
+    when they contain literal shared-state tokens — those are documentation of
+    the concept, not a process-global mutation in application code."""
+    result = run_shared_state(tmp_path, [("Edit", tool_input)])
+    assert result.stdout.strip() == "", f"non-source path must not arm the guard: {result.stdout!r}"
+
+
+def test_shared_state_still_fires_on_genuine_source_path(tmp_path: Path):
+    """Sanity check that the path-gate narrows, it does not blind the guard."""
+    steps = [("Write", STDOUT_EDIT), ("Bash", {"command": SUBSET_RUN})]
+    assert run_shared_state(tmp_path, steps).stdout.strip() != ""
+
+
 def test_shared_state_respects_stop_hook_active(tmp_path: Path):
     result = run_shared_state(tmp_path, [("Write", STDOUT_EDIT)], stop_hook_active=True)
     assert result.stdout.strip() == ""

@@ -146,15 +146,20 @@ fourth is a redesign, not an addition (nag fatigue degrades every existing hook)
   nudge, a recent `/handoff` does **not** suppress it — `/handoff` having run is a proxy, whereas
   unpushed state is a measured fact.
 - **`evidence-gate.js`** — If the final assistant message contains a completion claim (done/fixed/passing/complete/finished) AND source edits occurred this session BUT no fresh passing test/lint output follows the last source edit, nags that the Iron Law requires evidence. Feedback only — never blocks.
-- **`guard-shared-state.js`** — If an edit introduced a change to process-global state (`sys.stdout`, `sys.stderr`, `logging.`, `TextIOWrapper`, `reconfigure`, `os.environ`) AND no full-suite run followed it, nags that a subset run cannot observe this class of breakage. A run counts as full-suite when it invokes `pytest` with no selector (`.py` path, `::` node id, or `-k`); `deploy.sh` counts. Feedback only — never blocks.
+- **`guard-shared-state.js`** — If an edit to a **source path** (same `isSourcePath` gate as `evidence-gate.js` — excludes `.md`, `Artifacts/**`, `Temp/**`) introduced a change to process-global state (`sys.stdout`, `sys.stderr`, `logging.`, `TextIOWrapper`, `reconfigure`, `os.environ`) AND no full-suite run followed it, nags that a subset run cannot observe this class of breakage. A run counts as full-suite when it invokes `pytest` with no selector (`.py` path, `::` node id, or `-k`); `deploy.sh` counts. Feedback only — never blocks.
 
 All three are fail-open: any hook error exits 0 with no output, logging only to stderr.
 
-> **`guard-shared-state.js` ships with an exit condition.** Its evidence base is n=1
-> (2026-07-26: a stdout reassignment that a subset run reported green while 279 tests
-> broke). Every fire is recorded by `gate-log` under `ruleId: guard-shared-state`.
-> BACKLOG `igh1_shared-state-hook_1` schedules deletion if it records **zero fires
-> across 20 sessions** — check with `python scripts/gate_telemetry.py`.
+> **`guard-shared-state.js` OHF-2 exit review (2026-09-11): tightened, not deleted.**
+> Its evidence base was n=1 at ship (2026-07-26: a stdout reassignment that a subset
+> run reported green while 279 tests broke). Telemetry after ~7 weeks showed 828
+> nags, 0 deny; correlating fires against `audit_trail.jsonl` found they were
+> near-entirely triggered by editing **prose** that mentions these tokens (docs,
+> BACKLOG entries, this hook's own message string) rather than genuine
+> process-global mutations, with exactly one confirmed true positive
+> (`scripts/todo_graph.py`'s guarded `sys.stdout.reconfigure`). Fix: gated on
+> `isSourcePath` so only real source-path edits can arm the guard. Full evidence
+> trail in `Artifacts/BACKLOG.md` `igh1_shared-state-hook_1` (RESOLVED).
 
 ## Troubleshooting
 
