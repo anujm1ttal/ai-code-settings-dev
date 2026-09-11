@@ -94,6 +94,11 @@
             "type": "command",
             "command": "node \"$HOME/.claude/hooks/guard-shared-state.js\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "node \"$HOME/.claude/hooks/task-diff-guard.js\"",
+            "timeout": 10
           }
         ]
       }

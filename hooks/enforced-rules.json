@@ -70,6 +70,13 @@
       "event": "Stop",
       "matcher": "",
       "blocking": false
+    },
+    {
+      "rule_id": "task-diff-guard-stop",
+      "hook_file": "task-diff-guard.js",
+      "event": "Stop",
+      "matcher": "",
+      "blocking": false
     }
   ]
 }

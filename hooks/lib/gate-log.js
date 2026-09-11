@@ -42,11 +42,15 @@ function findProjectRoot(startDir) {
  * Log one gate event. Parameters:
  *   hook     - hook basename without extension, e.g. 'guard-paths'
  *   event    - hook event, e.g. 'PreToolUse' | 'PostToolUse' | 'Stop'
- *   decision - 'deny' | 'nag'
+ *   decision - 'deny' | 'nag' | 'pass'
  *   tool     - the tool name that triggered the fire, or null (Stop hooks)
  *   ruleId   - matches hooks/enforced-rules.json rule_id for this hook
  *   cwd      - the hook's data.cwd (preferred over process.cwd() — matches
  *              audit-trail.js's own `data.cwd || process.cwd()` resolution)
+ *   ...rest  - any additional caller-supplied fields (e.g. task-diff-guard's
+ *              SGH-1b `filtered_n`/`settled_n`/`note`) pass through verbatim.
+ *              Additive/backward-compatible: existing callers that only pass
+ *              the six fixed fields are unaffected.
  *
  * Never throws, for ANY argument shape — including null, undefined, or a
  * non-object (e.g. a number). Destructuring happens INSIDE the try block
@@ -58,7 +62,7 @@ function findProjectRoot(startDir) {
  */
 function logGateEvent(params) {
   try {
-    const { hook, event, decision, tool, ruleId, cwd } = params || {};
+    const { hook, event, decision, tool, ruleId, cwd, ...rest } = params || {};
     const root = findProjectRoot(cwd || process.cwd());
     const artifactsDir = path.join(root, 'Artifacts');
 
@@ -80,6 +84,7 @@ function logGateEvent(params) {
       decision: decision || 'unknown',
       tool: tool || null,
       ruleId: ruleId || null,
+      ...rest,
     };
 
     fs.appendFileSync(logFile, JSON.stringify(entry) + '\n');

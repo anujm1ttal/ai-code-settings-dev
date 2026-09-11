@@ -36,7 +36,8 @@ In any Claude Code session, type:
 /hooks
 ```
 
-You should see all 9 hooks listed:
+You should see all 11 wiring entries listed (11 bullets below, across **9 hook
+files** — `task-diff-guard.js` is one file wired to three events):
 - `SessionStart` → `session-boot.js`
 - `PreToolUse (Edit|MultiEdit|Write)` → `guard-paths.js`
 - `PreToolUse (Bash|PowerShell)` → `guard-commands.js`
@@ -47,9 +48,11 @@ You should see all 9 hooks listed:
 - `Stop` → `nudge-handoff.js`
 - `Stop` → `evidence-gate.js`
 - `Stop` → `guard-shared-state.js`
+- `Stop` → `task-diff-guard.js`
 
-(`task-diff-guard.js` is one file wired to two events — `enforced-rules.json` lists it
-as `task-diff-guard-pre` / `task-diff-guard-post` so the wiring guard verifies both.)
+(`task-diff-guard.js` is one file wired to three events — `enforced-rules.json` lists it
+as `task-diff-guard-pre` / `task-diff-guard-post` / `task-diff-guard-stop` so the wiring
+guard verifies all three.)
 
 > **Note on output schemas.** Guards deny via the documented PreToolUse schema
 > (`hookSpecificOutput.permissionDecision: "deny"` + `permissionDecisionReason`,
@@ -66,7 +69,7 @@ as `task-diff-guard-pre` / `task-diff-guard-post` so the wiring guard verifies b
 | `guard-commands.js` | `PreToolUse` | **Blocks** dangerous shell commands (rm -rf, force push, SQL drops) and AI attribution trailers in commits |
 | `auto-lint.js` | `PostToolUse` | Reports lint violations and injects "fix before proceeding" directive (no auto-fix) |
 | `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
-| `task-diff-guard.js` | `PreToolUse` + `PostToolUse` (`Task|Agent`) | Snapshots protected `Artifacts/` files before a subagent dispatch; after it returns, surfaces any that changed with a capped diff so the orchestrator verifies the artifact, not the subagent's summary (feedback only) |
+| `task-diff-guard.js` | `PreToolUse` + `PostToolUse` (`Task|Agent`) + `Stop` | Snapshots protected `Artifacts/` files before a subagent dispatch; `PostToolUse` only stamps the dispatch as returned (no output); at `Stop`, settles every returned dispatch — diffs it, drops changes the transcript shows the main agent made itself, and aggregates the rest into one capped-diff `additionalContext` so the orchestrator verifies the artifact, not the subagent's summary (feedback only; see the Stop-ceiling amendment below) |
 | `nudge-handoff.js` | `Stop` | Nudges to run `/handoff` if git tree is dirty and no handoff this session (feedback only) |
 | `evidence-gate.js` | `Stop` | Nags when completion claims made without fresh test evidence this session (feedback only) |
 | `guard-shared-state.js` | `Stop` | Nags when process-global state (stdout/stderr, logging, os.environ) changed without a full-suite run (feedback only) |
@@ -134,8 +137,7 @@ directory (it never scaffolds `Artifacts/` into a foreign repo) and rotates
 `audit_trail.jsonl` once it exceeds 5 MB.
 
 ### Stop Hooks (Turn-End Feedback)
-Three Stop hooks fire at session end without blocking. **Three is the ceiling** — a
-fourth is a redesign, not an addition (nag fatigue degrades every existing hook).
+Four Stop hooks fire at session end without blocking.
 
 - **`nudge-handoff.js`** — If the workspace has uncommitted changes (`git status --porcelain`) and no `/handoff` invocation appears in the transcript this session, nudges the user to run `/handoff` before ending. Rate-limited to once per session.
   **Nested state repo**: if `Artifacts/.git` exists, `Artifacts/` is its own repo with its own
@@ -147,8 +149,23 @@ fourth is a redesign, not an addition (nag fatigue degrades every existing hook)
   unpushed state is a measured fact.
 - **`evidence-gate.js`** — If the final assistant message contains a completion claim (done/fixed/passing/complete/finished) AND source edits occurred this session BUT no fresh passing test/lint output follows the last source edit, nags that the Iron Law requires evidence. Feedback only — never blocks.
 - **`guard-shared-state.js`** — If an edit to a **source path** (same `isSourcePath` gate as `evidence-gate.js` — excludes `.md`, `Artifacts/**`, `Temp/**`) introduced a change to process-global state (`sys.stdout`, `sys.stderr`, `logging.`, `TextIOWrapper`, `reconfigure`, `os.environ`) AND no full-suite run followed it, nags that a subset run cannot observe this class of breakage. A run counts as full-suite when it invokes `pytest` with no selector (`.py` path, `::` node id, or `-k`); `deploy.sh` counts. Feedback only — never blocks.
+- **`task-diff-guard.js` (Stop branch)** — Settles every subagent dispatch that returned this turn: diffs its snapshot of protected `Artifacts/` files against the live tree, drops any change the transcript shows the **main agent** made itself at-or-after that dispatch, and aggregates whatever survives into one capped-diff `additionalContext` block naming the file(s) and subagent(s). Silent unless a subagent was dispatched this turn AND changed a protected artifact AND that change survived attribution filtering. Retains (does not delete) any dispatch still in flight, and sweeps any snapshot older than 6h regardless of status. Feedback only — never blocks.
 
-All three are fail-open: any hook error exits 0 with no output, logging only to stderr.
+All four are fail-open: any hook error exits 0 with no output, logging only to stderr.
+
+> **Stop-ceiling amendment (SGH-1b, 2026-09-11): the fourth Stop hook is the
+> sanctioned exception, not a breach.** The ceiling below was written as
+> "three, and a fourth is a redesign, not an addition" — `task-diff-guard.js`'s
+> Stop branch **is** that redesign (it replaces the same file's own
+> `PostToolUse`-time diff/nag, not a net-new nag source; see SGH-1-Plan.md
+> §SGH-1b §1 for the D1/D2/D3 defects that made the old PostToolUse design
+> unreliable). The budget is now **three general-purpose Stop nags**
+> (`nudge-handoff`, `evidence-gate`, `guard-shared-state`) **+ one settle
+> point** (`task-diff-guard`), which is categorically different: it is silent
+> on every turn that dispatches no subagent, and net user-visible nag surface
+> is *lower* than before (one aggregated end-of-turn block replaces up to N
+> mid-turn `PostToolUse` blocks per turn). A **fifth** Stop hook remains a
+> redesign, not an addition — the ceiling is restated, not raised.
 
 > **`guard-shared-state.js` OHF-2 exit review (2026-09-11): tightened, not deleted.**
 > Its evidence base was n=1 at ship (2026-07-26: a stdout reassignment that a subset
@@ -165,7 +182,7 @@ All three are fail-open: any hook error exits 0 with no output, logging only to 
 
 ### Hooks not firing
 - Ensure `~/.claude/settings.json` has valid JSON (no trailing commas)
-- Confirm the scripts actually landed: `ls ~/.claude/hooks/*.js` should list 8 files.
+- Confirm the scripts actually landed: `ls ~/.claude/hooks/*.js` should list 9 files.
   If not, run `bash scripts/deploy.sh` first.
 - If `$HOME` did not expand (rare — a shell that doesn't set it), substitute your
   literal home path in the `command` fields.
