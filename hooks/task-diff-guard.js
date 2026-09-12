@@ -74,6 +74,34 @@
  * so identical parallel dispatches never collide — the direct D2 fix) for the
  * same reason.
  *
+ * ── SGH-1c fix (this file) — D4: `PostToolUse` is a dispatch-LAUNCH signal,
+ * not a completion signal (`SGH-1-Plan.md` §10-11). The `Agent`/`Task` tool is
+ * async fire-and-forget: `PostToolUse` fires within seconds of launch, and the
+ * orchestrator's turn (→ `Stop`) can end long before the subagent's real work
+ * lands. Treating `status: returned` as proof of completion diffed an EMPTY
+ * window and deleted the baseline before the subagent's actual edits happened
+ * — D1's premature-signal defect recurring one level down, inside the very
+ * redesign that fixed D1.
+ *
+ * Fix — an in-flight barrier at `Stop`, derived from the transcript (which
+ * `doStop` already reads for the attribution filter): the harness writes a
+ * `<task-notification>` entry into the PARENT transcript when a dispatch truly
+ * finishes, carrying a `<tool-use-id>` that matches the dispatching assistant
+ * `tool_use.id` (confirmed 6/6 in production transcripts, two independent
+ * search patterns — `Artifacts/Evidence/SGH-1/sgh1c_d4_probe.txt`, HR4). Before
+ * settling anything, `doStop` computes `dispatched \ notified` (every
+ * `Agent`/`Task` tool_use id in the transcript minus every notified id),
+ * restricted to entries younger than `BARRIER_STALE_MS`. A non-empty result —
+ * or a transcript that is unreadable/empty/silent on dispatches altogether —
+ * retains EVERYTHING this Stop (TTL sweep still runs) rather than risk a
+ * premature settle; only once every recent dispatch has notified does the
+ * existing (unchanged) settle loop below run. The barrier is deliberately
+ * GLOBAL, not per-dispatch: settling dispatch A while B is still in flight
+ * re-opens the D1 interleave (B's writes land inside A's diff window). Every
+ * evaluation still logs exactly one row (D3's contract, preserved) — `pass`
+ * with `note: 'no-transcript'` or `note: 'barrier'` when retaining, `nag`/
+ * `pass` as before once the barrier opens.
+ *
  * Exit condition (BACKLOG `sgh1_task-diff-guard_exit_1`, two ordered gates):
  *   1. Liveness (blocking): `pass` rows > 0 across sessions that dispatched
  *      subagents. `pass == 0` means the guard is dead — fix the wiring, never
@@ -96,7 +124,12 @@
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { parseTranscript, extractToolUses, getToolTargetPath } = require('./lib/evidence');
+const {
+  parseTranscript,
+  extractToolUses,
+  getToolTargetPath,
+  extractTaskNotificationToolUseIds,
+} = require('./lib/evidence');
 
 const SNAPSHOT_SUBDIR = path.join('.agent', 'pre-task-snapshot');
 const MAX_FILE_BYTES = 256 * 1024;   // skip snapshotting anything larger
@@ -104,6 +137,7 @@ const MAX_SNAPSHOT_FILES = 200;      // hard ceiling on files copied per dispatc
 const MAX_DIFF_LINES = 60;           // total, across every changed file, per Stop
 const MAX_SUFFIX_ATTEMPTS = 200;     // ceiling on claiming a free `<key>-<n>` dir
 const TTL_MS = 6 * 60 * 60 * 1000;   // 6h — a manifest older than this is swept regardless of status
+const BARRIER_STALE_MS = 60 * 60 * 1000; // 60min — an un-notified dispatch older than this stops blocking (SGH-1c §11.3 wedge guard)
 const EDIT_TOOL_NAMES = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 
 // Protected artifacts, relative to the Artifacts/ dir. Explicit files plus
@@ -439,6 +473,69 @@ function diffSnapshotAgainstLive(snapDir, artifactsDir) {
   return changed;
 }
 
+// ── SGH-1c D4 in-flight barrier ──────────────────────────────────────────────
+// Every `Agent`/`Task` tool_use the transcript shows was dispatched (filtered
+// from the existing `extractToolUses`, per T12c) — the barrier's numerator.
+function dispatchedAgentIds(entries) {
+  return extractToolUses(entries).filter((use) => use.name === 'Agent' || use.name === 'Task');
+}
+
+// `dispatched \ notified`, restricted to entries younger than
+// `BARRIER_STALE_MS` (§11.3 wedge guard — a dispatch that never notifies must
+// not hold the barrier closed for the rest of the session). A dispatch whose
+// own transcript timestamp cannot be parsed is treated as age-zero (freshest,
+// still blocking) — unknown age must fail toward retention, never toward the
+// premature settle this barrier exists to prevent. `open` is false whenever
+// the transcript itself is unusable (empty/unreadable) or silent on
+// dispatches altogether — both cases are indistinguishable from "not
+// confirmed complete" and must not be read as permission to settle.
+function computeBarrier(entries, nowMs) {
+  const dispatched = dispatchedAgentIds(entries);
+  if (dispatched.length === 0) {
+    return { open: false, note: 'no-transcript', inFlightN: 0, staleInFlightN: 0 };
+  }
+
+  const notified = new Set(extractTaskNotificationToolUseIds(entries));
+  let inFlightN = 0;
+  let staleInFlightN = 0;
+  for (const use of dispatched) {
+    if (!use.toolUseId || notified.has(use.toolUseId)) continue;
+    const ts = entryTimestampMs(entries[use.entryIndex]);
+    const age = ts === null ? 0 : nowMs - ts;
+    if (age < BARRIER_STALE_MS) {
+      inFlightN++;
+    } else {
+      staleInFlightN++;
+    }
+  }
+  return { open: inFlightN === 0, note: 'barrier', inFlightN, staleInFlightN };
+}
+
+// TTL-only pass over every pending dir, independent of the barrier — a
+// crashed/abandoned dispatch must not leak a snapshot dir forever just
+// because the barrier is closed this Stop. Mirrors the per-dir TTL check
+// inside the (unchanged) settle loop below, without any settle/diff behavior.
+function sweepStaleManifests(dirNames, snapRoot, nowMs) {
+  let ttlSweptCount = 0;
+  for (const name of dirNames) {
+    const dir = path.join(snapRoot, name);
+    const manifest = readManifest(dir);
+    if (!manifest) {
+      if (isDirStale(dir, nowMs)) {
+        rmrf(dir);
+        ttlSweptCount++;
+      }
+      continue;
+    }
+    const dispatchedAt = typeof manifest.dispatched_at === 'number' ? manifest.dispatched_at : 0;
+    if (nowMs - dispatchedAt > TTL_MS) {
+      rmrf(dir);
+      ttlSweptCount++;
+    }
+  }
+  return ttlSweptCount;
+}
+
 function doStop(data) {
   if (data.stop_hook_active) return; // already mid-retry-chain — stay silent
 
@@ -453,6 +550,27 @@ function doStop(data) {
 
   const entries = parseTranscript(readTranscript(data.transcript_path));
   const nowMs = Date.now();
+
+  // Barrier gate (SGH-1c, T12c) — before any settling, refuse to evaluate at
+  // all while a recent dispatch is unconfirmed-complete. Never blocks: every
+  // branch here retains and returns; TTL sweep still runs so nothing leaks.
+  const barrier = computeBarrier(entries, nowMs);
+  if (!barrier.open) {
+    sweepStaleManifests(dirNames, snapRoot, nowMs);
+    logGateSafe({
+      hook: 'task-diff-guard',
+      event: 'Stop',
+      decision: 'pass',
+      tool: null,
+      ruleId: 'task-diff-guard',
+      cwd,
+      note: barrier.note,
+      in_flight_n: barrier.inFlightN,
+      pending_n: dirNames.length,
+      stale_in_flight_n: barrier.staleInFlightN,
+    });
+    return;
+  }
 
   let settledCount = 0;
   let ttlSweptCount = 0;
@@ -513,6 +631,7 @@ function doStop(data) {
       cwd,
       filtered_n: totalFilteredN,
       settled_n: settledCount,
+      stale_in_flight_n: barrier.staleInFlightN,
     });
     return;
   }
@@ -529,6 +648,7 @@ function doStop(data) {
     cwd,
     filtered_n: totalFilteredN,
     settled_n: settledCount,
+    stale_in_flight_n: barrier.staleInFlightN,
     ...(settledCount === 0 && ttlSweptCount > 0 ? { note: 'ttl' } : {}),
   });
 }

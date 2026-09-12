@@ -150,3 +150,113 @@ def test_completion_claim_lexicon_excludes_negations_and_questions():
     assert result.returncode == 0, result.stderr
     actual = json.loads(result.stdout)
     assert actual == expected, f"mismatch for {list(zip(texts, actual))}"
+
+
+# ---------------------------------------------------------------------------
+# SGH-1c T12c/T12d — extractTaskNotificationToolUseIds unit contract.
+# Both entry shapes, malformed/absent content, dedup, purity, no-throw.
+# ---------------------------------------------------------------------------
+
+def _queue_op_entry(tool_use_id: str, task_id: str = "atask1") -> dict:
+    """Shape A — queue bookkeeping: top-level `content` string."""
+    return {
+        "type": "queue-operation",
+        "operation": "enqueue",
+        "content": (
+            f"<task-notification>\n<task-id>{task_id}</task-id>\n"
+            f"<tool-use-id>{tool_use_id}</tool-use-id>\n<status>completed</status>\n"
+            "<summary>done</summary>\n</task-notification>"
+        ),
+    }
+
+
+def _user_message_entry(tool_use_id: str, task_id: str = "atask1") -> dict:
+    """Shape B — delivered message: `message.content` is a plain STRING."""
+    return {
+        "type": "user",
+        "message": {
+            "role": "user",
+            "content": (
+                f"<task-notification>\n<task-id>{task_id}</task-id>\n"
+                f"<tool-use-id>{tool_use_id}</tool-use-id>\n<status>completed</status>\n"
+                "</task-notification>"
+            ),
+        },
+    }
+
+
+def run_extract_notification_ids(cases: list) -> list:
+    result = subprocess.run(
+        ["node", str(HELPERS_DIR / "eval_task_notification_ids.js")],
+        input=json.dumps(cases),
+        capture_output=True,
+        text=True,
+        cwd=REPO_ROOT,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
+
+
+def test_extract_notification_ids_reads_queue_operation_shape():
+    out = run_extract_notification_ids([[_queue_op_entry("toolu_A")]])
+    assert out == [["toolu_A"]]
+
+
+def test_extract_notification_ids_reads_user_message_shape():
+    out = run_extract_notification_ids([[_user_message_entry("toolu_B")]])
+    assert out == [["toolu_B"]]
+
+
+def test_extract_notification_ids_dedups_across_enqueue_and_user_pair():
+    # A single real notification appears as BOTH shapes for the same id
+    # (probe: queue-operation enqueue, then the delivered type:"user" pair).
+    out = run_extract_notification_ids([[_queue_op_entry("toolu_C"), _user_message_entry("toolu_C")]])
+    assert out == [["toolu_C"]]
+
+
+def test_extract_notification_ids_collects_multiple_distinct_ids():
+    out = run_extract_notification_ids([[_queue_op_entry("toolu_D"), _queue_op_entry("toolu_E")]])
+    assert out == [["toolu_D", "toolu_E"]]
+
+
+@pytest.mark.parametrize("entries", [
+    [],
+    [{}],
+    [None],
+    [{"type": "assistant", "message": {"content": [{"type": "text", "text": "no notification here"}]}}],
+    [{"type": "queue-operation", "content": "no marker tag present"}],
+    [{"type": "user", "message": {"content": ["not", "a", "string"]}}],
+    [{"type": "queue-operation", "content": "<task-notification>no id tag inside</task-notification>"}],
+])
+def test_extract_notification_ids_malformed_or_absent_content_yields_empty(entries):
+    out = run_extract_notification_ids([entries])
+    assert out == [[]]
+
+
+@pytest.mark.parametrize("garbage", [None, "not-an-array", 42, {"not": "an array"}])
+def test_extract_notification_ids_never_throws_on_garbage_entries(garbage):
+    out = run_extract_notification_ids([garbage])
+    assert out == [[]]
+
+
+def test_extract_notification_ids_ignores_notification_without_matching_dispatch():
+    # A background-Bash task-notification is structurally identical — the
+    # function itself has no concept of "matching dispatch"; it just extracts
+    # every id present. Correlation against dispatched Agent/Task ids is the
+    # CALLER's job (task-diff-guard.js's computeBarrier), so this only proves
+    # extraction doesn't crash on a notification for an unrelated tool.
+    out = run_extract_notification_ids([[_queue_op_entry("toolu_bash_bg")]])
+    assert out == [["toolu_bash_bg"]]
+
+
+def test_extract_notification_ids_is_pure_no_fs_or_date():
+    # Structural purity check (SGH-1-Plan.md §11.5 / that file's stated no-I/O
+    # contract): the function body must not reference fs or Date at all.
+    source = (REPO_ROOT / "hooks" / "lib" / "evidence.js").read_text(encoding="utf-8")
+    start = source.index("function extractTaskNotificationToolUseIds")
+    end = source.index("\n}\n", start) + len("\n}")
+    body = source[start:end]
+    assert "fs." not in body
+    assert "Date" not in body
+    assert "require(" not in body

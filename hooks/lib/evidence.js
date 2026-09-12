@@ -210,6 +210,45 @@ function extractToolResults(entries) {
   return results;
 }
 
+// --- Task-notification detection (SGH-1c D4 in-flight barrier) --------------
+
+// A dispatched subagent's true completion is signalled by a `<task-notification>`
+// entry the harness writes into the PARENT transcript — NOT by `PostToolUse`,
+// which fires ~instantly at dispatch-launch (defect D4, `SGH-1-Plan.md` §10-11).
+// Confirmed (`Artifacts/Evidence/SGH-1/sgh1c_d4_probe.txt`) in two entry shapes:
+//   - queue bookkeeping: { type:'queue-operation', content: '<task-notification>...' }
+//   - delivered message: { type:'user', message: { content: '<task-notification>...' } }
+// In BOTH shapes the notification text is a plain STRING (not a block array),
+// so it is invisible to `extractToolUses`/`blockList` — this function reads the
+// string directly. Deliberately does NOT inspect `<status>` (HR4 — the probe
+// never observed a value other than `completed`, so the domain is unverified
+// and the design does not depend on it). Never throws.
+const TASK_NOTIFICATION_TOOL_USE_ID_RE = /<tool-use-id>([^<]+)<\/tool-use-id>/;
+
+function notificationScanText(entry) {
+  if (!entry) return '';
+  if (typeof entry.content === 'string') return entry.content;
+  const messageContent = entry.message && entry.message.content;
+  if (typeof messageContent === 'string') return messageContent;
+  return '';
+}
+
+// Returns the deduplicated set of `<tool-use-id>` values carried by every
+// `<task-notification>` block in `entries`, across both entry shapes (a single
+// notification typically appears in both, per the probe — e.g. an `enqueue`
+// entry and its delivered `type:"user"` counterpart carry the same id).
+function extractTaskNotificationToolUseIds(entries) {
+  const ids = new Set();
+  if (!Array.isArray(entries)) return [];
+  for (const entry of entries) {
+    const text = notificationScanText(entry);
+    if (!text || !text.includes('<task-notification>')) continue;
+    const match = text.match(TASK_NOTIFICATION_TOOL_USE_ID_RE);
+    if (match) ids.add(match[1]);
+  }
+  return Array.from(ids);
+}
+
 // --- Source-edit detection (hasSourceEdits) ----------------------------------
 
 const EDIT_TOOL_NAMES = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
@@ -314,6 +353,7 @@ module.exports = {
   hasFreshEvidence,
   parseTranscript,
   extractFinalAssistantText,
+  extractTaskNotificationToolUseIds,
   // Exported for direct unit testing of internals, and for reuse by sibling
   // Stop hooks (guard-shared-state.js OHF-2 tightening — same path-gate that
   // already excludes .md/Artifacts/Temp prose from evidence-gate's own checks).
