@@ -297,6 +297,7 @@ To prevent information redundancy and "maintenance debt":
 3.  **TODO.md**: Must remain a **"Thin TODO"**. It should reference Phase numbers or high-level milestones from the plan.
     - **Forbidden**: Copy-pasting detailed file logic or implementation steps from the Plan into the TODO.
     - **Required**: Status tracking (`[-]`, `[x]`) only happens in the TODO.
+    - **Unscheduled work**: Unscheduled or mined tasks belong in `Artifacts/BACKLOG.md`; `TODO.md` carries only tasks scheduled into the active or next phase.
 
 **Rule**: If a change requires updating technical logic, update the Plan. If a change requires updating execution status, update the TODO.
 
