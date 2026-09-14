@@ -253,11 +253,36 @@ Everything else — reads, pure-logic, docs, reversible edits, passing gates —
 - **Per entry**: a stable ID (`<phase>_<component>_<n>`) and a status marker (`OPEN` / `RESOLVED`).
   The marker is what makes rotation mechanical. Grouping and ordering are **project-local** — the
   OS does not constrain them.
-- **Rotation trigger**: active `BACKLOG.md` exceeds **>250 lines OR >20 entries**.
+- **Creation invariant [HARD-GATE]**: a `<phase>_<component>_<n>` ID cited by **any** durable record
+  (PLAN, TODO, DECISION_LOG, AUDIT_REPORT, a phase report, `learnings/`) MUST have a `## ` header in
+  the active `BACKLOG.md` **or** in `History/BACKLOG-archive.md`. An ID is minted *by filing it* —
+  citing one that was never filed is a dangling reference the reader cannot follow, and no tool sees
+  it. **Corollary**: "the file is already over threshold" is never grounds for skipping the entry —
+  retire the breach first (rotation / amendment rotation below), then file.
+- **Rotation trigger**: active `BACKLOG.md` exceeds **>600 lines OR >20 entries**, or any single
+  entry exceeds the per-entry cap.
+- **Per-entry cap**: no entry exceeds **30 lines**. Accrual is bounded by the entry cap; **in-place
+  amendment is not** — a single OPEN entry re-edited over weeks is the realistic way this file
+  becomes unsearchable. Over-cap is retired by amendment rotation below, never by deleting text.
+- **Threshold coherence [invariant]**: `file cap ÷ per-entry cap ≥ entry cap` — **600 ÷ 30 = 20 ✓**.
+  Changing any one of the three numbers re-checks the other two. A file cap that cannot hold the
+  entry count it advertises ships already-breached and sends its operator an unachievable remedy.
 - **Action**: move the oldest **RESOLVED** entries to `Artifacts/History/BACKLOG-archive.md`
   (prepend, preserving newest-first) until back under threshold. Maintain a forward-pointer line
   at the top of the active file → the archive.
 - **Never delete** — the archive is append-only. **OPEN entries never rotate**, regardless of age.
+- **Amendment rotation** (the instrument for the *growth* axis; the line above governs the *entry*
+  axis): when an entry exceeds the per-entry cap, **superseded amendment text** may be moved to
+  `History/BACKLOG-archive.md` under a dated `superseded amendments — <entry-id>` sub-head **while
+  the entry itself remains in `BACKLOG.md` and remains OPEN**.
+  - **May move**: dated amendment/investigation history a later amendment has overtaken; earlier
+    drafts of a finding the entry now states differently; sub-threads already concluded.
+  - **Must stay**: the `## ` header and ID, the status marker, the current statement of the finding,
+    every live gate / exit condition / open question, and anything a durable record cites.
+  - **Never delete**: every removed line is appended to the archive **in the same commit** (archive
+    additions ≥ `BACKLOG.md` deletions), and the entry keeps a pointer line → the archive sub-head.
+  - This moves *superseded text out of* an entry; it never moves an entry. The never-rotate
+    invariant above is unaffected — live OPEN content is not rotatable by this clause.
 - **Eviction**: an entry another durable doc cites as authoritative is a **reference**, not
   backlog — extract it to its own artifact rather than rotating it.
 - **Trigger owner**: concierge at `/handoff` (`scripts/backlog_audit.py` reports it); manual `/clean`.
