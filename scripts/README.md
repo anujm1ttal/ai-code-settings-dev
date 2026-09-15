@@ -257,13 +257,17 @@ python scripts/backlog_audit.py --violations-only
 **Checks**:
 | # | Check | Violation when |
 |:--|:---|:---|
-| 1 | Size | >250 lines OR >20 entries |
+| 1 | Size | >600 lines OR >20 entries |
 | 2 | Rotation due | RESOLVED entries still present **while over threshold** |
 | 3 | Unmarked | entry carries no `OPEN`/`RESOLVED` status marker |
 | 4 | Phase-dump | `## N. … findings` headings — per-phase append sections instead of entries |
+| 5 | Over-cap | a single entry exceeds the **30-line per-entry cap**, independent of file size |
+| 6 | Dangling-ID | an **active** durable record under `Artifacts/**/*.md` cites a `<phase>_<component>_<n>`-shaped ID with no `## ` header in `BACKLOG.md` **or** its resolved archive (archive-aware; skips `.agent/` and the phase-archive dir itself — `History/`/`history/`, both tracked casings, matched case-insensitively — since a citation there is a historical fact, not a live broken link). The archive file itself is *located* case-insensitively too (`resolve_archive_path` scans for `History/`/`history/` and `BACKLOG-archive.md` on disk rather than assuming one casing); if the directory exists but no matching file is found inside it, that is its own `[VIOLATION]` naming the searched path — a project that never rotated (no archive directory at all) gets a quiet note instead |
 
 Check 4 targets the failure mode measured in `my_mcp_rhino`: 1228 lines across 17 such
-sections, none ever triaged into the real backlog.
+sections, none ever triaged into the real backlog. Checks 5–6 target OBL-1's D1/D2: a
+single re-amended entry can breach size with nothing to rotate, and an ID cited before
+it is filed is invisible to every other tool the OS owns.
 
 **Read-only by contract** — never edits, rotates, or deletes. Rotation is performed by
 the concierge at `/handoff`; mutation stays human-confirmed (see `/clean`).

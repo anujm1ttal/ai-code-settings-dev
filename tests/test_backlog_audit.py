@@ -1,7 +1,7 @@
 """Tests for scripts/backlog_audit.py — BACKLOG lifecycle checker.
 
-Covers the four checks (size, rotation-due, unmarked, phase-dump), status
-classification precedence, and exit-code contract.
+Covers the six checks (size, rotation-due, unmarked, phase-dump, over-cap,
+dangling-ID), status classification precedence, and exit-code contract.
 """
 
 from __future__ import annotations
@@ -13,13 +13,20 @@ import pytest
 import backlog_audit
 from backlog_audit import (
     MAX_ENTRIES,
+    MAX_ENTRY_LINES,
     MAX_LINES,
     STATUS_OPEN,
     STATUS_RESOLVED,
     STATUS_UNMARKED,
     audit,
+    find_dangling_citations,
+    format_archive_status,
+    format_dangling_report,
     format_report,
+    known_backlog_ids,
+    looks_like_backlog_id,
     parse_entries,
+    resolve_archive_path,
 )
 
 
@@ -220,3 +227,397 @@ def test_script_has_no_repo_imports() -> None:
     for module in repo_modules:
         assert f"import {module}" not in source
         assert f"from {module}" not in source
+
+
+# --------------------------------------------------------------------- over-cap
+
+
+def test_over_cap_entry_is_a_violation(tmp_path: Path) -> None:
+    """A single entry past the per-entry cap is a violation independent of file size."""
+    filler = "\n".join(f"filler line {i}" for i in range(MAX_ENTRY_LINES + 5))
+    text = f"# BACKLOG\n\n## `over_cap-entry_1` — thing\n\n**Status:** OPEN\n{filler}\n"
+    report = audit(write(tmp_path, text))
+    assert report.over_size is False  # isolates the cap axis from the size axis
+    assert len(report.over_cap) == 1
+    assert report.over_cap[0].label == "over_cap-entry_1"
+    assert report.has_violations is True
+
+
+def test_under_cap_entry_is_not_a_violation(tmp_path: Path) -> None:
+    text = "# BACKLOG\n\n## `under_cap-entry_1` — thing\n\n**Status:** OPEN\n\nshort body\n"
+    report = audit(write(tmp_path, text))
+    assert report.over_cap == ()
+    assert report.has_violations is False
+
+
+def test_format_report_names_over_cap_entry_by_id(tmp_path: Path) -> None:
+    filler = "\n".join(f"filler line {i}" for i in range(MAX_ENTRY_LINES + 5))
+    text = f"# BACKLOG\n\n## `over_cap-entry_1` — thing\n\n**Status:** OPEN\n{filler}\n"
+    rendered = format_report(audit(write(tmp_path, text)))
+    assert "over_cap-entry_1" in rendered
+    assert f"{MAX_ENTRY_LINES}-line cap" in rendered
+
+
+def test_size_remedy_names_over_cap_entry_when_zero_resolved(tmp_path: Path) -> None:
+    """D1 fix: 0 RESOLVED + an over-cap OPEN entry -> remedy is amendment rotation,
+    not the unreachable 'rotate oldest RESOLVED'."""
+    filler = "\n".join(f"filler line {i}" for i in range(MAX_LINES + 5))
+    text = f"# BACKLOG\n\n## `over_cap-entry_1` — thing\n\n**Status:** OPEN\n{filler}\n"
+    report = audit(write(tmp_path, text))
+    assert report.over_size is True
+    assert report.resolved == ()
+    rendered = format_report(report)
+    assert "amendment rotation" in rendered
+    assert "rotate oldest RESOLVED" not in rendered
+
+
+def test_size_remedy_names_triage_when_zero_resolved_and_no_over_cap(tmp_path: Path) -> None:
+    """0 RESOLVED, over-threshold on entry *count*, no single entry over cap ->
+    remedy is triage, not a rotation instruction that has nothing to move."""
+    entries = "".join(
+        f"## `e_{i}` — thing {i}\n\n**Status:** OPEN\n\n" for i in range(MAX_ENTRIES + 1)
+    )
+    report = audit(write(tmp_path, f"# BACKLOG\n\n{entries}"))
+    assert report.over_size is True
+    assert report.resolved == ()
+    assert report.over_cap == ()
+    rendered = format_report(report)
+    assert "triage OPEN entries" in rendered
+
+
+# ------------------------------------------------------------------ dangling ID
+
+
+def test_looks_like_backlog_id_accepts_real_id_shapes() -> None:
+    assert looks_like_backlog_id("sgh1_task-diff-guard_exit_1") is True
+    assert looks_like_backlog_id("feat1_dangling-thing_1") is True
+
+
+@pytest.mark.parametrize(
+    "token",
+    ["filtered_n", "settled_n", "tool_use_id", "test_stop_settles_returned_dispatch", "plugin_id"],
+)
+def test_looks_like_backlog_id_rejects_plain_snake_case(token: str) -> None:
+    """Presence-control's inverse: code identifiers/JSON keys never carry a hyphen —
+    this is what keeps the scan from flagging them as dangling citations."""
+    assert looks_like_backlog_id(token) is False
+
+
+def test_dangling_citation_found_with_no_header_anywhere(tmp_path: Path) -> None:
+    backlog_path = write(tmp_path, "# BACKLOG\n\n## `feat1_other-thing_1` — thing\n\n**Status:** OPEN\n")
+    archive_path = tmp_path / "History" / "BACKLOG-archive.md"
+    (tmp_path / "TODO.md").write_text(
+        "See `feat1_dangling-thing_1` for the deferred item.\n", encoding="utf-8"
+    )
+    dangling = find_dangling_citations(
+        backlog_path=backlog_path, archive_path=archive_path, scan_root=tmp_path
+    )
+    assert len(dangling) == 1
+    assert dangling[0].id == "feat1_dangling-thing_1"
+
+
+def test_archived_id_is_not_dangling_but_unheadered_sibling_is(tmp_path: Path) -> None:
+    """Archive-awareness presence-control: an archived ID resolves cleanly while a
+    genuinely dangling sibling in the same citing file is still caught — proving the
+    scan actually read the archive rather than silently seeing nothing."""
+    backlog_path = write(tmp_path, "# BACKLOG\n\n## `feat1_other-thing_1` — thing\n\n**Status:** OPEN\n")
+    archive_dir = tmp_path / "History"
+    archive_dir.mkdir()
+    archive_path = archive_dir / "BACKLOG-archive.md"
+    archive_path.write_text(
+        "# BACKLOG Archive\n\n## `feat1_archived-thing_1` — resolved thing — RESOLVED\n\nbody\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "DECISION_LOG.md").write_text(
+        "Resolved per `feat1_archived-thing_1`. Still open: `feat1_dangling-thing_2`.\n",
+        encoding="utf-8",
+    )
+    dangling = find_dangling_citations(
+        backlog_path=backlog_path, archive_path=archive_path, scan_root=tmp_path
+    )
+    assert len(dangling) == 1
+    assert dangling[0].id == "feat1_dangling-thing_2"
+
+
+def test_all_cited_ids_resolvable_reports_zero(tmp_path: Path) -> None:
+    backlog_path = write(tmp_path, "# BACKLOG\n\n## `feat1_thing_1` — thing\n\n**Status:** OPEN\n")
+    archive_path = tmp_path / "History" / "BACKLOG-archive.md"
+    (tmp_path / "TODO.md").write_text("Tracked at `feat1_thing_1`.\n", encoding="utf-8")
+    dangling = find_dangling_citations(
+        backlog_path=backlog_path, archive_path=archive_path, scan_root=tmp_path
+    )
+    assert dangling == ()
+
+
+def test_dangling_scan_skips_dot_agent_directory(tmp_path: Path) -> None:
+    """.agent/ holds hook snapshots and session state, not durable records — a
+    citation there must never count toward the dangling-ID violation."""
+    backlog_path = write(tmp_path, "# BACKLOG\n\n## `feat1_other-thing_1` — thing\n\n**Status:** OPEN\n")
+    archive_path = tmp_path / "History" / "BACKLOG-archive.md"
+    agent_dir = tmp_path / ".agent"
+    agent_dir.mkdir()
+    (agent_dir / "current_task.md").write_text(
+        "Snapshot cites `feat1_dangling-thing_3`.\n", encoding="utf-8"
+    )
+    dangling = find_dangling_citations(
+        backlog_path=backlog_path, archive_path=archive_path, scan_root=tmp_path
+    )
+    assert dangling == ()
+
+
+@pytest.mark.parametrize("archive_dirname", ["History", "history"])
+def test_dangling_scan_skips_archive_dir_both_casings(
+    tmp_path: Path, archive_dirname: str
+) -> None:
+    """Check 6's creation invariant is active-only (OBL-1 T2b): a citation of an
+    unfiled ID inside the phase-archive dir is a historical fact, not a dangling
+    link. This repo tracks the archive dir under both `History/` and `history/`
+    casings (`core.ignorecase=true` masks the split on Windows) — parametrized so
+    a fix that only matches one casing still fails half these runs."""
+    backlog_path = write(tmp_path, "# BACKLOG\n\n## `feat1_other-thing_1` — thing\n\n**Status:** OPEN\n")
+    archive_path = tmp_path / "History" / "BACKLOG-archive.md"
+    archived_dir = tmp_path / archive_dirname / "Reports"
+    archived_dir.mkdir(parents=True)
+    (archived_dir / "old-report.md").write_text(
+        "Archived report cites `feat1_archived-only_1`.\n", encoding="utf-8"
+    )
+    dangling = find_dangling_citations(
+        backlog_path=backlog_path, archive_path=archive_path, scan_root=tmp_path
+    )
+    assert dangling == ()
+
+
+@pytest.mark.parametrize("archive_dirname", ["History", "history"])
+def test_active_citation_of_archived_id_still_dangles(
+    tmp_path: Path, archive_dirname: str
+) -> None:
+    """Presence-control for the archive exclusion: the SAME id, cited again from an
+    active path outside the archive dir, still dangles — proves the exclusion scopes
+    to the archive directory, not to the ID (i.e. the scan isn't just blind)."""
+    backlog_path = write(tmp_path, "# BACKLOG\n\n## `feat1_other-thing_1` — thing\n\n**Status:** OPEN\n")
+    archive_path = tmp_path / "History" / "BACKLOG-archive.md"
+    archived_dir = tmp_path / archive_dirname / "Reports"
+    archived_dir.mkdir(parents=True)
+    (archived_dir / "old-report.md").write_text(
+        "Archived report cites `feat1_archived-only_1`.\n", encoding="utf-8"
+    )
+    (tmp_path / "TODO.md").write_text(
+        "Still open: `feat1_archived-only_1`.\n", encoding="utf-8"
+    )
+    dangling = find_dangling_citations(
+        backlog_path=backlog_path, archive_path=archive_path, scan_root=tmp_path
+    )
+    assert len(dangling) == 1
+    assert dangling[0].id == "feat1_archived-only_1"
+
+
+def test_is_archived_path_matches_both_casings_without_touching_disk() -> None:
+    """Deterministic, platform-independent check of the matcher itself — avoids
+    relying on Windows' case-insensitive filesystem to prove both casings resolve."""
+    root = Path("Artifacts")
+    assert backlog_audit.is_archived_path(root / "History" / "Reports" / "x.md", root) is True
+    assert backlog_audit.is_archived_path(root / "history" / "Reports" / "x.md", root) is True
+    assert backlog_audit.is_archived_path(root / "HISTORY" / "x.md", root) is True
+    assert backlog_audit.is_archived_path(root / "IMPLEMENTATION_PLAN.md", root) is False
+    assert backlog_audit.is_archived_path(root / "Plans" / "history-of-thing.md", root) is False
+
+
+# --------------------------------------------------------- archive resolution (OBL-1)
+
+
+def test_case_insensitive_match_is_pure_and_disk_independent() -> None:
+    """Proves the matching logic itself is case-insensitive without relying on a
+    real filesystem's own case-folding — this repo's Windows checkouts run
+    `core.ignorecase=true`, which would let a broken (single-casing) match pass by
+    accident of NTFS rather than by the logic actually being case-insensitive."""
+    match = backlog_audit._case_insensitive_match
+    assert match(("History", "Reports"), "history") == "History"
+    assert match(("history", "Reports"), "HISTORY") == "history"
+    assert match(("Reports",), "history") is None
+    assert match((), "history") is None
+
+
+def test_resolve_archive_path_finds_lowercase_history(tmp_path: Path) -> None:
+    archive_dir = tmp_path / "history"
+    archive_dir.mkdir()
+    archive_file = archive_dir / "BACKLOG-archive.md"
+    archive_file.write_text(
+        "# Archive\n\n## `feat1_archived_1` — thing — RESOLVED\n\nbody\n", encoding="utf-8"
+    )
+    resolution = resolve_archive_path(tmp_path)
+    assert resolution.path == archive_file
+    assert resolution.archive_dir_found is True
+
+
+def test_resolve_archive_path_finds_capitalized_history(tmp_path: Path) -> None:
+    archive_dir = tmp_path / "History"
+    archive_dir.mkdir()
+    archive_file = archive_dir / "BACKLOG-archive.md"
+    archive_file.write_text(
+        "# Archive\n\n## `feat1_archived_1` — thing — RESOLVED\n\nbody\n", encoding="utf-8"
+    )
+    resolution = resolve_archive_path(tmp_path)
+    assert resolution.path == archive_file
+    assert resolution.archive_dir_found is True
+
+
+def test_resolve_archive_path_absent_directory_is_not_flagged_as_found(tmp_path: Path) -> None:
+    """A project that has never rotated has no History/history directory at all —
+    a legitimate state, distinct from one existing but missing its file."""
+    resolution = resolve_archive_path(tmp_path)
+    assert resolution.path is None
+    assert resolution.archive_dir_found is False
+
+
+def test_resolve_archive_path_dir_present_file_missing(tmp_path: Path) -> None:
+    (tmp_path / "History").mkdir()
+    resolution = resolve_archive_path(tmp_path)
+    assert resolution.path is None
+    assert resolution.archive_dir_found is True
+
+
+def test_known_backlog_ids_nonempty_when_archive_resolves(tmp_path: Path) -> None:
+    """Presence-control for the archive oracle: a resolving archive must actually
+    contribute IDs — otherwise a bug that silently returns zero IDs would pass every
+    'reports N dangling' assertion by coincidence."""
+    backlog_path = write(tmp_path, "# BACKLOG\n\n## `feat1_active_1` — thing\n\n**Status:** OPEN\n")
+    archive_dir = tmp_path / "history"
+    archive_dir.mkdir()
+    archive_path = archive_dir / "BACKLOG-archive.md"
+    archive_path.write_text(
+        "# Archive\n\n## `feat1_archived_1` — thing — RESOLVED\n\nbody\n", encoding="utf-8"
+    )
+    ids = known_backlog_ids(backlog_path, archive_path)
+    assert ids  # non-empty: proves the archive was actually read, not silently skipped
+    assert "feat1_archived_1" in ids
+
+
+def _write_archive_scenario(tmp_path: Path, archive_dirname: str) -> Path:
+    """1 active BACKLOG entry, 2 archived entries, and citations of 5 IDs (2
+    archived, 1 active, 2 truly dangling) from an active durable record — mirrors
+    this repo's real BACKLOG.md/archive shape (`obl1_t2c_audit_run.txt`: 2 dangling).
+    IDs carry a hyphen (`looks_like_backlog_id` requires one — see its docstring)."""
+    backlog_path = write(
+        tmp_path, "# BACKLOG\n\n## `feat1_active-thing_1` — thing\n\n**Status:** OPEN\n"
+    )
+    archive_dir = tmp_path / archive_dirname
+    archive_dir.mkdir()
+    (archive_dir / "BACKLOG-archive.md").write_text(
+        "# Archive\n\n"
+        "## `feat1_archived-thing_1` — thing — RESOLVED\n\nbody\n\n"
+        "## `feat1_archived-thing_2` — thing — RESOLVED\n\nbody\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "TODO.md").write_text(
+        "Active: `feat1_active-thing_1`. Archived: `feat1_archived-thing_1`, "
+        "`feat1_archived-thing_2`. Still open: `feat1_dangling-thing_1`, "
+        "`feat1_dangling-thing_2`.\n",
+        encoding="utf-8",
+    )
+    return backlog_path
+
+
+@pytest.mark.parametrize("archive_dirname", ["history", "History"])
+def test_resolved_archive_yields_expected_dangling_count(
+    tmp_path: Path, archive_dirname: str
+) -> None:
+    """End-to-end through resolve_archive_path + find_dangling_citations: 2 archived
+    IDs resolve as known regardless of casing, leaving exactly the 2 genuinely
+    dangling IDs — parametrized so a fix that only matches one casing still fails
+    half these runs (mirrors `test_dangling_scan_skips_archive_dir_both_casings`)."""
+    backlog_path = _write_archive_scenario(tmp_path, archive_dirname)
+    resolution = resolve_archive_path(tmp_path)
+    assert resolution.path is not None
+    dangling = find_dangling_citations(
+        backlog_path=backlog_path, archive_path=resolution.path, scan_root=tmp_path
+    )
+    assert len(dangling) == 2
+    assert {c.id for c in dangling} == {"feat1_dangling-thing_1", "feat1_dangling-thing_2"}
+
+
+def test_format_archive_status_empty_when_resolved(tmp_path: Path) -> None:
+    resolution = backlog_audit.ArchiveResolution(
+        path=tmp_path / "history" / "BACKLOG-archive.md", archive_dir_found=True
+    )
+    assert format_archive_status(resolution, tmp_path) == ""
+
+
+def test_format_archive_status_quiet_note_when_never_rotated(tmp_path: Path) -> None:
+    """Fresh-project state: no archive directory at all is a legitimate state, not a
+    violation — the note is suppressed entirely under --violations-only."""
+    resolution = backlog_audit.ArchiveResolution(path=None, archive_dir_found=False)
+    rendered = format_archive_status(resolution, tmp_path)
+    assert rendered != ""
+    assert "VIOLATION" not in rendered
+    assert format_archive_status(resolution, tmp_path, violations_only=True) == ""
+
+
+def test_format_archive_status_violation_names_searched_path_when_unresolvable(
+    tmp_path: Path,
+) -> None:
+    """Archive directory exists but no matching file inside it — the oracle-
+    discipline defect this task fixes: this must be loud, naming the searched path,
+    even under --violations-only."""
+    resolution = backlog_audit.ArchiveResolution(path=None, archive_dir_found=True)
+    rendered = format_archive_status(resolution, tmp_path)
+    assert "VIOLATION" in rendered
+    assert str(tmp_path) in rendered
+    assert "BACKLOG-archive.md" in rendered
+    assert format_archive_status(resolution, tmp_path, violations_only=True) != ""
+
+
+def test_main_flags_unresolvable_archive_and_names_searched_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """CLI-level RED case: a History/ directory present with no archive file inside
+    must fail the gate and name the path it looked for, not silently audit as if
+    there were zero archived IDs."""
+    path = write(tmp_path, "# BACKLOG\n\n## `feat1_active_1` — thing\n\n**Status:** OPEN\n")
+    (tmp_path / "History").mkdir()
+    monkeypatch.setattr("sys.argv", ["backlog_audit.py", str(path)])
+    exit_code = backlog_audit.main()
+    out = capsys.readouterr().out
+    assert exit_code == 1
+    assert "VIOLATION" in out
+    assert "BACKLOG-archive.md" in out
+    assert str(tmp_path) in out
+
+
+def test_main_does_not_flag_missing_archive_dir_as_violation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A project that has never rotated (no History/history dir at all) must stay
+    clean — this is the distinction requirement 2 draws between 'genuinely absent'
+    and 'expected but unresolvable'."""
+    path = write(tmp_path, "# BACKLOG\n\n## `feat1_active_1` — thing\n\n**Status:** OPEN\n")
+    monkeypatch.setattr("sys.argv", ["backlog_audit.py", str(path)])
+    exit_code = backlog_audit.main()
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert "VIOLATION" not in out
+
+
+def test_format_dangling_report_names_offending_id() -> None:
+    citation = backlog_audit.Citation(
+        id="feat1_dangling-thing_1", file=Path("TODO.md"), line_no=3
+    )
+    rendered = format_dangling_report((citation,))
+    assert "feat1_dangling-thing_1" in rendered
+    assert "VIOLATION" in rendered
+
+
+def test_format_dangling_report_clean_when_empty() -> None:
+    assert format_dangling_report(()) != ""
+    assert format_dangling_report((), violations_only=True) == ""
+
+
+# -------------------------------------------------------------------- --help
+
+
+def test_help_lists_six_checks(capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("sys.argv", ["backlog_audit.py", "--help"])
+    with pytest.raises(SystemExit):
+        backlog_audit.main()
+    out = capsys.readouterr().out
+    for label in ("1. Size", "2. Rotation due", "3. Unmarked", "4. Phase-dump", "5. Over-cap", "6. Dangling-ID"):
+        assert label in out
