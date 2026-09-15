@@ -279,8 +279,14 @@ Everything else — reads, pure-logic, docs, reversible edits, passing gates —
     drafts of a finding the entry now states differently; sub-threads already concluded.
   - **Must stay**: the `## ` header and ID, the status marker, the current statement of the finding,
     every live gate / exit condition / open question, and anything a durable record cites.
-  - **Never delete**: every removed line is appended to the archive **in the same commit** (archive
-    additions ≥ `BACKLOG.md` deletions), and the entry keeps a pointer line → the archive sub-head.
+  - **Never delete**: every removed line is appended to the archive **in the same commit**, and the
+    entry keeps a pointer line → the archive sub-head.
+  - **Verified by traceability, not arithmetic**: every deleted **content** line (blank lines and
+    bare `---` excluded) traces to the archive **or** to a cited extraction target (a `learnings/`
+    entry, its own artifact). Re-archiving verbatim text the archive already holds is **not**
+    required — a line-count inequality rewards padding the archive and punishes dropping
+    whitespace. Traceability still cannot separate a rewording from a deletion, so the real gate
+    is a **read at the phase gate**, not a count per task.
   - This moves *superseded text out of* an entry; it never moves an entry. The never-rotate
     invariant above is unaffected — live OPEN content is not rotatable by this clause.
 - **Eviction**: an entry another durable doc cites as authoritative is a **reference**, not
