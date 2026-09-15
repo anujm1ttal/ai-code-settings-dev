@@ -61,11 +61,18 @@ Under the **run-to-done cadence** (`orchestration.md` §Execution Cadence), the 
 4. Coder defaults to Sonnet — switch to Haiku only for scaffolding boilerplate.
 5. Opus is the verifier of record only for the **high-rigor tier** (§Verification Tiering) — routine work verifies at Sonnet (auditor) tier, micro work at executor tier. Blanket Opus verification is forbidden.
 
-## Fallback Chain
+## Fallback Chain (intent, not mechanism)
+
+**No code in this repo implements the chain below.** `grep -n "fallback\|unavailable"
+scripts/model_router.py` returns 0 matches. This section states what *should* happen on
+unavailability; it is not a description of runtime behaviour, and must not be cited as one.
 
 - Opus unavailable → Sonnet → Haiku (quality warning).
 - Sonnet unavailable → Haiku (quality caution); cannot fall back further.
 - Haiku unavailable → cannot proceed (essential efficiency layer).
+
+No automatic fallback exists for subagent dispatch. Dispatch with the fully-qualified ID from the
+agent's own frontmatter; a bare alias may resolve to a model this deployment does not host.
 
 ## Verification
 

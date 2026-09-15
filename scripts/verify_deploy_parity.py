@@ -60,9 +60,10 @@ SURFACE_FILES: tuple[tuple[str, str], ...] = (
 )
 
 EXCLUDED_PATHS: tuple[str, ...] = (
-    "optional_plugins/ — deliberately excluded by deploy.sh (see deploy.sh:133-135); "
+    "optional_plugins/ - deliberately excluded by deploy.sh (see the optional_plugins "
+    "note above deploy.sh's step-5 copy loop); "
     "real plugin installs live in ~/.claude/plugins/ via the marketplace, not a raw copy.",
-    "settings.json — never written by deploy.sh; hook wiring is validated separately "
+    "settings.json - never written by deploy.sh; hook wiring is validated separately "
     "by scripts/verify_hook_wiring.py.",
 )
 
@@ -248,10 +249,10 @@ def format_report(report: ParityReport, source_root: Path, dest_root: Path) -> s
         lines.append("")
 
     if report.has_loss:
-        lines.append("DRIFT DETECTED — the deployed copy carries content the source lacks.")
+        lines.append("DRIFT DETECTED - the deployed copy carries content the source lacks.")
         lines.append(
             "Back-port instruction: copy the deployed-ahead/deployed-only files listed "
-            "above into the source tree (git add + commit) BEFORE running deploy.sh — "
+            "above into the source tree (git add + commit) BEFORE running deploy.sh - "
             "the next deploy's `rm -rf` will silently delete this content otherwise."
         )
     return "\n".join(lines)

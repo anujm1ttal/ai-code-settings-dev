@@ -79,11 +79,28 @@ echo ""
 # STEP 3: Check Destination
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-echo -e "${YELLOW}[3/6]${NC} Checking destination (~/.claude/)..."
+echo -e "${YELLOW}[3/6]${NC} Checking destination (~/.claude/) and deploy parity..."
 
 if [ ! -d "$DEST" ]; then
   echo -e "${YELLOW}  → Creating $DEST...${NC}"
   mkdir -p "$DEST"
+fi
+
+# Deployed-vs-source drift gate (DSD-1 T3). MUST stay above step 4 and step 5:
+# step 4 prunes old backups (`rm -rf "${ALL_BACKUPS[$i]}"`) — the very copies a
+# drift recovery would need — and step 5 does `rm -rf "$DEST/$dir"` before
+# copying. A deployed-ahead file exists ONLY in ~/.claude/, so either one
+# destroys it with no trace. The detector prints the offending file list and the
+# back-port instruction itself, so the abort below does not repeat them.
+# `if python ...` (not a bare call) so a nonzero exit is caught here instead of
+# tripping `set -e` before the abort message prints — same reason as step 2.
+if python "$SOURCE/scripts/verify_deploy_parity.py" --source-root "$SOURCE" --dest-root "$DEST"; then
+  echo -e "${GREEN}✓ No deployed-ahead drift${NC}"
+else
+  echo ""
+  echo -e "${RED}✗ ERROR: deployed-ahead drift detected. Deploy aborted.${NC}"
+  echo -e "    Nothing has been backed up, deleted, or copied — ~/.claude/ is untouched."
+  exit 1
 fi
 
 echo -e "${GREEN}✓ Destination ready${NC}"
