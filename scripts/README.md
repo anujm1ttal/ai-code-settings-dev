@@ -269,6 +269,14 @@ sections, none ever triaged into the real backlog. Checks 5–6 target OBL-1's D
 single re-amended entry can breach size with nothing to rotate, and an ID cited before
 it is filed is invisible to every other tool the OS owns.
 
+**Backtick convention (check 6 only scans backtick-quoted IDs)**: wrapping an ID in
+backticks asserts it's a citation — a live pointer the header search must resolve, or
+the scan flags it dangling. Plain text is a *mention* (e.g. prose explaining why an ID
+is out of scope) and is deliberately invisible to the scan. This names existing
+`CITATION_RE` behavior — it is not a new check. Reformatting a plain-text mention into
+backticks re-exposes it as a citation; if no header exists yet, the resulting
+`[VIOLATION]` is a real regression, not a false positive from this documentation.
+
 **Read-only by contract** — never edits, rotates, or deletes. Rotation is performed by
 the concierge at `/handoff`; mutation stays human-confirmed (see `/clean`).
 

@@ -250,6 +250,15 @@ def format_report(report: Report, violations_only: bool = False) -> str:
 # scan from flagging function/field names as dangling citations, at the cost of the
 # handful of real IDs coined without one (`oxl_wayfinder_1`) going unscanned — a
 # documented gap, not a bug: a checker with a high false-positive rate gets ignored.
+#
+# Backticks are the citation contract, not a formatting choice: wrapping an ID in
+# backticks asserts "this points at a filed entry" and this scan enforces that
+# assertion (a match with no `## ` header in BACKLOG.md or the archive is a
+# [VIOLATION]). Plain text is invisible to CITATION_RE on purpose — it lets a
+# document *discuss* an ID (e.g. explain why it's out of scope) without asserting
+# a live pointer to it. Reformatting a plain-text mention into backticks turns a
+# discussion into a citation; if that ID has no header yet, the scan is right to
+# flag it as newly dangling — that is not a false positive introduced by this tool.
 CITATION_RE = re.compile(r"`([a-z][a-z0-9_-]*)`")
 ID_SHAPE_RE = re.compile(r"^[a-z][a-z0-9]*(?:[_-][a-z0-9]+)+$")
 
