@@ -1,17 +1,22 @@
 """Tests for scripts/backlog_audit.py — BACKLOG lifecycle checker.
 
-Covers the six checks (size, rotation-due, unmarked, phase-dump, over-cap,
-dangling-ID), status classification precedence, and exit-code contract.
+Covers all eight checks (size, rotation-due, unmarked, phase-dump, over-cap,
+dangling-ID, deferred-dup, exit-at-filing), status classification precedence,
+and exit-code contract.
 """
 
 from __future__ import annotations
 
+import os
+import subprocess
+from datetime import date
 from pathlib import Path
 
 import pytest
 
 import backlog_audit
 from backlog_audit import (
+    EXIT_REQUIRED_SINCE,
     MAX_ENTRIES,
     MAX_ENTRY_LINES,
     MAX_LINES,
@@ -20,9 +25,12 @@ from backlog_audit import (
     STATUS_UNMARKED,
     audit,
     find_dangling_citations,
+    find_exit_violations,
     format_archive_status,
     format_dangling_report,
+    format_exit_report,
     format_report,
+    git_blame_dates,
     known_backlog_ids,
     looks_like_backlog_id,
     parse_entries,
@@ -621,3 +629,247 @@ def test_help_lists_six_checks(capsys: pytest.CaptureFixture[str], monkeypatch: 
     out = capsys.readouterr().out
     for label in ("1. Size", "2. Rotation due", "3. Unmarked", "4. Phase-dump", "5. Over-cap", "6. Dangling-ID"):
         assert label in out
+
+
+def test_help_lists_checks_seven_and_eight(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """BGR-1 T8: --help must name the two new checks, not just the original six."""
+    monkeypatch.setattr("sys.argv", ["backlog_audit.py", "--help"])
+    with pytest.raises(SystemExit):
+        backlog_audit.main()
+    out = capsys.readouterr().out
+    assert "7. Deferred-dup" in out
+    assert "8. Exit-at-filing" in out
+
+
+# ------------------------------------------------------------- check 7: deferred-dup
+
+
+def test_duplicate_deferred_lines_is_a_violation(tmp_path: Path) -> None:
+    """T5's rule: `**Deferred:**` is a single status field, exactly one per entry.
+    A second line means an append happened instead of an overwrite — check 7 fires."""
+    text = (
+        "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n\n"
+        "**Deferred:** 2026-08-01 — reason one\n"
+        "**Deferred:** 2026-09-01 — reason two\n"
+    )
+    report = audit(write(tmp_path, text))
+    assert len(report.duplicate_deferred) == 1
+    assert report.duplicate_deferred[0].label == "a_1"
+    assert report.has_violations is True
+    rendered = format_report(report)
+    assert "VIOLATION" in rendered
+    assert "Deferred" in rendered
+
+
+def test_single_deferred_line_is_not_a_violation(tmp_path: Path) -> None:
+    """The compliant shape — exactly one `**Deferred:**` line — must not fire."""
+    text = (
+        "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n\n"
+        "**Deferred:** 2026-08-01 — reason\n"
+    )
+    report = audit(write(tmp_path, text))
+    assert report.duplicate_deferred == ()
+    assert report.has_violations is False
+
+
+def test_duplicate_deferred_is_unconditional_like_over_cap(tmp_path: Path) -> None:
+    """Check 7 fires regardless of file size — it never waits on the size gate,
+    mirroring `over_cap`'s unconditional design (BGR-1 T8 spec)."""
+    text = (
+        "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n\n"
+        "**Deferred:** 2026-08-01 — one\n**Deferred:** 2026-09-01 — two\n"
+    )
+    report = audit(write(tmp_path, text))
+    assert report.over_size is False
+    assert len(report.duplicate_deferred) == 1
+
+
+# ----------------------------------------------------------- check 8: exit-at-filing
+
+
+def _init_git_repo(repo: Path) -> None:
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.email", "bgr1-t8@test.local"], cwd=repo, check=True)
+    subprocess.run(["git", "config", "user.name", "bgr1-t8"], cwd=repo, check=True)
+
+
+def _git_commit_file(repo: Path, filename: str, content: str, when: str) -> Path:
+    """Write `content` to `filename` and commit it with both author and committer
+    dates pinned to `when` (ISO 8601) — deterministic, no reliance on wall-clock."""
+    path = repo / filename
+    path.write_text(content, encoding="utf-8")
+    subprocess.run(["git", "add", filename], cwd=repo, check=True)
+    env = {**os.environ, "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when}
+    subprocess.run(["git", "commit", "-q", "-m", "x"], cwd=repo, check=True, env=env)
+    return path
+
+
+def test_git_blame_dates_resolves_commit_date_for_header_line(tmp_path: Path) -> None:
+    _init_git_repo(tmp_path)
+    text = "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n"
+    path = _git_commit_file(tmp_path, "BACKLOG.md", text, "2026-09-17T10:00:00")
+    entries = parse_entries(text)
+    dates = git_blame_dates(path, [e.line_no for e in entries])
+    assert dates[entries[0].line_no] == date(2026, 9, 17)
+
+
+def test_check8_fires_via_git_blame_when_touched_after_cutoff(tmp_path: Path) -> None:
+    """The core blame trigger: an entry with no **Exit:** whose header was last
+    touched on/after EXIT_REQUIRED_SINCE (resolved via real git blame) fires."""
+    _init_git_repo(tmp_path)
+    text = "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n"
+    path = _git_commit_file(tmp_path, "BACKLOG.md", text, "2026-09-17T10:00:00")
+    entries = parse_entries(text)
+    blame_dates = git_blame_dates(path, [e.line_no for e in entries])
+    result = find_exit_violations(entries, blame_dates)
+    assert len(result.violations) == 1
+    assert result.violations[0].label == "a_1"
+    assert result.collapsed is False
+
+
+def test_check8_grandfathers_entry_touched_before_cutoff(tmp_path: Path) -> None:
+    """Pre-cutoff entries are grandfathered — no **Exit:** required, no fire."""
+    _init_git_repo(tmp_path)
+    text = "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n"
+    path = _git_commit_file(tmp_path, "BACKLOG.md", text, "2026-01-01T10:00:00")
+    entries = parse_entries(text)
+    blame_dates = git_blame_dates(path, [e.line_no for e in entries])
+    result = find_exit_violations(entries, blame_dates)
+    assert result.violations == ()
+
+
+def test_check8_does_not_fire_when_exit_field_present(tmp_path: Path) -> None:
+    """Post-cutoff touch is not itself the violation — missing **Exit:** is."""
+    _init_git_repo(tmp_path)
+    text = "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n\n**Exit:** ship T9\n"
+    path = _git_commit_file(tmp_path, "BACKLOG.md", text, "2026-09-17T10:00:00")
+    entries = parse_entries(text)
+    blame_dates = git_blame_dates(path, [e.line_no for e in entries])
+    result = find_exit_violations(entries, blame_dates)
+    assert result.violations == ()
+
+
+def test_check8_filed_field_fallback_fires_when_blame_unavailable() -> None:
+    """Resolution order's second rung: no blame data (empty dict, as when git
+    could not resolve the line) falls back to the entry's own **Filed:** date."""
+    text = "## `a_1` — thing\n\n**Status:** OPEN\n\n**Filed:** 2026-09-20\n"
+    entries = parse_entries(text)
+    result = find_exit_violations(entries, blame_dates={})
+    assert len(result.violations) == 1
+    assert result.violations[0].label == "a_1"
+
+
+def test_check8_filed_field_fallback_grandfathers_pre_cutoff() -> None:
+    text = "## `a_1` — thing\n\n**Status:** OPEN\n\n**Filed:** 2026-01-01\n"
+    entries = parse_entries(text)
+    result = find_exit_violations(entries, blame_dates={})
+    assert result.violations == ()
+
+
+def test_check8_skips_entirely_on_non_git_checkout(tmp_path: Path) -> None:
+    """Design constraint: a non-git checkout must skip check 8 entirely — never
+    crash, never manufacture a false violation. `tmp_path` here has no `.git`."""
+    text = "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n"
+    path = write(tmp_path, text)
+    entries = parse_entries(text)
+    blame_dates = git_blame_dates(path, [e.line_no for e in entries])
+    assert all(v is None for v in blame_dates.values())
+    result = find_exit_violations(entries, blame_dates)
+    assert result.violations == ()
+    assert result.collapsed is False
+
+
+def test_check8_collapses_to_one_advisory_when_over_half_fire() -> None:
+    """Hard Rule 2 — the bulk-retrofit guard: >50% of entries firing collapses to
+    a single advisory, never N per-entry violations."""
+    text = "".join(f"## `e_{i}_1` — thing {i}\n\n**Status:** OPEN\n\n" for i in range(4))
+    text += "## `f_1_1` — has exit\n\n**Status:** OPEN\n\n**Exit:** done\n"
+    entries = parse_entries(text)
+    since = date(2026, 9, 16)
+    blame_dates = {e.line_no: date(2026, 9, 17) for e in entries}
+    result = find_exit_violations(entries, blame_dates, since=since)
+    assert result.fired_count == 4
+    assert len(entries) == 5
+    assert result.fired_count > len(entries) / 2
+    assert result.collapsed is True
+    assert result.violations == ()
+
+
+def test_check8_does_not_collapse_at_or_under_half() -> None:
+    """Presence-control for the collapse threshold: exactly half (or fewer) firing
+    must NOT collapse — proves the boundary is `>`, not `>=`."""
+    text = "".join(f"## `e_{i}_1` — thing {i}\n\n**Status:** OPEN\n\n" for i in range(2))
+    text += "".join(f"## `f_{i}_1` — has exit {i}\n\n**Status:** OPEN\n\n**Exit:** done\n" for i in range(2))
+    entries = parse_entries(text)
+    since = date(2026, 9, 16)
+    blame_dates = {e.line_no: date(2026, 9, 17) for e in entries}
+    result = find_exit_violations(entries, blame_dates, since=since)
+    assert len(entries) == 4
+    assert result.fired_count == 2
+    assert result.collapsed is False
+    assert len(result.violations) == 2
+
+
+def test_format_exit_report_collapse_is_not_bracket_violation() -> None:
+    """The collapse renders as plain advisory text (matching `format_archive_status`'s
+    quiet-note idiom), never as a `[VIOLATION]` — it must not gate the exit code."""
+    result = backlog_audit.ExitCheckResult(violations=(), collapsed=True, fired_count=4, total=5)
+    rendered = format_exit_report(result)
+    assert "VIOLATION" not in rendered
+    assert rendered != ""
+    assert format_exit_report(result, violations_only=True) == ""
+
+
+def test_format_exit_report_violation_names_offending_entries() -> None:
+    entries = parse_entries("## `a_1` — thing\n\n**Status:** OPEN\n")
+    result = find_exit_violations(entries, blame_dates={e.line_no: date(2026, 9, 17) for e in entries})
+    rendered = format_exit_report(result)
+    assert "[VIOLATION]" in rendered
+    assert "a_1" in rendered
+    assert EXIT_REQUIRED_SINCE.isoformat() in rendered
+
+
+def test_main_exits_one_when_check8_fires(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """CLI-level integration: a real git repo with a post-cutoff, Exit-less entry
+    must fail the gate through `main()`, not just the unit-level function."""
+    _init_git_repo(tmp_path)
+    text = "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n"
+    path = _git_commit_file(tmp_path, "BACKLOG.md", text, "2026-09-17T10:00:00")
+    monkeypatch.setattr("sys.argv", ["backlog_audit.py", str(path)])
+    assert backlog_audit.main() == 1
+
+
+def test_main_exits_zero_when_check8_grandfathered(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _init_git_repo(tmp_path)
+    text = "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n"
+    path = _git_commit_file(tmp_path, "BACKLOG.md", text, "2026-01-01T10:00:00")
+    monkeypatch.setattr("sys.argv", ["backlog_audit.py", str(path)])
+    assert backlog_audit.main() == 0
+
+
+# --------------------------------------------------------- entry-count advisory
+
+
+def test_format_report_entry_count_carries_advisory_label(tmp_path: Path) -> None:
+    """Advisory labelling requirement (BGR-1 T8): the entry-count figure in the
+    header must always carry an explicit advisory annotation."""
+    text = "# BACKLOG\n\n## `a_1` — thing\n\n**Status:** OPEN\n"
+    report = audit(write(tmp_path, text))
+    rendered = format_report(report)
+    assert "advisory" in rendered.lower()
+
+
+def test_over_entry_count_violation_names_it_advisory(tmp_path: Path) -> None:
+    """When entry count alone (not line count) trips the size gate, the
+    [VIOLATION] line itself must say so is advisory — never silently gate on an
+    unreliable count without saying which measure triggered it."""
+    entries = "".join(
+        f"## `e_{i}` — thing {i}\n\n**Status:** OPEN\n\n" for i in range(MAX_ENTRIES + 1)
+    )
+    report = audit(write(tmp_path, f"# BACKLOG\n\n{entries}"))
+    assert report.over_size is True
+    assert report.entry_count_over_cap is True
+    rendered = format_report(report)
+    assert "entry count only — advisory" in rendered

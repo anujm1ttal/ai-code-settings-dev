@@ -250,9 +250,26 @@ Everything else — reads, pure-logic, docs, reversible edits, passing gates —
   `/blueprint` New Phase & Re-Plan force a verdict on every OPEN entry — pull into the phase,
   keep OPEN with a recorded reason, or mark RESOLVED (`commands/blueprint.md`). This decides
   *whether* to act; it never auto-queues work. An unpicked entry stays OPEN with its reason.
+- **Cap-breach trigger** (a rotation-trigger breach, above, is itself a review trigger — independent
+  of `/sync`/`/blueprint` cadence): **classify-before-schedule** — if **>20%** of entries carry no
+  status marker, the review blocks on classification before any scheduling verdict. Otherwise it
+  surfaces **≤5** entries, ranked by **age-since-activity**, and offers **three** verdicts: pull into
+  the phase, keep OPEN with a recorded reason, or **close as won't-do** (mark RESOLVED with that
+  reason). **No auto-scheduling** — the trigger forces a verdict, never a task.
 - **Per entry**: a stable ID (`<phase>_<component>_<n>`) and a status marker (`OPEN` / `RESOLVED`).
   The marker is what makes rotation mechanical. Grouping and ordering are **project-local** — the
   OS does not constrain them.
+- **`**Deferred:**` field**: `**Deferred:** YYYY-MM-DD — <reason>` is a **status field** — like the
+  `OPEN`/`RESOLVED` marker — exactly one per entry, **updated in place** by each new triage (overwrite,
+  never append). **Never-delete (below) governs rotation** — moving content out of the active file —
+  **not in-place field updates**; overwriting this field, or flipping `OPEN`→`RESOLVED`, is not a
+  never-delete violation.
+- **`**Exit:**` field**: every entry filed on or after this rule lands MUST carry an `**Exit:**`
+  condition at filing time. Entries that predate the cutoff are **grandfathered** — retrofitted
+  opportunistically when next touched, never in a bulk pass. **No bulk retrofit is ever demanded**:
+  an enforcing check determines "filed" from file-touch history (e.g. `git blame` on the entry
+  header, falling back to a self-reported filing date where git is unavailable) and MUST collapse
+  to a single advisory — never per-entry violations — when a majority of entries would fire at once.
 - **Creation invariant [HARD-GATE]**: a `<phase>_<component>_<n>` ID cited by **any** durable record
   (PLAN, TODO, DECISION_LOG, AUDIT_REPORT, a phase report, `learnings/`) MUST have a `## ` header in
   the active `BACKLOG.md` **or** in `History/BACKLOG-archive.md`. An ID is minted *by filing it* —
@@ -292,6 +309,9 @@ Everything else — reads, pure-logic, docs, reversible edits, passing gates —
 - **Eviction**: an entry another durable doc cites as authoritative is a **reference**, not
   backlog — extract it to its own artifact rather than rotating it.
 - **Trigger owner**: concierge at `/handoff` (`scripts/backlog_audit.py` reports it); manual `/clean`.
+- **Session-boot surface**: `hooks/session-boot.js` runs a BACKLOG health check at `SessionStart` —
+  gates on **line count** vs `max_lines` only; entry count is **advisory only**, never gating — the
+  `## `/`### ` entry-parser ambiguity makes counts unreliable.
 
 > [!NOTE]
 > **Transient State Exception**: Platform-level logs for background commands (e.g., in system Temp directories) are managed by the host binary and are inherently transient. They are exempt from the `Artifacts/` persistence requirement.
@@ -318,6 +338,15 @@ pointing at a deleted file.
 - **Uncited evidence is not promoted** — it did its job at the gate and dies with `Temp/`.
   Promotion is the exception, not the default; `Evidence/` holds what a reader will actually
   follow a citation to.
+- **Rolling-report archive-then-write**: before truncating/replacing a rolling report
+  (`AUDIT_REPORT.md`, `Phase-N-Report.md`), move the current version to
+  `Artifacts/history/Reports/<sha>-<report-name>.md`, then write fresh. Repoint every citation
+  the old version held to the new archive path **in the same pass** — a stale citation after an
+  archive is the same failure as one after a delete.
+- **Citing-side invariant**: an *evidence* citation (a durable record's cited fact) names an
+  **immutable** path (`Artifacts/Evidence/<phase>/…`, `Artifacts/history/Reports/<sha>-…`); a
+  *state* reference (`TODO.md`, a Plan — where "current" is the intended referent) may name a
+  mutable one.
 
 ## Artifact Separation: Plan vs. TODO
 

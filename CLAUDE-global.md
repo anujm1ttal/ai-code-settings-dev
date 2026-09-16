@@ -143,7 +143,7 @@ Claude Code hooks provide **hard guardrails** that cannot be rationalized away.
 
 | Hook | Event | Purpose |
 |:---|:---|:---|
-| `session-boot.js` | `SessionStart` | Injects Artifacts state (TODO, Learnings, Current Task) into context |
+| `session-boot.js` | `SessionStart` | Injects Artifacts state (TODO, Learnings, Current Task) into context; gates BACKLOG size |
 | `guard-paths.js` | `PreToolUse` | **Blocks** writes to binaries (`.pbix`, `.3dm`), secrets (`.env`), build artifacts, project state files in shadow paths (scratch-gate), bare scratch/ |
 | `guard-commands.js` | `PreToolUse` | **Blocks** dangerous commands (`rm -rf`, force push, SQL drops) and commits with AI attribution trailers (`Co-Authored-By: Claude`, `Generated with Claude Code`) |
 | `auto-lint.js` | `PostToolUse` | Reports lint violations and injects "fix before proceeding" directive (not auto-fixing) |

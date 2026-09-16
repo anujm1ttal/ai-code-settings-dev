@@ -1,0 +1,6 @@
+{
+  "_comment": "Single source of truth for the BACKLOG lifecycle caps (BGR-1 T2, Hard Rule 3). Read by scripts/backlog_audit.py (Python) and hooks/session-boot.js (JS, BGR-1 T3). Both carry a literal fallback of the same three numbers for when this file is unreachable (absent/unreadable/malformed) — tests/test_cap_parity.py (BGR-1 T4) asserts all sides stay equal, including the prose in rules/common/orchestration.md §BACKLOG Lifecycle. Coherence invariant: max_lines / max_entry_lines >= max_entries (600 / 30 = 20).",
+  "max_lines": 600,
+  "max_entries": 20,
+  "max_entry_lines": 30
+}

@@ -33,37 +33,132 @@ Checks:
                      not history — a citation inside the phase archive directory
                      itself is a historical fact, not a live broken link, and is
                      excluded from the scan.
+  7. Deferred-dup  — an entry carrying 2+ `**Deferred:**` lines. Per
+                     `orchestration.md` §BACKLOG Lifecycle, that field is a single
+                     status slot updated in place (like the OPEN/RESOLVED marker) —
+                     a second line means an append happened instead of the required
+                     overwrite. Unconditional, like check 5.
+  8. Exit-at-filing — an entry touched on/after `EXIT_REQUIRED_SINCE` must carry an
+                     `**Exit:**` condition. Resolution order: the commit date `git
+                     blame` attributes to the entry's header line, falling back to a
+                     self-reported `**Filed:**` field when blame is unavailable
+                     (non-git checkout, unreadable file, blame failure), skipping
+                     the entry entirely when neither resolves — this check never
+                     crashes and never fires a false violation on a non-git tree.
+                     Collapses to a single advisory (never per-entry violations)
+                     when more than half the file's entries would fire at once —
+                     the bulk-retrofit guard: a BACKLOG committed wholesale, or with
+                     a squashed history, blames every header to one post-cutoff
+                     commit, which would otherwise demand an Exit line on every
+                     entry (BGR-1 Hard Rule 2 — no bulk retrofit is ever demanded).
+                     `git blame` is scoped to just the entry-header lines (one
+                     subprocess call, repeated `-L <n>,<n>`), never the whole file —
+                     a full-file blame measured 22s+ wall on a large real BACKLOG. A
+                     synthetic 7,952-line/131-header/901-commit benchmark measured
+                     targeted (header-scoped) blame at 0.61s vs 1.09s full-file —
+                     directional confirmation only; it does not reproduce the 22s+
+                     real-BACKLOG figure above, so treat it as a direction, not a bound.
+
+Entry counts (this file's own `len(entries)` vs `MAX_ENTRIES`) print with an
+explicit advisory suffix in the header line — the `## `/`### ` entry parser is
+known-unreliable (it has reported 2 entries on a live file that holds 121) — so a
+reader treats the entry figure as informational, not as authoritative as the line
+count.
 
 Read-only by contract: this tool never edits, rotates, or deletes. Mutation stays
 human-confirmed (see `/clean`).
 
 Zero repo imports — stdlib only, single file, copyable into any project.
 
+Caps (max_lines/max_entries/max_entry_lines) are read from hooks/backlog-caps.json,
+falling back to built-in literal defaults when that file is absent, unreadable, or
+malformed — see `load_caps` (BGR-1 T2).
+
 Exit code: 0 clean, 1 on any violation (CI-usable).
 """
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date, datetime, timezone
 from pathlib import Path
 import argparse
+import json
 import re
+import subprocess
 import sys
 
-MAX_LINES = 600
-MAX_ENTRIES = 20
-MAX_ENTRY_LINES = 30
+# Built-in fallback — used ONLY when hooks/backlog-caps.json is unreachable (absent,
+# unreadable, or malformed JSON). This is a redundancy safety net for that failure
+# mode, not a second source of truth: hooks/backlog-caps.json is authoritative
+# (Hard Rule 3, BGR-1). Must stay numerically identical to that file, the JS
+# fallback in hooks/session-boot.js, and the prose in
+# rules/common/orchestration.md §BACKLOG Lifecycle — enforced by
+# tests/test_cap_parity.py (BGR-1 T4), never by eyeballing.
+FALLBACK_MAX_LINES = 600
+FALLBACK_MAX_ENTRIES = 20
+FALLBACK_MAX_ENTRY_LINES = 30
+
+CAPS_FILENAME = "backlog-caps.json"
+# Resolved relative to this script's own location (scripts/../hooks/), not the
+# process CWD — this tool is invoked from varying working directories, but
+# scripts/ and hooks/ are always siblings in every deployment of this repo.
+CAPS_PATH = Path(__file__).resolve().parent.parent / "hooks" / CAPS_FILENAME
+
+
+@dataclass(frozen=True)
+class Caps:
+    """The three BACKLOG lifecycle caps, loaded once at import time."""
+
+    max_lines: int
+    max_entries: int
+    max_entry_lines: int
+
+
+def load_caps(path: Path = CAPS_PATH) -> Caps:
+    """Load caps from `path`; fall back to the built-in defaults above when it is
+    unreachable — absent, unreadable, or malformed JSON. Never raises: a bad config
+    file must not crash the audit (fail-open by design)."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return Caps(
+            max_lines=int(data["max_lines"]),
+            max_entries=int(data["max_entries"]),
+            max_entry_lines=int(data["max_entry_lines"]),
+        )
+    except (OSError, ValueError, KeyError, TypeError):
+        return Caps(
+            max_lines=FALLBACK_MAX_LINES,
+            max_entries=FALLBACK_MAX_ENTRIES,
+            max_entry_lines=FALLBACK_MAX_ENTRY_LINES,
+        )
+
+
+CAPS = load_caps()
+MAX_LINES = CAPS.max_lines
+MAX_ENTRIES = CAPS.max_entries
+MAX_ENTRY_LINES = CAPS.max_entry_lines
 
 DEFAULT_BACKLOG = Path("Artifacts/BACKLOG.md")
 
+# The date `**Exit:**` became mandatory at filing (rules/common/orchestration.md
+# §BACKLOG Lifecycle, landed BGR-1 T5, this phase). Entries touched before this
+# date are grandfathered — see check 8 / `find_exit_violations`. Update only if
+# T5's rule text lands on a different calendar date than the phase it was
+# authored in; never move it to "cover" existing entries retroactively.
+EXIT_REQUIRED_SINCE = date(2026, 9, 16)
+
 CHECKS_HELP = """\
 Checks:
-  1. Size        - active file over 600 lines OR 20 entries
+  1. Size        - active file over 600 lines OR 20 entries (entries: advisory)
   2. Rotation due - RESOLVED entries still present while over threshold
   3. Unmarked     - entries carrying no OPEN/RESOLVED status marker
   4. Phase-dump   - per-phase append sections instead of entries
   5. Over-cap     - a single entry exceeds the 30-line per-entry cap
   6. Dangling-ID  - an active durable record cites an ID with no BACKLOG/archive header
+  7. Deferred-dup - 2+ **Deferred:** lines in one entry (must be exactly one)
+  8. Exit-at-filing - entries touched on/after the Exit-field cutoff need **Exit:**
 """
 
 ENTRY_RE = re.compile(r"^##\s+(?P<title>.+?)\s*$")
@@ -71,6 +166,13 @@ ENTRY_RE = re.compile(r"^##\s+(?P<title>.+?)\s*$")
 PHASE_DUMP_RE = re.compile(r"^##\s+\d+[a-z]?\.\s+.*\bfindings\b", re.IGNORECASE)
 RESOLVED_RE = re.compile(r"~~|\bRESOLVED\b|\bCLOSED\b|\bGRADUATED\b|\bSTRUCK\b")
 OPEN_RE = re.compile(r"\bOPEN\b")
+# `**Deferred:**`/`**Exit:**` are status fields (orchestration.md §BACKLOG Lifecycle):
+# exactly one `**Deferred:**` line per entry, updated in place by overwrite — a
+# second line is check 7's fire condition. `**Filed:**` is the self-reported
+# fallback date check 8 uses when `git blame` can't resolve a header line.
+DEFERRED_FIELD_RE = re.compile(r"^[ \t]*(?:[-*][ \t]+)?\*\*Deferred:\*\*", re.MULTILINE)
+FILED_FIELD_RE = re.compile(r"\*\*Filed:\*\*\s*(\d{4}-\d{2}-\d{2})")
+EXIT_FIELD_RE = re.compile(r"\*\*Exit:\*\*")
 
 STATUS_OPEN = "OPEN"
 STATUS_RESOLVED = "RESOLVED"
@@ -86,12 +188,27 @@ class Entry:
     status: str
     is_phase_dump: bool
     line_count: int
+    deferred_count: int
+    filed_date: date | None
+    has_exit: bool
 
     @property
     def label(self) -> str:
         """Short identifier for reporting — the entry ID if one is recognizable."""
         ident = re.search(r"`([^`]+)`", self.title)
         return ident.group(1) if ident else self.title[:60]
+
+
+def _parse_filed_date(body: str) -> date | None:
+    """The entry's self-reported `**Filed:**` date, or `None` if absent/malformed —
+    check 8's fallback trigger when `git blame` can't resolve the header line."""
+    match = FILED_FIELD_RE.search(body)
+    if not match:
+        return None
+    try:
+        return date.fromisoformat(match.group(1))
+    except ValueError:
+        return None
 
 
 @dataclass(frozen=True)
@@ -104,7 +221,28 @@ class Report:
 
     @property
     def over_size(self) -> bool:
+        # Entry count still contributes to the size gate here (unlike the
+        # session-boot.js surface, which gates on line count only — orchestration.md
+        # §BACKLOG Lifecycle "Session-boot surface"). This CLI's entry count carries
+        # an advisory label in `format_report`'s header (BGR-1 T8) rather than being
+        # dropped from gating outright — see `entry_count_over_cap`.
         return self.line_count > MAX_LINES or len(self.entries) > MAX_ENTRIES
+
+    @property
+    def entry_count_over_cap(self) -> bool:
+        """Advisory only — surfaced as a label in the header, never as its own
+        distinct violation line. The `## `/`### ` entry parser is known-unreliable
+        (it has reported 2 entries on a live file that holds 121), so the entry
+        figure is informational; line count remains the trustworthy measure."""
+        return len(self.entries) > MAX_ENTRIES
+
+    @property
+    def duplicate_deferred(self) -> tuple[Entry, ...]:
+        """Check 7 — an entry carrying 2+ `**Deferred:**` lines. Unconditional,
+        like `over_cap`: the field is a single status slot updated in place
+        (orchestration.md §BACKLOG Lifecycle) — a second line means an append
+        happened instead of the required overwrite."""
+        return tuple(e for e in self.entries if e.deferred_count >= 2)
 
     @property
     def resolved(self) -> tuple[Entry, ...]:
@@ -132,7 +270,12 @@ class Report:
     @property
     def has_violations(self) -> bool:
         return bool(
-            self.over_size or self.rotation_due or self.unmarked or self.phase_dumps or self.over_cap
+            self.over_size
+            or self.rotation_due
+            or self.unmarked
+            or self.phase_dumps
+            or self.over_cap
+            or self.duplicate_deferred
         )
 
 
@@ -172,6 +315,9 @@ def parse_entries(text: str) -> tuple[Entry, ...]:
                 # next `## ` header (or EOF). This is the growth axis T1 caps —
                 # in-place amendment of one entry, not accrual of many.
                 line_count=end - line_idx,
+                deferred_count=len(DEFERRED_FIELD_RE.findall(body)),
+                filed_date=_parse_filed_date(body),
+                has_exit=bool(EXIT_FIELD_RE.search(body)),
             )
         )
     return tuple(entries)
@@ -194,6 +340,8 @@ def format_report(report: Report, violations_only: bool = False) -> str:
     header = (
         f"BACKLOG health — {report.path}\n"
         f"  {report.line_count} lines / {len(report.entries)} entries "
+        "(entry count advisory — `## `/`### ` detection may undercount; line count "
+        "is authoritative) "
         f"(threshold {MAX_LINES} ln / {MAX_ENTRIES} entries / {MAX_ENTRY_LINES} ln per entry: {size_flag})"
     )
     if not violations_only or report.has_violations:
@@ -203,23 +351,32 @@ def format_report(report: Report, violations_only: bool = False) -> str:
         # Name the action achievable in the state actually observed — prescribing
         # "rotate RESOLVED" when there are none is an unreachable remedy (D1).
         if report.resolved:
-            out.append(
+            message = (
                 f"  [VIOLATION] size — rotate {len(report.resolved)} oldest RESOLVED "
                 "entries to History/BACKLOG-archive.md"
             )
         elif report.over_cap:
             ids = ", ".join(e.label for e in report.over_cap)
-            out.append(
+            message = (
                 "  [VIOLATION] size — 0 RESOLVED entries to rotate; apply amendment "
                 f"rotation (move superseded text, not the entry, to History/BACKLOG-archive.md) "
                 f"to the over-cap entry first — {ids}"
             )
         else:
-            out.append(
+            message = (
                 "  [VIOLATION] size — 0 RESOLVED entries and no entry over the "
                 f"{MAX_ENTRY_LINES}-line cap; triage OPEN entries via /sync or "
                 "/blueprint reconciliation before filing anything new"
             )
+        # Entry count is advisory (see header) — flag it explicitly when it is the
+        # sole trigger, since the underlying parser is known to undercount on some
+        # real files and a reader should not treat this as line-count-certain.
+        if report.entry_count_over_cap and report.line_count <= MAX_LINES:
+            message += (
+                " (triggered by entry count only — advisory; the `## `/`### ` "
+                "parser may undercount, line count remains authoritative)"
+            )
+        out.append(message)
     if report.rotation_due:
         ids = ", ".join(e.label for e in report.rotation_due)
         out.append(f"  [VIOLATION] {len(report.rotation_due)} RESOLVED unrotated — {ids}")
@@ -234,6 +391,13 @@ def format_report(report: Report, violations_only: bool = False) -> str:
         out.append(
             f"  [VIOLATION] {len(report.over_cap)} entr"
             f"{'y' if len(report.over_cap) == 1 else 'ies'} over the {MAX_ENTRY_LINES}-line cap — {ids}"
+        )
+    if report.duplicate_deferred:
+        ids = ", ".join(f"{e.label} ({e.deferred_count}x)" for e in report.duplicate_deferred)
+        out.append(
+            f"  [VIOLATION] {len(report.duplicate_deferred)} entr"
+            f"{'y' if len(report.duplicate_deferred) == 1 else 'ies'} carry 2+ **Deferred:** lines "
+            f"(exactly one, updated in place, is required) — {ids}"
         )
 
     if not report.has_violations and not violations_only:
@@ -452,6 +616,148 @@ def format_dangling_report(citations: tuple[Citation, ...], violations_only: boo
     return "\n".join(lines)
 
 
+# --------------------------------------------------------------- check 8: exit
+
+# `git blame --porcelain` hunk header: "<sha> <orig-line> <final-line> [<count>]".
+# The trailing group count is present only on the first line of a run from the
+# same commit — matched as optional so both forms parse.
+_BLAME_HUNK_RE = re.compile(r"^([0-9a-f]{40}) (\d+) (\d+)(?: \d+)?$")
+_COMMITTER_TIME_RE = re.compile(r"^committer-time (\d+)$")
+
+
+def git_blame_dates(path: Path, line_numbers: Sequence[int]) -> dict[int, date | None]:
+    """Resolve the commit date `git blame` attributes to each 1-based line number
+    in `path`, via a SINGLE invocation scoped to just those lines (`-L n,n`
+    repeated) — never a full-file blame. A full-file blame measured 22s+ wall on
+    a 7,474-line real BACKLOG with deep history; a synthetic 7,952-line/131-header/
+    901-commit benchmark measured targeted blame at 0.61s vs 1.09s full-file —
+    directional confirmation, not a reproduction of the real-BACKLOG figure above.
+    Scoping to just the entry-header lines keeps this bounded regardless of file size.
+
+    Fails open to `None` for every requested line on any git failure — non-git
+    checkout, unreadable file, blame error, timeout, or unparseable output — per
+    Design Constraints (BGR-1 T8): this is a hygiene reporter, never a safety
+    guard, so it must never crash and never manufacture a false violation.
+    """
+    lines = sorted(set(line_numbers))
+    dates: dict[int, date | None] = {ln: None for ln in lines}
+    if not lines:
+        return dates
+
+    cmd = ["git", "-C", str(path.parent), "blame", "--porcelain"]
+    for line_no in lines:
+        cmd += ["-L", f"{line_no},{line_no}"]
+    cmd += ["--", path.name]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired):
+        return dates
+    if result.returncode != 0:
+        return dates
+
+    # Porcelain dedupes: a commit's full metadata (incl. committer-time) is only
+    # printed the first time that sha appears in this invocation's output; later
+    # hunks from the same commit show just the header line. Track times by sha
+    # so every requested line still resolves regardless of which hunk carried it.
+    commit_times: dict[str, int] = {}
+    current_sha: str | None = None
+    current_final_line: int | None = None
+    for out_line in result.stdout.splitlines():
+        hunk = _BLAME_HUNK_RE.match(out_line)
+        if hunk:
+            current_sha, current_final_line = hunk.group(1), int(hunk.group(3))
+            if current_sha in commit_times and current_final_line in dates:
+                dates[current_final_line] = datetime.fromtimestamp(
+                    commit_times[current_sha], tz=timezone.utc
+                ).date()
+            continue
+        committer_time = _COMMITTER_TIME_RE.match(out_line)
+        if committer_time and current_sha is not None:
+            ts = int(committer_time.group(1))
+            commit_times[current_sha] = ts
+            if current_final_line in dates:
+                dates[current_final_line] = datetime.fromtimestamp(ts, tz=timezone.utc).date()
+    return dates
+
+
+@dataclass(frozen=True)
+class ExitCheckResult:
+    """Outcome of check 8 (Exit-condition-at-filing enforcement).
+
+    `violations` is always empty when `collapsed` is True — the >50% bulk-retrofit
+    guard (Hard Rule 2, BGR-1) trades N per-entry violations for exactly one
+    advisory, never both, so a caller can gate on `violations` alone.
+    """
+
+    violations: tuple[Entry, ...]
+    collapsed: bool
+    fired_count: int
+    total: int
+
+
+def find_exit_violations(
+    entries: tuple[Entry, ...],
+    blame_dates: dict[int, date | None],
+    *,
+    since: date = EXIT_REQUIRED_SINCE,
+) -> ExitCheckResult:
+    """Check 8 — an entry touched on/after `since` and carrying no `**Exit:**`
+    field is a violation. Resolution order per entry: `blame_dates` (git blame on
+    the header line) first, falling back to the entry's own `**Filed:**` field,
+    skipping the entry entirely when neither resolves — an entry with no
+    determinable touch date is never flagged, never a false positive.
+
+    Collapses to a single advisory (`collapsed=True`, `violations=()`) when more
+    than half of `entries` would fire — the bulk-retrofit guard: a BACKLOG
+    committed wholesale, or with a squashed history, blames every header to one
+    post-cutoff commit, which would otherwise demand an Exit line on every
+    entry — the exact unachievable remedy Hard Rule 2 forbids.
+    """
+    fired: list[Entry] = []
+    for entry in entries:
+        touch_date = blame_dates.get(entry.line_no) or entry.filed_date
+        if touch_date is None:
+            continue  # neither blame nor **Filed:** resolved — skip entirely
+        if touch_date >= since and not entry.has_exit:
+            fired.append(entry)
+    total = len(entries)
+    # `len(fired) >= 2` guards the degenerate case a bare ">50%" test misses: a
+    # single-entry file always satisfies "more than half fired" (1 of 1), but one
+    # firing entry can never exhibit the *bulk* failure mode this guard exists for
+    # (a wholesale-committed or squashed-history file blaming everything to one
+    # commit) — it is just an ordinary, single, real violation and must fire as one.
+    collapsed = total > 0 and len(fired) >= 2 and len(fired) > total / 2
+    return ExitCheckResult(
+        violations=() if collapsed else tuple(fired),
+        collapsed=collapsed,
+        fired_count=len(fired),
+        total=total,
+    )
+
+
+def format_exit_report(result: ExitCheckResult, violations_only: bool = False) -> str:
+    """Render check 8's outcome, matching the tool's existing severity vocabulary
+    (`[VIOLATION]` for a gating fire; plain advisory text — no bracket tag,
+    consistent with `format_archive_status`'s quiet note — for the collapse)."""
+    if result.collapsed:
+        if violations_only:
+            return ""
+        return (
+            f"  exit-condition advisory — {result.fired_count} of {result.total} entries "
+            f"would require **Exit:** under check 8 (>50% of the file, cutoff "
+            f"{EXIT_REQUIRED_SINCE.isoformat()}); this file predates the convention — "
+            "retrofit opportunistically when next touched, never in bulk (Hard Rule 2)"
+        )
+    if not result.violations:
+        return "" if violations_only else "  exit-condition scan — clean, 0 entries missing **Exit:**"
+    ids = ", ".join(e.label for e in result.violations)
+    return (
+        f"  [VIOLATION] {len(result.violations)} entr"
+        f"{'y' if len(result.violations) == 1 else 'ies'} touched on/after "
+        f"{EXIT_REQUIRED_SINCE.isoformat()} missing **Exit:** — {ids}"
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Audit an Artifacts/BACKLOG.md for lifecycle violations.\n\n" + CHECKS_HELP,
@@ -484,6 +790,18 @@ def main() -> int:
         if rendered:
             rendered_parts.append(rendered)
         if report.has_violations:
+            exit_code = 1
+
+        # Check 8 — scoped to just the entry-header lines (never a full-file
+        # blame; see `git_blame_dates`). Fails open: a non-git checkout or blame
+        # failure resolves every line to `None`, which `find_exit_violations`
+        # treats as "skip entirely", never a false violation.
+        blame_dates = git_blame_dates(args.path, [e.line_no for e in report.entries])
+        exit_result = find_exit_violations(report.entries, blame_dates)
+        exit_rendered = format_exit_report(exit_result, violations_only=args.violations_only)
+        if exit_rendered:
+            rendered_parts.append(exit_rendered)
+        if exit_result.violations:
             exit_code = 1
 
     # Check 6 spans files beyond the single audited path — scoped to the BACKLOG's
