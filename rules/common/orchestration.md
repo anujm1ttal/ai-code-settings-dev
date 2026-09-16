@@ -11,7 +11,7 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 |:---|:---|:---|
 | **strategist** | Architecture, ROI, roadmaps | **Write**: `IMPLEMENTATION_PLAN.md`, `TODO.md` |
 | **coder** | Implementation, refactoring | **Write**: Source code, test files, `[-]` status |
-| **auditor** | QA, technical review | **Write**: `AUDIT_REPORT.md`, `Artifacts/TODO.md` (`[x]` only), `BACKLOG.md` (loose findings). **Reports, never applies** — a needed source/test/evidence change is a report line, not an edit (`agents/auditor.md` §Write Scope). |
+| **auditor** | QA, technical review | **Write**: `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md`, `Artifacts/TODO.md` (`[x]` only), `BACKLOG.md` (loose findings). **Reports, never applies** — a needed source/test/evidence change is a report line, not an edit (`agents/auditor.md` §Write Scope). |
 | **scribe** | Documentation, teaching | **Write**: Artifacts docs not owned by another agent (exception: `README.md`) |
 | **council** | Synthesis, stress-testing | **Write**: `DECISION_LOG.md` |
 | **creative-director** | Visual spec, hierarchy | **Write**: `Artifacts/LAYOUT_SPEC.md` |
@@ -210,7 +210,7 @@ Everything else — reads, pure-logic, docs, reversible edits, passing gates —
 | `Artifacts/MEMORY_ANCHORS.md` | Strategist | Strategist | **Cold Storage**: Project-wide constants, constraints, and non-negotiables. (Persistent — never archived) |
 | `Artifacts/Temp/` | All | Concierge (Cleanup) | **Transient Storage**: one-off diagrams, scratch scripts, and *uncited* verification output. Gitignored; purged freely. |
 | `Artifacts/Evidence/` | Executor (promotion) | Auditor | **Durable Evidence**: verification artifacts cited by a durable record. Committed with the phase. **Never purged** — see §Evidence Retention. |
-| `Artifacts/AUDIT_REPORT.md` | Auditor | Auditor | Gate-based quality review findings (Logic, Style, Hard Rules); see `/audit`. |
+| `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md` | Auditor | Auditor | Gate-based quality review findings (Logic, Style, Hard Rules); see `/audit`. |
 | `Artifacts/.agent/current_task.md` | Concierge | Concierge | Session focus |
 | `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
 | `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist | **The "How & Why"**: Technical design and rationale. |
@@ -271,7 +271,7 @@ Everything else — reads, pure-logic, docs, reversible edits, passing gates —
   header, falling back to a self-reported filing date where git is unavailable) and MUST collapse
   to a single advisory — never per-entry violations — when a majority of entries would fire at once.
 - **Creation invariant [HARD-GATE]**: a `<phase>_<component>_<n>` ID cited by **any** durable record
-  (PLAN, TODO, DECISION_LOG, AUDIT_REPORT, a phase report, `learnings/`) MUST have a `## ` header in
+  (PLAN, TODO, DECISION_LOG, phase audit report, a phase report, `learnings/`) MUST have a `## ` header in
   the active `BACKLOG.md` **or** in `History/BACKLOG-archive.md`. An ID is minted *by filing it* —
   citing one that was never filed is a dangling reference the reader cannot follow, and no tool sees
   it. **Corollary**: "the file is already over threshold" is never grounds for skipping the entry —
@@ -328,7 +328,7 @@ To ensure project portability and auditability, agents MUST NOT use the system d
 **durable record cites** must therefore be promoted before any purge, or the record ends up
 pointing at a deleted file.
 
-- **Promote when**: a phase report, `AUDIT_REPORT.md`, a `DECISION_LOG.md` entry, a
+- **Promote when**: a phase report, a phase audit report, a `DECISION_LOG.md` entry, a
   `BACKLOG.md` finding, or a `learnings/` entry cites the file.
 - **Promote to**: `Artifacts/Evidence/<phase>/<original-filename>`, committed with that phase.
   Repoint the citing record to the new path **in the same pass** — a promoted file with a stale
@@ -339,12 +339,12 @@ pointing at a deleted file.
   Promotion is the exception, not the default; `Evidence/` holds what a reader will actually
   follow a citation to.
 - **Rolling-report archive-then-write**: before truncating/replacing a rolling report
-  (`AUDIT_REPORT.md`, `Phase-N-Report.md`), move the current version to
-  `Artifacts/history/Reports/<sha>-<report-name>.md`, then write fresh. Repoint every citation
+  (`Phase-N-Report.md`), move the current version to
+  `Artifacts/History/Reports/<sha>-<report-name>.md`, then write fresh. Repoint every citation
   the old version held to the new archive path **in the same pass** — a stale citation after an
   archive is the same failure as one after a delete.
 - **Citing-side invariant**: an *evidence* citation (a durable record's cited fact) names an
-  **immutable** path (`Artifacts/Evidence/<phase>/…`, `Artifacts/history/Reports/<sha>-…`); a
+  **immutable** path (`Artifacts/Evidence/<phase>/…`, `Artifacts/History/Reports/<sha>-…`); a
   *state* reference (`TODO.md`, a Plan — where "current" is the intended referent) may name a
   mutable one.
 
@@ -384,7 +384,7 @@ The `auditor` spawns parallel reviewers to audit the same code block:
 - **Compliance Reviewer**: Checks against `coding-style.md`.
 - **Domain Specialist**: Checks against specific skill (e.g., `rhino-e2e-testing`).
 - **Risk Reviewer**: Audits for security and edge cases.
-*Result: Aggregated into `Artifacts/AUDIT_REPORT.md`.*
+*Result: Aggregated into `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md`.*
 *Default: Use `--team` for all full audits — measurably faster and deeper than sequential scanning. Fall back to a single auditor only when token limits are hit.*
 
 ### 2. Independent Module Refactor

@@ -21,7 +21,7 @@ Invokes the **auditor** agent for cross-domain quality check against `coding-sty
 3. **Constraint Review**: Evaluate against Minimalism and Risks from `Artifacts/IMPLEMENTATION_PLAN.md`.
 4. **Domain Scan**: Equip skill per `orchestration.md` routing. Run checks per `coding-style.md` + relevant skill file.
 5. **Gap Analysis**: Identify what is **completely missing** (not just done poorly) — missing tests, validation, error handling, docs, config, etc.
-6. **Generate Report**: **CRITICAL:** Do not just output the report in the chat. You MUST save the enclosed report format into a file named `Artifacts/AUDIT_REPORT.md` in the project root. Action Items live in that report (loose findings → `Artifacts/BACKLOG.md`) and are flagged for the **strategist** to schedule — the auditor MUST NOT add tasks to `Artifacts/TODO.md` (TODO authority table, `orchestration.md`).
+6. **Generate Report**: **CRITICAL:** Do not just output the report in the chat. You MUST save the enclosed report format into `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md` — substituting `<PHASE>` with the current phase identifier — never to a fixed or rolling filename. Action Items live in that report (loose findings → `Artifacts/BACKLOG.md`) and are flagged for the **strategist** to schedule — the auditor MUST NOT add tasks to `Artifacts/TODO.md` (TODO authority table, `orchestration.md`).
 
 ### `/audit --pre`: Plan Review
 1. Read target task from `Artifacts/TODO.md` + parent phase in `Artifacts/IMPLEMENTATION_PLAN.md`.
@@ -36,7 +36,7 @@ Leverages Claude Agent Teams to perform a significantly faster and deeper code r
    - **Compliance Reviewer**: Focuses only on `coding-style.md` standard compliance, PEP 8, and structure.
    - **Domain Specialist**: Executes the domain-specific scan (e.g., `python-rhino-grasshopper` or `dax-modeling`).
    - **Risk Reviewer**: Audits for security, edge cases, and math correctness.
-2. The lead `auditor` waits for teammates to finish and aggregates findings into `Artifacts/AUDIT_REPORT.md` (Action Items flagged for the strategist, not written to `Artifacts/TODO.md`).
+2. The lead `auditor` waits for teammates to finish and aggregates findings into `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md` (Action Items flagged for the strategist, not written to `Artifacts/TODO.md`).
 
 ### `/audit --reader-test`: Clean-Room Verification
 Protocol for validating that documentation is self-contained and ambiguity-free.
@@ -44,7 +44,7 @@ Protocol for validating that documentation is self-contained and ambiguity-free.
 2. Spawn a subagent with `subagent_type: scribe` (fresh reader, no conversation history).
 3. Provide ONLY the target document as context.
 4. Collect questions and ambiguities identified by the "fresh" agent.
-5. Report findings as gaps in `Artifacts/AUDIT_REPORT.md`.
+5. Report findings as gaps in `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md`.
 
 ## Domain Scans
 
@@ -74,7 +74,7 @@ Every full audit report computes an overall project health score:
 
 `Health = Architecture (20%) + Code Quality (15%) + Test Coverage (25%) + Documentation (15%) + Compliance (25%)`
 
-Each dimension is scored 0–100. Bands: **90+** Good · **80–89** Acceptable · **<80** Needs Work. Record the score in `Artifacts/AUDIT_REPORT.md` so project health can be trended across audits.
+Each dimension is scored 0–100. Bands: **90+** Good · **80–89** Acceptable · **<80** Needs Work. Record the score in `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md` so project health can be trended across audits.
 
 ## Severity Levels
 

@@ -77,8 +77,8 @@ After orchestrator review passes:
 2. On PASS, the auditor subagent marks the task `[x]`.
 3. The auditor's findings are **appended** as a new dated section to
    `Artifacts/Reports/afk-run-<YYYY-MM-DD>.md` (create the file on first use). This report is
-   **never** written to `Artifacts/AUDIT_REPORT.md` — that file is reserved for standalone
-   `/audit` runs.
+   **never** written to `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md` — that path is reserved for
+   standalone `/audit` runs.
 
 ## 6. Commit
 

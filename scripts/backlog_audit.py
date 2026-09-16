@@ -564,7 +564,7 @@ def scan_citations(root: Path, exclude: frozenset[Path]) -> tuple[Citation, ...]
 
     Active-only scope: skips `.agent/` — hook-generated snapshots and session state,
     not durable records (the creation invariant scopes to PLAN/TODO/DECISION_LOG/
-    AUDIT_REPORT/phase reports/`learnings/`, none of which live there) — and skips
+    phase audit report/phase reports/`learnings/`, none of which live there) — and skips
     the phase-archive directory itself (`History/`/`history/`, see `is_archived_path`):
     a citation inside an already-archived record is a historical fact about what that
     record said at the time, not a live broken link the creation invariant governs.

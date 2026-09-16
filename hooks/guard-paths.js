@@ -46,8 +46,16 @@ const COMPILED_OUTPUT_CHILDREN = new Set(['debug', 'release', 'x64', 'x86']);
 // shadow directory (LH-1 T2 — orchestration.md Persistence HARD-GATE).
 const STATE_FILE_BASENAMES = new Set([
   'todo.md', 'implementation_plan.md', 'handoff_brief.md', 'decision_log.md',
-  'backlog.md', 'arch.md', 'audit_report.md', 'layout_spec.md',
+  'backlog.md', 'arch.md', 'layout_spec.md',
 ]);
+
+// CPI-1: the rolling `audit_report.md` root basename was retired in favor of
+// per-phase `<PHASE>-AUDIT_REPORT.md` (Artifacts/Reports/). A Set of exact
+// basenames can't enumerate every future <PHASE>, so this one case is a
+// suffix check instead of a literal member — a 1:1 literal swap would only
+// ever protect the phase current at edit time and silently stop covering
+// every phase after it.
+const STATE_FILE_SUFFIX = '-audit_report.md';
 
 // Native Claude Code features that legitimately write inside the
 // ~/.claude/projects/ shadow tree — never gate these or the harness breaks.
@@ -64,7 +72,7 @@ function isBlocked(filePath) {
 
   // State file written under the ~/.claude/projects/ shadow tree — project
   // state belongs in the workspace, not the AI-brain directory.
-  if (!allowlisted && STATE_FILE_BASENAMES.has(basename)) {
+  if (!allowlisted && (STATE_FILE_BASENAMES.has(basename) || basename.endsWith(STATE_FILE_SUFFIX))) {
     for (let i = 0; i < parts.length - 1; i++) {
       if (parts[i] === '.claude' && parts[i + 1] === 'projects') {
         return `State file (${basename}) written under a shadow path (.claude/projects/) — ` +
