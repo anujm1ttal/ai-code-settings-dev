@@ -3,7 +3,7 @@
 Gate Telemetry (LH-3 T1c)
 
 Summarizes hooks/lib/gate-log.js's gate_events.jsonl into per-hook fire
-counts split by decision (deny/nag), with each hook's last-fired timestamp.
+counts split by decision (deny/nag/pass), with each hook's last-fired timestamp.
 This is the read side of LH-3's instrumentation (T1a/T1b write the events;
 T1d surfaces this table at /handoff — a read-side with no reader is just
 another write-only file).
@@ -32,6 +32,7 @@ class HookStats:
     hook: str
     deny_count: int
     nag_count: int
+    pass_count: int
     last_fired: str | None
 
 
@@ -73,6 +74,7 @@ def aggregate(events: list[dict[str, object]]) -> list[HookStats]:
     """Roll events up into one HookStats per distinct `hook`, sorted by name."""
     deny_counts: dict[str, int] = {}
     nag_counts: dict[str, int] = {}
+    pass_counts: dict[str, int] = {}
     last_fired: dict[str, str] = {}
 
     for event in events:
@@ -84,16 +86,19 @@ def aggregate(events: list[dict[str, object]]) -> list[HookStats]:
             deny_counts[hook] = deny_counts.get(hook, 0) + 1
         elif decision == "nag":
             nag_counts[hook] = nag_counts.get(hook, 0) + 1
+        elif decision == "pass":
+            pass_counts[hook] = pass_counts.get(hook, 0) + 1
 
         if isinstance(ts, str) and ts > last_fired.get(hook, ""):
             last_fired[hook] = ts
 
-    all_hooks = sorted(set(deny_counts) | set(nag_counts) | set(last_fired))
+    all_hooks = sorted(set(deny_counts) | set(nag_counts) | set(pass_counts) | set(last_fired))
     return [
         HookStats(
             hook=hook,
             deny_count=deny_counts.get(hook, 0),
             nag_count=nag_counts.get(hook, 0),
+            pass_count=pass_counts.get(hook, 0),
             last_fired=last_fired.get(hook),
         )
         for hook in all_hooks
@@ -102,18 +107,19 @@ def aggregate(events: list[dict[str, object]]) -> list[HookStats]:
 
 def print_table(stats: list[HookStats]) -> None:
     print("# Gate Telemetry\n")
-    print("| Hook | Deny | Nag | Last Fired |")
-    print("|:---|---:|---:|:---|")
+    print("| Hook | Deny | Nag | Pass | Last Fired |")
+    print("|:---|---:|---:|---:|:---|")
     for s in stats:
-        print(f"| {s.hook} | {s.deny_count} | {s.nag_count} | {s.last_fired or '-'} |")
+        print(f"| {s.hook} | {s.deny_count} | {s.nag_count} | {s.pass_count} | {s.last_fired or '-'} |")
 
     total_deny = sum(s.deny_count for s in stats)
     total_nag = sum(s.nag_count for s in stats)
-    print(f"\n**{total_deny} deny, {total_nag} nag across {len(stats)} hook(s).**")
+    total_pass = sum(s.pass_count for s in stats)
+    print(f"\n**{total_deny} deny, {total_nag} nag, {total_pass} pass across {len(stats)} hook(s).**")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Summarize gate_events.jsonl deny/nag fire counts per hook.")
+    parser = argparse.ArgumentParser(description="Summarize gate_events.jsonl deny/nag/pass fire counts per hook.")
     parser.add_argument(
         "events_file",
         nargs="?",
