@@ -65,7 +65,30 @@ EXCLUDED_PATHS: tuple[str, ...] = (
     "real plugin installs live in ~/.claude/plugins/ via the marketplace, not a raw copy.",
     "settings.json - never written by deploy.sh; hook wiring is validated separately "
     "by scripts/verify_hook_wiring.py.",
+    "skills/synced/ - harness-owned (Claude Code's own account-level skill sync, "
+    "NOT this repo); deploy.sh step 5 preserves it by moving it aside and restoring "
+    "it rather than deleting it, so it has no source-tree copy to compare against "
+    "and would otherwise report as permanent deployed-only drift.",
 )
+
+# (dirname, relpath-prefix) pairs that deploy.sh deliberately preserves rather than
+# overwrites (see deploy.sh step 5's synced/ move-aside-and-restore). A file under
+# one of these is never source-tracked, so treating it as drift would either block
+# every future deploy on content this repo cannot and must not vendor (see
+# CLAUDE.md's no-third-party-licensed-content HARD-GATE), or — if the exclusion
+# were a blind glob instead of scoped to this exact prefix — silently hide real
+# drift elsewhere in skills/ (the CPI-1 T5 lesson: a broad exclusion is the same
+# failure class as the literal-swap defect it fixed).
+HARNESS_OWNED_PREFIXES: tuple[tuple[str, str], ...] = (("skills", "synced/"),)
+
+
+def is_harness_owned(dirname: str, relpath: str) -> bool:
+    """True if `relpath` (relative to `dirname`, e.g. "synced/x.md") falls under a
+    path deploy.sh preserves instead of deploying — see HARNESS_OWNED_PREFIXES."""
+    return any(
+        dirname == owned_dir and relpath.startswith(owned_prefix)
+        for owned_dir, owned_prefix in HARNESS_OWNED_PREFIXES
+    )
 
 DEFAULT_SOURCE_ROOT: Path = Path(__file__).resolve().parent.parent
 DEFAULT_DEST_ROOT: Path = Path.home() / ".claude"
@@ -194,6 +217,8 @@ def compare_directory(
     relpaths = _relative_files(source_dir) | _relative_files(deployed_dir)
     mismatches: list[Mismatch] = []
     for rel in sorted(relpaths):
+        if is_harness_owned(dirname, rel):
+            continue
         result = classify_pair(
             source_dir / rel, deployed_dir / rel, f"{dirname}/{rel}", repo_root
         )

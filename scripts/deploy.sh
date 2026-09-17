@@ -147,6 +147,67 @@ echo ""
 
 echo -e "${YELLOW}[5/6]${NC} Copying production artifacts..."
 
+# skills/synced/ is written by the Claude Code harness itself (account-level
+# skill sync — e.g. docx/pptx/xlsx/pdf/skill-creator bundles under a per-account
+# UUID) — NOT by this repo, and deploy.sh has no source-tree copy to restore it
+# from. It carries third-party-licensed content (see CLAUDE.md's no-vendoring
+# HARD-GATE) that must never be backported into source, so the only safe
+# handling is: never delete it. Preserve by moving it aside before the
+# wipe-and-recopy below, then restoring it — this is NOT a glob/copy-loop
+# exclusion (CPI-1 T5 already found that shape brittle); it physically cannot
+# be touched by `rm -rf "$DEST/skills"` while it lives outside that path.
+SYNCED_PRESERVE="$DEST/.skills-synced-preserve-tmp"
+
+# Crash-recovery, BEFORE anything else: if a previous run's move-aside never
+# made it back (crash/kill mid-loop), $SYNCED_PRESERVE holds the last-known-good
+# synced/ and is the only copy of it that exists anywhere — it cannot be
+# re-vendored from source. Restore it now rather than let the unconditional
+# cleanup below delete it; an unconditional `rm -rf "$SYNCED_PRESERVE"` here
+# would silently convert one interrupted run into permanent loss on the NEXT
+# run, which is worse than doing nothing at all.
+if [ -d "$SYNCED_PRESERVE" ] && [ ! -e "$DEST/skills/synced" ]; then
+  echo -e "${YELLOW}  → Recovering skills/synced/ left over from an interrupted deploy...${NC}"
+  mkdir -p "$DEST/skills"
+  mv "$SYNCED_PRESERVE" "$DEST/skills/synced"
+fi
+rm -rf "$SYNCED_PRESERVE"
+
+# Trap backstop: the move-aside/wipe/restore below runs under the script-wide
+# `set -e` (line 5) with NO existing trap, so any failure among the 12 rm/cp
+# ops in the loop — or an interactive Ctrl-C — previously exited the script
+# with skills/synced/ stranded in $SYNCED_PRESERVE and nothing pointing at it.
+# This trap is a backstop, not the primary path: the inline restore after the
+# loop still runs on the happy path (kept for a linear, readable success flow
+# and an immediate post-condition at the point of use); the trap exists solely
+# to make every OTHER exit (error under set -e, INT, TERM) also restore before
+# the script leaves. It is idempotent — a no-op once the inline restore has
+# already moved $SYNCED_PRESERVE back — and is disarmed (`trap - EXIT INT TERM`)
+# right after that inline restore succeeds so it can't fire redundantly during
+# step 5's tail or step 6. Does not, and cannot, cover SIGKILL / power loss —
+# see this run's fault-injection evidence for what it does cover.
+# The handler itself never calls `exit`: it is also registered for EXIT, and
+# bash suppresses re-entrant EXIT traps, so any explicit `exit` inside it would
+# not fire the EXIT trap a second time — meaning a call arriving via INT/TERM
+# would never re-trigger the same restore on the way out. Instead, INT/TERM
+# each call the handler and THEN exit explicitly (128+signum, the conventional
+# code); that exit still re-fires the EXIT trap, which is a harmless no-op —
+# restore_synced_on_exit is conditional on `[ -d "$SYNCED_PRESERVE" ]`, which
+# is already false the second time it runs.
+restore_synced_on_exit() {
+  if [ -d "$SYNCED_PRESERVE" ]; then
+    echo -e "${RED}  → Deploy interrupted: restoring skills/synced/ from backstop...${NC}" >&2
+    mkdir -p "$DEST/skills"
+    mv "$SYNCED_PRESERVE" "$DEST/skills/synced"
+  fi
+}
+trap restore_synced_on_exit EXIT
+trap 'restore_synced_on_exit; exit 130' INT
+trap 'restore_synced_on_exit; exit 143' TERM
+
+if [ -d "$DEST/skills/synced" ]; then
+  mv "$DEST/skills/synced" "$SYNCED_PRESERVE"
+fi
+
 # Copy directories.
 # optional_plugins is intentionally excluded: real plugin installs live in
 # ~/.claude/plugins/ via the marketplace, not a raw copy of the repo folder.
@@ -156,6 +217,12 @@ for dir in agents rules skills templates commands hooks; do
   rm -rf "$DEST/$dir"
   cp -r "$SOURCE/$dir" "$DEST/$dir"
 done
+
+if [ -d "$SYNCED_PRESERVE" ]; then
+  mkdir -p "$DEST/skills"
+  mv "$SYNCED_PRESERVE" "$DEST/skills/synced"
+fi
+trap - EXIT INT TERM
 
 # Copy critical files
 # CLAUDE-global.md is the deployable global (NOT the repo-specific CLAUDE.md)
