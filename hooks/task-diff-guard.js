@@ -152,10 +152,14 @@ const EDIT_TOOL_NAMES = new Set(['Edit', 'Write', 'MultiEdit', 'NotebookEdit']);
 const PROTECTED_FILES = [
   'BACKLOG.md',
   'TODO.md',
-  'AUDIT_REPORT.md',
   'DECISION_LOG.md',
   'IMPLEMENTATION_PLAN.md',
 ];
+// CPI-1: the rolling `Artifacts/AUDIT_REPORT.md` root file was retired in
+// favor of per-phase `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md`. No new
+// entry is needed here — the `Reports` glob below (pre-dates CPI-1, SGH-1c
+// T12c-T12e) already matches any *.md dropped directly in that dir, so the
+// replacement artifact was covered before this phase started.
 const PROTECTED_GLOB_DIRS = [
   { dir: 'Plans', match: /\.md$/ },
   { dir: 'Reports', match: /\.md$/ },

@@ -20,7 +20,7 @@ Owned by the **concierge**. Performs mid-session project hygiene.
 ## Execution Sequence
 
 0. **Promote**: Before scanning, move any `Artifacts/Temp/` file cited by a durable record
-   (phase report, `AUDIT_REPORT.md`, `DECISION_LOG.md`, `BACKLOG.md` finding, `learnings/` entry)
+   (phase report, phase audit report, `DECISION_LOG.md`, `BACKLOG.md` finding, `learnings/` entry)
    to `Artifacts/Evidence/<phase>/` and repoint the citation. Promoted files leave the purge set.
 1. **Temp Scan**: List all files remaining in `Artifacts/Temp/`.
 2. **Stray Scan**: Identify files matching transient patterns:

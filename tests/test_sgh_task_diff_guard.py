@@ -254,10 +254,13 @@ def test_pre_snapshots_present_files(project: Path, tool_name: str):
 
 
 def test_pre_skips_absent_files(project: Path):
-    # AUDIT_REPORT.md / DECISION_LOG.md do not exist in the fixture
+    # IMPLEMENTATION_PLAN.md / DECISION_LOG.md do not exist in the fixture.
+    # (CPI-1: AUDIT_REPORT.md retired from PROTECTED_FILES — the rolling root
+    # file no longer exists; its replacement, Artifacts/Reports/<PHASE>-
+    # AUDIT_REPORT.md, is covered by the pre-existing Reports glob instead.)
     pre(project)
     snaps = {p.name for p in list_snapshot_dirs(project)[0].rglob("*") if p.is_file()}
-    assert "AUDIT_REPORT.md" not in snaps
+    assert "IMPLEMENTATION_PLAN.md" not in snaps
     assert "DECISION_LOG.md" not in snaps
 
 

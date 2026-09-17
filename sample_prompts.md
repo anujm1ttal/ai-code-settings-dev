@@ -51,7 +51,7 @@ This refactor is complex. Use the implementation-dispatch skill to delegate the 
 ```
 
 ### 2. Auditing (The Gatekeeper)
-When you finish a task, or when you are stuck or want a code review, call the auditor. It will generate an `Artifacts/AUDIT_REPORT.md` and append any missing tasks to `Artifacts/TODO.md`.
+When you finish a task, or when you are stuck or want a code review, call the auditor. It will generate `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md` and append any missing tasks to `Artifacts/TODO.md`.
 ```prompt
 /audit
 ```

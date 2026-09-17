@@ -213,7 +213,7 @@ Working evidence (`Artifacts/Temp/` contents) is scratch and is **not part of th
 
 ### Pre-Commit Cleanup
 
-**Promote first, then delete.** Any Temp file the phase report (or `AUDIT_REPORT.md` /
+**Promote first, then delete.** Any Temp file the phase report (or `Reports/<PHASE>-AUDIT_REPORT.md` /
 `DECISION_LOG.md` / a `BACKLOG.md` finding) cites is promoted and repointed before the `rm` —
 `orchestration.md` §Evidence Retention. Deleting a cited file is a **hard-reset trigger** (§7:
 evidence contradicting reported state), not a cleanup detail.

@@ -6,7 +6,7 @@ This overview provides a high-leverage entry point for agent orchestration. Use 
 |:---|:---|:---|:---|
 | **strategist** | [abstract](./strategist.abstract.md) | Architecture, planning, Step 0, ROI, and phased roadmaps. | `IMPLEMENTATION_PLAN.md`, `TODO.md` |
 | **coder** | [abstract](./coder.abstract.md) | Senior implementation specialist. Translates plans into code. | Source code, test files |
-| **auditor** | [abstract](./auditor.abstract.md) | QA, compliance, and final sign-off. Authority to mark `[x]`. | `AUDIT_REPORT.md` |
+| **auditor** | [abstract](./auditor.abstract.md) | QA, compliance, and final sign-off. Authority to mark `[x]`. | `Reports/<PHASE>-AUDIT_REPORT.md` |
 | **concierge** | [abstract](./concierge.abstract.md) | State management, session sync, handoffs, and learnings. | `learnings/`, `current_task.md` |
 | **council** | [abstract](./council.abstract.md) | Consensus engine for high-stakes pivots and conflicts. | `DECISION_LOG.md` |
 | **scribe** | [abstract](./scribe.abstract.md) | Documentation, teaching, YouTube scripts, and metadata. | `README.md`, `ARCH.md` |

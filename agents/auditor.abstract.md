@@ -5,6 +5,6 @@
 **Core Responsibilities**:
 - Conducts evidence-first audits against `coding-style.md` and skill files.
 - Operates the Skill Verification Gate for all new/modified skills.
-- Writes full audit results to `AUDIT_REPORT.md`.
+- Writes full audit results to `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md`.
 
 **Authority**: **SOLE agent authorized** to mark `Artifacts/TODO.md` items as `[x]` (complete).
