@@ -136,6 +136,16 @@ function logGateSafe(params) {
   }
 }
 
+// Same lazy-required, independently wrapped discipline as logGateSafe, for
+// the once-per-session heartbeat (HFO-1 T4).
+function logPassSafe(params) {
+  try {
+    require('./lib/gate-log').logPassOnce(params);
+  } catch {
+    // Logging must never affect this hook's decision or exit code.
+  }
+}
+
 function deny(filePath, reason, context = {}) {
   const output = {
     hookSpecificOutput: {
@@ -185,7 +195,10 @@ function main() {
       return;
     }
 
-    // Allowed
+    // Evaluated-nothing path: isBlocked() tested filePath against every rule
+    // and none matched — a real evaluation, reached after the deny
+    // decision (R5).
+    logPassSafe({ hook: 'guard-paths', event: 'PreToolUse', tool: data.tool_name, ruleId: 'guard-paths', cwd: data.cwd, sessionId: data.session_id, note: 'no-path-match' });
     process.exit(0);
 
   } catch (err) {

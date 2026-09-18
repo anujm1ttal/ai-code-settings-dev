@@ -72,6 +72,16 @@ function logGateSafe(params) {
   }
 }
 
+// Same lazy-required, independently wrapped discipline as logGateSafe, for
+// the once-per-session heartbeat (HFO-1 T4).
+function logPassSafe(params) {
+  try {
+    require('./lib/gate-log').logPassOnce(params);
+  } catch {
+    // Logging must never affect this hook's decision or exit code.
+  }
+}
+
 function runLinter(cmd, args, cwd) {
   try {
     const output = execFileSync(cmd, args, {
@@ -110,6 +120,9 @@ function main() {
     const cwd = data.cwd || process.cwd();
 
     if (!filePath) {
+      // Could-not-evaluate path (note vocabulary, HFO-1-Plan.md §3): no file
+      // path in tool_input — the linter never ran, there was no target (R5).
+      logPassSafe({ hook: 'auto-lint', event: 'PostToolUse', tool: data.tool_name, ruleId: 'auto-lint', cwd, sessionId: data.session_id, note: 'no-file-path' });
       process.exit(0);
     }
 
@@ -117,10 +130,17 @@ function main() {
     const linter = LINTER_MAP[ext];
 
     if (!linter) {
+      // Could-not-evaluate path: no linter is mapped for this extension — the
+      // linter never ran, no check exists for this file type (R5).
+      logPassSafe({ hook: 'auto-lint', event: 'PostToolUse', tool: data.tool_name, ruleId: 'auto-lint', cwd, sessionId: data.session_id, note: 'no-linter-mapped' });
       process.exit(0); // No linter configured for this file type
     }
 
     if (!linter.detect(cwd)) {
+      // Could-not-evaluate path: the mapped linter isn't installed on this
+      // machine — the linter never ran, semantically identical to
+      // task-diff-guard.js's 'no-transcript' (R5).
+      logPassSafe({ hook: 'auto-lint', event: 'PostToolUse', tool: data.tool_name, ruleId: 'auto-lint', cwd, sessionId: data.session_id, note: 'linter-unavailable' });
       process.exit(0); // Linter tool not available
     }
 
@@ -151,6 +171,12 @@ function main() {
         ruleId: 'auto-lint',
         cwd,
       });
+    } else {
+      // Evaluated-nothing path: the linter actually ran and found nothing to
+      // report — a real evaluation, not a bailout (R5). This is the else of
+      // the nag condition above, so the two can never both fire for one
+      // invocation.
+      logPassSafe({ hook: 'auto-lint', event: 'PostToolUse', tool: data.tool_name, ruleId: 'auto-lint', cwd, sessionId: data.session_id, note: 'lint-clean' });
     }
 
     process.exit(0);

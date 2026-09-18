@@ -168,6 +168,16 @@ function logGateSafe(params) {
   }
 }
 
+// Same lazy-required, independently wrapped discipline as logGateSafe, for
+// the once-per-session heartbeat (HFO-1 T4).
+function logPassSafe(params) {
+  try {
+    require('./lib/gate-log').logPassOnce(params);
+  } catch {
+    // Logging must never affect this hook's decision or exit code.
+  }
+}
+
 function deny(command, reason, context = {}) {
   const output = {
     hookSpecificOutput: {
@@ -220,7 +230,10 @@ function main() {
       }
     }
 
-    // Allowed
+    // Evaluated-nothing path: every BLOCKED_PATTERNS entry was tested against
+    // this command and none matched — a real evaluation, reached after the
+    // deny decision (R5).
+    logPassSafe({ hook: 'guard-commands', event: 'PreToolUse', tool: data.tool_name, ruleId: 'guard-commands', cwd: data.cwd, sessionId: data.session_id, note: 'no-pattern-match' });
     process.exit(0);
 
   } catch (err) {

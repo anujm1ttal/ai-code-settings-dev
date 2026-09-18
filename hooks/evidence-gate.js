@@ -55,6 +55,16 @@ function logGateSafe(params) {
   }
 }
 
+// Same lazy-required, independently wrapped discipline as logGateSafe, for
+// the once-per-session heartbeat (HFO-1 T4).
+function logPassSafe(params) {
+  try {
+    require('./lib/gate-log').logPassOnce(params);
+  } catch {
+    // Logging must never affect this hook's decision or exit code.
+  }
+}
+
 function buildMessage(claimText) {
   const excerpt = claimText.length > CLAIM_EXCERPT_LENGTH
     ? `${claimText.slice(0, CLAIM_EXCERPT_LENGTH)}...`
@@ -92,15 +102,26 @@ function main() {
     }
 
     if (!hasSourceEdits(entries)) {
+      // Evaluated-nothing path: examined the transcript and found no source
+      // edits this session — a real determination, nothing for this gate to
+      // check (R5).
+      logPassSafe({ hook: 'evidence-gate', event: 'Stop', tool: null, ruleId: 'evidence-gate', cwd: data.cwd, sessionId: data.session_id, note: 'no-source-edits' });
       process.exit(0);
     }
 
     const claimText = matchCompletionClaim(extractFinalAssistantText(entries));
     if (!claimText) {
+      // Evaluated-nothing path: source was edited, but no completion claim
+      // was made — a real determination, nothing for this gate to check (R5).
+      logPassSafe({ hook: 'evidence-gate', event: 'Stop', tool: null, ruleId: 'evidence-gate', cwd: data.cwd, sessionId: data.session_id, note: 'no-completion-claim' });
       process.exit(0);
     }
 
     if (hasFreshEvidence(entries)) {
+      // Evaluated-nothing path: a completion claim was made, but fresh test
+      // evidence already backs it — the Iron Law is satisfied, nothing to
+      // nag (R5).
+      logPassSafe({ hook: 'evidence-gate', event: 'Stop', tool: null, ruleId: 'evidence-gate', cwd: data.cwd, sessionId: data.session_id, note: 'evidence-fresh' });
       process.exit(0);
     }
 
