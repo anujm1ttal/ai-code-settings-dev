@@ -1,0 +1,7 @@
+{
+  "_comment": "Single source of truth for the license gate (HFO-2, Initiative HR2). Read by hooks/guard-commands.js (R-A, HFO-2 T2), hooks/guard-paths.js (R-B/R-C, HFO-2 T3), and scripts/verify_deploy_parity.py (remedy gate, HFO-2 T5). Each carries a literal fallback of the same four fields for when this file is unreachable (absent/unreadable/malformed) — tests/test_license_gate_parity.py (HFO-2 T1) asserts all four sides equal, including the prose table in hooks/README.md. self_exempt names the one path R-C must never read (HFO-2-Plan.md §3 Q1 tradeoff (b)) — this file itself, since it necessarily contains the markers it defines.",
+  "source_roots": ["office-skills/ms-office", ".claude/skills/synced"],
+  "dest_prefixes": ["optional_plugins/ms-office/"],
+  "markers": ["all rights reserved", "license: proprietary", "anthropic, pbc"],
+  "self_exempt": ["hooks/license-gate.json"]
+}
