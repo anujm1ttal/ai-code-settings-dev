@@ -104,6 +104,101 @@ python scripts/gate_telemetry.py <path-to-any-project>/Artifacts/.agent/gate_eve
 
 3. **`nag > 0` with no measurable line-count reduction within 3 sessions of a fire** → Nag has no behavioural effect; escalate to a `/handoff` gate or delete.
 
+## License Gate Config Parity
+
+`hooks/license-gate.json` is the single source of truth for the license gate
+(HFO-2) — the mechanism enforcing `CLAUDE.md`'s HARD-GATE barring third-party-
+licensed content from tracked paths. Four sides are kept in sync by
+`tests/test_license_gate_parity.py`: the JSON itself, the JS fallbacks in
+`hooks/guard-commands.js` and `hooks/guard-paths.js`, the Python fallback in
+`scripts/verify_deploy_parity.py`, and this table. Each side asserts it
+extracted non-empty values before comparing against the others — a reworded
+side fails the parity test, it never silently skips.
+
+| Key | Values |
+|:---|:---|
+| `source_roots` | `office-skills/ms-office`, `.claude/skills/synced` |
+| `dest_prefixes` | `optional_plugins/ms-office/` |
+| `markers` | `all rights reserved`, `license: proprietary`, `anthropic, pbc` |
+| `self_exempt` | `hooks/license-gate.json` |
+
+`source_roots`/`dest_prefixes`/`markers`/`self_exempt` are consumed by R-A
+(`guard-commands.js`), R-B/R-C (`guard-paths.js`), and the deploy-parity
+remedy gate (`scripts/verify_deploy_parity.py`) — the rule text, coverage
+boundary, and kill condition for those consumers land with the tasks that
+wire them in.
+
+## License Gate Rules (R-A / R-B / R-C)
+
+| Rule | Hook | Keyed on | Fails closed? |
+|:---|:---|:---|:---|
+| **R-A** *(primary)* | `guard-commands.js` | a licensed `source_root` referenced in the command string | ⚠️ no — the command string is always present, the source root *inside* it is optional |
+| **R-B** | `guard-paths.js` | destination path under a `dest_prefixes` entry, matched as a consecutive path-segment sequence (never `startsWith`) | yes — `file_path` is always present |
+| **R-C** | `guard-paths.js` | a `markers` string in the write payload, **only when the target path does not yet exist** and is not `self_exempt` | n/a — provenance-scoped by design (Q1=C, `HFO-2-Plan.md` §3) |
+
+**R-A's known blind spots (accepted, `HFO-2-Plan.md` §3 Q2 / §9):** R-A is a plain substring test
+on the raw command string — a `cd`-split two-call form (`cd ~/office-skills && cp -R ms-office
+<dest>/`, since the Bash tool's cwd persists between calls), variable indirection (`$SRC`), and
+globs all carry **no matchable root**, so none of these forms denies. It raises the cost of
+carelessness; it is not a barrier. The same substring match also denies **read-only** commands that
+merely *mention* a licensed root (`ls ~/office-skills/ms-office`, `grep -r ~/office-skills/
+ms-office`) — a knowingly accepted operator cost, not a bug: if you hit an unexpected deny on a
+read-only command, this is why.
+
+### Coverage boundary (`HFO-2-Plan.md` §1c) — read this before trusting the gate
+
+> A `guard-paths.js` rule, on its own, would not have prevented MSO-2 — a bulk `cp -R` never
+> reaches a `Write` hook. Only a `guard-commands.js` rule keyed on the source root observes that
+> event at all, and then only when the command spells the root.
+
+`guard-paths.js`'s matcher is `Edit|MultiEdit|Write|NotebookEdit` — agent file-writes only. A bulk
+`cp -R` (or `robocopy`/`xcopy`/`Copy-Item`) is seen by `guard-commands.js` (R-A) and by nothing
+else: no `Write`/`Edit`/`MultiEdit`/`NotebookEdit` event is ever generated for a tree copy, so R-B
+and R-C never see it either.
+
+### The `tool_name`-absent gap
+
+Payload extraction is total across the **four matched tool shapes** — `Write`/`content`,
+`Edit`/`new_string`, `MultiEdit`/`edits[].new_string`, `NotebookEdit`/`new_source`
+(`guard-paths.js:298-312`) — and a **fifth, unrecognised but present** `tool_name` is not silently
+absorbed: it is logged via `logGateEvent` with `note:'payload-shape-unknown'`, bypassing the
+once-per-session `logPassOnce` heartbeat that would otherwise have already spent its marker on the
+turn's first ordinary allow and silently dropped the row.
+
+**What this does not cover:** a `PreToolUse` event carrying **no `tool_name` at all** falls through
+to a silent no-op — payload stays `''` and no `payload-shape-unknown` row is ever written
+(`guard-paths.js:296-297`). This is unreachable **only because** the deployed matcher is
+`Edit|MultiEdit|Write|NotebookEdit`: Claude Code's own routing guarantees `tool_name` is one of
+those four whenever this hook fires at all. **Widening the matcher makes this gap live** — a fifth
+edit tool, or any matcher regex change, would let a payload skip both the check and the log with
+zero trace. Re-run the extraction-totality test and re-read this section before shipping any
+matcher widening.
+
+### Kill Condition (does the license gate actually fire?)
+
+```bash
+python scripts/gate_telemetry.py Artifacts/.agent/gate_events.jsonl
+```
+
+`gate_telemetry.py` reports deny/nag/pass **per hook** (`guard-commands`, `guard-paths`), not per
+rule: `deny()` in both hooks logs a fixed `ruleId` equal to the hook's own name
+(`guard-commands.js:263`, `guard-paths.js:263`) — never a rule-specific id, and never the
+`permissionDecisionReason` text (`LICENSE-GATE R-A`/`R-B`/`R-C` is returned to the agent, not
+persisted to `gate_events.jsonl`). R-A/R-B/R-C therefore share their hook's row with every other
+`BLOCKED_PATTERNS`/`isBlocked` rule. Three branches:
+
+1. **Both hooks show 0 deny across ≥20 sessions** → the license gate — like every other rule
+   sharing these hooks — has not fired. Confirm via `/hooks` that the wiring is still live before
+   reading this as "no risky command occurred"; a broken hook produces the same zero.
+2. **`guard-commands` deny > 0** → open the `gate_events.jsonl` rows at that timestamp and
+   cross-reference the same-session command text in `Artifacts/.agent/audit_trail.jsonl` or the
+   transcript. Only a match naming `office-skills/ms-office` or `.claude/skills/synced` confirms an
+   R-A fire — otherwise the deny belongs to one of `guard-commands.js`'s other rules (`rm -rf`,
+   force push, …).
+3. **`guard-paths` deny > 0** → cross-reference the denied `file_path`/payload for that turn: a
+   destination under `dest_prefixes` is R-B, a marker in a brand-new file is R-C, anything else
+   (shadow-path, `scratch/`, binary extension, …) is not the license gate.
+
 ## Design Philosophy
 
 ### Fail-Open
@@ -124,6 +219,8 @@ The `auto-lint.js` hook reports lint violations back to Claude as context and in
 - **VCS internals**: `.git/`
 - **Project state in shadow (scratch-gate)**: Files like `TODO.md`, `DECISION_LOG.md`, `IMPLEMENTATION_PLAN.md` written under `~/.claude/projects/` — project state belongs in `<workspace>/Artifacts/` per orchestration.md HARD-GATE
 - **Bare scratch/ directory**: One-off scripts and temp data belong in `<workspace>/Artifacts/Temp/` per orchestration.md Scratch Strategy HARD-GATE (exceptions: `memory/` and `tool-results/` under shadow are allowlisted)
+- **Licensed-content destination/marker (R-B/R-C, HFO-2)**: destination prefixes and brand-new-file
+  license markers from `hooks/license-gate.json` — see [License Gate Rules](#license-gate-rules-r-a--r-b--r-c) above
 
 To customize, edit the `BLOCKED_*` constants in `guard-paths.js`.
 
@@ -137,6 +234,8 @@ To customize, edit the `BLOCKED_*` constants in `guard-paths.js`.
 - Fork bombs, block-device writes, piped curl-to-shell
 - **Commit messages with AI attribution trailers**: `Co-Authored-By: Claude` or `Generated with Claude Code` (standards.md deny-list; both shells detected)
 - **Shell redirects into tracked source files** — see below
+- **Licensed-content source root (R-A, HFO-2)**: commands referencing a source root from
+  `hooks/license-gate.json` — see [License Gate Rules](#license-gate-rules-r-a--r-b--r-c) above
 
 To customize, edit the `BLOCKED_PATTERNS` array in `guard-commands.js`.
 

@@ -64,6 +64,22 @@ A safety check MUST fail closed:
 - If a test lane needs to bypass a guard, the bypass must be explicit and named (e.g., an `unsafe_skip_check=True` flag), never the natural consequence of omitting an argument.
 - Rationale: A guard defaulting to "off" when not explicitly supplied protects the test path and nothing else for the entire life of the feature, silently disabling shipped capabilities with no error.
 
+> [!NOTE]
+> **Annotation — HFO-2, 2026-09-22 (scope: `PreToolUse` payload extraction only; the rule above
+> stands unamended).** The first bullet was found violated by the `filePath` extraction in
+> `guard-paths.js` `main()` (locate by `grep -n notebook_path`; it was `:189` at `b3843b8`), which reads
+> **path** fields only (`file_path || path || filePath || notebook_path`). A **content**-based rule
+> therefore silently no-ops for `Edit`, `MultiEdit` and `NotebookEdit` — the **missing-field** path,
+> not the crash path; an earlier reading blamed the crash path and was wrong.
+> **Resolved without weakening this rule**: the hook stays **fail-open** (crash or unreadable stdin
+> → exit 0); extraction is made **total** across every matched tool shape (HFO-2 T3), so there is no
+> missing-field state to fail open into; and an unrecognised shape emits a `pass` row noted
+> `payload-shape-unknown` rather than silently allowing. The guard is thus no longer gated on an
+> optional field being present — what this section actually demands — without converting the hook to
+> fail-closed. **This licenses no fail-open guard elsewhere.** Residual accepted knowingly: an
+> unrecognised shape still passes once, logged rather than silent. Full grounds are recorded in
+> this phase's decision log and plan.
+
 ## MCP & Tool Security
 
 - **Read-only by default**. Write access scoped to project directory only.

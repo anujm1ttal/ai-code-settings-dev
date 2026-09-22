@@ -45,6 +45,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 import argparse
+import json
 import subprocess
 import sys
 
@@ -89,6 +90,56 @@ def is_harness_owned(dirname: str, relpath: str) -> bool:
         dirname == owned_dir and relpath.startswith(owned_prefix)
         for owned_dir, owned_prefix in HARNESS_OWNED_PREFIXES
     )
+
+# --- License gate config (HFO-2 T1) ----------------------------------------
+# Single source of truth: hooks/license-gate.json. This literal fallback (used
+# only when that file is absent, unreadable, or malformed) must stay
+# identical to the JSON and the JS fallbacks in hooks/guard-commands.js and
+# hooks/guard-paths.js, and the prose table in hooks/README.md — enforced by
+# tests/test_license_gate_parity.py, never by eyeballing. The remedy gate that
+# reads this config (HFO-2 T5) is not wired in yet; T1 only prepares the
+# shared config surface it will consume.
+
+
+@dataclass(frozen=True)
+class LicenseGate:
+    """The license-gate config, loaded once at import time (HFO-2 T1)."""
+
+    source_roots: tuple[str, ...]
+    dest_prefixes: tuple[str, ...]
+    markers: tuple[str, ...]
+    self_exempt: tuple[str, ...]
+
+
+LICENSE_GATE_FALLBACK = LicenseGate(
+    source_roots=("office-skills/ms-office", ".claude/skills/synced"),
+    dest_prefixes=("optional_plugins/ms-office/",),
+    markers=("all rights reserved", "license: proprietary", "anthropic, pbc"),
+    self_exempt=("hooks/license-gate.json",),
+)
+
+LICENSE_GATE_PATH: Path = Path(__file__).resolve().parent.parent / "hooks" / "license-gate.json"
+
+
+def load_license_gate(path: Path = LICENSE_GATE_PATH) -> LicenseGate:
+    """Load the license-gate config from `path`; fall back to the built-in
+    defaults above when it is unreachable — absent, unreadable, or malformed
+    JSON. Never raises: a bad config file must not crash this script (mirrors
+    scripts/backlog_audit.py's `load_caps`)."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        gate = LicenseGate(
+            source_roots=tuple(data["source_roots"]),
+            dest_prefixes=tuple(data["dest_prefixes"]),
+            markers=tuple(data["markers"]),
+            self_exempt=tuple(data["self_exempt"]),
+        )
+        if not gate.source_roots:
+            raise ValueError("empty source_roots")
+        return gate
+    except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+        return LICENSE_GATE_FALLBACK
+
 
 DEFAULT_SOURCE_ROOT: Path = Path(__file__).resolve().parent.parent
 DEFAULT_DEST_ROOT: Path = Path.home() / ".claude"
@@ -258,6 +309,39 @@ def format_scope(source_root: Path, dest_root: Path) -> str:
     return "\n".join(lines)
 
 
+def _path_contains_segments(path_segments: list[str], needle_segments: list[str]) -> bool:
+    """True if `needle_segments` occurs as a consecutive run inside
+    `path_segments` (mirrors guard-paths.js R-B's segment match — never a raw
+    substring, so `ms-office-notes/` does not false-positive on `ms-office`)."""
+    n = len(needle_segments)
+    if n == 0 or n > len(path_segments):
+        return False
+    return any(path_segments[i : i + n] == needle_segments for i in range(len(path_segments) - n + 1))
+
+
+def _is_encumbered_relpath(relpath: str, gate: LicenseGate) -> bool:
+    """True if `relpath` falls under one of `gate`'s licensed-corpus source
+    roots or destination prefixes (HFO-2 T5 — `cpi1_parity-remedy-generic_1`).
+    `gate` only knows roots someone already listed (§4e); an unlisted
+    encumbered path is why the standing caveat in `format_report` ships
+    unconditionally rather than replacing this check."""
+    segments = [s for s in relpath.replace("\\", "/").split("/") if s]
+    for candidate in (*gate.source_roots, *gate.dest_prefixes):
+        needle = [s for s in candidate.replace("\\", "/").split("/") if s]
+        if _path_contains_segments(segments, needle):
+            return True
+    return False
+
+
+LICENSE_GATE_CAVEAT: str = (
+    "HARD-GATE reminder: `hooks/license-gate.json` only knows the roots and prefixes "
+    "already listed in it - before staging or committing ANY deployed-ahead/deployed-only "
+    "file above, verify it is not third-party-licensed content. Back-porting licensed "
+    "material into this tracked, public MIT tree is the exact HARD-GATE `CLAUDE.md`'s "
+    "Local law forbids (the optional_plugins/ms-office precedent)."
+)
+
+
 def format_report(report: ParityReport, source_root: Path, dest_root: Path) -> str:
     lines = [format_scope(source_root, dest_root), ""]
     if not report.mismatches:
@@ -274,12 +358,25 @@ def format_report(report: ParityReport, source_root: Path, dest_root: Path) -> s
         lines.append("")
 
     if report.has_loss:
+        gate = load_license_gate()
+        encumbered = [m for m in report.loss_mismatches if _is_encumbered_relpath(m.relpath, gate)]
+        ordinary = [m for m in report.loss_mismatches if m not in encumbered]
         lines.append("DRIFT DETECTED - the deployed copy carries content the source lacks.")
-        lines.append(
-            "Back-port instruction: copy the deployed-ahead/deployed-only files listed "
-            "above into the source tree (git add + commit) BEFORE running deploy.sh - "
-            "the next deploy's `rm -rf` will silently delete this content otherwise."
-        )
+        if encumbered:
+            lines.append(
+                "LICENSE-GATE: the following paths match a licensed-corpus source root or "
+                "destination prefix in hooks/license-gate.json and must NOT be staged or "
+                "committed without first verifying licensing: "
+                + ", ".join(m.relpath for m in encumbered)
+            )
+        if ordinary:
+            lines.append(
+                "Back-port instruction: copy the following deployed-ahead/deployed-only "
+                "files into the source tree (git add + commit) BEFORE running deploy.sh - "
+                "the next deploy's `rm -rf` will silently delete this content otherwise: "
+                + ", ".join(m.relpath for m in ordinary)
+            )
+        lines.append(LICENSE_GATE_CAVEAT)
     return "\n".join(lines)
 
 

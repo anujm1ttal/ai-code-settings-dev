@@ -220,6 +220,74 @@ def test_cli_prints_covered_scope_and_exclusions(tmp_path: Path) -> None:
     assert "settings.json" in result.stdout
 
 
+# --------------------------------------------------------------------- HFO-2 T5 (license-gate remedy)
+
+
+def _loss_mismatch(relpath: str) -> vdp.Mismatch:
+    return vdp.Mismatch(
+        relpath=relpath,
+        classification=vdp.Classification.DEPLOYED_AHEAD,
+        source_path=None,
+        deployed_path=Path("dummy"),
+    )
+
+
+def test_format_report_encumbered_path_omits_git_add_and_keeps_caveat() -> None:
+    """cpi1_parity-remedy-generic_1: an encumbered relpath must not be told to
+    `git add` (that would back-port licensed content into the public tree),
+    but the standing HARD-GATE caveat still ships."""
+    gate = vdp.load_license_gate()
+    encumbered_relpath = f"hooks/{gate.dest_prefixes[0]}SKILL.md"
+    report = vdp.ParityReport(mismatches=(_loss_mismatch(encumbered_relpath),))
+
+    output = vdp.format_report(report, Path("src"), Path("dest"))
+
+    assert "git add" not in output
+    assert "HARD-GATE" in output
+    assert "LICENSE-GATE" in output
+
+
+def test_format_report_ordinary_path_keeps_git_add_and_caveat() -> None:
+    """Presence control (HR1-style): an ordinary drifted path must still get
+    the real back-port instruction — the gate must discriminate, not just
+    suppress `git add` for everyone."""
+    report = vdp.ParityReport(mismatches=(_loss_mismatch("agents/coder.md"),))
+
+    output = vdp.format_report(report, Path("src"), Path("dest"))
+
+    assert output.count("git add") >= 1
+    assert "HARD-GATE" in output
+
+
+def test_format_report_mixed_report_discriminates_per_path() -> None:
+    """Both halves in one report: the encumbered path's remedy carries no
+    `git add`-the-encumbered-file instruction while the ordinary path's
+    back-port instruction still fires."""
+    gate = vdp.load_license_gate()
+    encumbered_relpath = f"hooks/{gate.dest_prefixes[0]}SKILL.md"
+    ordinary_relpath = "agents/coder.md"
+    report = vdp.ParityReport(
+        mismatches=(
+            _loss_mismatch(encumbered_relpath),
+            _loss_mismatch(ordinary_relpath),
+        )
+    )
+
+    output = vdp.format_report(report, Path("src"), Path("dest"))
+
+    assert "Back-port instruction" in output
+    assert "LICENSE-GATE" in output
+    assert encumbered_relpath in output.split("LICENSE-GATE", 1)[1].split("\n", 1)[0]
+
+    # Converse (the regression this defect shipped): the back-port instruction
+    # must name ONLY ordinary paths — "listed above" would have pulled in the
+    # encumbered path too, since it legitimately appears in the classification
+    # listing above. Assert on the instruction line itself, not the whole output.
+    backport_line = next(line for line in output.splitlines() if line.startswith("Back-port instruction"))
+    assert ordinary_relpath in backport_line
+    assert encumbered_relpath not in backport_line
+
+
 # --------------------------------------------------------------------- HR1 (zero writes)
 
 

@@ -96,6 +96,62 @@ function redirectsIntoSource(rawCommand) {
   return false;
 }
 
+// --- License gate config (HFO-2 T1) ---------------------------------------
+// Single source of truth: hooks/license-gate.json. This literal fallback
+// (used only when that file is absent, unreadable, or malformed) must stay
+// identical to the JSON, the Python fallback in
+// scripts/verify_deploy_parity.py, and the prose table in hooks/README.md —
+// enforced by tests/test_license_gate_parity.py, never by eyeballing. R-A
+// (the source-root command-deny rule that reads this config) lands in
+// HFO-2 T2; T1 only prepares the shared config surface it will consume.
+const LICENSE_GATE_FALLBACK = Object.freeze({
+  source_roots: ['office-skills/ms-office', '.claude/skills/synced'],
+  dest_prefixes: ['optional_plugins/ms-office/'],
+  markers: ['all rights reserved', 'license: proprietary', 'anthropic, pbc'],
+  self_exempt: ['hooks/license-gate.json'],
+});
+
+function loadLicenseGate() {
+  try {
+    const raw = require('fs').readFileSync(require('path').join(__dirname, 'license-gate.json'), 'utf-8');
+    const data = JSON.parse(raw);
+    if (
+      !Array.isArray(data.source_roots) || data.source_roots.length === 0 ||
+      !Array.isArray(data.dest_prefixes) ||
+      !Array.isArray(data.markers) ||
+      !Array.isArray(data.self_exempt)
+    ) {
+      throw new Error('malformed license-gate.json');
+    }
+    return data;
+  } catch {
+    return { ...LICENSE_GATE_FALLBACK };
+  }
+}
+
+// --- License-gate source-root guard (HFO-2 T2, rule R-A) -------------------
+// Denies any Bash/PowerShell command whose text references a licensed-corpus
+// source root (hooks/license-gate.json `source_roots`). Decided Q2=(iv),
+// HFO-2-Plan.md §3: content-independent and HR2-compliant (existing hook,
+// new pattern) — the only option that observes a bulk `cp -R`/`robocopy`/
+// `xcopy`/`Copy-Item`, which guard-paths.js's Write-only matcher never sees.
+//
+// Does NOT fail closed by construction (Plan §3 Q2, accepted cost): the
+// command string is always present, but the source root *inside* it is an
+// optional signal — a `cd`-split two-call form, variable indirection, or a
+// glob carries no matchable root. This raises the cost of a careless
+// one-liner; it is not an airtight barrier.
+//
+// Backslash-to-slash normalization (not present in `license-gate.json`'s
+// forward-slash roots) lets a Windows-native form (`xcopy C:\...\office-
+// skills\ms-office ...`, `Copy-Item -Path "...\office-skills\ms-office"`)
+// still match the same configured root string.
+function referencesLicensedSourceRoot(command) {
+  const { source_roots } = loadLicenseGate();
+  const normalized = command.replace(/\\/g, '/');
+  return source_roots.some((root) => normalized.includes(root));
+}
+
 const BLOCKED_PATTERNS = [
   // Source-redirect guard (IGH-1 T2) — see helpers above.
   {
@@ -153,6 +209,16 @@ const BLOCKED_PATTERNS = [
         /co-authored-by:\s*claude|generated with[\s\S]*?claude code/i.test(command),
     },
     reason: 'Commit message contains an AI attribution trailer (Co-Authored-By: Claude / Generated with Claude Code) — strip the attribution trailer and re-run (deny-list, standards.md).',
+  },
+
+  // License-gate source-root guard (HFO-2 T2, rule R-A) — see helper above.
+  {
+    pattern: { test: referencesLicensedSourceRoot },
+    reason:
+      'LICENSE-GATE R-A: command references a licensed-corpus source root ' +
+      '(hooks/license-gate.json source_roots). Copying that content into the ' +
+      "tracked tree risks republishing third-party-licensed material under this repo's " +
+      'MIT license.',
   },
 ];
 
@@ -242,4 +308,12 @@ function main() {
   }
 }
 
-main();
+// Guarded so `require()`-ing this file (e.g. tests/test_license_gate_parity.py,
+// HFO-2 T1, reading LICENSE_GATE_FALLBACK) never runs main()/reads stdin as a
+// side effect. Invoked via `node hooks/guard-commands.js` in every real
+// deployment, where require.main === module still holds.
+if (require.main === module) {
+  main();
+}
+
+module.exports = { LICENSE_GATE_FALLBACK, loadLicenseGate };
