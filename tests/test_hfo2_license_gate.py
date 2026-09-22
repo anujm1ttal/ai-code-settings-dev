@@ -4,10 +4,12 @@ Drives `node hooks/guard-paths.js` / `node hooks/guard-commands.js` with real
 `PreToolUse` JSON on stdin — NEVER by importing `isBlocked()` directly. Per
 `testing-strategy.md` §Entry-Point Coverage: a gate on the function beneath the
 entry point certifies a path no agent can reach — exactly how a `startsWith`
-R-B would have shipped green (`HFO-2-Plan.md` §4a, finding H3).
+R-B would have shipped green.
 
-Maps to `Artifacts/Plans/HFO-2-TODO.md` T4's Success clause, one section per
-clause:
+Sections below map one-to-one onto the phase task's success clauses. The
+originating plan lives in this repo's private state tree and is deliberately
+not cited by path here — a reader of the public repo cannot open it. Each
+clause is restated in full below so this file stands alone:
 
   A. Extraction totality — 4/4 tool shapes (Write/Edit/MultiEdit/NotebookEdit)
      extract non-empty payload, proven by triggering an R-C deny on each.
@@ -425,9 +427,14 @@ def test_hr1_ordinary_command_always_allows(workspace: Path, command: str):
 #    substring scan (which self-denies these exact governance docs).
 # ===========================================================================
 
+# TRACKED files only. An earlier revision included a phase plan under
+# `Artifacts/Plans/`, which is gitignored AND relocates to `History/Plans/`
+# when the phase is archived at handoff — so this control passed only on the
+# machine that authored the phase, and would fail on a fresh clone or in CI.
+# It failed exactly that way when HFO-2 was archived. Every entry here must be
+# a tracked, stable path; verify with `git ls-files <path>` before adding one.
 MARKER_BEARING_EXISTING_FILES = [
     REPO_ROOT / "CLAUDE.md",
-    REPO_ROOT / "Artifacts" / "Plans" / "HFO-2-Plan.md",
     REPO_ROOT / "hooks" / "README.md",
 ]
 
