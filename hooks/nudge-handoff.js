@@ -45,6 +45,16 @@ function logGateSafe(params) {
   }
 }
 
+// Same lazy-required, independently wrapped discipline as logGateSafe, for
+// the once-per-session heartbeat (HFO-1 T4).
+function logPassSafe(params) {
+  try {
+    require('./lib/gate-log').logPassOnce(params);
+  } catch {
+    // Logging must never affect this hook's decision or exit code.
+  }
+}
+
 function markNudged(sessionId) {
   try {
     fs.mkdirSync(MARKER_DIR, { recursive: true });
@@ -151,6 +161,9 @@ function main() {
     const treeDirty = isGitDirty(cwd);
 
     if (!treeDirty && !stateUnbacked) {
+      // Evaluated-nothing path: checked the git tree and the state repo and
+      // found nothing to nudge about — a real evaluation (R5).
+      logPassSafe({ hook: 'nudge-handoff', event: 'Stop', tool: null, ruleId: 'nudge-handoff', cwd, sessionId, note: 'tree-clean' });
       process.exit(0);
     }
 
@@ -160,6 +173,10 @@ function main() {
     // is how state gets lost.
     const tail = readTranscriptTail(data.transcript_path);
     if (/\/handoff/i.test(tail) && !stateUnbacked) {
+      // Evaluated-nothing path: a recent /handoff already suppresses the
+      // dirty-tree nudge and no unbacked state remains — a real evaluation,
+      // reached its clear conclusion (R5).
+      logPassSafe({ hook: 'nudge-handoff', event: 'Stop', tool: null, ruleId: 'nudge-handoff', cwd, sessionId, note: 'handoff-recent' });
       process.exit(0);
     }
 

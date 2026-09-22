@@ -90,6 +90,33 @@ function loadBacklogCaps() {
 
 const BACKLOG_HEALTH_HEADING = '## BACKLOG Health';
 
+// Line-count helper aligned with scripts/backlog_audit.py's `len(text.splitlines())`
+// (HFO-1 T1 — the fencepost fix). backlog_audit.py reads via Path.read_text(),
+// Python's universal-newline text mode, which normalizes \r\n/\r to \n before
+// splitlines() ever runs — so the terminator set this regex already matched
+// (\r\n, \r, \n) was never the divergence. Python's splitlines() also treats
+// vertical tab, form feed, file/group/record separators, NEL, and the
+// Unicode LINE SEPARATOR / PARAGRAPH SEPARATOR code points as line
+// boundaries, but those never
+// appear in this project's Markdown state files, so aligning on just those
+// three real-world terminators keeps parity without inventing behavior
+// neither side exercises.
+//
+// The actual divergence: splitting a newline-terminated string on that regex
+// always yields one trailing '' element that Python's splitlines() does not
+// count as a line (a file "abc\n" is 1 line, not 2). Dropping exactly that
+// one trailing empty element — never more — reproduces splitlines()'s count
+// for every case: no trailing terminator (nothing to drop), one trailing
+// terminator (drop the single phantom element), several trailing blank lines
+// (only the final phantom element is spurious; real blank lines stay).
+function countBacklogLines(content) {
+  const parts = content.split(/\r\n|\r|\n/);
+  if (parts[parts.length - 1] === '') {
+    parts.pop();
+  }
+  return parts.length;
+}
+
 // Advisory-only, known-unreliable heuristic mirroring backlog_audit.py's `## `
 // ENTRY_RE (`^##\s+`, so a `### ` heading — one hash too many before the
 // whitespace — does not match, exactly like the Python side). NEVER used to
@@ -112,7 +139,7 @@ function checkBacklogHealth(root) {
       return { section: null, decision: 'pass' };
     }
     const content = fs.readFileSync(backlogPath, 'utf-8');
-    const lineCount = content.split(/\r\n|\r|\n/).length;
+    const lineCount = countBacklogLines(content);
     const caps = loadBacklogCaps();
     if (lineCount <= caps.max_lines) {
       return { section: null, decision: 'pass' };
@@ -253,6 +280,7 @@ module.exports = {
   loadBacklogCaps,
   checkBacklogHealth,
   countBacklogEntriesAdvisory,
+  countBacklogLines,
   buildSessionBrief,
   findProjectRoot,
 };

@@ -78,6 +78,16 @@ function logGateSafe(params) {
   }
 }
 
+// Same lazy-required, independently wrapped discipline as logGateSafe, for
+// the once-per-session heartbeat (HFO-1 T4).
+function logPassSafe(params) {
+  try {
+    require('./lib/gate-log').logPassOnce(params);
+  } catch {
+    // Logging must never affect this hook's decision or exit code.
+  }
+}
+
 // The text an edit tool is about to introduce. Only NEW content counts — the
 // pre-edit text is what the author is moving away from.
 function writtenText(input) {
@@ -170,10 +180,18 @@ function main() {
 
     const editIndex = lastSharedStateEditIndex(entries);
     if (editIndex === -1) {
+      // Evaluated-nothing path: scanned every edit tool use this turn and
+      // found no shared-state mutation — a real evaluation, nothing to
+      // gate on (R5).
+      logPassSafe({ hook: 'guard-shared-state', event: 'Stop', tool: null, ruleId: 'guard-shared-state', cwd: data.cwd, sessionId: data.session_id, note: 'no-shared-state-edit' });
       process.exit(0);
     }
 
     if (hasFullSuiteRunAfter(entries, editIndex)) {
+      // Evaluated-nothing path: a shared-state edit occurred, but a
+      // full-suite run already followed it — the guard's nag condition is
+      // already satisfied, a real evaluated-and-clear pass (R5).
+      logPassSafe({ hook: 'guard-shared-state', event: 'Stop', tool: null, ruleId: 'guard-shared-state', cwd: data.cwd, sessionId: data.session_id, note: 'full-suite-ran' });
       process.exit(0);
     }
 

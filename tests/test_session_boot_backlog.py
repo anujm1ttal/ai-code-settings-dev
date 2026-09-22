@@ -18,9 +18,12 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import backlog_audit  # scripts/ is on sys.path via tests/conftest.py
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 HOOKS_DIR = REPO_ROOT / "hooks"
 FIXTURES_DIR = REPO_ROOT / "tests" / "fixtures"
+SESSION_BOOT_JS_PATH = HOOKS_DIR / "session-boot.js"
 
 BACKLOG_HEADING = "## BACKLOG Health"
 GATE_LOG_REL = Path("Artifacts") / ".agent" / "gate_events.jsonl"
@@ -240,3 +243,94 @@ def test_malformed_caps_json_fails_open(tmp_path: Path):
     assert result.stdout.count(BACKLOG_HEADING) == 0
     after = _gate_log_row_count(project)
     assert after - before == 1
+
+
+# ---------------------------------------------------------------------------
+# 7. HFO-1 T1 fencepost -- exact-boundary fixtures at 599/600/601 lines
+#    (splitlines()-equivalent count, newline-terminated -- the exact shape
+#    that manifested the bug: `content.split(/\r\n|\r|\n/).length` counted a
+#    newline-terminated file as N+1). Presence control: 601 must fire the nag
+#    while 599 AND 600 must NOT -- a test asserting only 601 could not tell a
+#    correctly-fixed hook from one that still nags one line early (both would
+#    nag at 601; only the 599/600 side proves the fencepost itself is gone).
+# ---------------------------------------------------------------------------
+
+def _build_n_line_backlog(n: int) -> str:
+    """`n` lines, newline-terminated -- `len(content.splitlines())` is exactly
+    `n`, matching scripts/backlog_audit.py's `len(text.splitlines())`."""
+    return "\n".join(f"line {i}" for i in range(1, n + 1)) + "\n"
+
+
+def test_fencepost_599_lines_is_silent_and_passes(tmp_path: Path):
+    project = _make_project(tmp_path)
+    content = _build_n_line_backlog(599)
+    assert len(content.splitlines()) == 599  # presence control on the fixture itself
+    _write_backlog(project, content)
+    result = _run_and_check_gate_event(project, expected_decision="pass")
+    assert result.stdout.count(BACKLOG_HEADING) == 0
+
+
+def test_fencepost_600_lines_is_silent_and_passes(tmp_path: Path):
+    """The exact boundary named in orchestration.md ('exceeds >600 lines') --
+    600 does NOT exceed 600, so this must stay silent. This is the case that
+    fired falsely at the live 2026-09-18 SessionStart before the fix."""
+    project = _make_project(tmp_path)
+    content = _build_n_line_backlog(600)
+    assert len(content.splitlines()) == 600
+    _write_backlog(project, content)
+    result = _run_and_check_gate_event(project, expected_decision="pass")
+    assert result.stdout.count(BACKLOG_HEADING) == 0
+
+
+def test_fencepost_601_lines_fires_nag(tmp_path: Path):
+    project = _make_project(tmp_path)
+    content = _build_n_line_backlog(601)
+    assert len(content.splitlines()) == 601
+    _write_backlog(project, content)
+    result = _run_and_check_gate_event(project, expected_decision="nag")
+    output = json.loads(result.stdout)
+    ctx = output["hookSpecificOutput"]["additionalContext"]
+    assert ctx.count(BACKLOG_HEADING) == 1
+    assert "601 lines" in ctx
+
+
+# ---------------------------------------------------------------------------
+# 8. HFO-1 T1 cross-language agreement -- backlog_audit.py's
+#    `len(text.splitlines())` and session-boot.js's `countBacklogLines()` must
+#    report the SAME integer for one identical file. Exercises the real
+#    `module.exports.countBacklogLines` via node subprocess (not a
+#    reimplementation of the regex in Python), the same pattern
+#    test_cap_parity.py uses for the JS fallback caps side.
+# ---------------------------------------------------------------------------
+
+def _js_count_backlog_lines(file_path: Path) -> int:
+    script = (
+        "const fs = require('fs');"
+        "const m = require(process.argv[1]);"
+        "const content = fs.readFileSync(process.argv[2], 'utf-8');"
+        "process.stdout.write(String(m.countBacklogLines(content)));"
+    )
+    result = subprocess.run(
+        ["node", "-e", script, str(SESSION_BOOT_JS_PATH), str(file_path)],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, f"node failed: stderr={result.stderr!r}"
+    return int(result.stdout)
+
+
+def test_python_and_js_line_counts_agree_on_identical_file(tmp_path: Path):
+    file_path = tmp_path / "BACKLOG.md"
+    # 601 lines, newline-terminated -- the exact boundary shape the fencepost
+    # bug diverged on (JS previously reported 602 here, Python 601).
+    file_path.write_text(_build_n_line_backlog(601), encoding="utf-8")
+
+    python_count = backlog_audit.audit(file_path).line_count
+    js_count = _js_count_backlog_lines(file_path)
+
+    assert python_count == 601, f"presence control: python side drifted, got {python_count}"
+    assert js_count == python_count, (
+        f"session-boot.js and backlog_audit.py disagree on {file_path}: "
+        f"js={js_count} python={python_count}"
+    )
