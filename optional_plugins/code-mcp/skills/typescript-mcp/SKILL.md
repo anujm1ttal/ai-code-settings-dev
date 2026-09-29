@@ -97,13 +97,10 @@ Consult [testing-standards.md](references/testing-standards.md) and [naming-stan
 - No `any` type. Use `unknown` and narrow with type guards or Zod.
 - No `console.log` in tool files — it corrupts `stdout`.
 - No raw `JSON.parse()` without Zod validation.
-- No `require()` — use ES modules (`import`/`export`).
 - No default exports — use named exports for discoverability.
 - No `enum` (use `as const` objects for better tree-shaking and type inference).
 - No `!` non-null assertion — handle the `null`/`undefined` case explicitly.
 - No `@ts-ignore` without a specific error code comment explaining why.
-- No callback-style async — promises only.
-- No `var` — use `const` by default, `let` only when reassignment is required.
 
 ## 🔨 Preferred Toolchain
 - **Runtime**: Node.js 20+ (LTS).
