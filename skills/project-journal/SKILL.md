@@ -16,7 +16,13 @@ Every session must conclude with an update to the project's memory to prevent "C
 
 ## 📝 Short-Term Memory: `.agent/current_task.md`
 
-This is the "You Are Here" marker. It must be updated at every session start, end, and agent transition.
+This is the "You Are Here" marker. It must be updated at every session start, end, and agent
+transition. **Hard cap: current_task.md ≤2,000 B** (UTF-8 bytes, `wc -c`) — the SessionStart
+hook injects this file whole into every session/subagent boot and truncates past the cap, so
+anything after it is invisible by default. Lead with current state (active
+phase/branch/task, next action, blockers); push history, rationale, and resolved-item detail to
+`Artifacts/HANDOFF_BRIEF.md` and `Artifacts/DECISION_LOG.md` — those are pointer-only at boot,
+not injected whole.
 
 ### Required Fields
 

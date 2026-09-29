@@ -12,8 +12,12 @@ reasoning_depth: shallow
 
 ## Session Boot Protocol (Automatic)
 
-At every session start, before any user interaction:
-1. **State recovery**: check `Artifacts/.agent/current_task.md` — report the active task.
+The SessionStart hook (`hooks/session-boot.js`) already injects `current_task.md` whole
+(current_task.md ≤2,000 B, see `project-journal` schema) plus one pointer line per other state
+file — steps below are what the agent does **on demand** beyond that automatic injection, not a
+re-read of everything at boot:
+1. **State recovery**: use the hook-injected `current_task.md` — report the active task; only
+   `Read` it directly if the brief flagged truncation or the file is missing.
 2. **Learnings load**: read `Artifacts/learnings/index.md` if it exists; surface entries from the last 7 days.
 3. **Drift detection**: verify `TODO.md`/`IMPLEMENTATION_PLAN.md` exist and are non-empty; run `git status --short` + check recent file modifications.
 4. **Validation**: confirm `TODO.md` ↔ `IMPLEMENTATION_PLAN.md` sync.
