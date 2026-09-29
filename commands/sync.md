@@ -7,7 +7,7 @@ model: claude-haiku-4-5
 
 # Command: /sync
 
-Owned by the **concierge**. The "Truth Engine" — reconciles manual work with the AI's roadmap.
+The "Truth Engine" — reconciles manual work with the AI's roadmap.
 
 ## Execution Sequence
 

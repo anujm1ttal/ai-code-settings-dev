@@ -8,7 +8,7 @@ model: claude-opus-5
 
 **Target**: `$ARGUMENTS` → `<topic>` under deliberation.
 
-Owned by the **council** agent (orchestrated by the concierge/strategist). The "Conflict Resolution Engine" — forces multiple perspectives on a single decision.
+The "Conflict Resolution Engine" — forces multiple perspectives on a single decision. Orchestrated by the concierge/strategist.
 
 ## Execution Sequence
 

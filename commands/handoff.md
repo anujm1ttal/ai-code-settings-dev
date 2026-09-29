@@ -6,7 +6,7 @@ model: claude-haiku-4-5
 
 # Command: /handoff
 
-Owned by the **concierge**. The "Save Game" — ensures no context is lost between sessions.
+The "Save Game" — ensures no context is lost between sessions.
 
 ## Execution Tiers
 
