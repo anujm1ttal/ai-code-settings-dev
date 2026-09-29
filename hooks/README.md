@@ -64,7 +64,7 @@ guard verifies all three.)
 
 | Hook | Event | Purpose |
 |:---|:---|:---|
-| `session-boot.js` | `SessionStart` | Injects Artifacts state (TODO, Learnings, Current Task) into session context |
+| `session-boot.js` | `SessionStart` | Injects `current_task.md` whole (capped 2,000 B) + a pointer line (path + line count) per other state file + HANDOFF_BRIEF.md's `## Blockers` inline (ALB-1 T8: brief trimmed from 9,165 B to <=2,750 B) |
 | `guard-paths.js` | `PreToolUse` | **Blocks** writes to binaries, secrets, build artifacts, project state files in shadow paths, bare scratch/ |
 | `guard-commands.js` | `PreToolUse` | **Blocks** dangerous shell commands (rm -rf, force push, SQL drops) and AI attribution trailers in commits |
 | `auto-lint.js` | `PostToolUse` | Reports lint violations and injects "fix before proceeding" directive (no auto-fix) |
@@ -73,6 +73,26 @@ guard verifies all three.)
 | `nudge-handoff.js` | `Stop` | Nudges to run `/handoff` if git tree is dirty and no handoff this session (feedback only) |
 | `evidence-gate.js` | `Stop` | Nags when completion claims made without fresh test evidence this session (feedback only) |
 | `guard-shared-state.js` | `Stop` | Nags when process-global state (stdout/stderr, logging, os.environ) changed without a full-suite run (feedback only) |
+
+### Kill Condition (is session-boot's heartbeat firing?)
+
+```bash
+python scripts/gate_telemetry.py Artifacts/.agent/gate_events.jsonl
+```
+
+`session-boot.js` never denies or nags — it only injects context — so its only gate-log signal is
+the once-per-session `logPassOnce` heartbeat (ALB-1 T8, restoring the HFO HR1 regression: commit
+`5bcbc68` dropped this hook's gate-log import and it logged **0 rows from 2026-09-29T14:43:14Z**
+until this fix). Two branches:
+
+1. **`session-boot` shows 0 pass across >=1 real session** → the heartbeat call itself is broken
+   (not fail-open swallowing it — `logPassSafe`'s try/catch only protects the caller's exit code,
+   never silently retries) or the hook isn't wired at all; confirm via `/hooks` before trusting a
+   silent brief.
+2. **`session-boot` shows pass with `note: "brief-emitted"` or `note: "no-state-found"`** → the
+   hook ran and reached a real conclusion either way — `no-state-found` on a project with an
+   `Artifacts/` dir the hook can see is itself worth investigating (missing-state alert: the brief
+   goes silent rather than fabricating content).
 
 ## License Gate Config Parity
 
