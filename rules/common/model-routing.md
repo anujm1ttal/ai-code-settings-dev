@@ -70,17 +70,19 @@ Claude Code **harness** does provide a real, verified mechanism, scoped narrower
 section previously implied. Verified directly against the installed CLI (`claude --help` +
 the shipped binary's embedded Zod schema for `fallbackModel`), not asserted from memory:
 
-- **Interactive/main session only**: `~/.claude/settings.json` → `"model"` (primary, single
-  string) + `"fallbackModel"` (ordered array of strings, ≥1 model, none equal to `"model"`).
-  Equivalent CLI flag: `--fallback-model <model1,model2>`. On overload/unavailability, Claude
-  Code automatically retries the next model in the array; it re-tries the primary at the start
-  of each new user turn. This deployment runs: primary `sonnet` (alias, resolves to
-  `claude-sonnet-5-5`) → fallback `claude-haiku-4-5-20251001`.
-- **Not available for subagent dispatch.** Agent frontmatter (`agents/*.md` → `model:`) is a
-  **scalar field only** — no fallback array, no chain. If a subagent's declared model is
-  unhosted, dispatch fails (loud), it does not silently retry a lesser model. This is the
-  correct failure mode, not a gap to close: a strategist/council call silently downgraded from
-  Opus to Sonnet without saying so would misrepresent the rigor of the judgment it returned.
+- **`~/.claude/settings.json` → `"fallbackModel"`** (ordered array, ≥1 model, none equal to
+  `"model"`; CLI flag `--fallback-model`). On overload/unavailability Claude Code retries the next
+  entry; it is **one global list, not per-model**. Settings load at session start — restart after
+  editing.
+- **Applies to subagent dispatch too** (probe-verified 2026-09-29, correcting an earlier claim
+  here): agent frontmatter `model:` is scalar, but a failed pinned model falls through to this
+  same global list. Three `coder` probes pinned `claude-sonnet-5-5` all reached the fallback.
+- **This deployment: fallback is `claude-sonnet-5` only** (user decision 2026-09-29). No Opus or
+  Haiku fallback — if `claude-sonnet-5` also fails, the call fails loudly. Consequence: an
+  Opus-pinned call that fails runs on Sonnet 5 — flag it when a strategist/council verdict is
+  returned during a known outage. Verified resolvable 2026-09-29: `claude-opus-5-5`,
+  `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5`. **Not** resolvable:
+  `claude-sonnet-5-5` (so the `sonnet` alias falls through too) and `claude-haiku-4-5-20251001`.
 - **API-level `fallbacks` (server-side, refusal-triggered) is a different mechanism** from the
   CLI's `fallbackModel` (client-side, overload/unavailability-triggered) — the two are not
   interchangeable and `settings.json` does not expose a passthrough to the API-level one.
