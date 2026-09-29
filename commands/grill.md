@@ -1,7 +1,7 @@
 ---
 description: High-rigor architectural stress-testing of an implementation plan to identify risks and over-engineering.
 argument-hint: "[plan-section]"
-model: claude-opus-5
+model: claude-opus-5-5
 ---
 
 # Command: /grill

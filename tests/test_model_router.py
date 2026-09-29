@@ -18,15 +18,15 @@ SKILLS_DIR = REPO_ROOT / "skills"
 
 
 def test_agent_model_mandatory_binding():
-    assert model_router.get_agent_model("coder") == ("sonnet", "claude-sonnet-5")
-    assert model_router.get_agent_model("strategist") == ("opus", "claude-opus-5")
+    assert model_router.get_agent_model("coder") == ("sonnet", "claude-sonnet-5-5")
+    assert model_router.get_agent_model("strategist") == ("opus", "claude-opus-5-5")
     assert model_router.get_agent_model("nonexistent-agent") is None
 
 
 def test_manuscript_review_plugin_skill_resolves_to_sonnet():
     """The acceptance test from OSH-6-Plan.md verification section."""
     tier, model_id = model_router.get_skill_model("manuscript-review", "scribe", SKILLS_DIR)
-    assert (tier, model_id) == ("sonnet", "claude-sonnet-5")
+    assert (tier, model_id) == ("sonnet", "claude-sonnet-5-5")
 
 
 def test_find_skill_file_checks_plugin_root():
@@ -48,7 +48,7 @@ def test_skill_without_override_falls_back_to_owning_agent(tmp_path: Path):
         encoding="utf-8",
     )
     tier, model_id = model_router.get_skill_model("no-override-skill", "coder", tmp_path / "skills")
-    assert (tier, model_id) == ("sonnet", "claude-sonnet-5")
+    assert (tier, model_id) == ("sonnet", "claude-sonnet-5-5")
 
 
 def test_malformed_frontmatter_does_not_crash(tmp_path: Path):
@@ -57,9 +57,9 @@ def test_malformed_frontmatter_does_not_crash(tmp_path: Path):
     skill_dir.mkdir(parents=True)
     (skill_dir / "SKILL.md").write_text("---\nname: broken-skill\nno closing fence", encoding="utf-8")
     tier, model_id = model_router.get_skill_model("broken-skill", "auditor", tmp_path / "skills")
-    assert (tier, model_id) == ("sonnet", "claude-sonnet-5")
+    assert (tier, model_id) == ("sonnet", "claude-sonnet-5-5")
 
 
 def test_estimate_cost_scales_with_tokens():
-    assert model_router.estimate_cost(1_000_000, "claude-sonnet-5") == pytest.approx(3.0)
+    assert model_router.estimate_cost(1_000_000, "claude-sonnet-5-5") == pytest.approx(3.0)
     assert model_router.estimate_cost(100_000, "claude-haiku-4-5") == pytest.approx(0.08)

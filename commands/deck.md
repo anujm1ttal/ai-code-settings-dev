@@ -1,7 +1,7 @@
 ---
 description: PowerPoint deck lifecycle — scaffold projects, build slides, audit compliance, and discover template layouts. Routes to concierge (init), coder (build), auditor (audit).
 argument-hint: "<init|build|audit|layouts> [options]"
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 ---
 
 # Command: /deck

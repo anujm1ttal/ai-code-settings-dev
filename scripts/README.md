@@ -37,7 +37,7 @@ python scripts/model_router.py --lookup skill typescript-mcp coder
 {
   "agent": "strategist",
   "tier": "opus",
-  "model": "claude-opus-5",
+  "model": "claude-opus-5-5",
   "cost_per_100k_tokens": "$1.50"
 }
 ```
@@ -91,14 +91,14 @@ balanced projects (code + docs) ~60% reduction vs. all-Opus; thinking-heavy proj
 ```yaml
 # Agent frontmatter (agents/*.md) — canonical source for effort/reasoning_depth
 strategist:
-  model: claude-opus-5
+  model: claude-opus-5-5
   effort: high
   reasoning_depth: deep
 
 # Skill frontmatter override
 ---
 name: skill-name
-model: claude-sonnet-5  # override from owning agent
+model: claude-sonnet-5-5  # override from owning agent
 effort: high
 ---
 ```
@@ -232,66 +232,6 @@ Exit code: 0 if every managed subagent honored its assignment, 1 on any mismatch
 
 ---
 
-## `backlog_audit.py`
-
-Reports lifecycle violations in an `Artifacts/BACKLOG.md` against
-`rules/common/orchestration.md` §BACKLOG Lifecycle.
-
-BACKLOG is **searchable memory, not a work queue** — nothing schedules off it. So this
-tool checks *hygiene* (small enough to search, every entry classifiable), never "is this
-item overdue". **An aged OPEN entry is not a violation** — that is the artifact working
-as intended.
-
-**Usage**:
-```bash
-# Audit this project's backlog (default: Artifacts/BACKLOG.md)
-python scripts/backlog_audit.py
-
-# Audit an arbitrary file
-python scripts/backlog_audit.py path/to/BACKLOG.md
-
-# Silent when clean — for /handoff wiring and CI
-python scripts/backlog_audit.py --violations-only
-```
-
-**Checks**:
-| # | Check | Violation when |
-|:--|:---|:---|
-| 1 | Size | >600 lines OR >20 entries |
-| 2 | Rotation due | RESOLVED entries still present **while over threshold** |
-| 3 | Unmarked | entry carries no `OPEN`/`RESOLVED` status marker |
-| 4 | Phase-dump | `## N. … findings` headings — per-phase append sections instead of entries |
-| 5 | Over-cap | a single entry exceeds the **30-line per-entry cap**, independent of file size |
-| 6 | Dangling-ID | an **active** durable record under `Artifacts/**/*.md` cites a `<phase>_<component>_<n>`-shaped ID with no `## ` header in `BACKLOG.md` **or** its resolved archive (archive-aware; skips `.agent/` and the phase-archive dir itself — `History/`/`history/`, both tracked casings, matched case-insensitively — since a citation there is a historical fact, not a live broken link). The archive file itself is *located* case-insensitively too (`resolve_archive_path` scans for `History/`/`history/` and `BACKLOG-archive.md` on disk rather than assuming one casing); if the directory exists but no matching file is found inside it, that is its own `[VIOLATION]` naming the searched path — a project that never rotated (no archive directory at all) gets a quiet note instead |
-| 7 | Multiple Deferred fields | ≥2 `**Deferred:**` lines in one entry. (`**Deferred:**` is a status field — exactly one per entry, updated in place by overwrite, never appended) |
-| 8 | Missing Exit field | entry touched on/after `EXIT_REQUIRED_SINCE` per `git blame` on entry-header lines must carry `**Exit:**` (resolution order: blame → `**Filed:**` field → skip if non-git checkout). Collapses to **one advisory** when >50% of entries would fire — no bulk retrofit demanded |
-
-Check 4 targets the failure mode measured in `my_mcp_rhino`: 1228 lines across 17 such
-sections, none ever triaged into the real backlog. Checks 5–6 target OBL-1's D1/D2: a
-single re-amended entry can breach size with nothing to rotate, and an ID cited before
-it is filed is invisible to every other tool the OS owns.
-
-Checks 7–8 (BGR-1) enforce the `**Deferred:**` and `**Exit:**` entry fields. Entry counts
-(reported in output headers) print with an explicit advisory suffix — the `## `/`### ` entry
-parser is known-unreliable and authoritative line-count is the gating signal instead.
-
-**Backtick convention (check 6 only scans backtick-quoted IDs)**: wrapping an ID in
-backticks asserts it's a citation — a live pointer the header search must resolve, or
-the scan flags it dangling. Plain text is a *mention* (e.g. prose explaining why an ID
-is out of scope) and is deliberately invisible to the scan. This names existing
-`CITATION_RE` behavior — it is not a new check. Reformatting a plain-text mention into
-backticks re-exposes it as a citation; if no header exists yet, the resulting
-`[VIOLATION]` is a real regression, not a false positive from this documentation.
-
-**Read-only by contract** — never edits, rotates, or deletes. Rotation is performed by
-the concierge at `/handoff`; mutation stays human-confirmed (see `/clean`).
-
-**Portability**: single file, stdlib only, **zero repo imports** — copyable into any
-project. `deploy.sh` does not ship `scripts/`, so this is repo-local until the deploy
-policy question (`lh3_telemetry-deploy_1`) is resolved.
-
----
-
 ## `todo_graph.py`
 
 Validates the task-dependency grammar defined in `rules/common/orchestration.md`
@@ -337,7 +277,7 @@ format (`- [x] **NAME — Title**`, no `[agent]` field) and is deliberately not 
 with the coder and auditor per TODO Authority. It reports; it does **not** schedule —
 `commands/afk.md` computes its own frontier and is not wired to this tool.
 
-**Portability**: single file, stdlib only, **zero repo imports**. Same repo-local
-limitation as `backlog_audit.py` above — third instance of `lh3_telemetry-deploy_1`.
+**Portability**: single file, stdlib only, **zero repo imports**. Repo-local
+(`deploy.sh` does not ship `scripts/`) — see `lh3_telemetry-deploy_1`.
 
 Exit code: 0 clean, 1 on any violation.

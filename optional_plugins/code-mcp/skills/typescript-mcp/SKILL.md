@@ -2,7 +2,7 @@
 name: typescript-mcp
 description: Use this skill when building, debugging, or reviewing Model Context Protocol (MCP) servers in TypeScript. It enforces JSON-RPC 2.0 compliance, Zod-based schema validation, and strict error handling patterns. Trigger when creating a new MCP tool, fixing a JSON-RPC communication error, or updating a Zod input schema. Do NOT use for general TypeScript frontend development or backend work that does not implement the MCP standard.
 argument-hint: "<MCP tool requirement or JSON-RPC question>"
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 metadata:
   version: "1.0.1"
   tags: ["mcp", "typescript", "api", "json-rpc", "zod", "server-architecture"]
@@ -97,13 +97,10 @@ Consult [testing-standards.md](references/testing-standards.md) and [naming-stan
 - No `any` type. Use `unknown` and narrow with type guards or Zod.
 - No `console.log` in tool files — it corrupts `stdout`.
 - No raw `JSON.parse()` without Zod validation.
-- No `require()` — use ES modules (`import`/`export`).
 - No default exports — use named exports for discoverability.
 - No `enum` (use `as const` objects for better tree-shaking and type inference).
 - No `!` non-null assertion — handle the `null`/`undefined` case explicitly.
 - No `@ts-ignore` without a specific error code comment explaining why.
-- No callback-style async — promises only.
-- No `var` — use `const` by default, `let` only when reassignment is required.
 
 ## 🔨 Preferred Toolchain
 - **Runtime**: Node.js 20+ (LTS).

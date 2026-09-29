@@ -173,12 +173,9 @@ Run by the `scribe` during `/docs` (auto-detect mode):
 - Maximum width: 80 characters (terminal-friendly).
 
 ### What NOT to Write
-- "This document describes..." — the title already does that.
-- "Please note that..." — just state the note.
-- "In order to..." — just say "To..."
-- "It should be noted..." — note it directly.
-- "As mentioned above..." — if they need to scroll up, restructure.
-- "Various" / "Several" / "Many" — use a specific number or list them.
+No LLM filler ("This document describes...", "Please note that...", "It should be noted...").
+No vague quantifiers ("various", "several", "many") — use a specific number or list them. No
+"as mentioned above" — if they need to scroll up, restructure instead.
 
 ## 📋 Documentation Checklist
 

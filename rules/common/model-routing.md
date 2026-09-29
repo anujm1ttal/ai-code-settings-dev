@@ -6,8 +6,8 @@
 
 | Tier | Model | Agent | Use When |
 |:---|:---|:---|:---|
-| **Tier 1** | `claude-opus-5` | strategist, council | Strategic decisions, architecture, multi-phase planning, conflict resolution, stress-testing |
-| **Tier 2** | `claude-sonnet-5` | coder, auditor, geometry-validator | Implementation, refactoring, bug fixes, code review, test writing, schema design, geometric auditing |
+| **Tier 1** | `claude-opus-5-5` | strategist, council | Strategic decisions, architecture, multi-phase planning, conflict resolution, stress-testing |
+| **Tier 2** | `claude-sonnet-5-5` | coder, auditor, geometry-validator | Implementation, refactoring, bug fixes, code review, test writing, schema design, geometric auditing |
 | **Tier 3** | `claude-haiku-4-5` | scribe, concierge, creative-director | Documentation, state management, mechanical tasks, routine cleanup |
 
 ## Agent-to-Model Binding (Mandatory)
@@ -48,10 +48,11 @@ Under the **run-to-done cadence** (`orchestration.md` §Execution Cadence), the 
 | **Normal** | Sonnet (coder) — **produces the artifact**, returns its path | Sonnet (auditor) — **opens** that artifact; **Opus reviews at phase end** or spot-checks | routine `code` / `data` implementation |
 | **Micro** | executor only | executor (exit code) | MTP (≤1 file / ≤30 lines) |
 
-- **Verifier rule (all tiers)**: the verifier checks the **artifact** (real `git diff`, raw test output, probe sentinel) — never the executor's *summary* of it. A second model agreeing with a narrative is not verification.
-- **No artifact → no PASS**: the Normal tier is not a softer version of this rule, only a cheaper *seat*. An auditor with no artifact path to open returns **INCOMPLETE**, not PASS — see `orchestration.md` §Execution Cadence. Micro tier is the sole exemption.
-- **Independence**: for high-rigor gates the verifier prefers **re-running / re-reading** over reasoning-review — mechanical checks don't share the executor's reasoning blind spots.
-- **Cost note**: Opus verification is deliberately scoped to the high-rigor tier. Blanket Opus-checks-every-gate would double the cost of the most frequent operation and violate the minimum-capable-model principle above — do not globalize it past the high-rigor tier.
+- **Verifier rule (all tiers)**: checks the **artifact** (diff, raw test output, probe sentinel),
+  never the executor's summary. No artifact path, or an unopened one, means INCOMPLETE not PASS
+  (`orchestration.md` §Execution Cadence) — Micro tier is the sole exemption.
+- **Cost note**: Opus verification is scoped to high-rigor only — blanket Opus-checks-every-gate
+  doubles the cost of the most frequent operation and violates minimum-capable-model.
 
 ## Hard Rules
 
@@ -61,18 +62,28 @@ Under the **run-to-done cadence** (`orchestration.md` §Execution Cadence), the 
 4. Coder defaults to Sonnet — switch to Haiku only for scaffolding boilerplate.
 5. Opus is the verifier of record only for the **high-rigor tier** (§Verification Tiering) — routine work verifies at Sonnet (auditor) tier, micro work at executor tier. Blanket Opus verification is forbidden.
 
-## Fallback Chain (intent, not mechanism)
+## Fallback Chain (harness-verified, 2026-09-29)
 
-**No code in this repo implements the chain below.** `grep -n "fallback\|unavailable"
-scripts/model_router.py` returns 0 matches. This section states what *should* happen on
-unavailability; it is not a description of runtime behaviour, and must not be cited as one.
+**This repo's own routing code still implements no fallback.** `grep -n "fallback\|unavailable"
+scripts/model_router.py` returns 0 matches — that finding stands. What changed: the underlying
+Claude Code **harness** does provide a real, verified mechanism, scoped narrower than this
+section previously implied. Verified directly against the installed CLI (`claude --help` +
+the shipped binary's embedded Zod schema for `fallbackModel`), not asserted from memory:
 
-- Opus unavailable → Sonnet → Haiku (quality warning).
-- Sonnet unavailable → Haiku (quality caution); cannot fall back further.
-- Haiku unavailable → cannot proceed (essential efficiency layer).
-
-No automatic fallback exists for subagent dispatch. Dispatch with the fully-qualified ID from the
-agent's own frontmatter; a bare alias may resolve to a model this deployment does not host.
+- **Interactive/main session only**: `~/.claude/settings.json` → `"model"` (primary, single
+  string) + `"fallbackModel"` (ordered array of strings, ≥1 model, none equal to `"model"`).
+  Equivalent CLI flag: `--fallback-model <model1,model2>`. On overload/unavailability, Claude
+  Code automatically retries the next model in the array; it re-tries the primary at the start
+  of each new user turn. This deployment runs: primary `sonnet` (alias, resolves to
+  `claude-sonnet-5-5`) → fallback `claude-haiku-4-5-20251001`.
+- **Not available for subagent dispatch.** Agent frontmatter (`agents/*.md` → `model:`) is a
+  **scalar field only** — no fallback array, no chain. If a subagent's declared model is
+  unhosted, dispatch fails (loud), it does not silently retry a lesser model. This is the
+  correct failure mode, not a gap to close: a strategist/council call silently downgraded from
+  Opus to Sonnet without saying so would misrepresent the rigor of the judgment it returned.
+- **API-level `fallbacks` (server-side, refusal-triggered) is a different mechanism** from the
+  CLI's `fallbackModel` (client-side, overload/unavailability-triggered) — the two are not
+  interchangeable and `settings.json` does not expose a passthrough to the API-level one.
 
 ## Verification
 

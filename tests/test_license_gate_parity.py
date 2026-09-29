@@ -65,10 +65,9 @@ def _read_js_fallback_gate(js_path: Path) -> GateQuad:
     """Side 2 (one reading per consumer): a hook's LICENSE_GATE_FALLBACK
     export, read by shelling out to node and `require()`-ing the real
     module.exports -- proves the export actually works, not just that its
-    source text looks right (mirrors tests/test_cap_parity.py's identical
-    js-fallback reasoning). Fails loudly, never skips, if node is
+    source text looks right. Fails loudly, never skips, if node is
     unavailable: this test suite already hard-depends on node for
-    tests/test_session_boot_backlog.py (no skip there either), so silently
+    tests/test_hooks_smoke.py (no skip there either), so silently
     tolerating its absence here would be an inconsistent, undocumented
     exemption from an existing dependency.
     """
@@ -87,7 +86,7 @@ def _read_js_fallback_gate(js_path: Path) -> GateQuad:
         raise AssertionError(
             "node is required to read the JS fallback side "
             f"({js_path}'s module.exports) -- it is not optional here, "
-            "tests/test_session_boot_backlog.py already depends on it elsewhere "
+            "tests/test_hooks_smoke.py already depends on it elsewhere "
             "in this suite"
         ) from exc
     assert result.returncode == 0, (

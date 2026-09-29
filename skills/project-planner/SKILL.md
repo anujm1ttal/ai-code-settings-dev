@@ -52,15 +52,8 @@ See `CLAUDE-global.md` § Interface-First Pattern. Phase 1 of any data-exchange,
 
 ### Roadmap Template
 
-Use the bundled `assets/roadmap-template.md` as a starting point for new projects. It includes sections for:
-- Project overview and objectives
-- Multi-phase planning with goals and deliverables
-- Critical path visualization
-- Risk assessment and mitigation
-- Budget tracking and decisions
-- Change log
-
-Copy and customize the template to match your project scope.
+Use the bundled `assets/roadmap-template.md` as a starting point for new projects — copy and
+customize rather than authoring a plan skeleton from scratch.
 
 ---
 
@@ -142,35 +135,11 @@ When breaking a phase into tasks, verify:
 
 ### Dependency-Level Notation (Optional)
 
-For phases with 5+ tasks, group by dependency level to surface parallelism and identify the critical path. This complements the existing dependency mapping notation (`→`, `~>`, `⇒`).
-
-**Format:**
-```markdown
-## Phase N: [Title]
-
-### Level 1 (No dependencies — start immediately)
-- [ ] [coder] Task A — Success: metric — depends: none
-- [ ] [coder] Task B — Success: metric — depends: none
-
-### Level 2 (Depends on Level 1)
-- [ ] [coder] Task C — Success: metric — depends: A
-- [ ] [auditor] Task D — Success: metric — depends: A, B
-
-### Level 3 (Depends on Level 2)
-- [ ] [auditor] Task E — Success: metric — depends: C, D
-
-### Critical Path: A → C → E
-```
-
-**When to use:**
-- Phase has 5+ tasks with non-obvious dependency ordering
-- Parallel execution by sub-agents (`implementation-dispatch`) is planned
-- The strategist wants to make the critical path visible
-
-**When NOT to use:**
-- Phase has < 5 tasks (flat list is sufficient)
-- All tasks are strictly sequential (phases already handle this)
-- The dependency chain is linear (Level notation adds no value)
+For phases with 5+ tasks with non-obvious ordering (or planned `implementation-dispatch`
+parallel waves), group tasks under `### Level 1 (no dependencies)`, `### Level 2 (depends on
+Level 1)`, etc., ending with a `### Critical Path: A → C → E` line — surfaces parallelism the
+flat `→`/`~>`/`⇒` dependency notation doesn't. Skip it when the phase has <5 tasks or the chain
+is already linear — it adds no value there.
 
 ### Command vs. Knowledge Skill Separation
 
@@ -311,30 +280,21 @@ The `strategist` uses these questions to ensure the phased roadmap is grounded i
 
 `/blueprint` publishes `Artifacts/IMPLEMENTATION_PLAN.md` as a Claude `Artifact` whenever the
 same Gate 1 threshold that triggers `/grill` fires (plan exceeds 50 lines) — one trigger, two
-consequences: stress-test the content, then render it. Below threshold, chat markdown is
-sufficient; do not publish.
+consequences: stress-test the content, then render it. Below threshold, chat markdown suffices.
 
 - **Order**: publish *after* Gate 1's `/grill` pass and after the plan file is written, so the
-  Artifact reflects the reviewed plan, not a pre-refactor draft.
-- **Load `artifact-design` skill first** — mandatory before any `Artifact` write, per that tool's
-  contract.
+  Artifact reflects the reviewed plan, not a pre-refactor draft. Load `artifact-design` first.
 - **Compose from the plan file, don't re-author it**: Step 0 summary, a phase table, one Mermaid
-  diagram rendering the `## Dependency Map` section as a graph, the deliverable/file map, each
-  phase's Hard Rules, and a single Open Questions section at the bottom (mirrors the "one bottom
-  open-questions block" discipline — don't scatter unresolved items through the doc).
-- **Stable identity**: title = project name, favicon fixed at first publish (e.g. `🗺️`) — never
-  change either on a republish.
-- **Record the URL**: add `**Visual Plan**: <url>` as a header line in
-  `Artifacts/IMPLEMENTATION_PLAN.md` immediately after publishing.
-- **Updating**: New Phase / Re-Plan appends republish to the *same* URL (`Artifact` `url:` param)
-  so the link stays stable — never create a second Artifact for a live project. A Re-Plan writes
-  fresh files (per the Re-Plan mode), so it publishes fresh rather than reusing the archived
-  plan's URL.
-- **Scope**: `IMPLEMENTATION_PLAN.md` only. `Phase-N-Plan.md` / `Phase-N-TODO.md` stay
-  markdown — they're thin execution-tracking documents, not reviewer-facing.
-- **Canonical source stays the file**: the Artifact is a rendered view regenerated from
-  `Artifacts/IMPLEMENTATION_PLAN.md`, never an independently authored copy. On drift, the file
-  wins (per `standards.md` § Artifact Protocol Mirroring Rule).
+  diagram rendering `## Dependency Map` as a graph, the deliverable/file map, each phase's Hard
+  Rules, and a single bottom Open Questions section (don't scatter unresolved items).
+- **Stable identity**: title = project name, favicon fixed at first publish — never change either
+  on a republish. Add `**Visual Plan**: <url>` as a header line in the plan file after publishing.
+- **Updating**: New Phase / Re-Plan republishes to the *same* URL — never a second Artifact for a
+  live project. A Re-Plan writes fresh files, so it publishes fresh instead of reusing the
+  archived plan's URL.
+- **Scope**: `IMPLEMENTATION_PLAN.md` only — `Phase-N-Plan.md`/`Phase-N-TODO.md` stay markdown.
+- **Canonical source stays the file**: the Artifact is a rendered view, never independently
+  authored; on drift the file wins (`standards.md` § Artifact Protocol Mirroring Rule).
 
 ## 📄 Output Templates
 
@@ -355,10 +315,7 @@ When initializing or updating a plan, the `strategist` must present the summary 
 ## 🏗 Phased Roadmap
 1. **Phase 1**: [Title] → [Success Metric]
     - **Hard Rules**: [Negative invariants]
-2. **Phase 2**: [Title] → [Success Metric]
-    - **Hard Rules**: [Negative invariants]
-3. **Phase 3**: [Title] → [Success Metric]
-    - **Hard Rules**: [Negative invariants]
+2. **Phase 2**: [Title] → [Success Metric] — (repeat per phase)
 
 ## 🚦 Next Actions
 - [ ] [Agent] Task 1

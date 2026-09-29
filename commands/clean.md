@@ -6,7 +6,7 @@ model: claude-haiku-4-5
 
 # Command: /clean
 
-Owned by the **concierge**. Performs mid-session project hygiene.
+Performs mid-session project hygiene.
 
 ## Precondition
 

@@ -6,7 +6,7 @@ model: claude-haiku-4-5
 
 # Command: /handoff
 
-Owned by the **concierge**. The "Save Game" — ensures no context is lost between sessions.
+The "Save Game" — ensures no context is lost between sessions.
 
 ## Execution Tiers
 
@@ -54,12 +54,12 @@ against that:
    ```
    ## Possible Uncommitted Tasks
    1. "[quoted phrase from conversation]"
-      → Proposed: `<phase>_<component>_<n>` — OPEN — Task description
+      → Proposed: OPEN — Task description
    2. "[quoted phrase]"
-      → Proposed: `<phase>_<component>_<n>` — OPEN — Task description
+      → Proposed: OPEN — Task description
    ```
-   User confirms which to add to `Artifacts/BACKLOG.md` as unscheduled deferred work (ID + OPEN
-   marker per `rules/common/orchestration.md` §BACKLOG Lifecycle). Never auto-add. Mined output
+   User confirms which to add to `Artifacts/BACKLOG.md` as unscheduled deferred work (OPEN
+   marker per `rules/common/orchestration.md` §BACKLOG). Never auto-add. Mined output
    never lands directly in `Artifacts/TODO.md` — if the user decides a candidate should be
    scheduled into the active or next phase, it is written to `Artifacts/TODO.md` as a normal
    strategist-authored task row, not as raw mined output.
@@ -74,8 +74,7 @@ against that:
 5. **TODO Hygiene**: Scrub completed micro-tasks. Archive to `Artifacts/History/` if >200 lines.
 6. **Generate Brief**: **If `scripts/gate_telemetry.py` exists in the workspace** (it ships only with the ai-code-settings repo — `scripts/` is not globally deployed), run `python scripts/gate_telemetry.py` (reads `Artifacts/.agent/gate_events.jsonl`) and include its per-hook deny/nag table verbatim under a **Gate Telemetry** heading. **Check existence with a repo-relative, forward-slash path — never a Windows backslash absolute path** (in the Bash tool `\U`, `\s`, … are escape sequences that silently collapse the path, yielding a false "not present"): `test -f scripts/gate_telemetry.py && python scripts/gate_telemetry.py`. **Otherwise skip this sub-step** — the hooks still log `gate_events.jsonl` in every project, but the reader is repo-local (global telemetry deployment is a deferred enhancement). Write `Artifacts/HANDOFF_BRIEF.md` in the workspace (source of truth) using the absolute path. **Gemini/Antigravity only**: also mirror to the brain/shadow directory with `IsArtifact: true` per the Mirroring Rule [HARD-GATE] — Claude Code has no shadow-directory write path, so this sub-step is a no-op here.
 7. **Hygiene Phase**: 
-   - **BACKLOG rotation check** (all tiers): `test -f scripts/backlog_audit.py && python scripts/backlog_audit.py --violations-only` — repo-local tool, so **skip this sub-step when absent**, exactly as step 6 handles `gate_telemetry.py` (check with a repo-relative, forward-slash path — a Windows backslash absolute path silently collapses in the Bash tool). On a size violation, rotate the oldest **RESOLVED** entries to `Artifacts/History/BACKLOG-archive.md` per `rules/common/orchestration.md` §BACKLOG Lifecycle. The tool reports; **it never edits** — rotation is performed here, and OPEN entries never rotate.
-   - **Task-graph check** (all tiers): `test -f scripts/todo_graph.py && python scripts/todo_graph.py --violations-only` — repo-local tool on the identical graceful-skip contract as the BACKLOG check above (**skip when absent**; repo-relative forward-slash path — a Windows backslash absolute path silently collapses in the Bash tool). Validates the `Blocked by:` / `Mode:` grammar in `Artifacts/Plans/*-TODO.md` per `rules/common/orchestration.md` §Artifacts/TODO.md Authority: cycle, unknown blocker ID, malformed task line, and the blind-zero guard. Redundant-edge findings are **advisories** and do not fail the check. The tool reports; **it never edits** — TODO Authority is unchanged, and it does **not** compute or feed `/afk`'s frontier.
+   - **Task-graph check** (all tiers): `test -f scripts/todo_graph.py && python scripts/todo_graph.py --violations-only` — repo-local tool, graceful-skip contract (**skip when absent**; repo-relative forward-slash path — a Windows backslash absolute path silently collapses in the Bash tool). Validates the `Blocked by:` / `Mode:` grammar in `Artifacts/Plans/*-TODO.md` per `rules/common/orchestration.md` §Artifacts/TODO.md Authority: cycle, unknown blocker ID, malformed task line, and the blind-zero guard. Redundant-edge findings are **advisories** and do not fail the check. The tool reports; **it never edits** — TODO Authority is unchanged, and it does **not** compute or feed `/afk`'s frontier.
    - **Promote** (all tiers, **before any purge**): move every `Artifacts/Temp/` file cited by a durable record (phase report, phase audit report, `DECISION_LOG.md`, `BACKLOG.md` finding, `learnings/` entry) to `Artifacts/Evidence/<phase>/` and repoint the citation in the same pass — `rules/common/orchestration.md` §Evidence Retention.
    - **Purge** (L2/L3): Delete all files in `Artifacts/Temp/`. **Never** delete `Artifacts/Evidence/`.
    - **Flag** (L1/L2/L3): Identify and propose deletion of stray transient files (e.g., `*.tmp`, `debug.log`, uncommitted scratch files not in `.gitignore`).

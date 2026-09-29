@@ -7,447 +7,270 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 
 ## The Fleet
 
-| Agent | Role | Capability Boundary |
+| Agent | Role | Write Scope |
 |:---|:---|:---|
-| **strategist** | Architecture, ROI, roadmaps | **Write**: `IMPLEMENTATION_PLAN.md`, `TODO.md` |
-| **coder** | Implementation, refactoring | **Write**: Source code, test files, `[-]` status |
-| **auditor** | QA, technical review | **Write**: `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md`, `Artifacts/TODO.md` (`[x]` only), `BACKLOG.md` (loose findings). **Reports, never applies** — a needed source/test/evidence change is a report line, not an edit (`agents/auditor.md` §Write Scope). |
-| **scribe** | Documentation, teaching | **Write**: Artifacts docs not owned by another agent (exception: `README.md`) |
-| **council** | Synthesis, stress-testing | **Write**: `DECISION_LOG.md` |
-| **creative-director** | Visual spec, hierarchy | **Write**: `Artifacts/LAYOUT_SPEC.md` |
-| **concierge** | State, sync, intake | **Write**: `Artifacts/learnings/`, `/clean` execution |
-| **geometry-validator** | Geometric auditing, manifold verification | **Write**: geometry audit reports; dispatched subagent (no standalone TODO/Plan authority) |
+| **strategist** | Architecture, ROI, roadmaps | `IMPLEMENTATION_PLAN.md`, `TODO.md` (create/restructure, not status) |
+| **coder** | Implementation, refactoring | Source, tests, `[-]` status |
+| **auditor** | QA, technical review | `Reports/<PHASE>-AUDIT_REPORT.md`, `TODO.md` (`[x]` only), `BACKLOG.md` findings. Reports, never applies — a needed source/test fix is a report line, not an edit. |
+| **scribe** | Documentation, teaching | Artifacts docs not owned elsewhere (+ `README.md`) |
+| **council** | Synthesis, stress-testing | `DECISION_LOG.md` |
+| **creative-director** | Visual spec, hierarchy | `Artifacts/LAYOUT_SPEC.md` |
+| **concierge** | State, sync, intake | `Artifacts/learnings/`, `/clean` |
+| **geometry-validator** | Geometric auditing | Audit reports; dispatched only, no standalone authority |
 
-## Model Routing
-
-`rules/common/model-routing.md` is canonical for agent-model tier assignments, hard rules,
-skill-level overrides, and the fallback chain — **on divergence it wins**. The Fleet table
-above owns roles/capability boundaries; model-routing.md owns which model runs each role.
-Dev-only lookup commands (`scripts/model_router.py`, `model_routing_audit.py`) live in the
-repo's own `CLAUDE.md` and `scripts/README.md`, not here.
-
----
+`model-routing.md` owns which model runs each role — on divergence it wins over this table.
 
 ## Project Type Routing
 
-The `strategist` classifies every project during Step 0. This determines active agents and default skills. Per-project skill activation is via native plugins (`enabledPlugins` in settings); the table below is routing guidance, not a stored config.
+Strategist classifies every project at Step 0; this sets active agents/skills. Activation is
+via `enabledPlugins` — the table below is guidance, not stored config.
 
-| Project Type | Core Agents | Default Skills | Override via |
-|:---|:---|:---|:---|
-| `youtube` | strategist, scribe, concierge | youtube-strategy, youtube-scriptwriting, youtube-retention | `enabledPlugins` |
-| `pptx` | strategist, creative-director, concierge | pptx, visual-composition, python-patterns | `enabledPlugins` |
-| `pbi-report` | strategist, creative-director, coder | powerbi-report, visual-composition, dax-modeling | `enabledPlugins` |
-| `geometry` | strategist, coder, auditor | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, grasshopper-plugin-packaging, python-patterns | `enabledPlugins` |
-| `code` | strategist, coder, auditor | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp, react-frontend | `enabledPlugins` |
-| `manuscript`| strategist, scribe, auditor | manuscript-review, glossary-extraction | `enabledPlugins` |
-| `data` | strategist, coder, auditor | dax-modeling, powerbi-report, python-patterns | `enabledPlugins` |
-| `hybrid` | concierge, strategist | All applicable (per detected files) | `enabledPlugins` |
+| Project Type | Core Agents | Default Skills |
+|:---|:---|:---|
+| `youtube` | strategist, scribe, concierge | youtube-strategy, youtube-scriptwriting, youtube-retention |
+| `pptx` | strategist, creative-director, concierge | pptx, visual-composition, python-patterns |
+| `pbi-report` | strategist, creative-director, coder | powerbi-report, visual-composition, dax-modeling |
+| `geometry` | strategist, coder, auditor | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, grasshopper-plugin-packaging, python-patterns |
+| `code` | strategist, coder, auditor | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp, react-frontend |
+| `manuscript` | strategist, scribe, auditor | manuscript-review, glossary-extraction |
+| `data` | strategist, coder, auditor | dax-modeling, powerbi-report, python-patterns |
+| `hybrid` | concierge, strategist | all applicable, per detected files |
 
-**All project types** also have access to foundational skills: `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`, `verification-gate`, `test-driven-development`, `receiving-code-review`, `project-planner`, `project-journal`, `doc-updater`.
+All types also get: `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`,
+`verification-gate`, `test-driven-development`, `receiving-code-review`, `project-planner`,
+`project-journal`, `doc-updater`.
 
-> **Office document skills (`docx`/`xlsx`/`pptx`) are not shipped by this repo.** They are
-> Anthropic-licensed material whose terms bar redistribution; obtain them from Anthropic. A
-> `pptx` project type still routes to `creative-director` + `visual-composition` for planning —
-> only the OOXML renderers are absent.
+Office skills (`docx`/`xlsx`/`pptx`) aren't shipped — Anthropic-licensed, obtain from Anthropic.
+`pptx` projects still get `creative-director` + `visual-composition` for planning.
 
-## Command Fleet (Operational Layer)
+`CLAUDE-global.md`'s Commands table is canonical for the command registry. This file owns
+routing logic (below) and command-adjacent protocols (MTP, lifecycle, branching).
 
-`CLAUDE-global.md` Commands table is canonical for the full command registry (owner +
-purpose per command). This file owns the routing *logic* (below) and command-adjacent
-protocols (MTP, Task Lifecycle, Git Phase Branching) — not the registry itself.
+## Micro-Task Protocol (MTP)
 
----
-
-## ⚡ The Micro-Task Protocol (MTP)
-For minor edits that meet all criteria:
-- **Scope**: ≤1 source file and ≤30 lines of code.
-- **Complexity**: No architectural change, no new dependencies.
-- **Rigor**: Still requires verification (tests or manual logs).
-
-**Procedure**:
-1. Skip the full `/blueprint` and Step 0 interview.
-2. Provide a one-line `VALUE_CHECK` (e.g., `VALUE_CHECK: Fix layout alignment in Header component to match spec`).
-3. Proceed directly to implementation and verification.
-
----
+≤1 file, ≤30 lines, no architecture/dependency change: skip `/blueprint` and Step 0, state a
+one-line `VALUE_CHECK`, implement, verify.
 
 ## Automatic Routing
 
-1. **Planning, scoping, "should we"** → **strategist** (`/blueprint`)
-2. **Plan stress-testing, "grill me", shared understanding** → **strategist** (`/grill`; escalate to **council** only via `/council`)
-3. **Skill landscape, dependencies, routing optimization** → **strategist** (`/skill-graph`)
-4. **Codebase discovery, tech-debt mapping, redundancy scans** → **strategist** (`/sweep`)
-5. **Bug investigation, root-cause analysis, fix planning** → **coder** (`/triage`)
-6. **Code implementation, refactoring, debugging** → **coder** (equip skills per table above)
-7. **Review, validation, "is this correct"** → **auditor** (`/audit`)
-8. **Factual codebase snapshot, compliance report** → **auditor** (`/snapshot`)
-9. **Documentation, READMEs, user guides** → **scribe** (`/docs`)
-10. **Teaching, tours, "how does this work"** → **scribe** (`/explain`)
-11. **Manual work intake from Rhino/PBI** → **concierge** (`/ingest`)
-12. **Session start, "where was I"** → **concierge** (`/sync`)
-13. **Session end, context save** → **concierge** (`/handoff` [--lite|--phase])
-14. **Project hygiene, cleanup transient files** → **concierge** (`/clean`)
-15. **High-rigor deliberation, consensus, conflict** → **council** (`/council`)
-16. **Domain definitions, ubiquitous language, glossary extraction** → **scribe** (`glossary-extraction`)
-17. **Ambiguous** → **concierge** asks a clarifying question before routing.
+1. Planning, "should we" → strategist (`/blueprint`)
+2. Plan stress-test, "grill me" → strategist (`/grill`; escalate via `/council`)
+3. Skill landscape, routing optimization → strategist (`/skill-graph`)
+4. Codebase discovery, tech-debt mapping → strategist (`/sweep`)
+5. Bug investigation, root-cause → coder (`/triage`)
+6. Implementation, refactoring, debugging → coder
+7. Review, "is this correct" → auditor (`/audit`)
+8. Factual codebase snapshot → auditor (`/snapshot`)
+9. Documentation, guides → scribe (`/docs`)
+10. Teaching, "how does this work" → scribe (`/explain`)
+11. Manual work intake → concierge (`/ingest`)
+12. Session start, "where was I" → concierge (`/sync`)
+13. Session end → concierge (`/handoff`)
+14. Hygiene, cleanup → concierge (`/clean`)
+15. High-rigor deliberation, conflict → council (`/council`)
+16. Glossary extraction → scribe (`glossary-extraction`)
+17. Ambiguous → concierge asks first
 
----
-
-## High-Rigor Engineering Workflow (Variant)
-
-For geometry-heavy work, production deployments, security-critical phases, or anything requiring
-**zero-rework tolerance** and an auditable evidence trail, equip the on-demand
-`high-rigor-engineering` skill (`skills/high-rigor-engineering/SKILL.md`). It is a variant of
-this file's standard workflow — same agents/commands apply; implementation and verification
-become synchronous with explicit gates (evidence protocol, patch protocol, anti-patterns
-taxonomy, scope lockdown) instead of async. The skill's own header states its precedence over
-this file where the two conflict (commit cadence, approval phrases).
-
----
+Geometry, production, regulatory, or zero-rework-tolerance work: equip `high-rigor-engineering`
+(`skills/high-rigor-engineering/SKILL.md`) — same agents/commands, but gates become synchronous.
+Its own header states precedence over this file where they conflict.
 
 ## Task Lifecycle
 
 ```
 /blueprint (strategist)
-  → Requirements Interview (Step 1)
-  → Grilling Phase (Step 2) [Optional/High-Complexity] → shared understanding via `/grill`
-  → Step 0 Challenge (Step 3)
-  → Git Phase Init: Create new branch `phase-[N]-[description]`
-  → Artifacts/TODO.md task assigned (Phase 1)
-  → [pptx/pbi-report only] creative-director → Artifacts/LAYOUT_SPEC.md
+  → Requirements Interview → Grilling (optional) → Step 0 Challenge
+  → Git Phase Init: branch `phase-[N]-[description]`
+  → TODO.md task assigned
+  → [pptx/pbi-report only] creative-director → LAYOUT_SPEC.md
   → /audit --pre (optional) → GO / NO-GO
   → Implementation (coder) — marks [-]
-  → /audit (auditor) — validates → PASS: marks [x] | FAIL: return to coder
-  → Git Phase Merge: Merge current branch to `main` and delete branch (if phase terminal)
-  → /docs (scribe) → /sync (concierge) → /handoff (if ending)
-
-> [!IMPORTANT]
-> **Approval Discipline**: Plan approval and any stop-and-surface action (§Execution Cadence) MUST follow the `Approval Rubric` in `standards.md`. Under the run-to-done cadence, routine execution *steps* do not each require approval.
+  → /audit (auditor) → PASS: marks [x] | FAIL: back to coder
+  → Git Phase Merge → main, delete branch (if phase terminal)
+  → /docs → /sync → /handoff (if ending)
 ```
+Plan approval and any stop-and-surface action follow the Approval Rubric in `standards.md`.
 
 ## Git Phase Branching
 
-To ensure the stability of the `main` branch, all work must occur on isolated phase branches.
-
-1. **Isolation**: No implementation work may occur directly on `main`.
-2. **Branch Naming**: `phase-[N]-[description]` (e.g., `phase-2-seating-logic`).
-3. **Trigger**: The `strategist` prompts for branch creation immediately after Step 0 approval in `/blueprint`.
-4. **Merge Requirement**: A phase branch can only be merged to `main` after the `auditor` marks the final task of the phase as `[x]` and confirms all success metrics are met.
-5. **Cleanup**: Delete the phase branch immediately after a successful merge.
-6. **Commit-as-Handoff**: Task-completion commits (a commit that finishes a TODO task) carry the key decisions made and any blockers/notes for the next iteration in the commit body. Trivial/intermediate commits are exempt. Rationale: crash recovery between `/handoff`s — the git log becomes a self-maintaining brief that cannot drift.
+No implementation directly on `main`. Branch `phase-[N]-[description]` at Step 0 approval.
+Merge to `main` only after the auditor marks the phase's final task `[x]`; delete the branch
+after merge. Task-completion commits carry key decisions/blockers in the body (trivial commits
+exempt) — the git log becomes a self-maintaining crash-recovery brief.
 
 <HARD-GATE>
-No agent may begin implementation, write code, scaffold projects, or take any implementation action until Step 0 is complete AND the user has approved the plan. This applies to EVERY project regardless of perceived simplicity. "Simple" projects are where unexamined assumptions cause the most wasted work.
+No agent may begin implementation, write code, scaffold projects, or take any implementation
+action until Step 0 is complete AND the user has approved the plan. Applies to every project
+regardless of perceived simplicity.
 </HARD-GATE>
 
 ## Execution Cadence (Post-Approval)
 
-The HARD-GATE above governs the **one** mandatory pre-work stop: no implementation before Step 0 + plan approval. *After* the plan is approved, work runs to completion under a **run-to-done cadence** — the agent does not stop for per-step human approval. It stops only at genuine forks.
+After plan approval, work runs to completion (run-to-done) — no per-step human stop, only at
+genuine forks. Opus orchestrates and verifies; Sonnet executes: work → evidence → verifier
+checks the raw artifact (never the summary) → advance on PASS.
 
-**Orchestrator / executor split.** Opus orchestrates and verifies; Sonnet (coder) executes. Per step/slice: executor does the work → produces evidence → returns artifact paths + claim → the verifier (tiered per `model-routing.md` §Verification Tiering) checks the **raw artifact**, not the summary → advance autonomously on PASS.
-
-**Evidence is a file, not a claim [HARD-GATE].** The executor redirects every command whose output backs a gate claim to `Artifacts/Temp/<phase>_<step>_<command>.txt` and returns the **path** (naming and redirection detail: `testing-strategy.md` §3). A verifier **MAY NOT return PASS** on a claim backed only by narrative — no artifact path, or a path the verifier did not open, means the gate is **INCOMPLETE** (not FAIL) and the executor is sent back to produce one. INCOMPLETE is not a stop-and-surface trigger; the orchestrator resolves it by re-dispatching.
-- **Exempt**: MTP micro-tasks (§Micro-Task Protocol) verify at executor tier on exit code — there is no separate verifier to read a file.
+**Evidence is a file, not a claim [HARD-GATE].** Redirect any command backing a gate claim to
+`Artifacts/Temp/<phase>_<step>_<command>.txt`, return the path (`testing-strategy.md` §3). No
+artifact, or an unopened one, means INCOMPLETE (not FAIL) — re-dispatch, don't stop-and-surface.
+MTP exempts: executor verifies on exit code, no separate verifier.
 
 ```
-YOU ── approve plan (once) ──► OPUS (orchestrate + verify) ──► SONNET (execute → evidence)
-                                     │  ▲ raw artifacts (not summary) │
-                                     │  └──────────────────────────────┘
-                                     ├─ PASS → advance to next step (no human stop)
-                                     └─ STOP & surface to YOU only on a trigger below
+YOU ── approve plan (once) ──► OPUS (orchestrate+verify) ──► SONNET (execute→evidence)
+                                     PASS → next step, no stop
+                                     STOP & surface only on a trigger below
 ```
 
-**Stop-and-surface triggers (the only reasons to halt for the user):**
-1. A `— Mode: HITL` task, or any **destructive / irreversible** action (commit, push, reset, deploy, live state mutation).
-2. A genuine ambiguity or decision the orchestrator cannot resolve from the plan, code, or sensible defaults.
-3. A verification **FAIL**, or a Semantic-Loop / Emergency trigger (§Safeguards, §Emergency Protocols).
+**Stop-and-surface triggers** (the only reasons to halt):
+1. `— Mode: HITL`, or destructive/irreversible action (commit, push, reset, deploy, live mutation).
+2. Genuine ambiguity the orchestrator can't resolve from plan/code/defaults.
+3. Verification FAIL, or a Semantic-Loop/Emergency trigger.
 
-Everything else — reads, pure-logic, docs, reversible edits, passing gates — proceeds without a human stop. Human sign-off concentrates at **plan-approval** (HARD-GATE) and **irreversible actions**, not every step.
+Everything else proceeds without a stop. `/afk`'s Default-HITL fail-safe is stricter (unattended
+auto-execution); `high-rigor-engineering` may tighten this back to synchronous gates — it wins
+on conflict.
 
-- **Attended vs unattended.** This governs *attended* sessions, where the user can interrupt at any point. It differs from `/afk`'s Default-HITL fail-safe (§TODO Mode tag), which governs *unattended* auto-execution and conservatively stops on anything untagged.
-- **Precedence.** The `high-rigor-engineering` skill may tighten this back to synchronous per-gate stops for its declared phases; where the skill and this section conflict, the skill wins (as it already states).
-
-## Artifacts/TODO.md Authority (Single Source)
+## Artifacts/TODO.md Authority
 
 | Agent / Command | Allowed | Forbidden |
 |:---|:---|:---|
-| **Strategist** | Create, restructure, add/remove tasks | Mark status |
-| **Coder** | Mark `[-]` (in-progress) | Mark `[x]`, add/remove tasks |
-| **Auditor** | Mark `[x]` (complete) after all gates pass | Add/remove tasks; edit task text; edit source/tests/evidence (report it instead — `agents/auditor.md` §Write Scope) |
-| **`/sync`, `/ingest`** | Propose completion (flag for auditor) | Mark `[x]` directly |
-| **Scribe, Concierge** | Read-only (concierge may archive to `Artifacts/History/`) | Modify content or status |
+| Strategist | Create, restructure, add/remove tasks | Mark status |
+| Coder | Mark `[-]` | Mark `[x]`, add/remove tasks |
+| Auditor | Mark `[x]` after gates pass | Add/remove/edit tasks; edit source/tests (report instead) |
+| `/sync`, `/ingest` | Propose completion (flag for auditor) | Mark `[x]` directly |
+| Scribe, Concierge | Read-only (concierge may archive) | Modify content or status |
 
-**Task format**: `[ ] [agent] Task description — Success: metric`
-- `[ ]` Not started | `[-]` In progress | `[x]` Auditor-verified complete
+Format: `[ ] [agent] Task — Success: metric`. `[ ]` not started, `[-]` in progress, `[x]`
+auditor-verified complete (the only terminal state).
 
-**Extended format (optional)**: `[ ] [agent] Tn: Task description — Success: metric — Blocked by: Tm[, Tk]`
-- `Tn:` (task ID) and `Blocked by:` are both OPTIONAL — a task without them is fully valid. IDs are phase-local (`T1`..`Tn` within a `Phase-N-TODO.md`).
-- Example: `[ ] [coder] T3: Wire schema validation into intake — Success: pytest tests/test_intake.py exit 0 — Blocked by: T1, T2`
-- **Enforcement**: Auditor must not allow a task to be marked `[-]` while any listed blocker is not `[x]`.
-- **Anti-pattern**: A linear chain (T2←T1, T3←T2, …) adds nothing over list order — omit `Blocked by:` there; use it only where the dependency graph diverges from list order.
+Extended (optional): `[ ] [agent] Tn: Task — Success: metric — Blocked by: Tm`. `Tn:` and
+`Blocked by:` are both optional; IDs are phase-local. Auditor must not allow `[-]` while a
+blocker isn't `[x]`. Skip `Blocked by:` for a linear chain — it adds nothing over list order.
 
-**Mode tag (optional)**: append `— Mode: AFK` or `— Mode: HITL` to gate `/afk` auto-execution: `[ ] [agent] Tn: Task description — Success: metric — Mode: AFK — Blocked by: Tm`
-- `AFK` = the `/afk` runner may auto-execute this task without user approval; `HITL` = user approval required before execution.
-- **Default-HITL**: an untagged task is HITL — nothing auto-runs by omission (fail-safe).
-- **Tagging authority**: strategist only, at planning time; no agent may retag at runtime.
-- **Enforcement**: `/afk` never dispatches a HITL or untagged task.
+Mode tag (optional): `— Mode: AFK` (runner may auto-execute) or `— Mode: HITL` (needs approval).
+Untagged = HITL (fail-safe default). Strategist tags at planning time only; `/afk` never
+dispatches HITL or untagged tasks.
 
 ## Persistence
 
-- **Project State Persistence [HARD-GATE]**: All state files MUST live in the **Artifacts/** directory within the true logical project root (the source code repository). 
-- **No Shadow-Only State**: Never write project-specific state ONLY to global AI directories (e.g., `~/.claude/projects/` or `~/.gemini/`). 
-- **Absolute Path Requirement**: Always use the **absolute file path** of the current code workspace and the `Artifacts/` folder when writing or reading state files to prevent shadow directory collisions.
-- **Platform Redirection Warning**: Platforms may automatically redirect `IsArtifact: true` calls to shadow folders — see `standards.md` Mirroring Rule [HARD-GATE] for the required mirrored-write behavior; it applies to all Artifacts/ persistence writes.
+State lives in the project's own **Artifacts/** directory — never only in `~/.claude/projects/`
+or similar shadow dirs. Use absolute paths to avoid shadow-directory collisions. Platforms may
+redirect `IsArtifact: true` writes to shadow folders — see `standards.md` Mirroring Rule.
 
-> [!IMPORTANT]
-> **Interface-First Pattern**: For any data exchange or tool-building task, Phase 1 MUST define the "Contract" (JSON Schema/Outline) and obtain explicit user approval before implementation.
+> **Interface-First Pattern**: data-exchange/tool-building work defines the Contract (schema)
+> and gets explicit approval before implementation.
+> **ROI Escalation**: Tier 1 metadata/names → Tier 2 schemas/JSON → Tier 3 full source, only as
+> needed. Cheapest context that proves the claim.
 
-> [!TIP]
-> **ROI Escalation**: Prioritize Tier 1 Metadata (Counts/Names) and Tier 2 Logic (Schemas/JSON) before escalating to Tier 3 Content (Full Source/Renders). Use the cheapest context that proves the claim.
+| File | Owner | Purpose |
+|:---|:---|:---|
+| `MEMORY_ANCHORS.md` | Strategist | Cold storage: constants/constraints, never archived |
+| `Temp/` | All (Concierge cleans) | Scratch: one-off scripts, uncited output. Gitignored, purged freely |
+| `Evidence/` | Executor promotes, Auditor maintains | Durable, cited verification artifacts. Never purged |
+| `Reports/<PHASE>-AUDIT_REPORT.md` | Auditor | Gate findings |
+| `.agent/current_task.md` | Concierge | Session focus |
+| `IMPLEMENTATION_PLAN.md` | Strategist | How & why |
+| `TODO.md` | Strategist (Coder/Auditor status) | Who & when |
+| `BACKLOG.md` | Strategist/Coder | Deferred work, findings, decisions-not-to-do. See BACKLOG below |
+| `ARCH.md` | Strategist | Long-term architecture |
+| `DECISION_LOG.md` | Council | Pivot tracking. Rotates past threshold, see below |
+| `HANDOFF_BRIEF.md` | Concierge | Session transition |
+| `learnings/` | Concierge | Knowledge registry, never archived |
+| `LAYOUT_SPEC.md` | Creative Director | Visual specs |
+| `Plans/Phase-N-Plan.md`, `Plans/Phase-N-TODO.md` | Strategist / Coder+Auditor | Phase design & tracking |
+| `Reports/Phase-N-Report.md` | Auditor | Phase completion summary |
 
-| File | Owner (Create) | Owner (Maintain) | Purpose |
-|:---|:---|:---|:---|
-| `Artifacts/MEMORY_ANCHORS.md` | Strategist | Strategist | **Cold Storage**: Project-wide constants, constraints, and non-negotiables. (Persistent — never archived) |
-| `Artifacts/Temp/` | All | Concierge (Cleanup) | **Transient Storage**: one-off diagrams, scratch scripts, and *uncited* verification output. Gitignored; purged freely. |
-| `Artifacts/Evidence/` | Executor (promotion) | Auditor | **Durable Evidence**: verification artifacts cited by a durable record. Committed with the phase. **Never purged** — see §Evidence Retention. |
-| `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md` | Auditor | Auditor | Gate-based quality review findings (Logic, Style, Hard Rules); see `/audit`. |
-| `Artifacts/.agent/current_task.md` | Concierge | Concierge | Session focus |
-| `Artifacts/LOCAL_AGENT_PROFILES.json` | Strategist | Strategist | Sub-agent role definitions |
-| `Artifacts/IMPLEMENTATION_PLAN.md` | Strategist | Strategist | **The "How & Why"**: Technical design and rationale. |
-| `Artifacts/TODO.md` | Strategist | All (see authority) | **The "Who & When"**: High-level execution status. |
-| `Artifacts/BACKLOG.md` | Strategist/Coder (first deferral) | All | **Deferred-work registry**: unscheduled deferred work, filed findings, pending product decisions. Reference-on-demand (NOT boot-loaded). Lazy-created on first deferral, never scaffolded at init. Rotates (never prunes) past threshold — see **BACKLOG Lifecycle** below. Scoped/phase-shaped work → PLAN; loose item/finding/product-decision → BACKLOG; scheduled/status → TODO; decisions → DECISION_LOG. |
-| `Artifacts/ARCH.md` | Strategist | Scribe (formatting) | Long-term system architecture |
-| `Artifacts/COUNCIL_PROTOCOLS.md` | Strategist | Strategist | Deliberation rules for high-rigor decisions |
-| `Artifacts/DECISION_LOG.md` | Council | Council | Pivot tracking & high-stakes resolutions. Rotates (never prunes) past threshold — see **DECISION_LOG Rotation** below. |
-| `Artifacts/HANDOFF_BRIEF.md` | Concierge | Concierge | Session transition & next steps |
-| `Artifacts/learnings/` | Concierge | Concierge | Categorized knowledge registry (Persistent — never archived). Excludes task status (→ TODO.md) and architecture decisions (→ DECISION_LOG.md); entry-format templates live in `learnings/index.md`. |
-| `Artifacts/LAYOUT_SPEC.md` | Creative Director | Creative Director | Visual specs |
-| `Artifacts/Plans/Phase-N-Plan.md` | Strategist | Strategist | **The "How & Why"**: Detailed phase technical design. |
-| `Artifacts/Plans/Phase-N-TODO.md` | Strategist | Coder/Auditor | Phase-level task tracking and status. |
-| `Artifacts/Reports/Phase-N-Report.md` | Auditor | Auditor | Phase completion summary and metrics. |
+Plans/Reports move to `History/` once a phase completes; `learnings/` and `MEMORY_ANCHORS.md`
+never archive.
 
-**Phase Lifecycle**:
-- Plans/ and Reports/ files are created at phase start and end respectively
-- After a phase is completed, its Plans/ and Reports/ files MUST be moved to History/
-- `learnings/` and `MEMORY_ANCHORS.md` are permanent fixtures and are never archived
-- All other artifacts follow the Archive policy once their active period ends
+**DECISION_LOG Rotation**: past >400 lines OR >40 entries, move oldest **RESOLVED** entries to
+`History/DECISION_LOG-archive.md` (prepend, newest-first) until under threshold. Unresolved
+entries never rotate. Never delete — archive is append-only. Owner: concierge at `/handoff`.
 
-**DECISION_LOG Rotation** (never prune — rotate):
-- **Trigger**: active `Artifacts/DECISION_LOG.md` exceeds **>400 lines OR >40 entries**.
-- **Action**: move the **oldest RESOLVED** entries to `Artifacts/History/DECISION_LOG-archive.md`
-  (prepend, preserving newest-first order) until the active log is back under threshold.
-- **Keep**: all unresolved entries regardless of age, plus recent entries. **UNRESOLVED entries
-  never rotate.**
-- **Never delete** — the archive is append-only; rotation only moves entries, it does not prune them.
-- Maintain a forward-pointer line at the top of the active log → the archive.
-- **Trigger owner**: concierge at `/handoff`; manual via `/clean`.
+**BACKLOG**: a plain running list of deferred work — one entry per item (a line or a short
+paragraph), marked `OPEN` or `RESOLVED`. Nothing auto-schedules off it: `/sync` surfaces OPEN
+entries, and `/blueprint` forces a verdict on each (pull in / keep / resolve). No IDs, caps, or
+rotation protocol — when it gets unwieldy, move the RESOLVED entries to
+`History/BACKLOG-archive.md`. Existing entries keep their IDs so old citations still resolve.
 
-**BACKLOG Lifecycle** (memory, not a queue — rotate, never prune):
-- **Contract**: `BACKLOG.md` is **searchable memory** of deferred work and decisions-not-to-do.
-  Nothing schedules off it — an item resurfaces when the thing it describes does, or when a
-  planning cycle triages it (Review ritual below). Optimize for findability and size, not for pickup.
-- **Review ritual** (triage, not scheduling): `/sync` surfaces OPEN entries every session;
-  `/blueprint` New Phase & Re-Plan force a verdict on every OPEN entry — pull into the phase,
-  keep OPEN with a recorded reason, or mark RESOLVED (`commands/blueprint.md`). This decides
-  *whether* to act; it never auto-queues work. An unpicked entry stays OPEN with its reason.
-- **Cap-breach trigger** (a rotation-trigger breach, above, is itself a review trigger — independent
-  of `/sync`/`/blueprint` cadence): **classify-before-schedule** — if **>20%** of entries carry no
-  status marker, the review blocks on classification before any scheduling verdict. Otherwise it
-  surfaces **≤5** entries, ranked by **age-since-activity**, and offers **three** verdicts: pull into
-  the phase, keep OPEN with a recorded reason, or **close as won't-do** (mark RESOLVED with that
-  reason). **No auto-scheduling** — the trigger forces a verdict, never a task.
-- **Per entry**: a stable ID (`<phase>_<component>_<n>`) and a status marker (`OPEN` / `RESOLVED`).
-  The marker is what makes rotation mechanical. Grouping and ordering are **project-local** — the
-  OS does not constrain them.
-- **`**Deferred:**` field**: `**Deferred:** YYYY-MM-DD — <reason>` is a **status field** — like the
-  `OPEN`/`RESOLVED` marker — exactly one per entry, **updated in place** by each new triage (overwrite,
-  never append). **Never-delete (below) governs rotation** — moving content out of the active file —
-  **not in-place field updates**; overwriting this field, or flipping `OPEN`→`RESOLVED`, is not a
-  never-delete violation.
-- **`**Exit:**` field**: every entry filed on or after this rule lands MUST carry an `**Exit:**`
-  condition at filing time. Entries that predate the cutoff are **grandfathered** — retrofitted
-  opportunistically when next touched, never in a bulk pass. **No bulk retrofit is ever demanded**:
-  an enforcing check determines "filed" from file-touch history (e.g. `git blame` on the entry
-  header, falling back to a self-reported filing date where git is unavailable) and MUST collapse
-  to a single advisory — never per-entry violations — when a majority of entries would fire at once.
-- **Creation invariant [HARD-GATE]**: a `<phase>_<component>_<n>` ID cited by **any** durable record
-  (PLAN, TODO, DECISION_LOG, phase audit report, a phase report, `learnings/`) MUST have a `## ` header in
-  the active `BACKLOG.md` **or** in `History/BACKLOG-archive.md`. An ID is minted *by filing it* —
-  citing one that was never filed is a dangling reference the reader cannot follow, and no tool sees
-  it. **Corollary**: "the file is already over threshold" is never grounds for skipping the entry —
-  retire the breach first (rotation / amendment rotation below), then file.
-- **Rotation trigger**: active `BACKLOG.md` exceeds **>600 lines OR >20 entries**, or any single
-  entry exceeds the per-entry cap.
-- **Per-entry cap**: no entry exceeds **30 lines**. Accrual is bounded by the entry cap; **in-place
-  amendment is not** — a single OPEN entry re-edited over weeks is the realistic way this file
-  becomes unsearchable. Over-cap is retired by amendment rotation below, never by deleting text.
-- **Threshold coherence [invariant]**: `file cap ÷ per-entry cap ≥ entry cap` — **600 ÷ 30 = 20 ✓**.
-  Changing any one of the three numbers re-checks the other two. A file cap that cannot hold the
-  entry count it advertises ships already-breached and sends its operator an unachievable remedy.
-- **Action**: move the oldest **RESOLVED** entries to `Artifacts/History/BACKLOG-archive.md`
-  (prepend, preserving newest-first) until back under threshold. Maintain a forward-pointer line
-  at the top of the active file → the archive.
-- **Never delete** — the archive is append-only. **OPEN entries never rotate**, regardless of age.
-- **Amendment rotation** (the instrument for the *growth* axis; the line above governs the *entry*
-  axis): when an entry exceeds the per-entry cap, **superseded amendment text** may be moved to
-  `History/BACKLOG-archive.md` under a dated `superseded amendments — <entry-id>` sub-head **while
-  the entry itself remains in `BACKLOG.md` and remains OPEN**.
-  - **May move**: dated amendment/investigation history a later amendment has overtaken; earlier
-    drafts of a finding the entry now states differently; sub-threads already concluded.
-  - **Must stay**: the `## ` header and ID, the status marker, the current statement of the finding,
-    every live gate / exit condition / open question, and anything a durable record cites.
-  - **Never delete**: every removed line is appended to the archive **in the same commit**, and the
-    entry keeps a pointer line → the archive sub-head.
-  - **Verified by traceability, not arithmetic**: every deleted **content** line (blank lines and
-    bare `---` excluded) traces to the archive **or** to a cited extraction target (a `learnings/`
-    entry, its own artifact). Re-archiving verbatim text the archive already holds is **not**
-    required — a line-count inequality rewards padding the archive and punishes dropping
-    whitespace. Traceability still cannot separate a rewording from a deletion, so the real gate
-    is a **read at the phase gate**, not a count per task.
-  - This moves *superseded text out of* an entry; it never moves an entry. The never-rotate
-    invariant above is unaffected — live OPEN content is not rotatable by this clause.
-- **Eviction**: an entry another durable doc cites as authoritative is a **reference**, not
-  backlog — extract it to its own artifact rather than rotating it.
-- **Trigger owner**: concierge at `/handoff` (`scripts/backlog_audit.py` reports it); manual `/clean`.
-- **Session-boot surface**: `hooks/session-boot.js` runs a BACKLOG health check at `SessionStart` —
-  gates on **line count** vs `max_lines` only; entry count is **advisory only**, never gating — the
-  `## `/`### ` entry-parser ambiguity makes counts unreliable.
+> Platform-level logs for background commands (system Temp dirs) are host-managed and exempt
+> from the Artifacts/ persistence requirement.
 
-> [!NOTE]
-> **Transient State Exception**: Platform-level logs for background commands (e.g., in system Temp directories) are managed by the host binary and are inherently transient. They are exempt from the `Artifacts/` persistence requirement.
+### Scratch Strategy [HARD-GATE]
 
-### 🧪 Scratch Strategy [HARD-GATE]
+Never use the shadow `scratch/` directory. All one-off scripts/temp data go in `Artifacts/Temp/`.
 
-To ensure project portability and auditability, agents MUST NOT use the system default shadow `scratch/` directory. 
-- **Mandatory Path**: All one-off scripts, temporary data, and transient analysis files MUST be stored in `Artifacts/Temp/`.
-- **Enforcement**: Any agent writing to a shadow directory during execution is in violation of the Persistence Hard-Gate.
+### Evidence Retention [HARD-GATE]
 
-### 📎 Evidence Retention [HARD-GATE]
+`Temp/` is gitignored scratch — nothing survives a phase. Promote a file to
+`Evidence/<phase>/<filename>` (committed) *before* purging, whenever a phase report, audit
+report, `DECISION_LOG.md`, `BACKLOG.md`, or `learnings/` entry cites it — and repoint the
+citation in the same pass. Uncited evidence just dies with `Temp/`. A rolling report
+(`Phase-N-Report.md`) archives to `History/Reports/<sha>-<name>.md` before being overwritten,
+same repoint-in-same-pass rule. Evidence citations name immutable paths; state references
+(`TODO.md`, a Plan) may name mutable ones.
 
-`Artifacts/Temp/` is scratch and **gitignored** — nothing in it survives a phase. Evidence a
-**durable record cites** must therefore be promoted before any purge, or the record ends up
-pointing at a deleted file.
+## Plan vs. TODO
 
-- **Promote when**: a phase report, a phase audit report, a `DECISION_LOG.md` entry, a
-  `BACKLOG.md` finding, or a `learnings/` entry cites the file.
-- **Promote to**: `Artifacts/Evidence/<phase>/<original-filename>`, committed with that phase.
-  Repoint the citing record to the new path **in the same pass** — a promoted file with a stale
-  citation is the same failure as a deleted one.
-- **Purge law (binds every cleanup path — `/clean`, `/handoff`, high-rigor pre-commit)**: purge
-  `Artifacts/Temp/`; **never** touch `Artifacts/Evidence/`. Promote cited files *before* purging.
-- **Uncited evidence is not promoted** — it did its job at the gate and dies with `Temp/`.
-  Promotion is the exception, not the default; `Evidence/` holds what a reader will actually
-  follow a citation to.
-- **Rolling-report archive-then-write**: before truncating/replacing a rolling report
-  (`Phase-N-Report.md`), move the current version to
-  `Artifacts/History/Reports/<sha>-<report-name>.md`, then write fresh. Repoint every citation
-  the old version held to the new archive path **in the same pass** — a stale citation after an
-  archive is the same failure as one after a delete.
-- **Citing-side invariant**: an *evidence* citation (a durable record's cited fact) names an
-  **immutable** path (`Artifacts/Evidence/<phase>/…`, `Artifacts/History/Reports/<sha>-…`); a
-  *state* reference (`TODO.md`, a Plan — where "current" is the intended referent) may name a
-  mutable one.
-
-## Artifact Separation: Plan vs. TODO
-
-To prevent information redundancy and "maintenance debt":
-
-1.  **IMPLEMENTATION_PLAN.md**: Must contain the **technical heavy lifting**. Specific file paths, logical changes, dependency orders, and code snippets belong here.
-2.  **Plan Pruning [HARD-GATE]**: To prevent bloat, only the **Current Phase** and **Upcoming Phases** remain in the Plan. Once a Phase is completed, its technical spec MUST be moved to `Artifacts/History/Plans/Phase-[N]-Plan.md`.
-3.  **TODO.md**: Must remain a **"Thin TODO"**. It should reference Phase numbers or high-level milestones from the plan.
-    - **Forbidden**: Copy-pasting detailed file logic or implementation steps from the Plan into the TODO.
-    - **Required**: Status tracking (`[-]`, `[x]`) only happens in the TODO.
-    - **Unscheduled work**: Unscheduled or mined tasks belong in `Artifacts/BACKLOG.md`; `TODO.md` carries only tasks scheduled into the active or next phase.
-
-**Rule**: If a change requires updating technical logic, update the Plan. If a change requires updating execution status, update the TODO.
+`IMPLEMENTATION_PLAN.md` holds the technical heavy lifting (file paths, logic, dependency
+order); only current + upcoming phases stay in it — completed phases move to
+`History/Plans/Phase-[N]-Plan.md`. `TODO.md` stays thin: status tracking only, references
+Plan phases, never copies implementation detail. Unscheduled work goes to `BACKLOG.md`.
 
 ## Conflict Resolution
 
-- **Auditor rejection loop**: 1st → specific fix. 2nd → mandatory skill-file review. 3rd → escalate to strategist (task definition may be flawed).
-- **Agent disagreement**: Coder documents concern → routes to strategist. Strategist has final authority on success metrics.
-- **User override**: User says "Skip Step 0" → logged as `[STEP0-BYPASS]` in Artifacts/TODO.md → auditor flags HIGH severity.
-- **Binding Rule Conflict**: When two binding rules genuinely conflict, record the resolution, its scope, and its grounds in the durable `Artifacts/DECISION_LOG.md` — never only in a session/scratch file. Annotate the superseded rule in place so future readers will find the contradiction and its resolution without context-hopping. A contract or plan statement about code that ALREADY EXISTS is a claim requiring verification at authoring time, not an assertion — mark such claims explicitly and check them before approval.
+- Auditor rejection: 1st → specific fix. 2nd → mandatory skill-file review. 3rd → escalate to
+  strategist (task definition may be flawed).
+- Agent disagreement: coder documents concern → strategist decides (final authority on metrics).
+- User override "skip Step 0": logged `[STEP0-BYPASS]` in TODO.md, auditor flags HIGH severity.
+- Binding rule conflict: record resolution + scope + grounds in `DECISION_LOG.md`, annotate the
+  superseded rule in place. A claim about existing code needs verification at authoring time,
+  not assertion — mark and check it before approval.
 
-## Global Repository (AI OS Settings)
+## Global Repository
 
-The `ai-code-settings` repository acts as the **Global Registry** for rules, skills, and standards.
-
-- **Global Inbox**: Cross-project learnings are staged in the ai-code-settings repo's `Artifacts/GLOBAL_INBOX.md`.
-- **Graduation**: Recurring patterns identified in a project's `Artifacts/learnings/` should be graduated to the global registry using `/learn --global` during a project session, or `/graduate` when working inside the global repository.
+`ai-code-settings` is the Global Registry for rules/skills/standards. Cross-project learnings
+stage in its `Artifacts/GLOBAL_INBOX.md`; `/learn --global` or `/graduate` promotes them.
 
 ## Parallel Execution
 
-To maximize throughput and rigor, the Agent OS utilizes parallel agent sessions for independent or high-stakes operations:
-
-### 1. Multi-Persona Audit (`/audit --team`)
-The `auditor` spawns parallel reviewers to audit the same code block:
-- **Compliance Reviewer**: Checks against `coding-style.md`.
-- **Domain Specialist**: Checks against specific skill (e.g., `rhino-e2e-testing`).
-- **Risk Reviewer**: Audits for security and edge cases.
-*Result: Aggregated into `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md`.*
-*Default: Use `--team` for all full audits — measurably faster and deeper than sequential scanning. Fall back to a single auditor only when token limits are hit.*
-
-### 2. Independent Module Refactor
-The `coder` can spawn sub-agents to refactor non-dependent modules simultaneously:
-- **Sub-Agent A**: Refactors `src/geometry/`
-- **Sub-Agent B**: Refactors `src/data_processing/`
-*Restriction: Parallel writes to the same file are FORBIDDEN.*
-
-### 3. Council Deliberation (`/council`)
-The `council` agent orchestrates a parallel "debate" between the Strategist, Coder, and Auditor to resolve architectural conflict.
-
----
+- **`/audit --team`**: auditor spawns parallel reviewers (compliance, domain specialist, risk) →
+  aggregated into `Reports/<PHASE>-AUDIT_REPORT.md`. Default for full audits; fall back to a
+  single auditor only on token limits.
+- **Independent refactor**: coder can spawn sub-agents for non-dependent modules. Parallel writes
+  to the same file are forbidden.
+- **`/council`**: parallel debate between strategist/coder/auditor to resolve conflict.
 
 ## Standard Taxonomies
 
-### 1. Status Hierarchy
 | Marker | Level | Authority | Meaning |
 |:---|:---|:---|:---|
-| `[ ]` / `[-]` / `[x]` | Task | Strategist/Coder/Auditor | Not started / In progress / Complete (see TODO Authority above). |
-| `DONE` | Claim | Coder | Work finished, ready for audit. |
-| `PASS` / `FAIL` | Result | Auditor | Audit gate cleared / blocked (Logic/Style). |
-| `[x]` | Final | Auditor | Task complete in `TODO.md`. **The ONLY terminal state.** |
-| `GO` / `NO-GO` | Pre-audit | Auditor | `/audit --pre` approved / blocked. |
-| `DRIFT` / `STALE` / `RECONCILED` | Sync | Concierge | Unplanned change / no progress / filesystem matches artifact state (`/sync`). |
-| `CLEAN` | Security | Auditor | Security sweep passed (No secrets/vulnerabilities). |
+| `[ ]`/`[-]`/`[x]` | Task | Strategist/Coder/Auditor | Not started / in progress / complete |
+| `DONE` | Claim | Coder | Finished, ready for audit |
+| `PASS`/`FAIL` | Result | Auditor | Gate cleared / blocked |
+| `GO`/`NO-GO` | Pre-audit | Auditor | `/audit --pre` verdict |
+| `DRIFT`/`STALE`/`RECONCILED` | Sync | Concierge | `/sync` outcome |
+| `CLEAN` | Security | Auditor | Security sweep passed |
 
-### 2. Severity Scale
-- **CRITICAL**: Breaking change, security breach, or data loss risk.
-- **HIGH**: Feature-blocking bug, major architectural drift.
-- **MEDIUM**: Non-blocking bug, documentation staleness, minor style drift.
-- **LOW**: Optimization hint, suggestion, non-visible polish.
-- **INFO**: Factual observation, no action required.
+Severity: **CRITICAL** (breaking/security/data-loss) → **HIGH** (feature-blocking, major drift)
+→ **MEDIUM** (non-blocking bug, staleness) → **LOW** (optimization hint) → **INFO** (factual).
 
----
-
-- **Always `/handoff` before ending**: Any session with code changes, documentation updates, or design decisions MUST end with `/handoff`. This captures learnings, snapshots TODO state, and writes a brief for the next session. Exiting without `/handoff` breaks the feedback loop and wastes re-orientation time.
-- **Concierge prompt**: If the agent detects the user is wrapping up (e.g., "thanks", "that's it", "done for now") without a `/handoff`, the concierge should suggest it.
+Always `/handoff` before ending any session with code/doc/design changes — it captures
+learnings, snapshots TODO, briefs the next session.
 
 ## Emergency Protocols
 
-- **Context window >60%**: Concierge triggers `/handoff`. All agents yield.
-- **Security incident**: FREEZE → AUDIT → REMEDIATE → RESUME (see `security.md`).
-- **State file corruption**: Check `Artifacts/History/` → reconstruct from `Artifacts/.agent/current_task.md` + `Artifacts/DECISION_LOG.md` → `/sync`.
+- Context window >60%: concierge triggers `/handoff`, all agents yield.
+- Security incident: FREEZE → AUDIT → REMEDIATE → RESUME (`security.md`).
+- State corruption: check `History/` → reconstruct from `current_task.md` + `DECISION_LOG.md` → `/sync`.
 
 ## Safeguards & Efficiency
 
-### 1. Context Layering (L0/L1/L2)
-To minimize token consumption, agents MUST follow the tiered loading strategy:
-- **L1 (Overview)**: Query `agents/agents.overview.md` or `skills/skills.overview.md` first.
-- **L0 (Abstract)**: Read the `*.abstract.md` to confirm functional fit.
-- **L2 (Full Definition)**: Load the full agent/skill file ONLY when active work begins.
-
-### 2. Semantic Loop Detection
-If an agent performs the same action type on the same file/state 3 times without a state change (e.g., 3 failed lint fixes), it MUST:
-1. **FREEZE**: Stop implementation.
-2. **TRIAGE**: Analyze the loop cause.
-3. **ESCALATE**: Propose a plan pivot to the user or a different agent (Council).
-
-### 3. Findings Protocol (Phase Handoff)
-To ensure technical continuity across session boundaries:
-1. **Produce**: At the end of every task, the agent files technical specifics (variable names, logic traps, API quirks) into `Artifacts/BACKLOG.md` — the single home for deferred work and findings — rather than scattering them across per-phase "still open" sections.
-2. **Consume**: Two scheduled hooks, not ad-hoc intake — `/sync` **surfaces** OPEN entries every session (count + first few in file order; `commands/sync.md` step 5); `/blueprint` New Phase & Re-Plan run a **BACKLOG Reconciliation** gate that forces a verdict on every OPEN entry — pull in / keep with reason / resolve (`commands/blueprint.md`).
-3. **Graduate**: The Concierge promotes persistent findings to the `Artifacts/learnings/` registry during `/handoff`; scheduled items graduate out to a PLAN phase.
-
-### 4. Slicing & Economics
-Refer to `rules/common/TOKEN-ECONOMICS.md` for mandatory project slicing thresholds and context pressure management rules.
+- **Context Layering**: L1 overview first → L0 abstract to confirm fit → L2 full definition only
+  when work begins.
+- **Semantic Loop Detection**: same action on the same file/state 3× with no state change →
+  FREEZE → TRIAGE → ESCALATE (propose a pivot to the user or council).
+- **Findings Protocol**: file technical specifics (variable names, logic traps) to `BACKLOG.md`
+  at task end. `/sync` surfaces OPEN entries; `/blueprint` forces a verdict on each. Concierge
+  graduates persistent findings to `learnings/` at `/handoff`.
+- **Slicing & Economics**: see `TOKEN-ECONOMICS.md` for slicing thresholds.

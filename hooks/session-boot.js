@@ -48,138 +48,10 @@ function findProjectRoot(startDir) {
   return startDir;
 }
 
-// Lazy-required and independently try/catch-wrapped (not a top-level require) so a
-// bug in the logger can only ever be swallowed here — matches nudge-handoff.js's
-// logGateSafe (LH-3 T1b, Hard Rule 1 of BGR-1-TODO.md T3): logging must never
-// affect this hook's output or exit code.
-function logGateSafe(params) {
-  try {
-    require('./lib/gate-log').logGateEvent(params);
-  } catch {
-    // Fail-open within fail-open.
-  }
-}
-
-// ----- BACKLOG health check (BGR-1 T3) -----
-//
-// Fallback caps — used ONLY when hooks/backlog-caps.json is unreachable (absent,
-// unreadable, or malformed JSON). Must stay numerically identical to that file,
-// the Python fallback in scripts/backlog_audit.py, and the rule prose in
-// rules/common/orchestration.md §BACKLOG Lifecycle — enforced by
-// tests/test_cap_parity.py (BGR-1 T4), never by eyeballing. Exported at the
-// bottom of this file so a test can read it without executing main().
-const BACKLOG_CAPS_FALLBACK = Object.freeze({ max_lines: 600, max_entries: 20, max_entry_lines: 30 });
-
-function loadBacklogCaps() {
-  try {
-    const raw = fs.readFileSync(path.join(__dirname, 'backlog-caps.json'), 'utf-8');
-    const data = JSON.parse(raw);
-    const caps = {
-      max_lines: Number(data.max_lines),
-      max_entries: Number(data.max_entries),
-      max_entry_lines: Number(data.max_entry_lines),
-    };
-    if (!Number.isFinite(caps.max_lines) || !Number.isFinite(caps.max_entries) || !Number.isFinite(caps.max_entry_lines)) {
-      throw new Error('non-numeric cap in backlog-caps.json');
-    }
-    return caps;
-  } catch {
-    return { ...BACKLOG_CAPS_FALLBACK };
-  }
-}
-
-const BACKLOG_HEALTH_HEADING = '## BACKLOG Health';
-
-// Line-count helper aligned with scripts/backlog_audit.py's `len(text.splitlines())`
-// (HFO-1 T1 — the fencepost fix). backlog_audit.py reads via Path.read_text(),
-// Python's universal-newline text mode, which normalizes \r\n/\r to \n before
-// splitlines() ever runs — so the terminator set this regex already matched
-// (\r\n, \r, \n) was never the divergence. Python's splitlines() also treats
-// vertical tab, form feed, file/group/record separators, NEL, and the
-// Unicode LINE SEPARATOR / PARAGRAPH SEPARATOR code points as line
-// boundaries, but those never
-// appear in this project's Markdown state files, so aligning on just those
-// three real-world terminators keeps parity without inventing behavior
-// neither side exercises.
-//
-// The actual divergence: splitting a newline-terminated string on that regex
-// always yields one trailing '' element that Python's splitlines() does not
-// count as a line (a file "abc\n" is 1 line, not 2). Dropping exactly that
-// one trailing empty element — never more — reproduces splitlines()'s count
-// for every case: no trailing terminator (nothing to drop), one trailing
-// terminator (drop the single phantom element), several trailing blank lines
-// (only the final phantom element is spurious; real blank lines stay).
-function countBacklogLines(content) {
-  const parts = content.split(/\r\n|\r|\n/);
-  if (parts[parts.length - 1] === '') {
-    parts.pop();
-  }
-  return parts.length;
-}
-
-// Advisory-only, known-unreliable heuristic mirroring backlog_audit.py's `## `
-// ENTRY_RE (`^##\s+`, so a `### ` heading — one hash too many before the
-// whitespace — does not match, exactly like the Python side). NEVER used to
-// gate: this parser misreads real files (one live project reports 2 entries
-// where it holds 121), which is exactly why gating is line-count only.
-function countBacklogEntriesAdvisory(content) {
-  const matches = content.match(/^##[ \t]+\S/gm);
-  return matches ? matches.length : 0;
-}
-
-// Fail-open, context-silent BACKLOG size check. Returns `{ section, decision }`:
-// `section` is the additionalContext text to inject (only when over the line
-// cap), or `null` when compliant/absent/unreadable — Hard Rule 1 (BGR-1-TODO.md
-// T3): zero stdout when within cap, no exceptions. `decision` is 'pass' or 'nag'
-// and the caller logs it exactly once regardless of which branch fired.
-function checkBacklogHealth(root) {
-  const backlogPath = path.join(root, 'Artifacts', 'BACKLOG.md');
-  try {
-    if (!fs.existsSync(backlogPath)) {
-      return { section: null, decision: 'pass' };
-    }
-    const content = fs.readFileSync(backlogPath, 'utf-8');
-    const lineCount = countBacklogLines(content);
-    const caps = loadBacklogCaps();
-    if (lineCount <= caps.max_lines) {
-      return { section: null, decision: 'pass' };
-    }
-    // Entry count is advisory-only and computed ONLY on this (already-fired) nag
-    // path — it must never itself cause the check to fire (design constraint).
-    const entryCount = countBacklogEntriesAdvisory(content);
-    const section = [
-      BACKLOG_HEALTH_HEADING,
-      `Artifacts/BACKLOG.md is ${lineCount} lines (cap ${caps.max_lines}). Rotate RESOLVED ` +
-        'entries to History/BACKLOG-archive.md — see scripts/backlog_audit.py or /clean.',
-      `Entry count (advisory, heuristic — may misread real files): ~${entryCount}.`,
-    ].join('\n');
-    return { section, decision: 'nag' };
-  } catch {
-    // Fail-open: an unreadable BACKLOG.md must never block boot or surface noise.
-    return { section: null, decision: 'pass' };
-  }
-}
-
 function buildSessionBrief(cwd) {
   const root = findProjectRoot(cwd);
   const artifactsDir = path.join(root, 'Artifacts');
   const sections = [];
-
-  // BACKLOG health — line-count gate only (entry counts are advisory, never a
-  // gating signal). Logs exactly one gate event per run on BOTH branches, so
-  // "fired nowhere" is distinguishable from "never ran".
-  const backlogHealth = checkBacklogHealth(root);
-  if (backlogHealth.section) {
-    sections.push(backlogHealth.section);
-  }
-  logGateSafe({
-    hook: 'session-boot',
-    event: 'SessionStart',
-    decision: backlogHealth.decision,
-    tool: null,
-    ruleId: 'session-boot-backlog',
-    cwd: root,
-  });
 
   // Current task pointer (whole file — it is short by design)
   const currentTask = readFileSafe(path.join(artifactsDir, '.agent', 'current_task.md'));
@@ -267,8 +139,7 @@ function main() {
   }
 }
 
-// Guarded so `require()`-ing this file (e.g. tests/test_cap_parity.py, BGR-1 T4,
-// reading BACKLOG_CAPS_FALLBACK) never runs main()/process.exit as a side effect.
+// Guarded so `require()`-ing this file never runs main()/process.exit as a side effect.
 // Invoked via `node hooks/session-boot.js` in every real deployment, where
 // require.main === module still holds.
 if (require.main === module) {
@@ -276,11 +147,6 @@ if (require.main === module) {
 }
 
 module.exports = {
-  BACKLOG_CAPS_FALLBACK,
-  loadBacklogCaps,
-  checkBacklogHealth,
-  countBacklogEntriesAdvisory,
-  countBacklogLines,
   buildSessionBrief,
   findProjectRoot,
 };

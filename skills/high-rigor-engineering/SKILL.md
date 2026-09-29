@@ -1,7 +1,7 @@
 ---
 name: high-rigor-engineering
 description: Use when a phase declares high-rigor mode — geometry validation, production deploys, regulatory work, or anything requiring an auditable evidence trail and zero tolerance for rework. Do NOT use for exploratory prototyping or documentation.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 metadata:
   version: "1.0.0"
   tags: [high-rigor, evidence, gate-cadence, patch-protocol, geometry, production]
@@ -111,7 +111,7 @@ Each phase has an **explicit approved file list**. The agent does not touch file
 
 ### Out-of-Scope Issues
 
-Bugs or findings discovered outside the approved scope become **findings** (filed in `Artifacts/BACKLOG.md` under a `<phase>_<component>_<n>` id, not scattered across phase reports) and are deferred to a separate phase. They are **never fixed** in the current phase.
+Bugs or findings discovered outside the approved scope become **findings** (filed in `Artifacts/BACKLOG.md`, not scattered across phase reports) and are deferred to a separate phase. They are **never fixed** in the current phase.
 
 ### Anti-Pattern: Scope-Creep-via-Cleanup
 
@@ -278,83 +278,21 @@ If the agent believes a reviewer instruction is mistaken **based on evidence, no
 
 ## 9. When NOT to Use This Workflow
 
-This discipline adds overhead (synchronous gates, explicit approvals, evidence trails). Use it when:
+Adds overhead (synchronous gates, explicit approvals, evidence trails) — reserve for the cases in
+the frontmatter `description` (geometry, production, regulatory, zero-rework-tolerance).
 
-✅ **Geometry validation, manifold verification, tolerance alignment** (geometry projects)  
-✅ **Production deployments, security-critical changes** (high-stakes infrastructure)  
-✅ **Regulatory compliance, audit requirements** (PII, HIPAA, SOC2)  
-✅ **Multi-million-dollar models, high-precision calculations** (financial, scientific)  
-✅ **Anything with zero-rework tolerance** (deployed Rhino scripts, vendor deliverables)
-
-❌ **Exploratory prototyping** → Use standard orchestration.md  
-❌ **Documentation updates, README changes** → Use standard workflow  
-❌ **Low-stakes bug fixes in development code** → Use standard workflow  
+❌ **Exploratory prototyping** → Use standard orchestration.md
+❌ **Documentation updates, README changes** → Use standard workflow
+❌ **Low-stakes bug fixes in development code** → Use standard workflow
 
 ---
 
 ## 10. Integration with Standard Orchestration
 
-This workflow is **a variant of** `orchestration.md`, not a replacement:
-
-- All standard agents (strategist, coder, auditor, scribe, concierge) are still active
-- All standard commands (`/blueprint`, `/audit`, `/handoff`) still apply
-- **Difference**: Implementation and verification are synchronous with explicit gates instead of async
-
-For projects using high-rigor discipline:
-1. Phase plan declares "high-rigor" mode in first task description
-2. Agent adheres to evidence protocol + gate cadence + patch protocol for all implementation steps
-3. Auditor verifies hard rules (anti-patterns, scope violations, evidence completeness) during review
-4. Commit gates remain explicit
-
----
-
-## 11. Example: High-Rigor Phase
-
-```
-Phase 5: Geometry Manifold Validation (HIGH-RIGOR)
-
-Objective: Validate closure and manifoldness of all Brep objects in gBlox model.
-
-Approved files:
-  - src/geometry/validator.py
-  - tests/geometry/test_validator.py
-  - Artifacts/Plans/phase-5.md
-  - Artifacts/Reports/phase-5.md
-
-Step 1 [strategist]:
-  - Read prior phase report
-  - Interview user: "Which Breps are scope?"
-  - Propose file list + success metric
-  - Wait for approval
-
-Step 2 [coder]:
-  - Audit: cp validator.py before.txt, grep "is_manifold" ...
-  - List files. Stop.
-  - [Wait for review]
-  - Propose: git diff showing new manifold_validator() function
-  - List proposed.diff.txt. Stop.
-  - [Wait for approval]
-  - Apply edit. Save git diff applied.diff.txt. Stop.
-  - Verify: pytest tests/geometry/test_validator.py → pytest.txt
-  - List pytest.txt. Stop.
-
-Step 3 [auditor]:
-  - Read phase-5_2_proposed.diff.txt
-  - Inspect Artifacts/Temp/ evidence files locally
-  - Approve or request changes
-  - If approved: "approved, proceed with commit"
-
-Step 4 [coder]:
-  - rm Artifacts/Temp/phase-5_*.txt
-  - git commit ... phase-5
-  - git log -1 --stat → commit_log.txt
-  - List file. Stop.
-
-Step 5 [auditor]:
-  - Mark Artifacts/TODO.md [x]
-  - Confirm metrics met
-  - Archive phase to history if next phase ready
-```
+A **variant of** `orchestration.md`, not a replacement — same agents and commands, but
+implementation/verification are synchronous with explicit gates instead of async. Declared by the
+strategist in the first task description of a high-rigor phase; the auditor verifies hard rules
+(anti-patterns, scope violations, evidence completeness) during review.
 
 ---
 

@@ -1,14 +1,14 @@
 ---
 description: Launches a high-rigor multi-persona deliberation session. Owned by the council agent. Optimized for sequential local model processing.
 argument-hint: "<topic>"
-model: claude-opus-5
+model: claude-opus-5-5
 ---
 
 # Command: /council
 
 **Target**: `$ARGUMENTS` → `<topic>` under deliberation.
 
-Owned by the **council** agent (orchestrated by the concierge/strategist). The "Conflict Resolution Engine" — forces multiple perspectives on a single decision.
+The "Conflict Resolution Engine" — forces multiple perspectives on a single decision. Orchestrated by the concierge/strategist.
 
 ## Execution Sequence
 

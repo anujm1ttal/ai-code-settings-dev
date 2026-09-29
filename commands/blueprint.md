@@ -1,7 +1,7 @@
 ---
 description: Triggers the strategist to initialize a new project, append a phase, or re-plan after a pivot. Enforces Step 0 and creates the Implementation Plan.
 argument-hint: "[--team] [--interview]"
-model: claude-opus-5
+model: claude-opus-5-5
 ---
 
 # Command: /blueprint
@@ -32,7 +32,7 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 
 ## New Phase
 1. Run `/sync` via concierge to validate current state.
-2. **BACKLOG Reconciliation**: Walk **every OPEN entry** in `Artifacts/BACKLOG.md`. Assign each a verdict — **(a) pull into this phase** (fold into the phase's `Phase-N-Plan.md` / `Phase-N-TODO.md`), **(b) keep OPEN**, overwriting the entry's reason with a fresh one-line "why not now" (replaces the prior reason line, never appends), or **(c) mark RESOLVED** (done elsewhere / won't-do). No OPEN entry passes unexamined. This is a decision gate, not auto-scheduling — an unpicked entry stays OPEN with a recorded reason; BACKLOG stays memory, not a queue (`rules/common/orchestration.md` §BACKLOG Lifecycle). A BACKLOG rotation-trigger breach forces this same reconciliation independent of phase cadence (`rules/common/orchestration.md` §BACKLOG Lifecycle Cap-breach trigger). Skip if no `Artifacts/BACKLOG.md`.
+2. **BACKLOG Reconciliation**: Walk **every OPEN entry** in `Artifacts/BACKLOG.md`. Assign each a verdict — **(a) pull into this phase** (fold into the phase's `Phase-N-Plan.md` / `Phase-N-TODO.md`), **(b) keep OPEN**, overwriting the entry's reason with a fresh one-line "why not now" (replaces the prior reason line, never appends), or **(c) mark RESOLVED** (done elsewhere / won't-do). No OPEN entry passes unexamined. This is a decision gate, not auto-scheduling — an unpicked entry stays OPEN with a recorded reason; BACKLOG stays memory, not a queue (`rules/common/orchestration.md` §BACKLOG). Skip if no `Artifacts/BACKLOG.md`.
 3. Confirm prior phase success metrics met (auditor-verified).
 4. Step 0 for new phase only (VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS).
    - **Gate 1 Trigger**: If the appended phase spec exceeds 50 lines, run `/grill` before proceeding.
@@ -43,7 +43,7 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 ## Re-Plan
 1. Archive current `Artifacts/IMPLEMENTATION_PLAN.md` + `Artifacts/TODO.md` to `Artifacts/History/` with timestamp.
 2. Post-mortem in `Artifacts/DECISION_LOG.md`: original assumption → invalidating evidence → constraint changes.
-3. **BACKLOG Reconciliation**: Walk **every OPEN entry** in `Artifacts/BACKLOG.md` — the failure may relate to work already parked there. Assign each a verdict — **(a) pull into the re-plan**, **(b) keep OPEN**, overwriting the entry's reason with a fresh one-line "why not now" (replaces the prior reason line, never appends), or **(c) mark RESOLVED**. No OPEN entry passes unexamined. Decision gate, not auto-scheduling (`rules/common/orchestration.md` §BACKLOG Lifecycle). Skip if no `Artifacts/BACKLOG.md`.
+3. **BACKLOG Reconciliation**: Walk **every OPEN entry** in `Artifacts/BACKLOG.md` — the failure may relate to work already parked there. Assign each a verdict — **(a) pull into the re-plan**, **(b) keep OPEN**, overwriting the entry's reason with a fresh one-line "why not now" (replaces the prior reason line, never appends), or **(c) mark RESOLVED**. No OPEN entry passes unexamined. Decision gate, not auto-scheduling (`rules/common/orchestration.md` §BACKLOG). Skip if no `Artifacts/BACKLOG.md`.
 4. **Requirements Interview**: Re-verify boundaries if failure was due to requirement drift.
    - **`--interview`**: Replaces the line above — never runs alongside it. Unbounded depth-first traversal per `elicitation-guide.md` §2–§5 (`business-analyst` skill). Exits only on a signed restatement (guide §5), not question count.
 5. Full Step 0 referencing what failed.

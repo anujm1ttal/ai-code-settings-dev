@@ -74,36 +74,6 @@ guard verifies all three.)
 | `evidence-gate.js` | `Stop` | Nags when completion claims made without fresh test evidence this session (feedback only) |
 | `guard-shared-state.js` | `Stop` | Nags when process-global state (stdout/stderr, logging, os.environ) changed without a full-suite run (feedback only) |
 
-## Session-Boot BACKLOG Health Check
-
-The `session-boot.js` hook runs a **BACKLOG size gate** at SessionStart (lines 63–134 in the hook).
-
-### Check Semantics
-
-- **Gating signal**: Line count **only**, checked against `max_lines` (600 by default).
-- **Entry count**: Advisory only — computed but never gates the check. The `## ` entry parser is known to undercount.
-- **When compliant** (≤ cap): Zero stdout, exit 0; `decision: 'pass'` logged to `Artifacts/.agent/gate_events.jsonl`.
-- **When over cap** (> cap): Nag section injected into session context; exit 0; `decision: 'nag'` logged.
-- **Caps**: Loaded from `hooks/backlog-caps.json` (single source: `max_lines`, `max_entries`, `max_entry_lines`);
-  JS fallback in session-boot.js; Python fallback in scripts/backlog_audit.py. All synchronized by `tests/test_cap_parity.py`.
-- **Fail-open**: Unreadable BACKLOG → `decision: 'pass'`. Only write is `gate_events.jsonl` append.
-
-### Kill Condition (Telemetry Window: `obl1_guard-nag-ratio_1`)
-
-To evaluate whether this check is useful, at the telemetry window run:
-
-```bash
-python scripts/gate_telemetry.py <path-to-any-project>/Artifacts/.agent/gate_events.jsonl
-```
-
-**Three branches determine the verdict:**
-
-1. **`pass == 0` across ≥20 sessions** → Check is **dead, not useless** — fix the wiring, never delete on a zero reading.
-
-2. **`pass > 0` and `nag == 0` across every project sampled** → No BACKLOG anywhere breaches; delete the check and its tests.
-
-3. **`nag > 0` with no measurable line-count reduction within 3 sessions of a fire** → Nag has no behavioural effect; escalate to a `/handoff` gate or delete.
-
 ## License Gate Config Parity
 
 `hooks/license-gate.json` is the single source of truth for the license gate

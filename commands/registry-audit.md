@@ -1,7 +1,7 @@
 ---
 description: Cross-reference integrity check to ensure global registry consistency and documentation health.
 argument-hint: ""
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 ---
 
 # Command: /registry-audit

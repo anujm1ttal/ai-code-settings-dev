@@ -124,8 +124,7 @@ LICENSE_GATE_PATH: Path = Path(__file__).resolve().parent.parent / "hooks" / "li
 def load_license_gate(path: Path = LICENSE_GATE_PATH) -> LicenseGate:
     """Load the license-gate config from `path`; fall back to the built-in
     defaults above when it is unreachable — absent, unreadable, or malformed
-    JSON. Never raises: a bad config file must not crash this script (mirrors
-    scripts/backlog_audit.py's `load_caps`)."""
+    JSON. Never raises: a bad config file must not crash this script."""
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
         gate = LicenseGate(

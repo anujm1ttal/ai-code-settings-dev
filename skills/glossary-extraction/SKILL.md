@@ -55,4 +55,3 @@ Write a `Artifacts/GLOSSARY.md` file with this structure:
 - **Flag conflicts explicitly.**
 - **Only include domain terms.** Skip generic programming concepts.
 - **Keep definitions tight.** One sentence max.
-- **Mirroring Requirement**: Always write to `Artifacts/GLOSSARY.md` at the absolute path.

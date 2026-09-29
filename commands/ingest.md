@@ -8,7 +8,7 @@ model: claude-haiku-4-5
 
 **Target**: `$ARGUMENTS` → `<source-file-or-type>`.
 
-Owned by the **concierge**. Intake of manual design work for validation and routing.
+Intake of manual design work for validation and routing.
 
 ## Execution Sequence
 

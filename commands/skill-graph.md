@@ -1,12 +1,12 @@
 ---
 description: Visualize skill dependency graphs, identify clusters, and recommend skill combinations. Shows which skills work together and which are isolated. Owned by the strategist for routing optimization.
 argument-hint: "[--export]"
-model: claude-opus-5
+model: claude-opus-5-5
 ---
 
 # Command: /skill-graph
 
-Owned by the **strategist**. Analyzes skill relationships and generates dependency graphs for better routing recommendations.
+Analyzes skill relationships and generates dependency graphs for better routing recommendations.
 
 ## Execution Sequence
 
@@ -68,10 +68,6 @@ Connection strength between two skills is computed as:
 - **Shared project defaults**: +3 per project type
 - **Cross-reference in description**: +1 per mention
 
-Example:
-- `python-mcp` + `typescript-mcp`: shared tag `mcp` (+2), shared projects `code` (+3) = **5**
-- `youtube-strategy` + `youtube-scriptwriting`: shared tag `youtube` (+2), shared projects `youtube` (+3) = **5**
-
 ## When to Use
 
 - Session start (understand skill landscape)
@@ -95,9 +91,3 @@ Does NOT: delete skills, execute code.
 - **`/sync`**: Can call `/skill-graph` to refresh understanding after registry changes
 - **User approval**: When moving a singleton to optional archive, document the recommendation here first, then get explicit user sign-off before the move (see Authority above)
 
-## Example Values
-
-Illustrative only — actual counts depend on the current registry (see `## Report Format` above
-for the structure each section must follow):
-- `python-mcp` ↔ `typescript-mcp` (strength: 7) — shared tag `mcp` + shared project `code`.
-- `codebase-navigator` is a Universal Skill (appears in code, geometry, data, manuscript, hybrid).

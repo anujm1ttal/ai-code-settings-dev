@@ -13,9 +13,6 @@ metadata:
 # Skill: Python Development Patterns
 
 ## 🐍 Core Principles
-- **Readability**: Prioritize clarity over "clever" one-liners.
-- **EAFP**: "Easier to Ask Forgiveness than Permission" (use try/except for control flow where idiomatic).
-- **Explicit**: Avoid side effects in imports or "magic" behavior.
 - **Immutability**: Default to frozen dataclasses and new-collection returns. See `coding-style.md` for the full mandate.
 
 ## 🖋 Type Hinting (Python 3.12+)
@@ -26,11 +23,9 @@ metadata:
 - 100% type hint coverage on all public function signatures. Enforced by `pyright` in strict mode.
 
 ## 📝 Naming & Style
-- **Constants**: `UPPER_SNAKE` at module level only.
-- **Booleans**: Prefix with `is_`, `has_`, `should_`, `can_`.
 - **Private**: Single `_prefix` for internal. Never use `__dunder` mangling unless avoiding subclass collision.
 - **Avoid abbreviations**: `response` not `resp`, `configuration` not `cfg` — except domain-standard terms (e.g., `idx`, `ctx` in geometry/math contexts).
-- **Match/Case**: Use `match`/`case` (3.10+) for multi-branch dispatch instead of `if`/`elif` chains when matching structure or value patterns.
+- **Match/Case**: Prefer `match`/`case` (3.10+) over `if`/`elif` or `isinstance` chains for structural, value-pattern, or type dispatch.
 
 ## 🛡 Error Handling
 - **Specific**: Never use bare `except:`. Catch specific exceptions (`KeyError`, `ValueError`).
@@ -40,11 +35,7 @@ metadata:
 - **Messages**: Every error message must include the state that caused it: `f"Failed to compute rake for section {section_id}: {e}"`.
 
 ## 🏎 Performance
-- **Comprehensions**: Use list/dict comprehensions for simple mapping/filtering.
-- **Generators**: Use `yield` or generator expressions for large datasets to save memory.
-- **Join**: Use `"".join()` for string concatenation in loops.
 - **Slots**: Use `__slots__` on high-frequency objects (e.g., per-seat geometry) to reduce memory overhead.
-- **Structural Pattern Matching**: Prefer `match`/`case` over `isinstance` chains for type dispatch.
 
 ## 📐 Dataclasses & Models
 - Prefer `@dataclass(frozen=True, slots=True)` for value objects (immutability + performance).
@@ -61,8 +52,6 @@ metadata:
 ## 🧪 Testing
 - **Framework**: `pytest` exclusively. No `unittest`.
 - **Naming**: `test_<unit>_<scenario>_<expected>` (e.g., `test_parse_empty_input_raises_valueerror`).
-- **AAA**: Arrange → Act → Assert. One logical assertion per test.
-- **Fixtures over setUp**: Prefer `pytest` fixtures with explicit scope (`session`, `module`, `function`).
 - **No logic in tests**: No loops, no conditionals. Use `@pytest.mark.parametrize` for variants.
 - **Mock boundaries, not internals**: Mock I/O (HTTP, DB, filesystem), not your own functions.
 - **Coverage**: Aim for >90% on business logic. Exclude boilerplate and configuration from coverage targets.
@@ -80,12 +69,8 @@ metadata:
 - **Never log secrets**: Sanitize all log output. No API keys, tokens, or PII in log messages.
 
 ## 🔒 Security Defaults
-- Never use `eval()`, `exec()`, or `pickle.loads()` on untrusted input.
-- Never use `yaml.load()` — always `yaml.safe_load()`.
-- Use `secrets.token_urlsafe()` over `random` for anything auth-related.
-- Parameterize all SQL — no f-string queries.
-- Validate and sanitize all file paths. Reject `..` traversal.
-- Full security standards in `security.md`.
+Full standards in `rules/common/security.md` §Python — forbidden calls, SQL parameterization,
+path validation. Nothing Python-specific added here beyond that file.
 
 ## 📦 Project Structure
 - Use `src/` layout for packages (`src/mypackage/`) to avoid import shadowing.
@@ -99,9 +84,7 @@ metadata:
 - No nested functions deeper than 1 level (extract to module-level or class).
 - No `type: ignore` without a specific error code (`type: ignore[assignment]`).
 - No string formatting with `%` or `.format()` — f-strings only.
-- No bare `except:` — always specify the exception type.
 - No `global` or `nonlocal` — refactor to class or return values.
-- No `print()` for operational output — use `loguru`.
 
 ## 🔨 Preferred Toolchain
 - **Linting/Formatting**: `ruff` (replaces `flake8`, `black`, `isort`).
