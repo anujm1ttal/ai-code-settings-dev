@@ -93,13 +93,8 @@ For major architectural shifts, technology pivots, or scope changes. This is an 
 - The `strategist` references archived plans during post-mortem analysis.
 
 ### Archive Index
-Maintain a `Artifacts/History/INDEX.md` file:
-
-| File | Archived Date | Reason |
-| :--- | :--- | :--- |
-| TODO-2026-03-01.md | 2026-03-01 | Phase 1 complete |
-| IMPLEMENTATION_PLAN-2026-03-10.md | 2026-03-10 | Re-plan after CPython pivot |
-| Phase-1-Plan.md | 2026-03-10 | Phase 1 archived (keep-name, in History/Plans/) |
+Maintain a `Artifacts/History/INDEX.md` file with columns `File | Archived Date | Reason`
+(e.g., `TODO-2026-03-01.md | 2026-03-01 | Phase 1 complete`).
 
 ## 🔄 Sync Logic (Alignment with `/sync`)
 

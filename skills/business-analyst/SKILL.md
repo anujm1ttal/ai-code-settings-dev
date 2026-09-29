@@ -13,16 +13,8 @@ metadata:
 
 ## ROI Calculator Template
 
-Use the bundled `assets/roi-calculator.md` for comprehensive cost-benefit justification. It includes:
-- Implementation and ongoing operational cost analysis
-- Quantifiable and qualitative benefit assessment
-- ROI calculations and payback period
-- Sensitivity analysis (what-if scenarios)
-- Risk assessment with mitigation strategies
-- Alternative options comparison
-- Success metrics and stakeholder engagement plan
-
-This template enforces structured financial discipline and prevents vague "assumed benefits."
+Use the bundled `assets/roi-calculator.md` for cost-benefit justification — it enforces
+structured financial discipline and prevents vague "assumed benefits."
 
 ---
 
