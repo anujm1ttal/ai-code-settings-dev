@@ -1,16 +1,19 @@
-"""Cross-reference integrity: CLAUDE-global.md command table <-> commands/*.md — TL-M1.
+"""Cross-reference integrity: agents/agents.overview.md command table <-> commands/*.md — TL-M1.
 
 Locks the "phantom command" / "undocumented command" class of drift: every
 `/slash-command` row must have a matching file, and every command file must
-be documented, so the routing table in CLAUDE-global.md can never silently
+be documented, so the routing table in agents/agents.overview.md can never silently
 diverge from the commands/ directory it claims to describe.
+
+Repointed by ALB-1 T1 (Plan Sec5 row 1: CLAUDE-global's Commands table moves to
+agents/agents.overview.md Sec Commands) -- fails until ALB-1 T6 performs that move.
 """
 
 import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CLAUDE_GLOBAL = REPO_ROOT / "CLAUDE-global.md"
+CLAUDE_GLOBAL = REPO_ROOT / "agents" / "agents.overview.md"
 COMMANDS_DIR = REPO_ROOT / "commands"
 
 # Matches table rows like `| `/blueprint` | strategist | ... |` — the leading
