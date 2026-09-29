@@ -7,89 +7,57 @@ description: Security protocols for secret management, language-specific defense
 
 ## Auditor Security Gate
 
-No task is "Done" until:
-- [ ] No hardcoded secrets (API keys, tokens, connection strings, local paths)
-- [ ] Input sanitization on all user-provided strings (Rhino layers, filenames, MCP inputs, DAX params)
-- [ ] MCP tools validate file access scope (no `../` traversal)
-- [ ] Tracebacks don't leak usernames, IPs, or directory structures
-- [ ] No deprecated or known-vulnerable dependencies
+No task is "Done" until: no hardcoded secrets (keys, tokens, connection strings, local paths);
+input sanitized at every boundary (Rhino layers, filenames, MCP inputs, DAX params); MCP tools
+validate file access scope (no `../` traversal); tracebacks don't leak usernames/IPs/paths; no
+deprecated or known-vulnerable dependencies.
 
 ## Secret Management
 
-- **Storage**: `.env` for local dev. Secure vault (Azure Key Vault, 1Password CLI) for production.
-- **Never commit**: `.env*` must be in `.gitignore` before first commit.
-- **Access**: Load via environment variables at runtime.
-  - Python: `os.environ["KEY"]` or Pydantic `BaseSettings`
-  - TypeScript: `process.env.KEY` with Zod validation
-  - C#: `IConfiguration` + User Secrets (local) / Key Vault (prod)
-- **Rotation**: Rotate immediately if session shared publicly or `/audit` detects exposure.
+`.env` (gitignored before first commit) for local dev, a vault (Key Vault, 1Password CLI) for
+production. Load via env vars at runtime — never hardcode. Rotate immediately if a session was
+shared publicly or `/audit` finds an exposure.
 
-## Language-Specific Security
+## Language-Specific Floor
 
-### Python
-- **Forbidden**: `eval()`, `exec()`, `pickle.loads()`, `yaml.load()` on untrusted input (use `yaml.safe_load()`)
-- **Auth**: `secrets.token_urlsafe()` over `random`
-- **SQL**: Parameterized queries only. No f-string/`.format()` query construction.
-- **Deps**: Pin versions in `pyproject.toml`. Audit with `pip-audit` or `uv`.
-- **File I/O**: Reject paths containing `..`, `~`, or unexpected absolute paths.
+The floor below is what to enforce explicitly — general secure-coding practice (parameterized
+SQL, no `eval`/`pickle` on untrusted input, no client-side secrets, path-traversal rejection) is
+assumed baseline, not restated here.
 
-### TypeScript / MCP
-- **Zod mandatory** on all `inputSchema`. No raw `JSON.parse()`.
-- **Shell safety**: Never pass raw user input to Shell. Zod-validate and escape first.
-- **Destructive tools**: Must include `[DESTRUCTIVE]` warning + `AskUserQuestion` confirmation.
-- **Deps**: Pin in `package-lock.json`. Audit with `npm audit`.
-
-### TypeScript / Web Frontend
-- **No secret in client code** or `VITE_*` / `import.meta.env` — anything the bundle imports ships to the browser.
-- **XSS**: no `dangerouslySetInnerHTML` without DOMPurify + a comment; never build HTML from user input.
-- **Auth token storage**: httpOnly cookie preferred; if `localStorage`, document the XSS-exposure acceptance.
-- **CSP**: set a Content-Security-Policy; audit deps with `npm audit` / `pnpm audit` in CI.
-
-### C#
-- **NuGet**: Pin versions. No floating ranges. Audit for vulnerabilities.
-- **Assembly trust**: Only load from verified sources. No dynamic loading from user paths.
-- **Serialization**: Never `BinaryFormatter`. Use `System.Text.Json`.
-- **File paths**: Reject `..` traversal and paths outside project directory.
-
-### DAX / Power BI
-- **RLS**: Implement on all multi-tenant/multi-user models.
-- **Connection strings**: Never embed in `.pbix`. Use Power BI parameters.
-- **Privacy levels**: Set explicitly. Default `Private`.
-- **Exports**: Disable underlying data export for PII/sensitive metrics.
+- **MCP tools**: Zod/Pydantic `inputSchema` mandatory. `[DESTRUCTIVE]` tag + `AskUserQuestion`
+  confirmation on any destructive tool. Never pass raw user input to a shell.
+- **Web frontend**: no secret in `VITE_*`/`import.meta.env` (ships to the browser regardless).
+  `dangerouslySetInnerHTML` only behind DOMPurify + a comment. Auth token: httpOnly cookie
+  preferred; document the tradeoff if `localStorage`.
+- **DAX/Power BI**: RLS on every multi-tenant model. Never embed connection strings in `.pbix`.
+  Privacy level explicit, default `Private`. Disable data export on PII/sensitive metrics.
+- **C#**: never `BinaryFormatter` — `System.Text.Json`. No dynamic assembly loading from user paths.
 
 ## Safety Guards (CRITICAL)
 
-A safety check MUST fail closed:
-- Never gate a guard on an optional argument being present — require it, or default it to the safe value and raise when it cannot be determined.
-- If a test lane needs to bypass a guard, the bypass must be explicit and named (e.g., an `unsafe_skip_check=True` flag), never the natural consequence of omitting an argument.
-- Rationale: A guard defaulting to "off" when not explicitly supplied protects the test path and nothing else for the entire life of the feature, silently disabling shipped capabilities with no error.
+A safety check MUST fail closed: never gate a guard on an optional argument being present —
+require it, or default to the safe value and raise when undeterminable. A test-lane bypass must
+be explicit and named (`unsafe_skip_check=True`), never the natural consequence of omitting an
+argument. Rationale: a guard defaulting to "off" when unsupplied protects the test path only,
+silently disabling the shipped capability with no error.
 
-> [!NOTE]
-> **Annotation — HFO-2, 2026-09-22 (scope: `PreToolUse` payload extraction only; the rule above
-> stands unamended).** The first bullet was found violated by the `filePath` extraction in
-> `guard-paths.js` `main()` (locate by `grep -n notebook_path`; it was `:189` at `b3843b8`), which reads
-> **path** fields only (`file_path || path || filePath || notebook_path`). A **content**-based rule
-> therefore silently no-ops for `Edit`, `MultiEdit` and `NotebookEdit` — the **missing-field** path,
-> not the crash path; an earlier reading blamed the crash path and was wrong.
-> **Resolved without weakening this rule**: the hook stays **fail-open** (crash or unreadable stdin
-> → exit 0); extraction is made **total** across every matched tool shape (HFO-2 T3), so there is no
-> missing-field state to fail open into; and an unrecognised shape emits a `pass` row noted
-> `payload-shape-unknown` rather than silently allowing. The guard is thus no longer gated on an
-> optional field being present — what this section actually demands — without converting the hook to
-> fail-closed. **This licenses no fail-open guard elsewhere.** Residual accepted knowingly: an
-> unrecognised shape still passes once, logged rather than silent. Full grounds are recorded in
-> this phase's decision log and plan.
+> **Case in point (HFO-2)**: `guard-paths.js` read only *path* fields (`file_path || path || ...`),
+> so a content-based rule silently no-oped for `Edit`/`MultiEdit`/`NotebookEdit` — a missing-field
+> gap, not a crash. Fixed by making extraction total across every tool shape and logging any
+> unrecognised shape (`payload-shape-unknown`) rather than silently passing it — the hook stays
+> fail-open (crash/unreadable stdin → exit 0), but nothing is gated on an optional field anymore.
+> This licenses no other fail-open guard — residual risk (an unrecognised shape passes once,
+> logged) was accepted knowingly; see `DECISION_LOG.md` for full grounds.
 
 ## MCP & Tool Security
 
-- **Read-only by default**. Write access scoped to project directory only.
-- **No elevation**: Tools must not request system privileges.
-- **Destructive command confirmation** required for: `rm`, `del`, `git reset --hard`, `git push --force`, `DROP`, `TRUNCATE`, `chmod`/`chown`.
+Read-only by default; write access scoped to the project directory. No privilege elevation.
+Destructive-command confirmation required for: `rm`, `del`, `git reset --hard`,
+`git push --force`, `DROP`, `TRUNCATE`, `chmod`/`chown`.
 
 ## Incident Response
 
-1. **FREEZE**: Halt all coder/scribe agents. No file writes.
-2. **AUDIT**: Full codebase sweep — secrets, vulnerable deps, injection vectors, leaked system info.
-3. **REMEDIATE**: Rotate keys, update `.gitignore`, patch vulnerability. Purge git history if secrets were committed.
-4. **VERIFY**: Auditor second sweep → `CLEAN` status.
-5. **RESUME**: Log incident in `Artifacts/DECISION_LOG.md` (date, cause, impact, resolution). Update this protocol if gap revealed.
+FREEZE (halt coder/scribe, no writes) → AUDIT (full sweep: secrets, vulnerable deps, injection,
+leaked system info) → REMEDIATE (rotate keys, patch, purge git history if secrets committed) →
+VERIFY (auditor second sweep → `CLEAN`) → RESUME (log in `DECISION_LOG.md`: date, cause, impact,
+resolution; update this protocol if it revealed a gap).

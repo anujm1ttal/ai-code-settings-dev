@@ -11,27 +11,20 @@ Orchestration layer for Claude Code sessions.
 
 ## Architecture
 
-- **Rules** (`rules/common/`): Canonical standards. All agents reference these.
-  - `orchestration.md` — routing, lifecycle, execution cadence, TODO authority, conflict resolution
-  - `coding-style.md` — implementation standards, language patterns, domain rules
-  - `standards.md` — interaction, formatting, token economy
-  - `security.md` — secrets, defenses, incident response
-  - `claude-md-standards.md` — CLAUDE.md quality bar, global-vs-project split, size caps
-  - `model-routing.md` — agent-model tier assignments, hard rules, fallback chain (canonical)
-  - `TOKEN-ECONOMICS.md` — context layering, slicing thresholds, handoff triggers
-  - `testing-strategy.md` — test lane selection, evidence rules, TDD loop
-  - `architecture.md` — deep-vs-shallow module design principles
-- **Agents** (`agents/`): Role definitions + boundaries. Refer to `agents/agents.overview.md` (L1) for routing.
-- **Commands** (`commands/`): Slash-command procedures. Owned by specific agents.
-- **Skills** (`skills/`): Domain expertise. Refer to `skills/skills.overview.md` (L1) for a mapped registry.
+- **`rules/common/`**: canonical standards, all agents reference these — `orchestration.md`
+  (routing/lifecycle/TODO authority), `coding-style.md` (implementation), `standards.md`
+  (interaction/tokens), `security.md`, `claude-md-standards.md`, `model-routing.md` (canonical
+  for model tiers/fallback), `TOKEN-ECONOMICS.md`, `testing-strategy.md`, `architecture.md`.
+- **`agents/`**: role definitions — `agents/agents.overview.md` (L1) for routing.
+- **`commands/`**: slash-command procedures, owned by specific agents.
+- **`skills/`**: domain expertise — `skills/skills.overview.md` (L1) for the registry.
 
 ## Precedence
 
-On any overlap, `rules/common/*` wins over this file (this file is routing + pointers, not
-the ruleset). A project's own `CLAUDE.md` wins over this global file for that repo. On
-conflicts between rules files, the named owner file wins: routing → `model-routing.md`;
-interaction → `standards.md`; implementation → `coding-style.md`; orchestration/lifecycle →
-`orchestration.md`.
+`rules/common/*` wins over this file (this file is routing + pointers). A project's own
+`CLAUDE.md` wins over this global file for that repo. Between rules files: routing →
+`model-routing.md`; interaction → `standards.md`; implementation → `coding-style.md`;
+orchestration/lifecycle → `orchestration.md`.
 
 ## Agents
 
@@ -50,107 +43,97 @@ interaction → `standards.md`; implementation → `coding-style.md`; orchestrat
 
 | Command / Skill | Owner | Purpose |
 |:---|:---|:---|
-| `/blueprint` | strategist | ROI-driven project planning and high-rigor phased roadmaps |
-| `/sweep` | strategist | Codebase discovery, tech-debt mapping, redundancy scans |
-| `/skill-graph` | strategist | Visualize skill dependencies and identify clusters |
+| `/blueprint` | strategist | ROI-driven project planning, phased roadmaps |
+| `/sweep` | strategist | Codebase discovery, tech-debt mapping |
+| `/skill-graph` | strategist | Visualize skill dependencies |
 | `/grill` | strategist | Stress-test a plan for hidden risks |
-| `typescript-mcp` | `strategist, auditor, coder` | MCP server standards, Zod, JSON-RPC, async boundaries |
-| `systematic-debugging` | `coder, auditor` | 4-phase root-cause investigation process |
-| `implementation-dispatch` | `coder` | Subagent orchestration and two-stage review workflow |
-| `visual-composition` | `creative-director, auditor` | Hierarchy, layout, brand governance, and accessibility |
-| `/deck` | concierge / coder / auditor | PowerPoint project scaffolding & validation |
-| `/audit` | auditor | Quality review, gate validation (Logic, Style, and Hard Rules) |
-| `/snapshot` | auditor | Factual codebase snapshot for external review |
+| `typescript-mcp` | strategist, auditor, coder | MCP standards: Zod, JSON-RPC, async |
+| `systematic-debugging` | coder, auditor | 4-phase root-cause investigation |
+| `implementation-dispatch` | coder | Subagent orchestration, two-stage review |
+| `visual-composition` | creative-director, auditor | Hierarchy, layout, accessibility |
+| `/deck` | concierge/coder/auditor | PowerPoint scaffolding & validation |
+| `/audit` | auditor | Quality review, gate validation |
+| `/snapshot` | auditor | Factual codebase snapshot for review |
 | `/docs` | scribe | Documentation generation/update |
 | `/explain` | scribe | Walk through / teach a codebase |
-| `glossary-extraction` | `concierge, scribe` | Extract ubiquitous language to Artifacts/GLOSSARY.md |
-| `project-planner` | strategist | Phased roadmaps, dependencies, and task decomposition |
-| `project-journal` | concierge | Session history, decision logs, and memory anchors |
-| `skill-creator` | `concierge, strategist` | Designing and optimizing new skill modules |
-| `doc-updater` | `scribe, auditor` | Automated documentation updates and staleness audits |
-| `business-analyst` | strategist | Requirement elicitation, stakeholder mapping, and ROI validation |
-| `banana-prompt` | creative-director | Optimized AI image prompts for thumbnails and decks (`optional_plugins/visual-storytelling/`) |
-| `pptx-slide-design` | creative-director | Copy-paste-ready PowerPoint slide design prompts for Copilot (`optional_plugins/visual-storytelling/`) |
-| `rhino-unit-testing` | `coder, auditor` | Lane B (Pure Python) testing for geometry-agnostic logic |
-| `grasshopper-plugin-packaging` | `coder, auditor` | Python Grasshopper plugin development + Yak packaging/deployment (Rhino 8) |
-| `high-rigor-engineering` | `coder, auditor, strategist` | Synchronous gate-passing, evidence, and patch protocol for geometry/production/regulatory phases (variant of standard orchestration) |
+| `glossary-extraction` | concierge, scribe | Ubiquitous language → `Artifacts/GLOSSARY.md` |
+| `project-planner` | strategist | Phased roadmaps, task decomposition |
+| `project-journal` | concierge | Session history, decision logs |
+| `skill-creator` | concierge, strategist | Design/optimize new skills |
+| `doc-updater` | scribe, auditor | Doc updates and staleness audits |
+| `business-analyst` | strategist | Requirements, stakeholders, ROI |
+| `banana-prompt` | creative-director | AI image prompts (`optional_plugins/visual-storytelling/`) |
+| `pptx-slide-design` | creative-director | Copilot slide prompts (`optional_plugins/visual-storytelling/`) |
+| `rhino-unit-testing` | coder, auditor | Lane B testing for geometry-agnostic logic |
+| `grasshopper-plugin-packaging` | coder, auditor | GH plugin dev + Yak packaging (Rhino 8) |
+| `high-rigor-engineering` | coder, auditor, strategist | Synchronous gates for geometry/production/regulatory work |
 | `/ideate` | strategist | YouTube video conceptualization |
-| `/script` | scribe | YouTube script creation from Artifacts/VIDEO_PLAN.md |
-| `/pack` | scribe | YouTube upload metadata and SEO — no edits to `SCRIPT.md`/`VIDEO_PLAN.md` |
-| `/sync` | concierge | Reconcile filesystem state with plan artifacts |
-| `/registry-audit` | auditor | Cross-reference integrity check for the OS registry |
-| `/ingest` | concierge | Register manual/external changes into project state — formalizes `Artifacts/LAYOUT_SPEC.md` |
-| `/handoff` | concierge | Tiered session termination (L1-L3) & brief creation |
-| `/clean` | concierge | Manually trigger project hygiene and cleanup |
-| `/graduate` | concierge | Move project lessons to global OS settings |
+| `/script` | scribe | Script from `Artifacts/VIDEO_PLAN.md` |
+| `/pack` | scribe | Upload metadata/SEO — no edits to script/plan |
+| `/sync` | concierge | Reconcile filesystem with plan artifacts |
+| `/registry-audit` | auditor | Cross-reference integrity check |
+| `/ingest` | concierge | Register external changes into project state |
+| `/handoff` | concierge | Tiered session termination & brief |
+| `/clean` | concierge | Project hygiene and cleanup |
+| `/graduate` | concierge | Promote project lessons to global settings |
 | `/council` | council | High-rigor deliberation & consensus |
-| `/triage` | coder | Bug investigation and fix planning — investigation only, no source edits until plan approved |
-| `/afk` | coder (dispatch) / auditor (gates) | AFK task runner — dispatch, review, and audit AFK-tagged tasks until frontier empties or cap hits |
+| `/triage` | coder | Bug investigation — no source edits until plan approved |
+| `/afk` | coder (dispatch) / auditor (gates) | Unattended AFK-tagged task runner |
 | `/learn` | concierge | Capture a lesson into the learnings registry |
-| `/claude-md` | auditor | Audit/update a CLAUDE.md against `claude-md-standards.md` (report-first) |
+| `/claude-md` | auditor | Audit a CLAUDE.md against `claude-md-standards.md` |
 
 ## Concierge Operations
 
-- **`/sync`** — Filesystem-driven. Scans for drift between files and TODO/state artifacts. Use when plan and reality may have diverged.
-- **`/ingest`** — User-driven. Registers work done outside AI IDE (manual edits, external contributions) into project state.
-- **`/handoff`** — Session boundary. Supports `--lite` (Checkpoint) and `--phase` (Milestone). Compresses context, scrubs TODO, captures decisions, writes brief.
+`/sync` — filesystem-driven drift scan against TODO/state. `/ingest` — user-driven, registers
+manual/external work into project state. `/handoff` — session boundary (`--lite`/`--phase`),
+compresses context, captures decisions, writes a brief.
 
 ## Session Lifecycle
 
-- **Boot**: Concierge runs state recovery → drift scan → validation → session brief. Automatic at session start.
-- **Shutdown**: `/handoff` to close cleanly.
+Boot: concierge runs state recovery → drift scan → validation → session brief (automatic).
+Shutdown: `/handoff`.
 
 ## Project Type Routing
 
-Canonical table (project types, core agents, default skills, foundational skills, and the note
-on Office skills not being shipped): `rules/common/orchestration.md` §Project Type Routing.
+Canonical table: `rules/common/orchestration.md` §Project Type Routing.
 
 ## YouTube Pipeline
 
     /ideate → Artifacts/VIDEO_PLAN.md → /script → Artifacts/SCRIPT.md → /pack → metadata
 
-**Gates:**
-- `/script` requires `Artifacts/VIDEO_PLAN.md` to exist
-- `/pack` requires `Artifacts/SCRIPT.md` to exist
+Gates: `/script` requires `VIDEO_PLAN.md`; `/pack` requires `SCRIPT.md`.
 
 ## Project State Persistence
 
-All state files MUST live in the **Artifacts/** directory within the true logical project root, never in the Claude Code shadow directory (`~/.claude/`), at the workspace's absolute path.
-Root Files, phase/archive layout, Interface-First Pattern, and ROI Escalation: see
-`rules/common/orchestration.md` §Persistence.
-
-## Mirroring Rule
-
-See `rules/common/standards.md` §Artifact Protocol (Mirroring Rule [HARD-GATE]) — canonical.
+State lives in the project's own **Artifacts/** directory (absolute path), never the shadow
+`~/.claude/`. Full layout, Interface-First Pattern, ROI Escalation:
+`rules/common/orchestration.md` §Persistence. Mirroring Rule: `rules/common/standards.md`
+§Artifact Protocol.
 
 ## Error Handling
 
-- **Command failure**: Agent reports what failed and why. No silent failures.
-- **Missing precondition**: Agent blocks execution, tells user what's needed.
-- **Agent conflict**: `orchestration.md` conflict resolution rules apply. Strategist has final architectural authority.
-- **Unknown command**: Concierge catches and routes or rejects with guidance.
+Command failure → report what failed and why, no silent failures. Missing precondition → block
+and state what's needed. Agent conflict → `orchestration.md` Conflict Resolution (strategist has
+final architectural authority). Unknown command → concierge routes or rejects with guidance.
 
 ## Persistent Learnings
 
-Categorized project knowledge in `Artifacts/learnings/`. Lifecycle (read at boot, write at
-`/handoff`, manual via `/learn`, 50-entry prune, scope exclusions) owned by concierge — see
-`agents/concierge.md` and `rules/common/orchestration.md` persistence table.
+`Artifacts/learnings/` — lifecycle (read at boot, write at `/handoff`, manual via `/learn`,
+50-entry prune) owned by concierge; see `agents/concierge.md`.
 
 ## Hooks (Enforcement Layer)
 
-Claude Code hooks provide **hard guardrails** that cannot be rationalized away.
- They fire automatically at lifecycle events. Configured globally in `~/.claude/settings.json`.
+Hard guardrails, fire automatically at lifecycle events, configured in `~/.claude/settings.json`.
+All fail-open (script errors exit 0) — see `hooks/README.md` for setup.
 
 | Hook | Event | Purpose |
 |:---|:---|:---|
-| `session-boot.js` | `SessionStart` | Injects Artifacts state (TODO, Learnings, Current Task) into context; gates BACKLOG size |
-| `guard-paths.js` | `PreToolUse` | **Blocks** writes to binaries (`.pbix`, `.3dm`), secrets (`.env`), build artifacts, project state files in shadow paths (scratch-gate), bare scratch/ |
-| `guard-commands.js` | `PreToolUse` | **Blocks** dangerous commands (`rm -rf`, force push, SQL drops) and commits with AI attribution trailers (`Co-Authored-By: Claude`, `Generated with Claude Code`) |
-| `auto-lint.js` | `PostToolUse` | Reports lint violations and injects "fix before proceeding" directive (not auto-fixing) |
-| `audit-trail.js` | `PostToolUse` | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
-| `task-diff-guard.js` | `PreToolUse`+`PostToolUse` (`Task|Agent`) + `Stop` | Snapshots protected `Artifacts/` files at dispatch; at `Stop`, a completion-notification barrier retains everything until every dispatch's `<task-notification>` has appeared in the transcript, then settles — diffs it, drops main-agent-attributed changes, surfaces the rest with a capped diff so the orchestrator verifies the artifact, not the subagent's summary (feedback only; sanctioned 4th Stop hook, see `hooks/README.md` §Stop-ceiling amendment) |
-| `nudge-handoff.js` | `Stop` | Nudges to run `/handoff` if git tree is dirty and no handoff this session (feedback only) |
-| `evidence-gate.js` | `Stop` | Nags when completion claims made without fresh test evidence this session (feedback only) |
-| `guard-shared-state.js` | `Stop` | Nags when process-global state (stdout/stderr, logging, `os.environ`) changed without a full-suite run (feedback only) |
-
-**Design**: All hooks are fail-open — script errors exit 0. See `hooks/README.md` for setup and customization.
+| `session-boot.js` | SessionStart | Injects Artifacts state into context; gates BACKLOG size |
+| `guard-paths.js` | PreToolUse | Blocks writes to binaries, secrets, build artifacts, shadow-path state |
+| `guard-commands.js` | PreToolUse | Blocks dangerous commands + AI-attribution commit trailers |
+| `auto-lint.js` | PostToolUse | Reports lint violations (doesn't auto-fix) |
+| `audit-trail.js` | PostToolUse | Logs every tool action to `Artifacts/.agent/audit_trail.jsonl` |
+| `task-diff-guard.js` | PreToolUse+PostToolUse (Task/Agent) + Stop | Diffs protected Artifacts/ files around subagent dispatch — surfaces what changed, not the subagent's summary |
+| `nudge-handoff.js` | Stop | Nudges `/handoff` if tree is dirty (feedback only) |
+| `evidence-gate.js` | Stop | Nags on completion claims without fresh test evidence (feedback only) |
+| `guard-shared-state.js` | Stop | Nags on process-global state changes without a full-suite run (feedback only) |

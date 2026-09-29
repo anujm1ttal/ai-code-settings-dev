@@ -7,185 +7,115 @@ description: Canonical source for all implementation standards — immutability,
 
 **Precedence**: This file wins over `standards.md` on any implementation detail.
 
-## Immutability (CRITICAL)
+## Immutability
 
-Return new state; never mutate in-place.
-- **Python**: `@dataclass(frozen=True)`. Comprehensions for new collections.
-- **TypeScript**: `readonly`, `as const`. `map`/`filter`/`reduce` over imperative loops.
-- **C#**: `readonly struct` or `record`. Return new geometry instances until final Bake.
-- **DAX**: `VAR/RETURN` to isolate calculations. No implicit context transitions.
+Return new state; never mutate in-place. Python: `@dataclass(frozen=True)`, comprehensions.
+TypeScript: `readonly`, `as const`, `map`/`filter`/`reduce` over loops. C#: `readonly struct`/
+`record`, return new geometry instances until final Bake. DAX: `VAR/RETURN`, no implicit
+context transitions.
 
 ## File Architecture
 
-- **Density**: 200–400 lines typical. Hard cap **800 lines**.
-- **Cohesion**: One primary class/feature per file. Domain-organized (`/stadium/seating/`), not type-organized (`/utils/`).
-- **Rhino/GH**: Heavy logic in external `.py` modules; GH component = thin wrapper.
-- **MCP**: One tool per file. Shared utilities in `common/`.
-- **C#**: One class per file. Filename matches class name.
+Density 200–400 lines typical, hard cap **800**. One primary class/feature per file,
+domain-organized (`/stadium/seating/`) not type-organized (`/utils/`). Rhino/GH: heavy logic in
+external `.py` modules, GH component is a thin wrapper. MCP: one tool per file, shared utilities
+in `common/`. C#: one class per file, filename matches class name.
 
 ## Boundary Defense
 
-- **TypeScript**: Zod schemas mandatory on all MCP tool inputs.
-- **Python**: Pydantic `BaseModel` at system boundaries. Type hints on all public functions.
-- **C#**: Data annotations or FluentValidation at component inputs.
-- **DAX**: `DIVIDE(n, d, 0)` for all division. `SWITCH(TRUE(), ...)` over nested `IF`.
-- **Fail Fast**: Validate types and ranges at function entry. No deep-nesting before catching bad input.
-- **Constants**: No magic numbers. Use `config.py` / `constants.ts` / `static class Constants` / parameter table.
-  - **Rhino/.NET exception**: Raw integers permitted for unresolvable .NET enums WITH inline comment documenting the mapping.
+Zod (TS) / Pydantic `BaseModel` (Python, type hints on all public functions) / data annotations
+or FluentValidation (C#) at every system boundary. `DIVIDE(n, d, 0)` for all DAX division,
+`SWITCH(TRUE(), ...)` over nested `IF`. Fail fast — validate at function entry, no deep-nesting
+before catching bad input. No magic numbers (`config.py`/`constants.ts`/parameter table) —
+exception: raw integers for unresolvable .NET enums, WITH an inline comment mapping them.
 
-## The Decision Ladder (Before Writing Any Code)
+## Decision Ladder (before writing code)
 
-Apply in order; stop at the first rung that resolves the task:
+YAGNI (does this need to exist?) → reuse (already in codebase?) → stdlib → native platform
+feature → an already-installed dependency → one line → only then, minimum working code. Never
+apply laziness to input validation, data-loss-preventing error handling, security, accessibility,
+or explicit user requirements.
 
-1. **Does this need to exist?** (YAGNI — skip it if not)
-2. **Already in the codebase?** (Reuse it)
-3. **Does stdlib cover it?** (Use it)
-4. **Does a native platform feature work?** (Use it)
-5. **Is there an already-installed dependency?** (Use it)
-6. **Can it be one line?** (Write one line)
-7. **Only then**: minimum working code.
+## Surgical Precision
 
-Never apply laziness to: input validation, error handling that prevents data loss, security, accessibility, or explicit user requirements.
+Don't reformat or "improve" adjacent code not part of the task. Match the file's existing style
+even over personal preference. Remove imports/vars *your* change orphaned; leave pre-existing
+dead code alone unless asked. Every changed line traces to the current TODO phase. Git: never
+`git add` to render a diff (`git diff --no-index /dev/null <file>` for untracked); before any
+commit, re-stage every path showing `AM` status — test results attest to the working tree, not
+the index.
 
-## Surgical Precision (CRITICAL)
+## Python Runtime Matrix
 
-- **Adjacent Code Protection**: Do not "improve," refactor, or reformat adjacent code, comments, or logic that is not directly part of the task.
-- **Match Style**: Match the existing style, naming conventions, and patterns of the file, even if they differ from your personal preference.
-- **Orphan Lifecycle**: Remove imports, variables, or functions that YOUR changes made unused. Do NOT remove pre-existing dead code unless explicitly requested.
-- **No Side Quests**: Every changed line must trace directly to a requirement in the current `Artifacts/TODO.md` phase.
-- **Git Hygiene**: Never `git add` to render a diff — use `git diff --no-index /dev/null <file>` for untracked files instead. Before any commit, re-stage every path whose status shows `AM` (index differs from working tree); test results attest to the working tree and say nothing about what is staged.
-
-## 🐍 Python Runtime Matrix
 | Context | Environment | Syntax | Libraries | Logging |
 |:---|:---|:---|:---|:---|
-| **Host** | CPython 3.12+ | `list[T]`, `T | U` | Pydantic, loguru, uv | `loguru` |
-| **Rhino Internal** | CPython 3.9.x | `List[T]`, `Union` | Standard lib ONLY | `print()` |
-| **Rhino.Inside** | Host (3.12+) | 3.12+ | rhinoinside, RhinoCommon | `loguru` |
-*Rule: Host modules must remain 3.9-compatible if intended for GH export.*
+| Host | CPython 3.12+ | `list[T]`, `T \| U` | Pydantic, loguru, uv | `loguru` |
+| Rhino Internal | CPython 3.9.x | `List[T]`, `Union` | stdlib only | `print()` |
+| Rhino.Inside | Host (3.12+) | 3.12+ | rhinoinside, RhinoCommon | `loguru` |
 
----
+Host modules must stay 3.9-compatible if intended for GH export.
 
-## 🧪 Testing Strategy
-All verification must follow the [testing-strategy.md](./testing-strategy.md) rule.
-- **Lane Selection**: Use the cheapest lane (Lane B/Pure) that proves the claim.
-- **Evidence**: Provide fresh test output or exit codes for every claim.
-- **TDD**: Write failing tests in the lowest valid lane before fixing bugs.
+## Testing
 
----
+Follow `testing-strategy.md`. Cheapest lane that proves the claim. Fresh test output/exit code
+for every claim. TDD: failing test in the lowest valid lane before fixing a bug.
 
-## 🔧 Language-Specific Standards
+## Language-Specific
 
-### Python (3.12+)
-- **Types**: 100% coverage. `list[T]`, `dict[K, V]`, `T | None` union syntax.
-- **Data**: `@dataclass(frozen=True)` for value objects. Pydantic for validated boundaries.
-- **Tooling**: `ruff` (lint+format), `pyright` strict, `uv` for deps, `pytest` for testing.
-- **Logging**: `loguru` only. Never `print()`. Never stdlib `logging`.
-- **Async**: `asyncio.TaskGroup` (3.11+). Always set timeouts on network calls.
-- **Circular Imports**: Schema/model modules must NOT import from tool-registration or service modules. Use `from __future__ import annotations` and `TYPE_CHECKING` guards for cross-module type hints. Verify with `python -c "import module"` after restructuring.
-- **Full reference**: `python-patterns`
-
-### Rhino Python (CPython ~3.9)
-Overrides for the constrained Rhino 8 runtime:
-- **Shebang**: EVERY script MUST begin with `#! python 3` to target the CPython 3 engine.
-- **Types**: `Optional[T]`, `List[T]`, `Dict[K, V]` from `typing`. No union syntax, no lowercase generics.
-- **Logging**: `print()` is the only reliable channel. Do not use `loguru` or `logging`.
-- **Validation**: No Pydantic. Manual validation with early `return`/`raise`.
-- **Enums**: Raw integers with inline comments for nested .NET enum paths.
-- **DimStyles**: Use `sc.doc.DimStyles` directly. `DimStyles.Add()` expects string, not object.
-- **Imports**: `Rhino`, `Rhino.Geometry`, `scriptcontext as sc`. Avoid `rhinoscriptsyntax` for annotations.
-- **Full reference**: `python-rhino-grasshopper`
-
-### TypeScript
-
-**TypeScript (language)** — every TS project:
-- **Strict**: `noImplicitAny: true`, `strictNullChecks: true`.
-- **Types**: `unknown` over `any` (narrow before use); `interface` for object shapes; `as const` for literals.
-- **Validation**: Zod at every external boundary.
-
-**TypeScript — MCP server**:
-- **Error Codes**: JSON-RPC standard codes for MCP tools.
-- **Logging**: `console.error` for debug. `stdout` reserved for JSON-RPC transport.
-- **Full reference**: `typescript-mcp`
-
-**TypeScript / React — web UI**:
-- **Styling**: CSS Modules by default; utility CSS (Tailwind) only if the repo's `CLAUDE.md` declares it.
-- **Server state**: TanStack Query — explicit loading/error/empty; never fetch in `useEffect`.
-- **Testing**: Vitest + `@testing-library/react` + jsdom.
-- **A11y**: `eslint-plugin-jsx-a11y` recommended ruleset = error; semantic HTML before ARIA.
-- **Full reference**: `react-frontend`
-
-### C#
-- **Target**: .NET 6+ / RhinoCommon SDK.
-- **Nullability**: `<Nullable>enable</Nullable>`.
-- **Disposal**: `IDisposable` on all classes holding geometry/unmanaged resources. `using` statements.
-- **Naming**: PascalCase public, `_camelCase` private.
-- **Full reference**: `python-rhino-grasshopper`
-
-### DAX
-- **Readability**: `VAR` for all intermediates. No inline expressions.
-- **Safety**: `DIVIDE(n, d, 0)` — never raw `/`.
-- **Logic**: `SWITCH(TRUE(), ...)` over nested `IF`.
-- **Forbidden**: Calculated columns in Fact tables → offload to Power Query (M).
-- **Full reference**: `dax-modeling`
-
-## Domain Standards
-
-### Rhino / Grasshopper
-- Prioritize `RhinoCommon` over `rhinoscriptsyntax` for performance.
-- Document all tolerances and unit assumptions in file headers.
-- Dispose heavy geometry objects in large loops.
-
-### Power BI
-- Star Schema enforced. No Fact-to-Fact relationships.
-- Disable Auto Date/Time. Use dedicated `DimDate` table.
-- Measures over calculated columns. Always.
-
-### MCP
-- One tool per file. Clear `inputSchema` with Zod.
-- Destructive tools require `[DESTRUCTIVE]` tag and user confirmation.
-- `stdout` is sacred — debug logs to `console.error` only.
+- **Python 3.12+**: 100% type coverage, `list[T]`/`T | None`. `@dataclass(frozen=True)` for
+  value objects. `ruff`+`pyright` strict+`uv`+`pytest`. `loguru` only, never `print()`/`logging`.
+  `asyncio.TaskGroup` with timeouts. Schema/model modules must not import tool-registration or
+  service modules — `from __future__ import annotations` + `TYPE_CHECKING` guards; verify with
+  `python -c "import module"`. Full reference: `python-patterns`.
+- **Rhino Python (~3.9)**: every script starts `#! python 3`. `Optional[T]`/`List[T]`/`Dict[K,V]`
+  from `typing`, no union syntax. `print()` only — no `loguru`/`logging`. No Pydantic, manual
+  validation with early return/raise. Raw integers + inline comment for nested .NET enums.
+  `sc.doc.DimStyles.Add()` expects a string, not an object. Avoid `rhinoscriptsyntax` for
+  annotations. Full reference: `python-rhino-grasshopper`.
+- **TypeScript**: strict (`noImplicitAny`, `strictNullChecks`), `unknown` over `any`, Zod at
+  every boundary. MCP: JSON-RPC error codes, `console.error` for debug (`stdout` is the
+  transport). React/web: CSS Modules by default, TanStack Query (never fetch in `useEffect`),
+  Vitest+RTL+jsdom, `eslint-plugin-jsx-a11y` = error. Full references: `typescript-mcp`,
+  `react-frontend`.
+- **C#**: .NET 6+/RhinoCommon, `<Nullable>enable</Nullable>`, `IDisposable`+`using` for geometry/
+  unmanaged resources, PascalCase public/`_camelCase` private. Full reference:
+  `python-rhino-grasshopper`.
+- **DAX**: `VAR` for every intermediate, `DIVIDE` never raw `/`, `SWITCH(TRUE(), ...)` over
+  nested `IF`, no calculated columns in Fact tables (offload to Power Query). Star schema, no
+  Fact-to-Fact relationships, disable Auto Date/Time (dedicated `DimDate`), measures over
+  calculated columns always. Full reference: `dax-modeling`.
+- **MCP** (cross-language): one tool per file, Zod/Pydantic `inputSchema`, `[DESTRUCTIVE]` tag +
+  user confirmation on destructive tools, `stdout` reserved for transport.
+- **Rhino/Grasshopper** (cross-language): `RhinoCommon` over `rhinoscriptsyntax` for
+  performance, document tolerances/units in file headers, dispose heavy geometry in loops.
 
 ## Error Handling
 
-- **Specific**: Never catch generic exceptions. Target the exact error type.
-- **Context**: Every error message includes the state that caused it.
-- **No silent failures**: Log, re-raise, or handle explicitly.
-- **Python**: No bare `except:`. Use `raise ... from e`. Use `with` for resources.
-- **TypeScript**: Map to JSON-RPC codes (`-32602`, `-32603`). No empty `catch` blocks.
-- **C#**: Specific exception types. `finally` for geometry disposal.
-- **DAX**: `DIVIDE` safety + `ISBLANK()`/`ISEMPTY()` before aggregations.
+Never catch generic exceptions — target the exact type. Every error message includes the state
+that caused it. No silent failures: log, re-raise, or handle explicitly. Python: no bare
+`except:`, `raise ... from e`, `with` for resources. TypeScript: map to JSON-RPC codes
+(`-32602`, `-32603`), no empty `catch`. C#: specific exception types, `finally` for geometry
+disposal. DAX: `DIVIDE` safety + `ISBLANK()`/`ISEMPTY()` before aggregations.
 
 ## Quality Checklist
 
-- [ ] Immutable — no globals, no in-place mutation, no mutable defaults
-- [ ] Size — functions <50 lines, files <800 lines, nesting ≤3 levels
-- [ ] Type Safety — 100% hints (Python), strict (TS), nullable (C#)
-- [ ] Validation — all entry points defended
-- [ ] Error Handling — specific exceptions, chained tracebacks, contextual messages
-- [ ] Constants — zero magic numbers
-- [ ] Logging — correct channel per language
-- [ ] Post-Schema Test — run `python -m pytest` after any Pydantic model or validation schema change before committing
-- [ ] Step 0 Alignment — code achieves strategist's Minimalism goal
-- [ ] Seniority Filter — Would a senior engineer say this is overcomplicated or speculative?
-- [ ] Decision Ladder — Was reuse/stdlib/native/existing-dependency ruled out before new code was written?
+Immutable · sized (functions <50 lines, files <800, nesting ≤3) · type-safe · validated at
+every entry point · specific exceptions with chained tracebacks · zero magic numbers · correct
+logging channel · `python -m pytest` after any schema change, before committing · Decision
+Ladder actually applied (reuse/stdlib/native ruled out before new code) · would a senior
+engineer call this overcomplicated or speculative?
 
-## Codebase Scanning & Search
+## Codebase Scanning
 
-All automated or manual codebase sweeps (e.g., `grep_search`, `find_by_name`, `list_dir` for analysis) MUST adhere to these exclusion rules to prevent noise and performance degradation.
-
-- **Exclusions**: Always skip the following directories:
-  - Virtual Environments: `venv/`, `.venv/`, `env/`
-  - Build Artifacts: `dist/`, `build/`, `bin/`, `obj/`
-  - Version Control: `.git/`
-  - AI Shadow Directories: `.gemini/`, `.claude/`
-- **Tooling**: When using `grep_search`, use the `Includes` or `Excludes` parameters to enforce these boundaries.
+Skip `venv/`/`.venv/`/`env/`, `dist/`/`build/`/`bin/`/`obj/`, `.git/`, and AI shadow dirs
+(`.gemini/`, `.claude/`) in any sweep — use the search tool's include/exclude parameters.
 
 ## Windows Shell & Paths [HARD-GATE]
 
-This OS runs **Windows-only**. Every session has two shells: the **Bash tool** (Git Bash / POSIX `sh`) and the **PowerShell tool** — each takes its own syntax. Assume Windows; do not write Unix-only assumptions into commands or command specs.
-
-- **Bash-tool paths — forward slashes ONLY.** Backslashes are escape chars: `c:\Users\you\src...` collapses to `c:Usersyousrc...` (bash eats `\U`, `\s`, `\4`, …), silently producing wrong paths and **false "not found"** results. For a Windows absolute path in bash write `/c/Users/you/src/...`; better, prefer **repo-relative** paths (`scripts/x.py`).
-- **Command specs & docs**: reference files by **repo-relative, forward-slash** path — never a backslash absolute path. An agent copying it into the Bash tool will mangle it.
-- **Existence checks in bash**: `test -f path/to/file` (forward slashes), not `ls c:\...`.
-- **Python tools**: invoke via `python -m <tool>` (e.g. `python -m pytest`), not the bare `.exe` launcher — Windows launchers raise `WinError 6` on subprocess-spawning code.
-- **PowerShell tool**: use PS syntax (`$env:VAR`, `Test-Path`, `Remove-Item`), not POSIX. Do not mix the two shells' syntax in one call.
+Windows-only. Two shells, two syntaxes — don't mix them. **Bash tool**: forward slashes only
+(`/c/Users/you/src/...`) or repo-relative — backslashes are escape chars and silently mangle
+paths (`c:\Users\you\src` → `c:Usersyousrc`), producing false "not found" results.
+Repo-relative is safest for anything copy-pasted into the Bash tool. `test -f path/to/file`,
+not `ls c:\...`. Python: `python -m <tool>` (e.g. `python -m pytest`), never the bare `.exe`
+launcher — it raises `WinError 6` on subprocess-spawning code. **PowerShell tool**: PS syntax
+(`$env:VAR`, `Test-Path`, `Remove-Item`), never POSIX.
