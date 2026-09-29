@@ -22,6 +22,7 @@ Uncertain → Ask: "Adding a new phase or starting over?"
 1. Analyze user's project idea.
 2. **Requirements Interview**: Ask 3–5 targeted questions to uncover hidden constraints and goals (see `strategist.md`). Ask them **one at a time** — wait for each answer before asking the next; earlier answers should shape later questions. Prefer multiple-choice (AskUserQuestion) when the options are enumerable.
    - **`--interview`**: Replaces the line above — never runs alongside it. Unbounded depth-first traversal per `elicitation-guide.md` §2–§5 (`business-analyst` skill). Exits only on a signed restatement (guide §5), not question count.
+   - Default path only: a brief synthesis of the gathered answers before Step 0 is permitted — label it "Summary", never "Restatement" (reserved for `--interview`'s §5 signed-exit gate).
 3. **Step 0 Challenge**: PROJECT_TYPE, VALUE_CHECK, VALUE_ROI, MINIMALISM, RISKS.
    - **Gate 1 Trigger**: If the drafted plan exceeds 50 lines, run `/grill` before proceeding — mandatory stress-test for plans at this scale (see `grill.md` Relationships).
 4. **Phased Roadmap**: 3–4 phases with numeric success metrics.
