@@ -128,7 +128,7 @@ All fail-open (script errors exit 0) — see `hooks/README.md` for setup.
 
 | Hook | Event | Purpose |
 |:---|:---|:---|
-| `session-boot.js` | SessionStart | Injects Artifacts state into context; gates BACKLOG size |
+| `session-boot.js` | SessionStart | Injects Artifacts state into context |
 | `guard-paths.js` | PreToolUse | Blocks writes to binaries, secrets, build artifacts, shadow-path state |
 | `guard-commands.js` | PreToolUse | Blocks dangerous commands + AI-attribution commit trailers |
 | `auto-lint.js` | PostToolUse | Reports lint violations (doesn't auto-fix) |

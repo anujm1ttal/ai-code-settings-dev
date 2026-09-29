@@ -171,7 +171,7 @@ redirect `IsArtifact: true` writes to shadow folders — see `standards.md` Mirr
 | `.agent/current_task.md` | Concierge | Session focus |
 | `IMPLEMENTATION_PLAN.md` | Strategist | How & why |
 | `TODO.md` | Strategist (Coder/Auditor status) | Who & when |
-| `BACKLOG.md` | Strategist/Coder | Deferred work, findings, decisions-not-to-do. See BACKLOG Lifecycle below |
+| `BACKLOG.md` | Strategist/Coder | Deferred work, findings, decisions-not-to-do. See BACKLOG below |
 | `ARCH.md` | Strategist | Long-term architecture |
 | `DECISION_LOG.md` | Council | Pivot tracking. Rotates past threshold, see below |
 | `HANDOFF_BRIEF.md` | Concierge | Session transition |
@@ -187,24 +187,11 @@ never archive.
 `History/DECISION_LOG-archive.md` (prepend, newest-first) until under threshold. Unresolved
 entries never rotate. Never delete — archive is append-only. Owner: concierge at `/handoff`.
 
-**BACKLOG Lifecycle** (searchable memory, not a queue — rotate, never prune):
-- Nothing auto-schedules off it. `/sync` surfaces OPEN entries; `/blueprint` forces a verdict
-  on each (pull in / keep OPEN with reason / RESOLVE) — never auto-queues.
-- Each entry: stable ID (`<phase>_<component>_<n>`), status marker (`OPEN`/`RESOLVED`), and (for
-  entries filed after this rule) an `**Exit:**` condition. Pre-existing entries are grandfathered.
-- An ID cited by any durable record must have a `## ` header in `BACKLOG.md` or its archive —
-  citing an unfiled ID is a dangling reference.
-- **Per-entry cap**: no entry exceeds **30 lines**.
-- **Threshold coherence [invariant]**: `file cap ÷ per-entry cap ≥ entry cap` — **600 ÷ 30 = 20 ✓**.
-- **Rotation trigger**: active `BACKLOG.md` exceeds **>600 lines OR >20 entries**.
-- Action: move oldest **RESOLVED** entries to `History/BACKLOG-archive.md` (prepend, newest-first).
-  Never delete; OPEN entries never rotate regardless of age.
-- Over-cap single entries rotate by moving superseded amendment text to the archive under a
-  dated sub-head while the entry itself stays OPEN in `BACKLOG.md` — never by deleting text.
-- An entry another durable doc cites as authoritative is a reference, not backlog — extract it.
-- Owner: concierge at `/handoff` (`scripts/backlog_audit.py` reports it); manual via `/clean`.
-  `hooks/session-boot.js` gates on line count only at `SessionStart` (entry count is advisory —
-  the `## `/`### ` parser can't count entries reliably).
+**BACKLOG**: a plain running list of deferred work — one entry per item (a line or a short
+paragraph), marked `OPEN` or `RESOLVED`. Nothing auto-schedules off it: `/sync` surfaces OPEN
+entries, and `/blueprint` forces a verdict on each (pull in / keep / resolve). No IDs, caps, or
+rotation protocol — when it gets unwieldy, move the RESOLVED entries to
+`History/BACKLOG-archive.md`. Existing entries keep their IDs so old citations still resolve.
 
 > Platform-level logs for background commands (system Temp dirs) are host-managed and exempt
 > from the Artifacts/ persistence requirement.

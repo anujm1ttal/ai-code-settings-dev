@@ -207,7 +207,7 @@ STDOUT_EDIT = {"file_path": "scripts/thing.py", "content": "sys.stdout = TextIOW
 BENIGN_EDIT = {"file_path": "scripts/thing.py", "content": "def add(a, b):\n    return a + b"}
 
 FULL_SUITE = "python -m pytest tests/ -q"
-SUBSET_RUN = "python -m pytest tests/test_backlog_audit.py -q"
+SUBSET_RUN = "python -m pytest tests/test_hooks_smoke.py -q"
 
 
 def _tool_use(name: str, tool_input: dict) -> str:

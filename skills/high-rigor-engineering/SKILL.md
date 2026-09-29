@@ -111,7 +111,7 @@ Each phase has an **explicit approved file list**. The agent does not touch file
 
 ### Out-of-Scope Issues
 
-Bugs or findings discovered outside the approved scope become **findings** (filed in `Artifacts/BACKLOG.md` under a `<phase>_<component>_<n>` id, not scattered across phase reports) and are deferred to a separate phase. They are **never fixed** in the current phase.
+Bugs or findings discovered outside the approved scope become **findings** (filed in `Artifacts/BACKLOG.md`, not scattered across phase reports) and are deferred to a separate phase. They are **never fixed** in the current phase.
 
 ### Anti-Pattern: Scope-Creep-via-Cleanup
 
