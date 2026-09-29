@@ -173,8 +173,7 @@ fi
 rm -rf "$SYNCED_PRESERVE"
 
 # Trap backstop: the move-aside/wipe/restore below runs under the script-wide
-# `set -e` (line 5) with NO existing trap, so any failure among the 12 rm/cp
-# ops in the loop — or an interactive Ctrl-C — previously exited the script
+# `set -e` (line 5) with NO existing trap, so any failure in the sync loop — or an interactive Ctrl-C — previously exited the script
 # with skills/synced/ stranded in $SYNCED_PRESERVE and nothing pointing at it.
 # This trap is a backstop, not the primary path: the inline restore after the
 # loop still runs on the happy path (kept for a linear, readable success flow
@@ -211,11 +210,12 @@ fi
 # Copy directories.
 # optional_plugins is intentionally excluded: real plugin installs live in
 # ~/.claude/plugins/ via the marketplace, not a raw copy of the repo folder.
-# Remove the destination first so `cp -r` creates a fresh copy instead of
-# nesting the source inside an existing dir (e.g. rules/rules).
+# sync_tree.py mirrors exactly (dest-only files are removed) but rewrites only
+# files whose bytes differ: a rewritten identical file makes every open session
+# re-inject it as "changed on disk", a full cache write per file per session.
 for dir in agents rules skills templates commands hooks; do
-  rm -rf "$DEST/$dir"
-  cp -r "$SOURCE/$dir" "$DEST/$dir"
+  echo -n "  $dir: "
+  python "$SOURCE/scripts/sync_tree.py" "$SOURCE/$dir" "$DEST/$dir"
 done
 
 if [ -d "$SYNCED_PRESERVE" ]; then
@@ -226,9 +226,9 @@ trap - EXIT INT TERM
 
 # Copy critical files
 # CLAUDE-global.md is the deployable global (NOT the repo-specific CLAUDE.md)
-cp "$SOURCE/CLAUDE-global.md"   "$DEST/CLAUDE.md"
-cp "$SOURCE/cheatsheet.md"      "$DEST/cheatsheet.md"
-cp "$SOURCE/README.md"          "$DEST/README.md"
+cmp -s "$SOURCE/CLAUDE-global.md" "$DEST/CLAUDE.md"     || cp "$SOURCE/CLAUDE-global.md" "$DEST/CLAUDE.md"
+cmp -s "$SOURCE/cheatsheet.md"    "$DEST/cheatsheet.md" || cp "$SOURCE/cheatsheet.md"    "$DEST/cheatsheet.md"
+cmp -s "$SOURCE/README.md"        "$DEST/README.md"     || cp "$SOURCE/README.md"        "$DEST/README.md"
 
 echo -e "${GREEN}✓ Production artifacts copied${NC}"
 echo ""

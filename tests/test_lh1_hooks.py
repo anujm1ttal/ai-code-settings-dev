@@ -335,6 +335,40 @@ def test_nudge_handoff_recent_handoff_suppresses_nudge(tmp_path: Path, nudge_ses
     assert result.stdout.strip() == ""
 
 
+def _transcript_started(tmp_path: Path, started_epoch: float) -> Path:
+    import datetime
+    ts = datetime.datetime.fromtimestamp(started_epoch, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    transcript = tmp_path / "session-transcript.jsonl"
+    transcript.write_text(json.dumps({"type": "user", "timestamp": ts, "message": "hi"}) + "\n")
+    return transcript
+
+
+def test_nudge_handoff_ignores_files_dirty_before_session_start(tmp_path: Path, nudge_session: str):
+    import time
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo, dirty=True)
+    hour_ago = time.time() - 3600
+    os.utime(repo / "untracked.txt", (hour_ago, hour_ago))
+    transcript = _transcript_started(tmp_path, time.time() - 60)
+    payload = json.dumps({"cwd": str(repo), "session_id": nudge_session, "transcript_path": str(transcript)})
+    result = run_hook("nudge-handoff.js", payload)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
+def test_nudge_handoff_nudges_on_file_changed_after_session_start(tmp_path: Path, nudge_session: str):
+    import time
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _init_git_repo(repo, dirty=True)
+    transcript = _transcript_started(tmp_path, time.time() - 3600)
+    payload = json.dumps({"cwd": str(repo), "session_id": nudge_session, "transcript_path": str(transcript)})
+    result = run_hook("nudge-handoff.js", payload)
+    assert result.returncode == 0
+    assert "handoff" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"].lower()
+
+
 def test_nudge_handoff_non_git_cwd_fails_open_silently(tmp_path: Path, nudge_session: str):
     # No git repo at all — isGitDirty must catch the failure and stay silent.
     payload = json.dumps({"cwd": str(tmp_path), "session_id": nudge_session})

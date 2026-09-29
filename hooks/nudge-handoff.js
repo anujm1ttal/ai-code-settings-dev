@@ -73,9 +73,49 @@ function git(cwd, args) {
   });
 }
 
-function isGitDirty(cwd) {
+// First ISO `timestamp` in the transcript head = session start. NaN when unknown.
+function sessionStartMs(transcriptPath) {
   try {
-    return git(cwd, ['status', '--porcelain']).trim().length > 0;
+    if (!transcriptPath || !fs.existsSync(transcriptPath)) return NaN;
+    const fd = fs.openSync(transcriptPath, 'r');
+    const buffer = Buffer.alloc(65536);
+    const n = fs.readSync(fd, buffer, 0, buffer.length, 0);
+    fs.closeSync(fd);
+    const m = buffer.toString('utf-8', 0, n).match(/"timestamp"\s*:\s*"([^"]+)"/);
+    return m ? Date.parse(m[1]) : NaN;
+  } catch {
+    return NaN;
+  }
+}
+
+// Paths from `git status --porcelain -z -uall`; rename/copy entries carry a
+// second (source) path, which is skipped.
+function dirtyPaths(cwd) {
+  const tokens = git(cwd, ['status', '--porcelain', '-z', '-uall']).split('\0');
+  const paths = [];
+  for (let i = 0; i < tokens.length; i++) {
+    const entry = tokens[i];
+    if (entry.length < 4) continue;
+    paths.push(entry.slice(3));
+    if (/[RC]/.test(entry.slice(0, 2))) i++;
+  }
+  return paths;
+}
+
+// Only files touched since the session started count: files already dirty at
+// session start were not this session's work and re-nudging on them costs a
+// full-context turn every session. Unknown start or a deleted path → dirty.
+function isGitDirty(cwd, startMs) {
+  try {
+    const paths = dirtyPaths(cwd);
+    if (Number.isNaN(startMs)) return paths.length > 0;
+    return paths.some((p) => {
+      try {
+        return fs.statSync(path.join(cwd, p)).mtimeMs >= startMs;
+      } catch {
+        return true;
+      }
+    });
   } catch {
     return false; // Not a git repo, git unavailable, or command failed — nothing to nudge about.
   }
@@ -158,7 +198,7 @@ function main() {
     }
 
     const stateUnbacked = isStateRepoUnbacked(cwd);
-    const treeDirty = isGitDirty(cwd);
+    const treeDirty = isGitDirty(cwd, sessionStartMs(data.transcript_path));
 
     if (!treeDirty && !stateUnbacked) {
       // Evaluated-nothing path: checked the git tree and the state repo and
