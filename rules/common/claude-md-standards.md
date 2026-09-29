@@ -1,3 +1,9 @@
+---
+name: claude-md-standards
+description: Grading standard for CLAUDE.md / CLAUDE-global.md files — size, split, precedence.
+paths: ["**/CLAUDE.md", "**/CLAUDE-global.md", "**/CLAUDE.local.md", "**/CLAUDE.md.template"]
+---
+
 # CLAUDE.md Standards
 
 Grading standard `/claude-md` audits against. Governs `CLAUDE-global.md` and per-project

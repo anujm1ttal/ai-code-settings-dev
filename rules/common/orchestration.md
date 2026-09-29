@@ -5,46 +5,10 @@ description: Canonical source for agent routing, task lifecycle, Artifacts/TODO.
 
 # Agent Orchestration
 
-## The Fleet
+## Fleet & Project Type Routing
 
-| Agent | Role | Write Scope |
-|:---|:---|:---|
-| **strategist** | Architecture, ROI, roadmaps | `IMPLEMENTATION_PLAN.md`, `TODO.md` (create/restructure, not status) |
-| **coder** | Implementation, refactoring | Source, tests, `[-]` status |
-| **auditor** | QA, technical review | `Reports/<PHASE>-AUDIT_REPORT.md`, `TODO.md` (`[x]` only), `BACKLOG.md` findings. Reports, never applies — a needed source/test fix is a report line, not an edit. |
-| **scribe** | Documentation, teaching | Artifacts docs not owned elsewhere (+ `README.md`) |
-| **council** | Synthesis, stress-testing | `DECISION_LOG.md` |
-| **creative-director** | Visual spec, hierarchy | `Artifacts/LAYOUT_SPEC.md` |
-| **concierge** | State, sync, intake | `Artifacts/learnings/`, `/clean` |
-| **geometry-validator** | Geometric auditing | Audit reports; dispatched only, no standalone authority |
-
-`model-routing.md` owns which model runs each role — on divergence it wins over this table.
-
-## Project Type Routing
-
-Strategist classifies every project at Step 0; this sets active agents/skills. Activation is
-via `enabledPlugins` — the table below is guidance, not stored config.
-
-| Project Type | Core Agents | Default Skills |
-|:---|:---|:---|
-| `youtube` | strategist, scribe, concierge | youtube-strategy, youtube-scriptwriting, youtube-retention |
-| `pptx` | strategist, creative-director, concierge | pptx, visual-composition, python-patterns |
-| `pbi-report` | strategist, creative-director, coder | powerbi-report, visual-composition, dax-modeling |
-| `geometry` | strategist, coder, auditor | cd-foundations, python-rhino-grasshopper, rhino-e2e-testing, rhino-unit-testing, grasshopper-plugin-packaging, python-patterns |
-| `code` | strategist, coder, auditor | codebase-navigator, systematic-debugging, python-patterns, python-mcp, typescript-mcp, react-frontend |
-| `manuscript` | strategist, scribe, auditor | manuscript-review, glossary-extraction |
-| `data` | strategist, coder, auditor | dax-modeling, powerbi-report, python-patterns |
-| `hybrid` | concierge, strategist | all applicable, per detected files |
-
-All types also get: `codebase-navigator`, `systematic-debugging`, `implementation-dispatch`,
-`verification-gate`, `test-driven-development`, `receiving-code-review`, `project-planner`,
-`project-journal`, `doc-updater`.
-
-Office skills (`docx`/`xlsx`/`pptx`) aren't shipped — Anthropic-licensed, obtain from Anthropic.
-`pptx` projects still get `creative-director` + `visual-composition` for planning.
-
-`CLAUDE-global.md`'s Commands table is canonical for the command registry. This file owns
-routing logic (below) and command-adjacent protocols (MTP, lifecycle, branching).
+Roster + write scope + binding: `agents/agents.overview.md`. Routing table: same file
+§Project Type Routing.
 
 ## Micro-Task Protocol (MTP)
 
@@ -162,36 +126,9 @@ redirect `IsArtifact: true` writes to shadow folders — see `standards.md` Mirr
 > **ROI Escalation**: Tier 1 metadata/names → Tier 2 schemas/JSON → Tier 3 full source, only as
 > needed. Cheapest context that proves the claim.
 
-| File | Owner | Purpose |
-|:---|:---|:---|
-| `MEMORY_ANCHORS.md` | Strategist | Cold storage: constants/constraints, never archived |
-| `Temp/` | All (Concierge cleans) | Scratch: one-off scripts, uncited output. Gitignored, purged freely |
-| `Evidence/` | Executor promotes, Auditor maintains | Durable, cited verification artifacts. Never purged |
-| `Reports/<PHASE>-AUDIT_REPORT.md` | Auditor | Gate findings |
-| `.agent/current_task.md` | Concierge | Session focus |
-| `IMPLEMENTATION_PLAN.md` | Strategist | How & why |
-| `TODO.md` | Strategist (Coder/Auditor status) | Who & when |
-| `BACKLOG.md` | Strategist/Coder | Deferred work, findings, decisions-not-to-do. See BACKLOG below |
-| `ARCH.md` | Strategist | Long-term architecture |
-| `DECISION_LOG.md` | Council | Pivot tracking. Rotates past threshold, see below |
-| `HANDOFF_BRIEF.md` | Concierge | Session transition |
-| `learnings/` | Concierge | Knowledge registry, never archived |
-| `LAYOUT_SPEC.md` | Creative Director | Visual specs |
-| `Plans/Phase-N-Plan.md`, `Plans/Phase-N-TODO.md` | Strategist / Coder+Auditor | Phase design & tracking |
-| `Reports/Phase-N-Report.md` | Auditor | Phase completion summary |
-
-Plans/Reports move to `History/` once a phase completes; `learnings/` and `MEMORY_ANCHORS.md`
-never archive.
-
-**DECISION_LOG Rotation**: past >400 lines OR >40 entries, move oldest **RESOLVED** entries to
-`History/DECISION_LOG-archive.md` (prepend, newest-first) until under threshold. Unresolved
-entries never rotate. Never delete — archive is append-only. Owner: concierge at `/handoff`.
-
-**BACKLOG**: a plain running list of deferred work — one entry per item (a line or a short
-paragraph), marked `OPEN` or `RESOLVED`. Nothing auto-schedules off it: `/sync` surfaces OPEN
-entries, and `/blueprint` forces a verdict on each (pull in / keep / resolve). No IDs, caps, or
-rotation protocol — when it gets unwieldy, move the RESOLVED entries to
-`History/BACKLOG-archive.md`. Existing entries keep their IDs so old citations still resolve.
+File table: `agents/concierge.md` §Persistence. Rotation: `commands/handoff.md` §DECISION_LOG
+Rotation. `BACKLOG.md`: `commands/blueprint.md` §BACKLOG. Plan/TODO: `agents/strategist.md`
+§Plan vs. TODO.
 
 > Platform-level logs for background commands (system Temp dirs) are host-managed and exempt
 > from the Artifacts/ persistence requirement.
@@ -210,13 +147,6 @@ citation in the same pass. Uncited evidence just dies with `Temp/`. A rolling re
 same repoint-in-same-pass rule. Evidence citations name immutable paths; state references
 (`TODO.md`, a Plan) may name mutable ones.
 
-## Plan vs. TODO
-
-`IMPLEMENTATION_PLAN.md` holds the technical heavy lifting (file paths, logic, dependency
-order); only current + upcoming phases stay in it — completed phases move to
-`History/Plans/Phase-[N]-Plan.md`. `TODO.md` stays thin: status tracking only, references
-Plan phases, never copies implementation detail. Unscheduled work goes to `BACKLOG.md`.
-
 ## Conflict Resolution
 
 - Auditor rejection: 1st → specific fix. 2nd → mandatory skill-file review. 3rd → escalate to
@@ -227,19 +157,10 @@ Plan phases, never copies implementation detail. Unscheduled work goes to `BACKL
   superseded rule in place. A claim about existing code needs verification at authoring time,
   not assertion — mark and check it before approval.
 
-## Global Repository
+## Global Repository & Parallel Execution
 
-`ai-code-settings` is the Global Registry for rules/skills/standards. Cross-project learnings
-stage in its `Artifacts/GLOBAL_INBOX.md`; `/learn --global` or `/graduate` promotes them.
-
-## Parallel Execution
-
-- **`/audit --team`**: auditor spawns parallel reviewers (compliance, domain specialist, risk) →
-  aggregated into `Reports/<PHASE>-AUDIT_REPORT.md`. Default for full audits; fall back to a
-  single auditor only on token limits.
-- **Independent refactor**: coder can spawn sub-agents for non-dependent modules. Parallel writes
-  to the same file are forbidden.
-- **`/council`**: parallel debate between strategist/coder/auditor to resolve conflict.
+`commands/graduate.md` §Global Repository. `commands/audit.md`, `commands/council.md`,
+`agents/coder.md` §Parallel Execution.
 
 ## Standard Taxonomies
 
@@ -252,8 +173,7 @@ stage in its `Artifacts/GLOBAL_INBOX.md`; `/learn --global` or `/graduate` promo
 | `DRIFT`/`STALE`/`RECONCILED` | Sync | Concierge | `/sync` outcome |
 | `CLEAN` | Security | Auditor | Security sweep passed |
 
-Severity: **CRITICAL** (breaking/security/data-loss) → **HIGH** (feature-blocking, major drift)
-→ **MEDIUM** (non-blocking bug, staleness) → **LOW** (optimization hint) → **INFO** (factual).
+Severity: `agents/auditor.md` §Severity Levels.
 
 Always `/handoff` before ending any session with code/doc/design changes — it captures
 learnings, snapshots TODO, briefs the next session.
@@ -270,7 +190,5 @@ learnings, snapshots TODO, briefs the next session.
   when work begins.
 - **Semantic Loop Detection**: same action on the same file/state 3× with no state change →
   FREEZE → TRIAGE → ESCALATE (propose a pivot to the user or council).
-- **Findings Protocol**: file technical specifics (variable names, logic traps) to `BACKLOG.md`
-  at task end. `/sync` surfaces OPEN entries; `/blueprint` forces a verdict on each. Concierge
-  graduates persistent findings to `learnings/` at `/handoff`.
-- **Slicing & Economics**: see `TOKEN-ECONOMICS.md` for slicing thresholds.
+- **Findings/Slicing**: `commands/handoff.md` §Findings Protocol, `commands/blueprint.md`
+  §Slicing Thresholds.

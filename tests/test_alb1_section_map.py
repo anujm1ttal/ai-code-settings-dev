@@ -45,16 +45,20 @@ class Case:
 
 
 def _move(source: Path, home: Path, anchor: str) -> None:
-    assert source.exists(), f"fixture stale: source file missing: {source}"
     src_text = _read(source)
-    assert anchor in src_text, (
-        f"fixture stale: anchor {anchor!r} no longer present in current source {source} "
-        "-- re-derive the anchor from the live text before trusting this row"
-    )
     home_text = _read(home)
-    assert home.exists() and anchor in home_text, (
-        f"MOVE not done: anchor {anchor!r} absent from home {home}"
-    )
+    home_has_it = home.exists() and anchor in home_text
+    if not home_has_it:
+        # Move not done yet -- the fixture-staleness guard only applies pre-move: if the
+        # anchor isn't in source either, the row itself was mis-derived (never re-checkable
+        # once MOVE is done, since a completed move necessarily removes it from source --
+        # up to and including deleting the whole source file, e.g. TOKEN-ECONOMICS.md).
+        assert source.exists(), f"fixture stale: source file missing: {source}"
+        assert anchor in src_text, (
+            f"fixture stale: anchor {anchor!r} no longer present in current source {source} "
+            "-- re-derive the anchor from the live text before trusting this row"
+        )
+    assert home_has_it, f"MOVE not done: anchor {anchor!r} absent from home {home}"
     assert anchor not in src_text, (
         f"MOVE not done: anchor {anchor!r} still present in source {source}"
     )
@@ -63,10 +67,11 @@ def _move(source: Path, home: Path, anchor: str) -> None:
 def _move_any_home(source: Path, homes: list[Path], anchor: str) -> None:
     """Same as _move, but the anchor may land in any one of several destination files
     (used when Plan Sec5 lists multiple homes for one source section)."""
-    assert source.exists(), f"fixture stale: source file missing: {source}"
     src_text = _read(source)
-    assert anchor in src_text, f"fixture stale: anchor {anchor!r} absent from source {source}"
     found = any(anchor in _read(h) for h in homes)
+    if not found:
+        assert source.exists(), f"fixture stale: source file missing: {source}"
+        assert anchor in src_text, f"fixture stale: anchor {anchor!r} absent from source {source}"
     assert found, f"MOVE not done: anchor {anchor!r} absent from every candidate home {homes}"
     assert anchor not in src_text, (
         f"MOVE not done: anchor {anchor!r} still present in source {source}"
@@ -76,11 +81,12 @@ def _move_any_home(source: Path, homes: list[Path], anchor: str) -> None:
 def _move_any_glob(source: Path, glob_root: Path, glob_pattern: str, anchor: str) -> None:
     """Like _move_any_home, but the destination directory (rules/lang/) doesn't exist yet
     pre-move, so homes are discovered by glob rather than named up front."""
-    assert source.exists(), f"fixture stale: source file missing: {source}"
     src_text = _read(source)
-    assert anchor in src_text, f"fixture stale: anchor {anchor!r} absent from source {source}"
     candidates = sorted(glob_root.glob(glob_pattern)) if glob_root.exists() else []
     found = any(anchor in _read(c) for c in candidates)
+    if not found:
+        assert source.exists(), f"fixture stale: source file missing: {source}"
+        assert anchor in src_text, f"fixture stale: anchor {anchor!r} absent from source {source}"
     assert found, (
         f"MOVE not done: anchor {anchor!r} absent from every {glob_pattern} file under "
         f"{glob_root} (found {len(candidates)} candidate file(s))"
@@ -149,12 +155,15 @@ CASES: list[Case] = [
         ),
     ),
     Case(
+        # Orchestrator ruling §5a.1: DROP-DUP iff hooks/README.md's own Hook Reference
+        # covers every hook/event/purpose fact -- verified complete (T8 finished, all 9
+        # hooks covered, several rows more detailed). Anchored on README's OWN current
+        # text, not CLAUDE-global's old phrasing (which no longer exists anywhere).
         "cg_hooks_table",
-        "CLAUDE-global Hooks table -> hooks/README.md (1-line pointer stays)",
-        lambda: _move(
-            CLAUDE_GLOBAL,
+        "CLAUDE-global Hooks table -> DROP-DUP hooks/README.md Hook Reference (own text)",
+        lambda: _dropdup(
             HOOKS_README,
-            "| `session-boot.js` | SessionStart | Injects Artifacts state into context |",
+            "Injects `current_task.md` whole (capped 2,000 B)",
         ),
     ),
     Case(
@@ -177,13 +186,15 @@ CASES: list[Case] = [
     ),
     # --- orchestration.md ---
     Case(
-        "orch_fleet_table_dropdup",
-        "orch Fleet table -> DROP-DUP agent frontmatter + agents/agents.overview.md",
-        lambda: _dropdup_all(
-            [
-                (AGENTS_OVERVIEW, "`IMPLEMENTATION_PLAN.md`, `TODO.md`"),
-                (_rel("agents", "coder.md"), "Senior implementation specialist"),
-            ]
+        # Orchestrator ruling (HR1 fix, post-T2/T5/T6 verification): the Write Scope column
+        # (e.g. the auditor row's "Reports, never applies" clause) is normative text with no
+        # surviving copy elsewhere -> MOVE, not DROP-DUP.
+        "orch_fleet_table",
+        "orch Fleet table -> MOVE agents/agents.overview.md (Write Scope column)",
+        lambda: _move(
+            ORCHESTRATION,
+            AGENTS_OVERVIEW,
+            "Reports, never applies — a needed source/test fix is a report line, not an edit.",
         ),
     ),
     Case(
@@ -278,12 +289,16 @@ CASES: list[Case] = [
         ),
     ),
     Case(
+        # Orchestrator ruling §5a.5: deleting TOKEN-ECONOMICS.md repoints every tracked
+        # reference to it, including this pointer -- the old "see TOKEN-ECONOMICS.md" phrase
+        # is correctly gone. Anchored on the NEW heading/pointer target the repoint landed
+        # on in commands/blueprint.md (which orchestration.md's Findings/Slicing bullet now
+        # references) rather than the stale pre-T5 phrase.
         "orch_slicing_pointer",
-        "orch Slicing pointer -> commands/blueprint.md",
-        lambda: _move(
-            ORCHESTRATION,
+        "orch Slicing pointer -> repointed to commands/blueprint.md Sec Slicing Thresholds",
+        lambda: _dropdup(
             _rel("commands", "blueprint.md"),
-            "see `TOKEN-ECONOMICS.md` for slicing thresholds",
+            "## Slicing Thresholds",
         ),
     ),
     # --- testing-strategy.md ---
@@ -383,9 +398,16 @@ CASES: list[Case] = [
     ),
     # --- model-routing.md ---
     Case(
-        "mr_agent_binding_dropdup",
-        "model-routing Agent binding table -> DROP-DUP agent frontmatter",
-        lambda: _dropdup(_rel("agents", "coder.md"), "model: claude-sonnet-5-5"),
+        # Orchestrator ruling (HR1 fix): the Override column (e.g. "Sonnet for complex
+        # architecture docs (ARCH.md)") has no surviving copy in agent frontmatter (which
+        # only carries the scalar `model:` binding, not the override condition) -> MOVE.
+        "mr_agent_binding",
+        "model-routing Agent binding table -> MOVE agents/agents.overview.md (Override column)",
+        lambda: _move(
+            MODEL_ROUTING,
+            AGENTS_OVERVIEW,
+            "Sonnet for complex architecture docs (ARCH.md)",
+        ),
     ),
     Case(
         "mr_skill_overrides",
@@ -434,11 +456,16 @@ CASES: list[Case] = [
         ),
     ),
     Case(
-        "te_handoff_triggers_dropdup",
-        "TOKEN-ECONOMICS Handoff Triggers -> DROP-DUP orch Emergency Protocols (already present)",
-        lambda: _dropdup(
-            ORCHESTRATION,
-            "Context window >60%: concierge triggers `/handoff`, all agents yield.",
+        # Orchestrator ruling (HR1 fix): only the >60% trigger survived (DROP-DUP'd) in
+        # orch Emergency Protocols -- the "phase marked [x]" / "noise from multiple pivots"
+        # triggers had no surviving copy -> MOVE the full sentence into agents/concierge.md
+        # (source file already deleted in T5; _move tolerates a missing source).
+        "te_handoff_triggers",
+        "TOKEN-ECONOMICS Handoff Triggers -> MOVE agents/concierge.md (full sentence)",
+        lambda: _move(
+            TOKEN_ECON,
+            _rel("agents", "concierge.md"),
+            "noise from multiple pivots",
         ),
     ),
     Case(

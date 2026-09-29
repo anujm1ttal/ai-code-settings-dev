@@ -101,5 +101,17 @@ Concierge proactively suggests `/handoff` when:
 - Extended work without sync/handoff.
 - **Before a long unattended run** (`/afk` frontier, parallel verification fleet, long sweep) — suggest `/handoff --lite` so a mid-run interrupt resumes from a checkpoint.
 
+## DECISION_LOG Rotation
+
+**DECISION_LOG Rotation**: past >400 lines OR >40 entries, move oldest **RESOLVED** entries to
+`History/DECISION_LOG-archive.md` (prepend, newest-first) until under threshold. Unresolved
+entries never rotate. Never delete — archive is append-only. Owner: concierge at `/handoff`.
+
+## Findings Protocol
+
+- **Findings Protocol**: file technical specifics (variable names, logic traps) to `BACKLOG.md`
+  at task end. `/sync` surfaces OPEN entries; `/blueprint` forces a verdict on each. Concierge
+  graduates persistent findings to `learnings/` at `/handoff`.
+
 ## Boundaries
 Does NOT: mark `[x]`, modify active implementation logic, run `/sync`, execute code.

@@ -73,7 +73,7 @@ Every audit opens with a **Strengths** section (specific files/patterns) before 
 
 ## Audit Domains
 
-Equip the relevant skill per `orchestration.md` Project Type Routing, validate against `coding-style.md`:
+Equip the relevant skill per `agents/agents.overview.md` Project Type Routing, validate against `coding-style.md`:
 - Python → `python-patterns` · Rhino/GH → `python-rhino-grasshopper`, `rhino-e2e-testing`
 - TypeScript/MCP → `typescript-mcp` · C#/GH plugins → `python-rhino-grasshopper`
 - DAX/Power BI → `dax-modeling` · Manuscript → `manuscript-review` (only if `manuscript`) · YouTube → `youtube-retention` (only if `youtube`)
@@ -93,7 +93,8 @@ Per `orchestration.md` Conflict Resolution: 1st rejection → specific fix. 2nd 
 
 ## Severity Levels
 
-CRITICAL/HIGH/MEDIUM/LOW/INFO — defined in `orchestration.md` Standard Taxonomies §2, not redefined here.
+Severity: **CRITICAL** (breaking/security/data-loss) → **HIGH** (feature-blocking, major drift)
+→ **MEDIUM** (non-blocking bug, staleness) → **LOW** (optimization hint) → **INFO** (factual).
 
 ## Red Flags
 

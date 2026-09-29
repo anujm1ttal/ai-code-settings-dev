@@ -15,6 +15,10 @@ model: claude-haiku-4-5
 ## Precondition
 - Must be run from the `ai-code-settings` workspace (not a project repo)
 - `Artifacts/GLOBAL_INBOX.md` must exist and contain at least one entry
+- **All destinations below are `<repo>/`-relative repo source, never the deployed `~/.claude/`
+  tree.** `bash scripts/deploy.sh` is the only path to production — a subagent with
+  `~/.claude/` on its search path can silently resolve a bare `rules/common/...` there instead;
+  never edit `~/.claude/` directly (`dsd1_graduate-path-ambiguity_1`).
 
 ## Procedure
 
@@ -23,12 +27,12 @@ model: claude-haiku-4-5
 
    | Pattern Category | Destination File |
    |:---|:---|
-   | Python coding patterns | `rules/common/coding-style.md` → Python section |
-   | Interaction / behavioral | `rules/common/standards.md` |
-   | Agent routing / lifecycle | `rules/common/orchestration.md` |
-   | Security | `rules/common/security.md` |
-   | Domain-specific (Rhino, PBI, DAX) | Relevant `skills/*/SKILL.md` → gotchas section |
-   | Tool-wide (global OS behavior) | `CLAUDE-global.md` (the deployable global; deploy.sh pushes it to `~/.claude/CLAUDE.md`) — mirror the same entry into `GEMINI.md` since it is not auto-deployed |
+   | Python coding patterns | `<repo>/rules/common/coding-style.md` → Python section |
+   | Interaction / behavioral | `<repo>/rules/common/standards.md` |
+   | Agent routing / lifecycle | `<repo>/rules/common/orchestration.md` |
+   | Security | `<repo>/rules/common/security.md` |
+   | Domain-specific (Rhino, PBI, DAX) | Relevant `<repo>/skills/*/SKILL.md` → gotchas section |
+   | Tool-wide (global OS behavior) | `<repo>/CLAUDE-global.md` (the deployable global; deploy.sh pushes it to `~/.claude/CLAUDE.md`) — mirror the same entry into `<repo>/GEMINI.md` since it is not auto-deployed |
 
 3. **Present** each entry to the user with the proposed destination and wording
 4. **User decides**: `accept` | `edit` | `skip` | `delete`
@@ -44,6 +48,11 @@ Entries should be integrated naturally into the target file's existing format:
 - **Rules files**: Add as a bullet point in the relevant section
 - **Skills files**: Add under a `## Known Gotchas` or `## Common Pitfalls` section
 - **CLAUDE-global.md/GEMINI.md**: Add as a bullet in the relevant section (mirror into both — GEMINI.md is not deployed automatically)
+
+## Global Repository
+
+`ai-code-settings` is the Global Registry for rules/skills/standards. Cross-project learnings
+stage in its `Artifacts/GLOBAL_INBOX.md`; `/learn --global` or `/graduate` promotes them.
 
 ## Edge Cases
 - **Empty inbox**: Report "No entries to graduate" and exit

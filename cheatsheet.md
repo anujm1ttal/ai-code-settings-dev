@@ -134,8 +134,8 @@ rules/common/standards.md         ← Interaction protocol, communication
 rules/common/security.md          ← Secrets, incident response, audits
 rules/common/testing-strategy.md  ← Test lanes (Lane A/B), evidence rules
 rules/common/architecture.md      ← Deep modules, design principles
-rules/common/TOKEN-ECONOMICS.md   ← Context slicing, bootstrap costs
 ```
+Context slicing thresholds → `commands/blueprint.md`; bootstrap token budget → `scripts/README.md`.
 
 ### Project State & Artifacts
 ```

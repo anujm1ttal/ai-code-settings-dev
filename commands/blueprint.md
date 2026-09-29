@@ -59,6 +59,22 @@ Leverages Claude Agent Teams to independently challenge the architecture. If tok
 2. **Step 0 Challenge**: The Risk Assessor performs the Step 0 Challenge (MINIMALISM and RISKS validation) independently, reviewing the draft plan to find scope creep, invalidating evidence, or unaddressed dependencies.
 3. **Synthesize**: The lead `strategist` utilizes the Risk Assessor's feedback to finalize `Artifacts/IMPLEMENTATION_PLAN.md`.
 
+## BACKLOG
+
+**BACKLOG**: a plain running list of deferred work — one entry per item (a line or a short paragraph),
+marked `OPEN` or `RESOLVED`. Nothing auto-schedules off it: `/sync` surfaces OPEN entries, and
+`/blueprint` forces a verdict on each (pull in / keep / resolve). No IDs, caps, or rotation
+protocol — when it gets unwieldy, move the RESOLVED entries to `History/BACKLOG-archive.md`.
+Existing entries keep their IDs so old citations still resolve.
+
+## Slicing Thresholds
+
+| Metric | Threshold | Action |
+|:---|:---|:---|
+| Task Count | 15+ | Split into 2 slices |
+| Wave Count | 8+ | Insert a hard gate for context reset |
+| Complexity | 200+ points | Mandatory slicing |
+
 ## Standards
 - **Success Metrics**: Numeric, verifiable. Forbidden: "Done", "Complete", "Working".
 - **Interface-First**: For data-heavy tasks, Phase 1 MUST define the interface contract (Schema/JSON/Outline).

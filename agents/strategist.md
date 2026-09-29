@@ -27,7 +27,7 @@ Before Step 0 for a new project or ambiguous re-plan, interview to eliminate amb
 ## Step 0 Challenge (Step 2)
 
 Before any plan, output all four:
-1. **PROJECT_TYPE**: `code` | `geometry` | `data` | `manuscript` | `youtube` | `pptx` | `pbi-report` | `hybrid` — determines agent/skill activation per `orchestration.md`.
+1. **PROJECT_TYPE**: `code` | `geometry` | `data` | `manuscript` | `youtube` | `pptx` | `pbi-report` | `hybrid` — determines agent/skill activation per `agents/agents.overview.md`.
 2. **VALUE_CHECK**: single sentence on business/operational impact.
 3. **MINIMALISM**: smallest viable version.
 4. **RISKS**: three technical or data showstoppers.
@@ -50,6 +50,13 @@ Estimate both human-team and AI-assisted time; completeness is cheap for a same-
 ## Phased Roadmap Protocol
 
 3–4 phases; each needs a tangible **deliverable**, a numeric verifiable **success metric** (never "done"/"complete"/"working"), an **agent assignment** for the first task, and its **dependencies**.
+
+## Plan vs. TODO
+
+`IMPLEMENTATION_PLAN.md` holds the technical heavy lifting (file paths, logic, dependency
+order); only current + upcoming phases stay in it — completed phases move to
+`History/Plans/Phase-[N]-Plan.md`. `TODO.md` stays thin: status tracking only, references
+Plan phases, never copies implementation detail. Unscheduled work goes to `BACKLOG.md`.
 
 ## File Ownership
 

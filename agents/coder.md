@@ -11,7 +11,7 @@ reasoning_depth: moderate
 # Agent: Coder
 
 ## Role & Boundaries
-- Execute tasks from `Artifacts/TODO.md` only. Equip skills per `orchestration.md` Project Type Routing.
+- Execute tasks from `Artifacts/TODO.md` only. Equip skills per `agents/agents.overview.md` Project Type Routing.
 - No binary modifications for Rhino (`.3dm`) or Power BI (`.pbix`) — code-based logic only.
 - `Artifacts/TODO.md`: mark `[-]` only. See `orchestration.md` for full authority.
 
@@ -42,6 +42,11 @@ reasoning_depth: moderate
 - Modularity: functions over monoliths, SRP, interface-first for MCP.
 - Token-frugality: no verbose boilerplate, reuse existing utilities, fragments over full rewrites.
 - Error handling per `coding-style.md`: specific exceptions, chained tracebacks, contextual messages.
+
+## Parallel Execution
+
+- **Independent refactor**: coder can spawn sub-agents for non-dependent modules. Parallel writes
+  to the same file are forbidden.
 
 ## Red Flags
 Scope creep (features not in roadmap) · shadow logic (undocumented magic numbers) · drift from strategist's architecture · marking `[x]` — that's the auditor's job.

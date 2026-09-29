@@ -15,20 +15,20 @@ To ensure that all agents, skills, commands, and project types defined in the gl
 ## The Registry Audit Checklist
 
 ### 1. Skill Integrity
-- [ ] Every skill referenced in `CLAUDE-global.md`, `orchestration.md`, `cheatsheet.md`, or `GEMINI.md` exists in `skills/` or `optional_plugins/*/skills/`.
+- [ ] Every skill referenced in `agents/agents.overview.md`, `orchestration.md`, `cheatsheet.md`, or `GEMINI.md` exists in `skills/` or `optional_plugins/*/skills/`.
 - [ ] No "orphan" skills (files exist but aren't referenced anywhere).
 - [ ] All skill `SKILL.md` files have valid YAML frontmatter (`name`, `description`).
 
 ### 2. Command Integrity
-- [ ] Every slash command referenced in `CLAUDE-global.md`, `orchestration.md`, or `GEMINI.md` has a corresponding `.md` file in `commands/`.
-- [ ] Command ownership in `CLAUDE-global.md` and `orchestration.md` matches the "Owner" field in the command file.
+- [ ] Every slash command referenced in `agents/agents.overview.md`, `orchestration.md`, or `GEMINI.md` has a corresponding `.md` file in `commands/`.
+- [ ] Command ownership in `agents/agents.overview.md` and `orchestration.md` matches the "Owner" field in the command file.
 
 ### 3. PROJECT_TYPE Sync
-- [ ] `PROJECT_TYPE` enum values in `project-planner/SKILL.md` match the `Project Type Routing` table in `orchestration.md`.
+- [ ] `PROJECT_TYPE` enum values in `project-planner/SKILL.md` match the `Project Type Routing` table in `agents/agents.overview.md`.
 - [ ] All types in `cheatsheet.md` are accounted for in the core routing.
 
 ### 4. Agent & Artifact Ownership
-- [ ] Every required artifact listed in `CLAUDE-global.md`, `orchestration.md`, or `GEMINI.md` has a defined owner agent.
+- [ ] Every required artifact listed in `agents/agents.overview.md`, `orchestration.md`, or `GEMINI.md` has a defined owner agent.
 - [ ] Every agent file in `agents/` has the required `name`, `role`, and `description` frontmatter.
 
 ### 5. Link Integrity
@@ -37,7 +37,7 @@ To ensure that all agents, skills, commands, and project types defined in the gl
 ## The Procedure
 1. Run a global search (Grep) for command and skill references.
 2. Cross-reference with directory listings (Glob) for `commands/`, `agents/`, `skills/`, and `optional_plugins/*/skills/`.
-3. Compare `PROJECT_TYPE` strings across the canonical files (`CLAUDE-global.md`, `orchestration.md`, `project-planner/SKILL.md`).
+3. Compare `PROJECT_TYPE` strings across the canonical files (`agents/agents.overview.md`, `orchestration.md`, `project-planner/SKILL.md`).
 4. Generate `Artifacts/REGISTRY_HEALTH_REPORT.md` if drift is found.
 
 ## Relationships
