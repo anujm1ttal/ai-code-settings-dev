@@ -2,7 +2,7 @@
 description: Generates a structured, exhaustive, and purely factual Markdown report of the codebase for external review or auditing.
 argument-hint: "[scope]"
 allowed-tools: Read, Grep, Glob
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 ---
 
 # Command: /snapshot

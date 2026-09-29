@@ -1,7 +1,7 @@
 ---
 description: Triggers the strategist to ideate YouTube video concepts. Generates Title, Thumbnail, and Angle packages.
 argument-hint: "[--team] <topic-or-audience>"
-model: claude-opus-5
+model: claude-opus-5-5
 ---
 
 # Command: /ideate

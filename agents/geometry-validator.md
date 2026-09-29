@@ -3,7 +3,7 @@ name: geometry-validator
 role: Specialized mathematical and geometric auditor for Rhino/Grasshopper environments.
 description: Use PROACTIVELY after geometry-heavy Rhino/Grasshopper revisions. Verifies closure, manifoldness, tolerance alignment, and memory disposal. Specialized auditor for geometric outputs.
 tools: Read, Grep, Glob, Bash
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 effort: high
 reasoning_depth: moderate
 ---

@@ -1,7 +1,7 @@
 ---
 name: high-rigor-engineering
 description: Use when a phase declares high-rigor mode — geometry validation, production deploys, regulatory work, or anything requiring an auditable evidence trail and zero tolerance for rework. Do NOT use for exploratory prototyping or documentation.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 metadata:
   version: "1.0.0"
   tags: [high-rigor, evidence, gate-cadence, patch-protocol, geometry, production]

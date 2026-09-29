@@ -6,8 +6,8 @@
 
 | Tier | Model | Agent | Use When |
 |:---|:---|:---|:---|
-| **Tier 1** | `claude-opus-5` | strategist, council | Strategic decisions, architecture, multi-phase planning, conflict resolution, stress-testing |
-| **Tier 2** | `claude-sonnet-5` | coder, auditor, geometry-validator | Implementation, refactoring, bug fixes, code review, test writing, schema design, geometric auditing |
+| **Tier 1** | `claude-opus-5-5` | strategist, council | Strategic decisions, architecture, multi-phase planning, conflict resolution, stress-testing |
+| **Tier 2** | `claude-sonnet-5-5` | coder, auditor, geometry-validator | Implementation, refactoring, bug fixes, code review, test writing, schema design, geometric auditing |
 | **Tier 3** | `claude-haiku-4-5` | scribe, concierge, creative-director | Documentation, state management, mechanical tasks, routine cleanup |
 
 ## Agent-to-Model Binding (Mandatory)
@@ -74,8 +74,8 @@ the shipped binary's embedded Zod schema for `fallbackModel`), not asserted from
   string) + `"fallbackModel"` (ordered array of strings, ≥1 model, none equal to `"model"`).
   Equivalent CLI flag: `--fallback-model <model1,model2>`. On overload/unavailability, Claude
   Code automatically retries the next model in the array; it re-tries the primary at the start
-  of each new user turn. This deployment runs: primary `claude-sonnet-5-5` → fallback
-  `claude-sonnet-5`.
+  of each new user turn. This deployment runs: primary `sonnet` (alias, resolves to
+  `claude-sonnet-5-5`) → fallback `claude-haiku-4-5-20251001`.
 - **Not available for subagent dispatch.** Agent frontmatter (`agents/*.md` → `model:`) is a
   **scalar field only** — no fallback array, no chain. If a subagent's declared model is
   unhosted, dispatch fails (loud), it does not silently retry a lesser model. This is the

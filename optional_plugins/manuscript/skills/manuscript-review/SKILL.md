@@ -2,7 +2,7 @@
 name: manuscript-review
 description: Use this skill whenever you are auditing narrative structure, character agency, or market-readiness of a manuscript. Trigger when the auditor is performing a structural audit and the project has been classified as "manuscript" type during Step 0. Do NOT use for business/ROI justification or non-narrative technical review — use business-analyst for requirement/ROI work instead.
 argument-hint: "<narrative premise or chapter snippet>"
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 metadata:
   version: "1.0.1"
   tags: ["editing", "narrative-design", "publishing", "review", "manuscript-analysis"]

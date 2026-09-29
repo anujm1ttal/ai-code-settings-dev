@@ -1,7 +1,7 @@
 ---
 description: Audit and update a CLAUDE.md against the OS quality bar (rules/common/claude-md-standards.md). Report-first; edits only on confirmation.
 argument-hint: "[path-to-CLAUDE.md | --global]  (default: nearest project CLAUDE.md)"
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 ---
 
 # Command: /claude-md

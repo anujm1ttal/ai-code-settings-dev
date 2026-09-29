@@ -2,7 +2,7 @@
 name: python-rhino-grasshopper
 description: "Expert in RhinoCommon API, GhPython, and computational design scripting for Rhino 8. Ships the RhinoCommon, Grasshopper, and GH_IO XML signature databases offline — use it to verify any Rhino/GH member signature instead of guessing, and whenever checking whether a class, method, or property actually exists. Mandates the use of 'Rhino.Geometry', high-rigor patterns, and strict CPython 3.9 compliance. Use this skill whenever writing, refactoring, or reviewing Python code that interacts with the Rhino runtime or Grasshopper SDK. Trigger when the user mentions 'Rhino', 'Grasshopper', 'geometry', 'brep', or asks what a RhinoCommon/Grasshopper API member does. Use whenever implementing structural logic or data tree management. Do NOT use for pure Python math or logic that doesn't depend on Rhino (use rhino-unit-testing instead)."
 argument-hint: "[stadium|facade|landscape|furniture|general] <geometric goal>"
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 metadata:
   version: "1.0.1"
   author: "Agent OS"

@@ -2,7 +2,7 @@
 name: visual-composition
 description: Use this skill whenever you are planning or reviewing visual layouts, hierarchy, and brand governance across any medium (slides, reports, dashboards). It enforces "Hierarchy First" design, scannability, and accessibility standards (contrast, font size). Trigger when the creative-director is drafting a LAYOUT_SPEC.md or when an auditor is performing a visual quality check. Do NOT use for technical implementation details like python-pptx code or Power BI theme JSON; refer to specialized document skills for those implementations.
 argument-hint: "<design requirement or layout constraint>"
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 metadata:
   version: "1.0.1"
   tags: ["design", "layout", "accessibility", "visual-design", "composition", "standards"]

@@ -1,7 +1,7 @@
 ---
 description: Systematic investigation and fix planning for bugs or test failures prior to implementation.
 argument-hint: "<bug-description>"
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 ---
 
 # Command: /triage

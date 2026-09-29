@@ -1,7 +1,7 @@
 ---
 description: Triggers the strategist to initialize a new project, append a phase, or re-plan after a pivot. Enforces Step 0 and creates the Implementation Plan.
 argument-hint: "[--team] [--interview]"
-model: claude-opus-5
+model: claude-opus-5-5
 ---
 
 # Command: /blueprint

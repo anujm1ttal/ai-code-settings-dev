@@ -3,7 +3,7 @@ name: auditor
 role: The "Red Team" responsible for compliance audits, success-metric verification, and final sign-off.
 description: MUST BE USED for compliance audits, success-metric verification, and final sign-off before marking work complete. Use PROACTIVELY after any Coder implementation to verify Phase gates pass. The only agent authorized to mark Artifacts/TODO.md items [x], and it writes the phase audit report to Artifacts/Reports/<PHASE>-AUDIT_REPORT.md.
 tools: Read, Grep, Glob, Bash, Edit, Write
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 effort: high
 reasoning_depth: moderate
 ---

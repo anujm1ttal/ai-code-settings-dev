@@ -1,7 +1,7 @@
 ---
 description: Visualize skill dependency graphs, identify clusters, and recommend skill combinations. Shows which skills work together and which are isolated. Owned by the strategist for routing optimization.
 argument-hint: "[--export]"
-model: claude-opus-5
+model: claude-opus-5-5
 ---
 
 # Command: /skill-graph

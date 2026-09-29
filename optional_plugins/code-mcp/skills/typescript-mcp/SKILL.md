@@ -2,7 +2,7 @@
 name: typescript-mcp
 description: Use this skill when building, debugging, or reviewing Model Context Protocol (MCP) servers in TypeScript. It enforces JSON-RPC 2.0 compliance, Zod-based schema validation, and strict error handling patterns. Trigger when creating a new MCP tool, fixing a JSON-RPC communication error, or updating a Zod input schema. Do NOT use for general TypeScript frontend development or backend work that does not implement the MCP standard.
 argument-hint: "<MCP tool requirement or JSON-RPC question>"
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 metadata:
   version: "1.0.1"
   tags: ["mcp", "typescript", "api", "json-rpc", "zod", "server-architecture"]
