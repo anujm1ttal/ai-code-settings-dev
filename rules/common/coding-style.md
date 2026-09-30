@@ -45,16 +45,6 @@ dead code alone unless asked. Every changed line traces to the current TODO phas
 commit, re-stage every path showing `AM` status — test results attest to the working tree, not
 the index.
 
-## Python Runtime Matrix
-
-| Context | Environment | Syntax | Libraries | Logging |
-|:---|:---|:---|:---|:---|
-| Host | CPython 3.12+ | `list[T]`, `T \| U` | Pydantic, loguru, uv | `loguru` |
-| Rhino Internal | CPython 3.9.x | `List[T]`, `Union` | stdlib only | `print()` |
-| Rhino.Inside | Host (3.12+) | 3.12+ | rhinoinside, RhinoCommon | `loguru` |
-
-Host modules must stay 3.9-compatible if intended for GH export.
-
 ## Testing
 
 Follow `testing-strategy.md`. Cheapest lane that proves the claim. Fresh test output/exit code
@@ -62,28 +52,8 @@ for every claim. TDD: failing test in the lowest valid lane before fixing a bug.
 
 ## Language-Specific
 
-- **Python 3.12+**: 100% type coverage, `list[T]`/`T | None`. `@dataclass(frozen=True)` for
-  value objects. `ruff`+`pyright` strict+`uv`+`pytest`. `loguru` only, never `print()`/`logging`.
-  `asyncio.TaskGroup` with timeouts. Schema/model modules must not import tool-registration or
-  service modules — `from __future__ import annotations` + `TYPE_CHECKING` guards; verify with
-  `python -c "import module"`. Full reference: `python-patterns`.
-- **Rhino Python (~3.9)**: every script starts `#! python 3`. `Optional[T]`/`List[T]`/`Dict[K,V]`
-  from `typing`, no union syntax. `print()` only — no `loguru`/`logging`. No Pydantic, manual
-  validation with early return/raise. Raw integers + inline comment for nested .NET enums.
-  `sc.doc.DimStyles.Add()` expects a string, not an object. Avoid `rhinoscriptsyntax` for
-  annotations. Full reference: `python-rhino-grasshopper`.
-- **TypeScript**: strict (`noImplicitAny`, `strictNullChecks`), `unknown` over `any`, Zod at
-  every boundary. MCP: JSON-RPC error codes, `console.error` for debug (`stdout` is the
-  transport). React/web: CSS Modules by default, TanStack Query (never fetch in `useEffect`),
-  Vitest+RTL+jsdom, `eslint-plugin-jsx-a11y` = error. Full references: `typescript-mcp`,
-  `react-frontend`.
-- **C#**: .NET 6+/RhinoCommon, `<Nullable>enable</Nullable>`, `IDisposable`+`using` for geometry/
-  unmanaged resources, PascalCase public/`_camelCase` private. Full reference:
-  `python-rhino-grasshopper`.
-- **DAX**: `VAR` for every intermediate, `DIVIDE` never raw `/`, `SWITCH(TRUE(), ...)` over
-  nested `IF`, no calculated columns in Fact tables (offload to Power Query). Star schema, no
-  Fact-to-Fact relationships, disable Auto Date/Time (dedicated `DimDate`), measures over
-  calculated columns always. Full reference: `dax-modeling`.
+Per-language rules: `rules/lang/{python,typescript,csharp,dax}.md`.
+
 - **MCP** (cross-language): one tool per file, Zod/Pydantic `inputSchema`, `[DESTRUCTIVE]` tag +
   user confirmation on destructive tools, `stdout` reserved for transport.
 - **Rhino/Grasshopper** (cross-language): `RhinoCommon` over `rhinoscriptsyntax` for

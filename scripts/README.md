@@ -130,6 +130,40 @@ Add to `/handoff` report:
 Cost efficiency: 41% vs. all-Opus baseline ($4.50).
 ```
 
+### Fallback Chain (harness-verified, 2026-09-29)
+
+**This repo's own routing code still implements no fallback.** `grep -n "fallback\|unavailable"
+scripts/model_router.py` returns 0 matches — that finding stands. What changed: the underlying
+Claude Code **harness** does provide a real, verified mechanism, scoped narrower than this
+section previously implied. Verified directly against the installed CLI (`claude --help` +
+the shipped binary's embedded Zod schema for `fallbackModel`), not asserted from memory:
+
+- **`~/.claude/settings.json` → `"fallbackModel"`** (ordered array, ≥1 model, none equal to
+  `"model"`; CLI flag `--fallback-model`). On overload/unavailability Claude Code retries the next
+  entry; it is **one global list, not per-model**. Settings load at session start — restart after
+  editing.
+- **Applies to subagent dispatch too** (probe-verified 2026-09-29, correcting an earlier claim
+  here): agent frontmatter `model:` is scalar, but a failed pinned model falls through to this
+  same global list. Three `coder` probes pinned `claude-sonnet-5-5` all reached the fallback.
+- **This deployment: fallback is `claude-sonnet-5` only** (user decision 2026-09-29). No Opus or
+  Haiku fallback — if `claude-sonnet-5` also fails, the call fails loudly. Consequence: an
+  Opus-pinned call that fails runs on Sonnet 5 — flag it when a strategist/council verdict is
+  returned during a known outage. Verified resolvable 2026-09-29: `claude-opus-5-5`,
+  `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5`. **Not** resolvable:
+  `claude-sonnet-5-5` (so the `sonnet` alias falls through too) and `claude-haiku-4-5-20251001`.
+- **API-level `fallbacks` (server-side, refusal-triggered) is a different mechanism** from the
+  CLI's `fallbackModel` (client-side, overload/unavailability-triggered) — the two are not
+  interchangeable and `settings.json` does not expose a passthrough to the API-level one.
+
+### Verification
+
+Config being correct does not guarantee the runtime honors it — verify from session
+transcripts, not the config:
+
+```bash
+python scripts/model_routing_audit.py --violations-only
+```
+
 ### Verified Routing Compliance
 
 > ✅ **Routing is honored (verified 2026-07-06).** An initial audit *appeared* to show
@@ -138,6 +172,22 @@ Cost efficiency: 41% vs. all-Opus baseline ($4.50).
 > pre-config sessions (before routing existed) or deliberate alternate-model runs
 > (a full Fable session, early Qwen experiments) — not runtime failures. Always
 > pass `--since` when auditing so historical sessions don't cry wolf.
+
+---
+
+## Token Budgeting Reference
+
+Supporting material for `rules/common/orchestration.md` §Safeguards & Efficiency (Context
+Layering) — token estimates per layer, referenced on demand.
+
+| Layer | Token Estimate | Purpose |
+|:---|:---|:---|
+| L1 (Overview) | ~2,000 | Map of all agents/skills — load first to route |
+| L0 (Abstract) | ~100–300 | Single agent/skill summary — confirm fit (mandatory only past 150-line `SKILL.md`) |
+| L2 (Definition) | ~3,000–8,000 | Full instruction set — load only when executing |
+
+Standard bootstrap (all rules + L1 overviews): ~15,000 tokens — the budget a CLAUDE.md is one
+line item within (`claude-md-standards.md` §3).
 
 ---
 

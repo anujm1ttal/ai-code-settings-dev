@@ -59,12 +59,16 @@ against that:
       → Proposed: OPEN — Task description
    ```
    User confirms which to add to `Artifacts/BACKLOG.md` as unscheduled deferred work (OPEN
-   marker per `rules/common/orchestration.md` §BACKLOG). Never auto-add. Mined output
+   marker per `commands/blueprint.md` §BACKLOG). Never auto-add. Mined output
    never lands directly in `Artifacts/TODO.md` — if the user decides a candidate should be
    scheduled into the active or next phase, it is written to `Artifacts/TODO.md` as a normal
    strategist-authored task row, not as raw mined output.
 2. **Session Summary**: Tasks worked on, agents active, decisions/pivots made.
-3. **State Snapshot**: Update `Artifacts/.agent/current_task.md`, verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md` (log is newest-first: read the head, not the whole file, when checking prior entries). **Rotation check**: after appending, if the active log exceeds **>400 lines OR >40 entries**, rotate the oldest RESOLVED entries to `Artifacts/History/DECISION_LOG-archive.md` (prepend, newest-first preserved; unresolved entries never rotate; never delete). Then run the **State File Health Check** — all five must be healthy and synchronized before the session ends (prevents context loss):
+3. **State Snapshot**: Update `Artifacts/.agent/current_task.md` — current_task.md ≤2,000 B
+   (`wc -c`, UTF-8 bytes; the SessionStart hook injects it whole and truncates past that cap).
+   Lead with current state (active phase/branch, next action, blockers); push history/rationale
+   to `Artifacts/HANDOFF_BRIEF.md` and `Artifacts/DECISION_LOG.md` instead of growing this file.
+   Verify `Artifacts/TODO.md` markers, append to `Artifacts/DECISION_LOG.md` (log is newest-first: read the head, not the whole file, when checking prior entries). **Rotation check**: after appending, if the active log exceeds **>400 lines OR >40 entries**, rotate the oldest RESOLVED entries to `Artifacts/History/DECISION_LOG-archive.md` (prepend, newest-first preserved; unresolved entries never rotate; never delete). Then run the **State File Health Check** — all five must be healthy and synchronized before the session ends (prevents context loss):
    - `Artifacts/.agent/current_task.md` — updated with current task status
    - `Artifacts/TODO.md` — active task markers correct
    - `Artifacts/IMPLEMENTATION_PLAN.md` — no unnecessary changes
@@ -100,6 +104,18 @@ Concierge proactively suggests `/handoff` when:
 - 3+ distinct tasks discussed in one session.
 - Extended work without sync/handoff.
 - **Before a long unattended run** (`/afk` frontier, parallel verification fleet, long sweep) — suggest `/handoff --lite` so a mid-run interrupt resumes from a checkpoint.
+
+## DECISION_LOG Rotation
+
+**DECISION_LOG Rotation**: past >400 lines OR >40 entries, move oldest **RESOLVED** entries to
+`History/DECISION_LOG-archive.md` (prepend, newest-first) until under threshold. Unresolved
+entries never rotate. Never delete — archive is append-only. Owner: concierge at `/handoff`.
+
+## Findings Protocol
+
+- **Findings Protocol**: file technical specifics (variable names, logic traps) to `BACKLOG.md`
+  at task end. `/sync` surfaces OPEN entries; `/blueprint` forces a verdict on each. Concierge
+  graduates persistent findings to `learnings/` at `/handoff`.
 
 ## Boundaries
 Does NOT: mark `[x]`, modify active implementation logic, run `/sync`, execute code.

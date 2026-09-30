@@ -111,7 +111,7 @@ def load_plugin_skills(root: Path) -> dict[str, SkillNode]:
 
 
 # Project-type routing tables (inlined from the retired manifest_validator;
-# mirror the routing table in rules/common/orchestration.md).
+# mirror the routing table in agents/agents.overview.md).
 ALL_PROJECT_TYPES = ["youtube", "pptx", "pbi-report", "geometry", "code", "manuscript", "data", "hybrid"]
 FOUNDATIONAL_SKILLS = ["codebase-navigator", "systematic-debugging", "implementation-dispatch", "verification-gate", "project-planner", "project-journal", "doc-updater"]
 DEFAULT_SKILLS: dict[str, list[str]] = {

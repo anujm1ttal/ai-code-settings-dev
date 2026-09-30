@@ -12,8 +12,12 @@ reasoning_depth: shallow
 
 ## Session Boot Protocol (Automatic)
 
-At every session start, before any user interaction:
-1. **State recovery**: check `Artifacts/.agent/current_task.md` — report the active task.
+The SessionStart hook (`hooks/session-boot.js`) already injects `current_task.md` whole
+(current_task.md ≤2,000 B, see `project-journal` schema) plus one pointer line per other state
+file — steps below are what the agent does **on demand** beyond that automatic injection, not a
+re-read of everything at boot:
+1. **State recovery**: use the hook-injected `current_task.md` — report the active task; only
+   `Read` it directly if the brief flagged truncation or the file is missing.
 2. **Learnings load**: read `Artifacts/learnings/index.md` if it exists; surface entries from the last 7 days.
 3. **Drift detection**: verify `TODO.md`/`IMPLEMENTATION_PLAN.md` exist and are non-empty; run `git status --short` + check recent file modifications.
 4. **Validation**: confirm `TODO.md` ↔ `IMPLEMENTATION_PLAN.md` sync.
@@ -49,6 +53,40 @@ Ambiguous intent → apply `orchestration.md` Automatic Routing; still unclear �
 **Handoff capture**: before context compression, scan the session for corrections/backtracking/discoveries, propose candidate entries, append approved ones (categorized), and prune a category over 50 entries (archive oldest 10 to `Artifacts/History/`).
 
 **Passive triggers**: "remember this" / "don't do that again" / "always do it this way" (or similar intent) → route to `/learn`.
+
+## Persistence
+
+| File | Owner | Purpose |
+|:---|:---|:---|
+| `MEMORY_ANCHORS.md` | Strategist | Cold storage: constants/constraints, never archived |
+| `Temp/` | All (Concierge cleans) | Scratch: one-off scripts, uncited output. Gitignored, purged freely |
+| `Evidence/` | Executor promotes, Auditor maintains | Durable, cited verification artifacts. Never purged |
+| `Reports/<PHASE>-AUDIT_REPORT.md` | Auditor | Gate findings |
+| `.agent/current_task.md` | Concierge | Session focus |
+| `IMPLEMENTATION_PLAN.md` | Strategist | How & why |
+| `TODO.md` | Strategist (Coder/Auditor status) | Who & when |
+| `BACKLOG.md` | Strategist/Coder | Deferred work, findings, decisions-not-to-do. See BACKLOG below |
+| `ARCH.md` | Strategist | Long-term architecture |
+| `DECISION_LOG.md` | Council | Pivot tracking. Rotates past threshold, see below |
+| `HANDOFF_BRIEF.md` | Concierge | Session transition |
+| `learnings/` | Concierge | Knowledge registry, never archived |
+| `LAYOUT_SPEC.md` | Creative Director | Visual specs |
+| `Plans/Phase-N-Plan.md`, `Plans/Phase-N-TODO.md` | Strategist / Coder+Auditor | Phase design & tracking |
+| `Reports/Phase-N-Report.md` | Auditor | Phase completion summary |
+
+Plans/Reports move to `History/` once a phase completes; `learnings/` and `MEMORY_ANCHORS.md`
+never archive. Persistence intro (Artifacts/ location, Interface-First/ROI Escalation), Scratch
+Strategy and Evidence Retention HARD-GATEs: `rules/common/orchestration.md` §Persistence.
+
+## Anti-Patterns
+
+Eager loading (full skill before checking its Abstract) · context hoarding (skipping `/handoff`
+at high saturation, risking hallucinated state) · silent reset (ending a session without
+capturing Findings or updating `DECISION_LOG.md`).
+
+## Handoff Triggers
+
+Concierge triggers `/handoff` on: context >60% saturation, a phase marked `[x]`, or noise from multiple pivots/complex debugging.
 
 ## File Ownership
 

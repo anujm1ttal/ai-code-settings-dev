@@ -46,6 +46,12 @@ Protocol for validating that documentation is self-contained and ambiguity-free.
 4. Collect questions and ambiguities identified by the "fresh" agent.
 5. Report findings as gaps in `Artifacts/Reports/<PHASE>-AUDIT_REPORT.md`.
 
+## Parallel Execution
+
+- **`/audit --team`**: auditor spawns parallel reviewers (compliance, domain specialist, risk) →
+  aggregated into `Reports/<PHASE>-AUDIT_REPORT.md`. Default for full audits; fall back to a
+  single auditor only on token limits.
+
 ## Domain Scans
 
 All scan rules are defined in `coding-style.md`. Domain-specific additions:

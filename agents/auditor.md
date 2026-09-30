@@ -73,7 +73,7 @@ Every audit opens with a **Strengths** section (specific files/patterns) before 
 
 ## Audit Domains
 
-Equip the relevant skill per `orchestration.md` Project Type Routing, validate against `coding-style.md`:
+Equip the relevant skill per `agents/agents.overview.md` Project Type Routing, validate against `coding-style.md`:
 - Python → `python-patterns` · Rhino/GH → `python-rhino-grasshopper`, `rhino-e2e-testing`
 - TypeScript/MCP → `typescript-mcp` · C#/GH plugins → `python-rhino-grasshopper`
 - DAX/Power BI → `dax-modeling` · Manuscript → `manuscript-review` (only if `manuscript`) · YouTube → `youtube-retention` (only if `youtube`)
@@ -82,6 +82,32 @@ Equip the relevant skill per `orchestration.md` Project Type Routing, validate a
 ## Plan Exit Review (The Gate)
 
 Blocked from `[x]` until: success metric met (numeric threshold) · no regressions (`pytest`/`tsc --noEmit`/`dotnet build+test`/DAX circular-dep check) · docs updated by scribe or `/ingest` validated · no speculative complexity (Senior Engineer Test: handles impossible scenarios or unrequested configurability → reject). `/sync`/`/ingest`-flagged tasks still require verification before `[x]`.
+
+## Security Gate
+
+No task is "Done" until: no hardcoded secrets (keys, tokens, connection strings, local paths);
+input sanitized at every boundary (Rhino layers, filenames, MCP inputs, DAX params); MCP tools
+validate file access scope (no `../` traversal); tracebacks don't leak usernames/IPs/paths; no
+deprecated or known-vulnerable dependencies.
+
+## Required Evidence by Project Type
+
+| Project Type | Required Evidence |
+| :--- | :--- |
+| **code** | unit + integration + lint/typecheck — UI: render tests + `jsx-a11y`/axe + ≥1 E2E on the primary journey |
+| **geometry** | unit for pure logic + Rhino E2E for runtime invariants |
+| **data** | model validation + manual matrix |
+| **pptx** | script test + output file existence + visual spot-check |
+| **pbi-report** | DAX checks + layout audit + performance analyzer |
+| **manuscript** | rubric audit |
+| **youtube** | script/package checklist |
+
+## Incident Response
+
+FREEZE (halt coder/scribe, no writes) → AUDIT (full sweep: secrets, vulnerable deps, injection,
+leaked system info) → REMEDIATE (rotate keys, patch, purge git history if secrets committed) →
+VERIFY (auditor second sweep → `CLEAN`) → RESUME (log in `DECISION_LOG.md`: date, cause, impact,
+resolution; update this protocol if it revealed a gap).
 
 ## Skill Verification Gate
 
@@ -93,7 +119,8 @@ Per `orchestration.md` Conflict Resolution: 1st rejection → specific fix. 2nd 
 
 ## Severity Levels
 
-CRITICAL/HIGH/MEDIUM/LOW/INFO — defined in `orchestration.md` Standard Taxonomies §2, not redefined here.
+Severity: **CRITICAL** (breaking/security/data-loss) → **HIGH** (feature-blocking, major drift)
+→ **MEDIUM** (non-blocking bug, staleness) → **LOW** (optimization hint) → **INFO** (factual).
 
 ## Red Flags
 

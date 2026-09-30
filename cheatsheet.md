@@ -131,11 +131,12 @@ optional_plugins/[category]/      ← Plugin categories (youtube, pptx, etc.)
 rules/common/orchestration.md     ← Task lifecycle, git flow, conflict resolution
 rules/common/coding-style.md      ← Language standards, immutability, density
 rules/common/standards.md         ← Interaction protocol, communication
-rules/common/security.md          ← Secrets, incident response, audits
-rules/common/testing-strategy.md  ← Test lanes (Lane A/B), evidence rules
+rules/common/security.md          ← Secrets, safety guards, MCP/tool security
+rules/common/testing-strategy.md  ← Evidence rules (always-loaded)
 rules/common/architecture.md      ← Deep modules, design principles
-rules/common/TOKEN-ECONOMICS.md   ← Context slicing, bootstrap costs
+rules/lang/*.md                   ← Path-scoped: per-language rules, test lanes/TDD
 ```
+Context slicing thresholds → `commands/blueprint.md`; bootstrap token budget → `scripts/README.md`.
 
 ### Project State & Artifacts
 ```
@@ -370,7 +371,7 @@ Never use global pip or system Python.
 
 ### "Test Y failed"
 1. Read the assertion message carefully
-2. Check rules/common/testing-strategy.md for lane selection
+2. Check rules/lang/testing.md for lane selection
 3. For Lane B: verify no Rhino dependencies
 4. For Lane A: verify Rhino.Inside/full Rhino available
 5. Run with `-vv` flag for detailed output: `pytest -vv tests/test_name.py`
@@ -391,7 +392,8 @@ Never use global pip or system Python.
 | Skill writing guide | [/.claude/skills/skill-creator/](/.claude/skills/skill-creator/) |
 | Coding standards | [rules/common/coding-style.md](rules/common/coding-style.md) |
 | Orchestration & task flow | [rules/common/orchestration.md](rules/common/orchestration.md) |
-| Testing strategy & lanes | [rules/common/testing-strategy.md](rules/common/testing-strategy.md) |
+| Testing evidence rules | [rules/common/testing-strategy.md](rules/common/testing-strategy.md) |
+| Testing lanes & TDD | [rules/lang/testing.md](rules/lang/testing.md) |
 | Security protocols | [rules/common/security.md](rules/common/security.md) |
 | Plugin system walkthrough | [optional_plugins/README.md](optional_plugins/README.md) |
 | Deploy & rollback procedure | [DEPLOY.md](DEPLOY.md) |

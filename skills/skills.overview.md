@@ -20,6 +20,19 @@ This overview maps the available skills in the Agent OS. Load only the necessary
 
 > `skill-creator` is provided by the installed marketplace plugin (not part of this repo). See `cheatsheet.md`.
 
+## Skill-Level Model Overrides
+
+Skills override their agent's default model via `model:` frontmatter when reasoning complexity demands it.
+
+| Skill | Owned by | Override | Reason |
+|:---|:---|:---|:---|
+| `python-rhino-grasshopper` | coder | sonnet (maintain) | Geometric reasoning complexity |
+| `typescript-mcp` | coder | sonnet (maintain) | Schema + async complexity |
+| `systematic-debugging` | coder | sonnet (maintain) | Root-cause requires step-through reasoning |
+| `visual-composition` | creative-director | sonnet (upgrade) | Complex layout logic |
+| `manuscript-review` | scribe | sonnet (upgrade) | Narrative + structural analysis |
+| `doc-updater` | scribe | haiku (maintain) | Routine doc maintenance |
+
 ## Domain: Development
 | Skill | Purpose |
 |:---|:---|

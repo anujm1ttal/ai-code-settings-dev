@@ -36,6 +36,10 @@ The "Conflict Resolution Engine" — forces multiple perspectives on a single de
 | **The Maintainer** | "Your goal is code clarity and documentation. If this isn't easy to explain to a junior dev, it's not ready." |
 | **The Optimizer** | "Your goal is system efficiency. Look for redundant loops, heavy dependencies, or slow logic." |
 
+## Parallel Execution
+
+- **`/council`**: parallel debate between strategist/coder/auditor to resolve conflict.
+
 ## When to Use
 Highly complex refactors, security-sensitive code, unresolved agent conflicts, or when the user asks: "Is this the best way to do this?".
 
