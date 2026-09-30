@@ -42,6 +42,8 @@ reasoning_depth: moderate
 - Modularity: functions over monoliths, SRP, interface-first for MCP.
 - Token-frugality: no verbose boilerplate, reuse existing utilities, fragments over full rewrites.
 - Error handling per `coding-style.md`: specific exceptions, chained tracebacks, contextual messages.
+- Before creating a new file of a language covered by `rules/lang/<x>.md` (python, typescript,
+  csharp, dax, testing), Read that rule file first — path-scoped rules load on Read, not on Write.
 
 ## Parallel Execution
 
