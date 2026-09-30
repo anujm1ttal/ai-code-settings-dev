@@ -1,6 +1,6 @@
 """ALB-1 T1 (RED) — Plan Sec5 "Section to home map" encoded as a fixture table.
 
-Every row below traces to a line in `Artifacts/Plans/ALB-1-Plan.md` Sec5. Hard Rule 1
+Every row below traces to a line in the ALB-1 plan's Sec5 section map. Hard Rule 1
 requires moved text to be byte-identical except headings/pointer lines, so MOVE anchors
 are verbatim substrings copied from the CURRENT source file (not paraphrased) — a passing
 MOVE row proves the anchor now lives only in its home, not in the source it left.

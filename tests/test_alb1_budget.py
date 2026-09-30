@@ -1,11 +1,10 @@
 """ALB-1 T1 (RED) — byte-ceiling tests per Plan Sec3 (Evidence baseline) and Sec2 HR3.
 
-Mirrors `Artifacts/Temp/alb1_measure.py`'s logic (disk-byte basis, frontmatter/HTML-comment
+Mirrors the ALB-1 measurement script's logic (disk-byte basis, frontmatter/HTML-comment
 bytes counted as-is -- Plan Sec3: "HTML comments and frontmatter stay in place and are never
 credited [towards a token saving]... deleting them would move the disk metric without saving
 a token", i.e. don't game the ceiling by stripping comments; it does not mean strip them from
-the measurement). Self-contained here since `Artifacts/Temp/` is gitignored and this suite
-must run standalone.
+the measurement). Self-contained so this suite runs standalone on a clone.
 """
 
 from __future__ import annotations
