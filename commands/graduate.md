@@ -27,7 +27,7 @@ model: claude-haiku-4-5
 
    | Pattern Category | Destination File |
    |:---|:---|
-   | Python coding patterns | `<repo>/rules/common/coding-style.md` → Python section |
+   | Python coding patterns | `<repo>/rules/lang/python.md` → Language-Specific section |
    | Interaction / behavioral | `<repo>/rules/common/standards.md` |
    | Agent routing / lifecycle | `<repo>/rules/common/orchestration.md` |
    | Security | `<repo>/rules/common/security.md` |
@@ -68,10 +68,10 @@ Inbox entry:
   Schema models must not import from service modules. Use TYPE_CHECKING guards.
 
 Proposed:
-  → rules/common/coding-style.md § Python (3.12+) section
+  → rules/lang/python.md § Language-Specific (Python 3.12+) section
   Wording: "- **Circular Imports**: Schema/model modules must NOT import from
             tool-registration or service modules. Use TYPE_CHECKING guards."
 
 User: accept
-→ Appended to coding-style.md, removed from inbox.
+→ Appended to rules/lang/python.md, removed from inbox.
 ```

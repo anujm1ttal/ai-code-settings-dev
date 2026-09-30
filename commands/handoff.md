@@ -59,7 +59,7 @@ against that:
       → Proposed: OPEN — Task description
    ```
    User confirms which to add to `Artifacts/BACKLOG.md` as unscheduled deferred work (OPEN
-   marker per `rules/common/orchestration.md` §BACKLOG). Never auto-add. Mined output
+   marker per `commands/blueprint.md` §BACKLOG). Never auto-add. Mined output
    never lands directly in `Artifacts/TODO.md` — if the user decides a candidate should be
    scheduled into the active or next phase, it is written to `Artifacts/TODO.md` as a normal
    strategist-authored task row, not as raw mined output.
