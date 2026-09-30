@@ -181,7 +181,7 @@ learnings, snapshots TODO, briefs the next session.
 ## Emergency Protocols
 
 - Context window >60%: concierge triggers `/handoff`, all agents yield.
-- Security incident: FREEZE → AUDIT → REMEDIATE → RESUME (`security.md`).
+- Security incident: FREEZE → AUDIT → REMEDIATE → RESUME (`agents/auditor.md` §Incident Response).
 - State corruption: check `History/` → reconstruct from `current_task.md` + `DECISION_LOG.md` → `/sync`.
 
 ## Safeguards & Efficiency

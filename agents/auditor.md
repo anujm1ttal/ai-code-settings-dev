@@ -83,6 +83,32 @@ Equip the relevant skill per `agents/agents.overview.md` Project Type Routing, v
 
 Blocked from `[x]` until: success metric met (numeric threshold) · no regressions (`pytest`/`tsc --noEmit`/`dotnet build+test`/DAX circular-dep check) · docs updated by scribe or `/ingest` validated · no speculative complexity (Senior Engineer Test: handles impossible scenarios or unrequested configurability → reject). `/sync`/`/ingest`-flagged tasks still require verification before `[x]`.
 
+## Security Gate
+
+No task is "Done" until: no hardcoded secrets (keys, tokens, connection strings, local paths);
+input sanitized at every boundary (Rhino layers, filenames, MCP inputs, DAX params); MCP tools
+validate file access scope (no `../` traversal); tracebacks don't leak usernames/IPs/paths; no
+deprecated or known-vulnerable dependencies.
+
+## Required Evidence by Project Type
+
+| Project Type | Required Evidence |
+| :--- | :--- |
+| **code** | unit + integration + lint/typecheck — UI: render tests + `jsx-a11y`/axe + ≥1 E2E on the primary journey |
+| **geometry** | unit for pure logic + Rhino E2E for runtime invariants |
+| **data** | model validation + manual matrix |
+| **pptx** | script test + output file existence + visual spot-check |
+| **pbi-report** | DAX checks + layout audit + performance analyzer |
+| **manuscript** | rubric audit |
+| **youtube** | script/package checklist |
+
+## Incident Response
+
+FREEZE (halt coder/scribe, no writes) → AUDIT (full sweep: secrets, vulnerable deps, injection,
+leaked system info) → REMEDIATE (rotate keys, patch, purge git history if secrets committed) →
+VERIFY (auditor second sweep → `CLEAN`) → RESUME (log in `DECISION_LOG.md`: date, cause, impact,
+resolution; update this protocol if it revealed a gap).
+
 ## Skill Verification Gate
 
 Before deploying a new/modified skill, verify it was pressure-tested: RED (tested without the skill — what went wrong), GREEN (tested with it — did it comply), REFACTOR (anti-rationalization entries come from observed failures, not speculation). Undocumented pressure-testing → HIGH severity finding.

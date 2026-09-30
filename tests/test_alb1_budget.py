@@ -44,8 +44,8 @@ PER_FILE_CEILINGS = {
     RULES_DIR / "common" / "orchestration.md": 9_700,
     RULES_DIR / "common" / "testing-strategy.md": 2_500,
     RULES_DIR / "common" / "model-routing.md": 3_000,
-    RULES_DIR / "common" / "security.md": 1_600,
-    RULES_DIR / "common" / "coding-style.md": 4_800,
+    RULES_DIR / "common" / "security.md": 1_800,  # user-approved 2026-09-30 (was 1,600): HR1 verbatim restore
+    RULES_DIR / "common" / "coding-style.md": 4_900,  # user-approved 2026-09-30 (was 4,800)
 }
 
 
@@ -84,12 +84,12 @@ def test_token_economics_deleted_from_rules_common() -> None:
 
 def test_always_loaded_global_aggregate_ceiling() -> None:
     """Plan Sec3 binding metric: always-loaded global (CLAUDE-global.md + unconditional
-    rules/**/*.md) must be <=30,000 B."""
+    rules/**/*.md) must be <=30,200 B (user-approved 2026-09-30, was 30,000)."""
     files = _always_loaded_files()
     total = sum(f.stat().st_size for f in files)
     breakdown = ", ".join(f"{f.relative_to(REPO_ROOT)}={f.stat().st_size}" for f in files)
-    assert total <= 30_000, (
-        f"always-loaded global is {total} B, over the binding 30,000 B ceiling ({breakdown})"
+    assert total <= 30_200, (
+        f"always-loaded global is {total} B, over the binding 30,200 B ceiling ({breakdown})"
     )
 
 

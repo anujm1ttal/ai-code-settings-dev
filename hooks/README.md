@@ -164,6 +164,16 @@ edit tool, or any matcher regex change, would let a payload skip both the check 
 zero trace. Re-run the extraction-totality test and re-read this section before shipping any
 matcher widening.
 
+### HFO-2 Case Study (fail-closed safety guards)
+
+> **Case in point (HFO-2)**: `guard-paths.js` read only *path* fields (`file_path || path || ...`),
+> so a content-based rule silently no-oped for `Edit`/`MultiEdit`/`NotebookEdit` — a missing-field
+> gap, not a crash. Fixed by making extraction total across every tool shape and logging any
+> unrecognised shape (`payload-shape-unknown`) rather than silently passing it — the hook stays
+> fail-open (crash/unreadable stdin → exit 0), but nothing is gated on an optional field anymore.
+> This licenses no other fail-open guard — residual risk (an unrecognised shape passes once,
+> logged) was accepted knowingly; see `DECISION_LOG.md` for full grounds.
+
 ### Kill Condition (does the license gate actually fire?)
 
 ```bash
