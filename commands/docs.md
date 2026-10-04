@@ -21,7 +21,7 @@ Invokes the **scribe** agent. Scribe equips `doc-updater`.
 - **`/docs [filename]`**: Update specific file.
 
 ## Auto-Detect Sequence
-1. **Staleness Scan**: Doc timestamps vs. recent code changes. Flag stale ASCII diagrams.
+1. **Staleness Scan**: Doc timestamps vs. recent code changes. Flag stale diagrams.
 2. **Coverage Check**: Undocumented MCP tools, DAX measures, Python modules, Rhino scripts.
 3. **Gap Report**: Prioritized list.
 4. **Execute**: Auto-update highest priority, or confirm scope if list is large.

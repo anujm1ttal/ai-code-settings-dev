@@ -28,7 +28,7 @@ Invokes the **scribe** agent in Explain mode. Scribe equips `codebase-navigator`
 
 ## Output Standards (from `codebase-navigator`)
 
-- Module map: ASCII diagram with file names and one-line purpose per node.
+- Module map: diagram (format per `agents/scribe.md` §Diagram Format; HTML/SVG for interactive, ASCII in chat) with file names and one-line purpose per node.
 - Call chains: Step-by-step with `file:line` references and `①②③` annotations.
 - Code spotlight: Relevant snippet with inline comments — never raw paste.
 - Design decisions: Decision / Enables / Costs / Rejected alternatives.
