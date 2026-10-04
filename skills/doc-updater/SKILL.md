@@ -50,9 +50,9 @@ Required sections in order:
 Required sections in order:
 
 - **# Architecture: [Project Name]**
-- **## System Overview**: ASCII diagram of major components and their relationships.
+- **## System Overview**: Diagram of major components and their relationships (Mermaid, per `agents/scribe.md` §Diagram Format).
 - **## Component Map**: Table listing each module/service, its purpose, its primary file(s), and its owner agent.
-- **## Data Flow**: ASCII diagram showing how data moves through the system (input → processing → output).
+- **## Data Flow**: Diagram showing how data moves through the system (input → processing → output).
 - **## Key Decisions**: Summary table of architectural decisions with links to `Artifacts/DECISION_LOG.md` entries.
 - **## Constraints**: Technical limitations, platform requirements, performance boundaries.
 - **## Dependencies**: External systems, APIs, data sources, and their availability/reliability.
@@ -115,7 +115,7 @@ A document is **stale** when any of these conditions are true:
 | Success metric changed | Artifacts/IMPLEMENTATION_PLAN.md phase description |
 | MCP tool schema changed | API/tool documentation for that tool |
 | DAX measure modified | Measure catalog entry |
-| ASCII diagram's source code changed | The diagram itself |
+| Diagram's source code changed | The diagram itself |
 
 ### Staleness Severity
 
@@ -134,13 +134,13 @@ Run by the `scribe` during `/docs` (auto-detect mode):
 2. **Content Grep**: Search docs for references to renamed or deleted files, functions, or tools.
 3. **Schema Diff**: For MCP tools, compare documented `inputSchema` against actual Zod schema in code.
 4. **Measure Diff**: For DAX, compare documented formulas against actual `.dax` files.
-5. **Diagram Check**: For each ASCII diagram, check if the code it represents has been modified.
+5. **Diagram Check**: For each diagram, check if the code it represents has been modified.
 
 ## ✏️ Update Protocol
 
 ### When to Update Immediately (Same Session)
 - API/tool schema changes — documentation must match code before `auditor` approval.
-- ASCII diagrams adjacent to modified code.
+- Diagrams adjacent to modified code.
 - README Quick Start steps that are now incorrect.
 
 ### When to Update Next Session
@@ -165,6 +165,7 @@ Run by the `scribe` during `/docs` (auto-detect mode):
 - **Links**: Internal links to other project docs where relevant. No broken links.
 
 ### ASCII Diagrams
+Format per `agents/scribe.md` §Diagram Format (Mermaid in committed docs). These rules apply when ASCII is the chosen format.
 - Use box-drawing characters for clean diagrams:
   - `┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼` for boxes and lines.
   - `→ ← ↑ ↓` for directional flow.
@@ -185,7 +186,7 @@ Run by the `scribe` before submitting docs to the `auditor`:
 - [ ] No LLM filler or conversational padding?
 - [ ] All code examples are copy-pasteable and tested?
 - [ ] All file references point to files that exist?
-- [ ] All ASCII diagrams match the current code?
+- [ ] All diagrams match the current code?
 - [ ] Limitations section is present and honest?
 - [ ] Tables used for structured data instead of prose lists?
 - [ ] Headers create a scannable table of contents?
