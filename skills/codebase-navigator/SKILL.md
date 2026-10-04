@@ -18,7 +18,7 @@ Choose based on the user's question:
 
 | Mode | Trigger | Output |
 |:---|:---|:---|
-| **Overview** | "How does X work?" / "Give me a tour" | 10-second summary → ASCII map → key entry points |
+| **Overview** | "How does X work?" / "Give me a tour" | 10-second summary → map (format per `agents/scribe.md` §Diagram Format) → key entry points |
 | **Drill-down** | "Walk me through Y" / "Explain Z" | Step-by-step call chain with annotated code refs |
 | **Search** | "Where does X happen?" | File + line range with brief context |
 | **Decision** | "Why is it built this way?" | Design rationale, tradeoffs, alternatives considered |
