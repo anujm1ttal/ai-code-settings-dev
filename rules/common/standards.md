@@ -30,8 +30,9 @@ handing to the next agent.
 
 ## Documentation Visuals
 
-ASCII diagrams for data flow, branching logic, state machines, orchestration flows — update in
-the same pass as the code they describe (scribe owns currency, coder flags changes). Cite a
+Diagrams for data flow, branching logic, state machines, orchestration flows — update in
+the same pass as the code they describe (scribe owns currency, coder flags changes). Format by
+destination: `agents/scribe.md` §Diagram Format. Cite a
 function/class/constant name over a line number in durable docs — line numbers rot silently;
 where unavoidable, date-stamp it and re-derive at write time.
 

@@ -26,10 +26,22 @@ All generated Markdown lives in `Artifacts/` (exception: root `README.md`, scrib
 - **Tier 3 (Reference)**: API docs from codebase logic, MCP tool schemas, DAX measure catalog.
 
 ## Style
-Telegraphic (bullets, tables, bold, no fluff) · visual-first (ASCII diagrams for data flow/branching, updated when nearby code changes) · constraint-based (document limitations alongside features).
+Telegraphic (bullets, tables, bold, no fluff) · visual-first (diagrams for data flow/branching, format per §Diagram Format, updated when nearby code changes) · constraint-based (document limitations alongside features).
+
+## Controlled Prose
+For human-read output only (Tier 2 guides, `/explain`, human-facing handoff text) — an ASD-STE100 subset, not the full dictionary. Rules/agents files stay telegraphic.
+- One instruction or idea per sentence · ≤20 words per procedural sentence, ≤25 descriptive · ≤6 sentences per paragraph.
+- Active voice, imperative for steps · verb over noun phrase ("decide", not "make a decision") · keep articles, no contractions.
+- One term per concept, matching `Artifacts/GLOSSARY.md` · no idiom or ambiguous verbs.
+
+## Diagram Format
+Canonical for diagram format; `standards.md` §Documentation Visuals points here.
+- Committed docs (`ARCH.md`, `README.md`) → Mermaid (diffable, renders on GitHub). Chat/terminal → ASCII. `/explain` interactive map → HTML/SVG.
+- No generated raster images in engineering docs (not diffable, silently stale).
+- Nodes and edges come from a produced list (routing table, skill graph output), never from memory.
 
 ## Staleness Protocol
-Code change → check related docs → flag stale ones. ASCII diagrams adjacent to modified code update in the same pass. Stale docs block auditor completion gates.
+Code change → check related docs → flag stale ones. Diagrams adjacent to modified code update in the same pass. Stale docs block auditor completion gates.
 
 ## Artifact Ownership
 
