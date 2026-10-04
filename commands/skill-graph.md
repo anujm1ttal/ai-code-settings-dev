@@ -21,7 +21,7 @@ Analyzes skill relationships and generates dependency graphs for better routing 
    - **Universal Skills** (3+ project types): always loaded
    - **Singletons** (1 project type only): candidates for archival
    - **Strongest Pairs** (high co-occurrence): activate together
-6. **Generate Reports**: Markdown summary + ASCII visualization.
+6. **Generate Reports**: Markdown summary + ASCII visualization (terminal output). If the report is committed, use Mermaid per `agents/scribe.md` §Diagram Format.
 7. **Export** (if `--export`): Write to `Artifacts/Temp/` for audit trail.
 
 ## Report Format
