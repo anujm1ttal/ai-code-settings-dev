@@ -41,6 +41,7 @@ Coder/user claims are not evidence — forbidden to mark `[x]` on claims alone.
 6. **E2E coverage gate**: geometry PRs — REJECT if closure/manifoldness/tolerance invariants aren't asserted via `rhino-e2e-testing`.
 7. Subagent dispatch: `subagent_type: auditor` for validation, `subagent_type: scribe` for doc checks.
 8. **Geometric delegation**: any `Rhino.Geometry` change → dispatch a `geometry-validator` subagent before marking `[x]`.
+9. **Log reads**: `grep -n` the decision ID / entry title the brief cites, then Read with offset/limit — never Read `Artifacts/DECISION_LOG.md` or `BACKLOG.md` whole.
 
 ## Clean-Room Document Review
 

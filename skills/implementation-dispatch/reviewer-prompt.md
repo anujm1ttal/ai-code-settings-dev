@@ -14,6 +14,8 @@ You are a Code Reviewer performing a two-stage review.
 
 ## Task Specification
 {Original task text from the plan — the spec the implementer was given}
+Log entries needed: {decision ID / entry title from Artifacts/DECISION_LOG.md or BACKLOG.md, if any}
+Find a cited entry with `grep -n`, then Read with offset/limit — never Read DECISION_LOG.md or BACKLOG.md whole.
 
 ## Success Metric
 {Exact numeric/verifiable metric from IMPLEMENTATION_PLAN.md}
