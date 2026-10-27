@@ -1,0 +1,14 @@
+{
+  "allowedModels": [
+    "pilot-gpt/sol",
+    "pilot-gpt/luna",
+    "pilot-claude/opus",
+    "pilot-claude/sonnet",
+    "pilot-claude/haiku"
+  ],
+  "roles": {
+    "strategist": { "model": "pilot-gpt/sol", "thinking": "high", "tools": ["read", "grep", "find", "ls"] },
+    "coder": { "model": "pilot-gpt/sol", "thinking": "medium", "tools": ["read", "grep", "find", "ls", "bash", "edit", "write"] },
+    "auditor": { "model": "pilot-claude/sonnet", "thinking": "high", "tools": ["read", "grep", "find", "ls"] }
+  }
+}
