@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {"matcher": "", "hooks": [{"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' session-boot", "timeout": 5}]}
+    ],
+    "PreToolUse": [
+      {"matcher": "Edit|MultiEdit|Write|NotebookEdit", "hooks": [{"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' guard-paths", "timeout": 3}]},
+      {"matcher": "Bash|PowerShell", "hooks": [{"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' guard-commands", "timeout": 3}]}
+    ],
+    "PostToolUse": [
+      {"matcher": "Edit|MultiEdit|Write", "hooks": [{"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' auto-lint", "timeout": 20}]},
+      {"matcher": "*", "hooks": [{"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' audit-trail", "timeout": 5}]}
+    ],
+    "SubagentStart": [
+      {"matcher": "", "hooks": [{"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' task-diff-guard", "timeout": 5}]}
+    ],
+    "SubagentStop": [
+      {"matcher": "", "hooks": [{"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' task-diff-guard", "timeout": 10}]}
+    ],
+    "Stop": [
+      {"hooks": [
+        {"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' nudge-handoff", "timeout": 5},
+        {"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' evidence-gate", "timeout": 5},
+        {"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' guard-shared-state", "timeout": 5},
+        {"type": "command", "command": "node '__CODEX_HOOKS_DIR__/codex-adapter.js' task-diff-guard", "timeout": 10}
+      ]}
+    ]
+  }
+}

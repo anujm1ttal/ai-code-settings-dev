@@ -2,6 +2,8 @@
 .env
 .env.local
 .env.*.local
+/.claude/
+/.codex/
 
 # Third-party licensed content — NOT ours to redistribute.
 # The ms-office skills are Anthropic material; their bundled LICENSE.txt bars

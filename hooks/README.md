@@ -2,6 +2,43 @@
 
 Claude Code hooks that enforce security guardrails, auto-lint, inject session state, and log an audit trail.
 
+## Codex CLI wiring
+
+Codex deploy copies these scripts to `~/.codex/hooks/` without changing
+`~/.codex/hooks.json`. Codex hook commands must invoke
+`node '<absolute path to ~/.codex/hooks/codex-adapter.js>' <hook-base-name>`;
+direct invocation of
+the Claude scripts misses Codex edit payloads, subagent events, and transcript
+shapes. The adapter is Codex-specific. Claude Code continues to invoke the
+original scripts from `~/.claude/hooks/` through `settings.json`.
+
+Use [`codex-settings-template.json`](codex-settings-template.json) for the
+Codex event matchers. Replace its `__CODEX_HOOKS_DIR__` placeholder with the
+absolute deployed hooks directory before merging its `hooks` block into your
+existing `~/.codex/hooks.json`. On Windows, render and inspect it from the repo:
+
+```powershell
+$hooksDir = (Join-Path $HOME '.codex/hooks').Replace('\', '/')
+$template = Get-Content hooks/codex-settings-template.json -Raw
+$rendered = $template.Replace('__CODEX_HOOKS_DIR__', $hooksDir)
+$rendered | ConvertFrom-Json | Out-Null
+$rendered
+```
+
+Do not copy the template with its placeholder still present or replace an
+existing `hooks.json` without merging its other entries.
+
+For Codex, `task-diff-guard` uses `SubagentStart`, `SubagentStop`, and `Stop`.
+The Claude `PreToolUse` and `PostToolUse` `Task|Agent` entries must not be
+copied into Codex wiring. The other eight scripts keep their corresponding
+event types through the adapter. At Codex `Stop`, findings from
+`evidence-gate`, `guard-shared-state`, and `task-diff-guard` return
+`decision: "block"` with a reason, causing one continuation turn. They stay
+silent when `stop_hook_active` is true to prevent a loop. `nudge-handoff`
+returns `systemMessage`, a UI warning without a continuation. Confirm the
+installed commands and trust status with `/hooks` after restarting Codex. The
+deploy script does not perform that live check.
+
 ## Installation
 
 ### 1. Deploy the hook scripts

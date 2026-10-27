@@ -57,6 +57,32 @@ def test_guard_paths_allows_normal_source_file():
     assert result.stdout.strip() == ""
 
 
+def test_guard_paths_denies_codex_patch_with_protected_second_file():
+    patch = (
+        "*** Begin Patch\n"
+        "*** Update File: scripts/model_router.py\n"
+        "@@\n"
+        "+# harmless\n"
+        "*** Add File: secrets/.env\n"
+        "+TOKEN=placeholder\n"
+        "*** End Patch"
+    )
+    payload = json.dumps({"tool_name": "apply_patch", "tool_input": {"command": patch}})
+    result = run_hook("guard-paths.js", payload)
+    assert result.returncode == 0
+    hso = json.loads(result.stdout)["hookSpecificOutput"]
+    assert hso["permissionDecision"] == "deny"
+    assert "secrets/.env" in hso["permissionDecisionReason"]
+
+
+def test_guard_paths_allows_codex_patch_to_normal_source():
+    patch = "*** Begin Patch\n*** Update File: scripts/model_router.py\n@@\n+# harmless\n*** End Patch"
+    payload = json.dumps({"tool_name": "apply_patch", "tool_input": {"command": patch}})
+    result = run_hook("guard-paths.js", payload)
+    assert result.returncode == 0
+    assert result.stdout.strip() == ""
+
+
 def test_guard_commands_denies_rm_rf_root():
     payload = json.dumps({"tool_input": {"command": "rm -rf /"}})
     result = run_hook("guard-commands.js", payload)

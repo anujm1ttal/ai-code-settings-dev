@@ -131,7 +131,8 @@ const {
   extractTaskNotificationToolUseIds,
 } = require('./lib/evidence');
 
-const SNAPSHOT_SUBDIR = path.join('.agent', 'pre-task-snapshot');
+const SNAPSHOT_SUBDIR = process.env.CODEX_TASK_DIFF_SNAPSHOT_SUBDIR ||
+  path.join('.agent', 'pre-task-snapshot');
 const MAX_FILE_BYTES = 256 * 1024;   // skip snapshotting anything larger
 const MAX_SNAPSHOT_FILES = 200;      // hard ceiling on files copied per dispatch
 const MAX_DIFF_LINES = 60;           // total, across every changed file, per Stop

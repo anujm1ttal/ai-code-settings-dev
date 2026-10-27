@@ -123,6 +123,32 @@ function pathEndsWithSegments(haystack, needle) {
   return true;
 }
 
+// Codex reports file edits as one apply_patch command, which may touch several
+// paths. Check every section, including rename destinations, before allowing it.
+function patchTargets(command) {
+  if (typeof command !== 'string') return [];
+  const targets = [];
+  let current = null;
+  for (const line of command.split(/\r?\n/)) {
+    const file = /^\*\*\* (?:Add|Update|Delete) File: (.+)$/.exec(line);
+    if (file) {
+      current = { path: file[1].trim(), payload: '' };
+      targets.push(current);
+      continue;
+    }
+    const moved = /^\*\*\* Move to: (.+)$/.exec(line);
+    if (moved) {
+      current = { path: moved[1].trim(), payload: '' };
+      targets.push(current);
+      continue;
+    }
+    if (current && line.startsWith('+') && !line.startsWith('+++')) {
+      current.payload += line.slice(1) + '\n';
+    }
+  }
+  return targets;
+}
+
 function isBlocked(filePath, payload) {
   if (!filePath) return null;
 
@@ -307,15 +333,21 @@ function main() {
       payload = edits.map((e) => (e && typeof e.new_string === 'string') ? e.new_string : '').join('\n');
     } else if (toolName === 'NotebookEdit') {
       payload = toolInput.new_source || '';
+    } else if (toolName === 'apply_patch') {
+      // The section parser below supplies path and payload for each file.
     } else if (toolName) {
       payloadShapeUnknown = true;
     }
 
-    const reason = isBlocked(filePath, payload);
-
-    if (reason) {
-      deny(filePath, reason, { toolName: data.tool_name, cwd: data.cwd });
-      return;
+    const targets = toolName === 'apply_patch'
+      ? patchTargets(toolInput.command)
+      : [{ path: filePath, payload }];
+    for (const target of targets) {
+      const reason = isBlocked(target.path, target.payload);
+      if (reason) {
+        deny(target.path, reason, { toolName: data.tool_name, cwd: data.cwd });
+        return;
+      }
     }
 
     if (payloadShapeUnknown) {

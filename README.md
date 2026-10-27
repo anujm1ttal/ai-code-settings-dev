@@ -32,6 +32,53 @@ the standard; hooks enforce the subset that can be enforced.
 
 ## Install
 
+### Codex CLI alongside Claude Code
+
+The Codex CLI can reuse the guidance in this repository without changing the
+Claude Code installation. Install Codex using the [official CLI instructions](https://learn.chatgpt.com/docs/codex/cli),
+then deploy this repo's Codex guidance from PowerShell:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-codex.ps1
+```
+
+This installs `Codex-global.md` as `~/.codex/AGENTS.md`, copies the shared
+rules and role/command reference files under `~/.codex/`, and copies core skills
+and all 23 command workflows as `$source-command-<name>` skills to
+`~/.agents/skills/`. Type `$source-command-audit` for the audit workflow or
+`$source-command-sync` for sync. The bare Claude names (`/audit`, `/sync`) are
+not registered in Codex. The tested Codex CLI 0.164.0 also rejected legacy
+`/prompts:` aliases.
+It generates eight Codex agent TOML files in
+`~/.codex/agents/` with `gpt-6-sol` and each role's reasoning effort. The
+Claude agent Markdown keeps its Claude model IDs for Claude Code. The script
+also copies hook scripts to `~/.codex/hooks/`. Existing `~/.codex/config.toml`
+and `hooks.json` are preserved. Replaced guidance files, including agent TOML,
+are backed up under `~/.codex/backups/ai-code-settings/`. Restart Codex or open
+a new chat to load the new skills and instructions.
+
+For a Microsoft Foundry setup, start Codex with `-c model_provider=foundry` as
+usual. The deploy script does not change credentials, the provider, or the
+default model in `config.toml`.
+
+In a local Codex CLI session, run `/import` to bring over supported Claude Code
+configuration and recent chats. Review imported hooks, subagents, and commands:
+Claude tool matchers and slash commands are not guaranteed to work unchanged
+in Codex. Review changed hooks with `/hooks` before relying on them. The CLI
+import currently supports up to 50 chats from the last 30 days.
+
+Optional plugins remain separate. The local `ai-code-settings` marketplace can
+be registered in Codex once, then a trusted repository can enable only the
+plugins it needs in its own `.codex/config.toml`, for example:
+
+```toml
+[plugins."geometry@ai-code-settings"]
+enabled = true
+```
+
+The original Claude Code installation remains available through the deployment
+steps below.
+
 **Requirements** — [Claude Code](https://claude.com/claude-code), `bash` (Git Bash on
 Windows), Node.js (for hooks), Python 3.12+ (only to run the test suite).
 

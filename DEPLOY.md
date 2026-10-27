@@ -2,6 +2,24 @@
 
 Deploy the AI OS from development (this repo) to production (~/.claude/).
 
+## Codex CLI deployment
+
+For a parallel Codex CLI setup on Windows, run
+`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/deploy-codex.ps1`.
+This copies `Codex-global.md`, shared rules, role and command references, core
+skills, 23 command workflow skills, and hook scripts into Codex's user locations.
+For example, use `$source-command-audit`; bare `/audit` is not a Codex command.
+The tested Codex CLI 0.164.0 rejected legacy `/prompts:` aliases.
+It generates eight `~/.codex/agents/*.toml` definitions with `gpt-6-sol` and
+per-role reasoning effort. The Claude agent Markdown and its model IDs stay
+unchanged. Replaced Codex guidance and agent TOML are backed up. The script
+leaves `config.toml` and hook wiring untouched; Foundry users still start Codex
+with `-c model_provider=foundry`. Review changed hooks with `/hooks` before
+relying on them.
+Restart Codex or open a new chat afterward so the skills load. Run `/import`
+in a local Codex CLI session to select recent Claude Code chats and other
+supported settings. Review imported hooks and subagents before relying on them.
+
 ---
 
 ## Pre-Deployment Validation
