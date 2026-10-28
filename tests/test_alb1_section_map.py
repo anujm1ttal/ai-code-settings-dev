@@ -163,7 +163,7 @@ CASES: list[Case] = [
         "CLAUDE-global Hooks table -> DROP-DUP hooks/README.md Hook Reference (own text)",
         lambda: _dropdup(
             HOOKS_README,
-            "Injects `current_task.md` whole (capped 2,000 B)",
+            "Injects `current_task.md` whole when space permits (otherwise visibly trimmed; per-file cap 2,000 B)",
         ),
     ),
     Case(

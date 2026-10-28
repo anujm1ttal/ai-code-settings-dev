@@ -1,0 +1,6 @@
+---
+description: Investigate an assigned failure with the isolated Pi coder; propose, do not patch
+argument-hint: "<task-id> <symptom> [repro-command]"
+---
+
+Triage `$ARGUMENTS`. First verify a bug report or failed check exists and the coder is assigned. Dispatch `pi_role_agent` with `role: "coder"` for investigation only: load `/skill:systematic-debugging`, reproduce the symptom with the exact failing test or log, isolate the cause, and return an RCA plus the smallest proposed change. The child may add a minimal failing test under `tests/` if needed but must make **no source fix** during triage. Inspect the actual `pi_role_agent` tool result: require `details.role` to be `coder` and no error before claiming an isolated coder investigation. A successful tool result **is** evidence the extension was present; do not contradict it by saying the role extension was unavailable. Cite observed evidence; use `/skill:verification-gate` to avoid calling a hypothesis a fix. Propose any new task to the plan owner; do not add or mark TODO tasks without that authority. A high-severity fix must receive a separate `/audit` after implementation. If the role extension or private policy is missing, stop rather than claim an isolated coder run. Do not deploy, push, or mark the bug complete.

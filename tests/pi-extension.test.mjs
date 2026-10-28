@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import os from 'node:os';
 import path from 'node:path';
@@ -13,12 +13,19 @@ const available = process.platform === 'win32'
   : spawnSync('pi', ['--version'], { encoding: 'utf8', timeout: 5000 }).status === 0;
 const privatePolicyFixture = path.join(repo, 'tests', 'fixtures', 'pi-role-policy.json');
 
+test('source-only parent launch documents explicit guard loading without a global install', () => {
+  const readme = readFileSync(path.join(repo, 'pi/README.md'), 'utf8');
+  assert.match(readme, /pi -e \.\/pi\/extensions\/guard\.ts -e \.\/pi\/extensions\/session-observability\.ts -e \.\/pi\/extensions\/role-agent\.ts/);
+});
+
 test('Pi loads the pilot extension and exposes its role-policy command without a model call',
   { skip: !available }, () => {
     const command = process.platform === 'win32' ? process.execPath : 'pi';
     const prefix = process.platform === 'win32' ? [launcher] : [];
     const result = spawnSync(command,
-      [...prefix, '--offline', '--no-session', '--mode', 'rpc', '-e', './pi/extensions/role-agent.ts'],
+      [...prefix, '--offline', '--no-session', '--mode', 'rpc', '--no-extensions',
+        '-e', './pi/extensions/guard.ts', '-e', './pi/extensions/session-observability.ts',
+        '-e', './pi/extensions/role-agent.ts'],
       { cwd: repo, input: '{"type":"get_commands","id":"probe"}\n',
         env: { ...process.env, PI_ROLE_POLICY_PATH: privatePolicyFixture },
         encoding: 'utf8', timeout: 15000 });

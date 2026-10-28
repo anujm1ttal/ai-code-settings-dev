@@ -31,6 +31,7 @@ def run_hook(payload: dict, cwd: Path) -> subprocess.CompletedProcess:
         input=json.dumps(payload),
         capture_output=True,
         text=True,
+        encoding="utf-8",  # Node emits UTF-8; Windows default cp1252 corrupts byte accounting.
         cwd=cwd,
         timeout=10,
     )
@@ -86,6 +87,27 @@ def test_brief_within_byte_budget_on_real_repo_content(real_content_workspace: P
     result = run_hook({"cwd": str(real_content_workspace), "source": "startup"}, cwd=real_content_workspace)
     context = _context(result)
     assert len(context.encode("utf-8")) <= MAX_BRIEF_BYTES
+
+
+def test_total_budget_with_long_root_and_multibyte_state(workspace: Path):
+    """Aggregate budget must hold even when both bounded sections are full."""
+    root = workspace / ("long-project-name-" * 5)
+    state = root / "Artifacts"
+    (state / ".agent").mkdir(parents=True)
+    (state / ".agent/current_task.md").write_text(
+        "## Objective\nRepair the release audit\n" + "é" * 900 + "\n## Blockers\nBlocked by audit\n",
+        encoding="utf-8",
+    )
+    (state / "HANDOFF_BRIEF.md").write_text(
+        "## Blockers\n" + "é" * 250 + "\n## Next\nLater\n", encoding="utf-8"
+    )
+    (state / "TODO.md").write_text("- [ ] audit\n", encoding="utf-8")
+    context = _context(run_hook({"cwd": str(root)}, cwd=root))
+    assert len(context.encode("utf-8")) <= MAX_BRIEF_BYTES
+    assert "## Objective\nRepair the release audit" in context
+    assert "Artifacts/TODO.md (1 lines)" in context
+    assert "## Blockers" in context
+    assert "Read Artifacts/.agent/current_task.md for the rest" in context
 
 
 # ---------------------------------------------------------------------------

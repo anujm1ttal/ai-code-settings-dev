@@ -11,8 +11,9 @@
  * with exit 0. A bare top-level additionalContext is dropped by the harness.
  *
  * ALB-1 T8 brief trim (was 9,165 B, target <=2,750 B): current_task.md is the
- * only file injected whole (capped at MAX_CURRENT_TASK_BYTES with a visible
- * truncation marker naming the file) — every other state file gets ONE
+ * only file eligible for full injection (capped at MAX_CURRENT_TASK_BYTES,
+ * then shortened if the overall brief exceeds MAX_BRIEF_BYTES, with a visible
+ * Read marker) — every other state file gets ONE
  * pointer line (path + line count), no content, since the model can Read any
  * of them on demand. Exception (user decision Q5): HANDOFF_BRIEF.md's
  * `## Blockers` section is short and the most actionable part of a handoff,
@@ -24,6 +25,7 @@
 const fs = require('fs');
 const path = require('path');
 
+const MAX_BRIEF_BYTES = 2750;
 const MAX_CURRENT_TASK_BYTES = 2000;
 const MAX_BLOCKERS_BYTES = 400;
 
@@ -109,10 +111,11 @@ function buildSessionBrief(cwd) {
   const artifactsDir = path.join(root, 'Artifacts');
   const sections = [];
 
-  // Current task — the only file injected whole (it is short by design;
-  // capped defensively in case that design is ever violated — see T9).
+  // Current task — eligible for full injection when the overall budget allows;
+  // capped defensively in case the per-file design is violated — see T9.
   const currentTaskPath = path.join(artifactsDir, '.agent', 'current_task.md');
   const currentTask = readWholeSafe(currentTaskPath);
+  const currentTaskIndex = sections.length;
   if (currentTask && currentTask.trim().length > 0) {
     sections.push(
       `## Current Task\n${truncateToBytes(currentTask, MAX_CURRENT_TASK_BYTES, 'Artifacts/.agent/current_task.md')}`
@@ -145,8 +148,10 @@ function buildSessionBrief(cwd) {
   // User decision Q5: HANDOFF_BRIEF.md's Blockers section stays inline — it
   // is short and the most actionable part of a handoff — bounded so it
   // cannot alone blow the byte budget.
+  let blockers = null;
+  const blockersIndex = sections.length;
   if (handoffContent !== null) {
-    const blockers = extractSection(handoffContent, '## Blockers');
+    blockers = extractSection(handoffContent, '## Blockers');
     if (blockers) {
       sections.push(`## Blockers\n${truncateToBytes(blockers, MAX_BLOCKERS_BYTES, 'Artifacts/HANDOFF_BRIEF.md')}`);
     }
@@ -156,7 +161,7 @@ function buildSessionBrief(cwd) {
     return null; // No state files found, nothing to inject (missing-state alert: silence, never fabricated content)
   }
 
-  return [
+  const render = () => [
     '# Claude Code Session Brief (Auto-Injected)',
     `Project root: ${root}`,
     '',
@@ -165,6 +170,40 @@ function buildSessionBrief(cwd) {
     '---',
     'Verification Discipline: IDENTIFY -> RUN -> READ -> VERIFY -> CLAIM. See `CLAUDE.md`.',
   ].join('\n');
+
+  // Individual section caps do not bound the aggregate. Keep the pointers and
+  // handoff blockers ahead of task detail; give each trimmed section a Read marker.
+  function fitSection(index, content, maxBytes, label, heading) {
+    let low = 0;
+    let high = maxBytes;
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = `${heading}\n${truncateToBytes(content, mid, label)}`;
+      sections[index] = candidate;
+      if (Buffer.byteLength(render(), 'utf8') <= MAX_BRIEF_BYTES) low = mid + 1;
+      else high = mid - 1;
+    }
+    sections[index] = `${heading}\n${truncateToBytes(content, Math.max(0, high), label)}`;
+  }
+  if (Buffer.byteLength(render(), 'utf8') > MAX_BRIEF_BYTES && currentTask && currentTask.trim()) {
+    fitSection(currentTaskIndex, currentTask, MAX_CURRENT_TASK_BYTES,
+      'Artifacts/.agent/current_task.md', '## Current Task');
+  }
+  if (Buffer.byteLength(render(), 'utf8') > MAX_BRIEF_BYTES && blockers) {
+    fitSection(blockersIndex, blockers, MAX_BLOCKERS_BYTES,
+      'Artifacts/HANDOFF_BRIEF.md', '## Blockers');
+  }
+  // Extremely long root paths or pointer labels can exceed the budget even
+  // with no state body. Preserve a visible truncation notice in that case.
+  const brief = render();
+  if (Buffer.byteLength(brief, 'utf8') > MAX_BRIEF_BYTES) {
+    const marker = '\n... [Read the project state files for the rest]';
+    const bytes = Buffer.from(brief, 'utf8');
+    let cut = MAX_BRIEF_BYTES - Buffer.byteLength(marker, 'utf8');
+    while (cut > 0 && (bytes[cut] & 0xc0) === 0x80) cut--;
+    return `${bytes.subarray(0, cut).toString('utf8')}${marker}`;
+  }
+  return brief;
 }
 
 function main() {

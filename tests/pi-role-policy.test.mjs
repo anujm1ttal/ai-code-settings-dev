@@ -59,6 +59,20 @@ test('refuses a private policy that gives the auditor shell or write tools', () 
   }
 });
 
+test('shell/write-capable children load only the vetted guard explicitly', () => {
+  const policy = loadRolePolicy(policyFile);
+  for (const name of ['coder', 'strategist', 'auditor']) {
+    const args = buildAgentArgs(policy, name, '/tmp/role.md', 'Review');
+    assert.ok(args.includes('--no-extensions'));
+    const extensions = args.flatMap((arg, index) => arg === '--extension' ? [args[index + 1]] : []);
+    assert.equal(extensions.length, policy.roles[name].tools.some(t => ['bash', 'powershell', 'edit', 'write'].includes(t)) ? 1 : 0);
+    for (const extension of extensions) {
+      assert.ok(path.isAbsolute(extension));
+      assert.equal(extension, path.join(repo, 'pi', 'extensions', 'guard.ts'));
+    }
+  }
+});
+
 test('unlisted model or role rejects before a child can start', () => {
   const policy = loadRolePolicy(policyFile);
   assert.throws(() => buildAgentArgs(policy, 'concierge', '/tmp/role.md', 'x'), /Unknown role/);

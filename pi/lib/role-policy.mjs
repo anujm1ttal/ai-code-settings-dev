@@ -1,7 +1,11 @@
 import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
 const TOOL_NAMES = new Set(['read', 'grep', 'find', 'ls', 'bash', 'edit', 'write', 'powershell']);
+const WRITE_OR_SHELL = new Set(['bash', 'powershell', 'edit', 'write']);
+const GUARD_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../extensions/guard.ts');
 
 export function loadRolePolicy(file) {
   const policy = JSON.parse(readFileSync(file, 'utf8'));
@@ -35,6 +39,7 @@ export function buildAgentArgs(policy, roleName, promptPath, task) {
   if (!task || typeof task !== 'string') throw new Error('A nonempty task is required');
   return [
     '--mode', 'json', '--print', '--no-session', '--no-extensions',
+    ...(role.tools.some((tool) => WRITE_OR_SHELL.has(tool)) ? ['--extension', GUARD_PATH] : []),
     '--model', role.model, '--thinking', role.thinking,
     '--tools', role.tools.join(','), '--exclude-tools', 'mcp__*',
     '--append-system-prompt', promptPath, `Task: ${task}`,

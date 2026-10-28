@@ -32,8 +32,11 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     let event;
     try { event = JSON.parse(line); }
     catch { streamError = new Error('Malformed Pi JSON event'); return; }
+    if (event.type === 'extension_error') {
+      observedViolation = `Pi guard extension error: ${event.error || 'unknown error'}`;
+    }
     if (roleName === 'auditor' && event.type === 'tool_execution_start' &&
-        ['edit', 'write', 'powershell'].includes(event.toolName)) {
+        ['bash', 'edit', 'write', 'powershell'].includes(event.toolName)) {
       observedViolation = `Auditor attempted ${event.toolName} tool`;
     }
     if (event.type !== 'message_end' || event.message?.role !== 'assistant') return;

@@ -102,6 +102,20 @@ test('rejects auditor write-tool execution and subagent error responses', async 
     { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /Auditor attempted/);
 });
 
+test('fails a shell-capable role if Pi reports its explicit guard failed to load', async () => {
+  const fake = fakeSpawn([{ type: 'extension_error', extensionPath: 'C:/source/pi/extensions/guard.ts', error: 'failed to import' },
+    assistant('pilot-gpt', 'sol', 'medium', 'Work done')]);
+  await assert.rejects(runRole(policy, 'coder', 'Review', '.', '/tmp/role.md',
+    { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /guard.*failed to import/i);
+});
+
+test('rejects any observed auditor bash execution even if policy tools were bypassed', async () => {
+  const fake = fakeSpawn([{ type: 'tool_execution_start', toolName: 'bash', args: { command: 'echo should-not-run' } },
+    assistant('pilot-claude', 'sonnet', 'high', 'Done')]);
+  await assert.rejects(runRole(policy, 'auditor', 'Review', '.', '/tmp/role.md',
+    { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /Auditor attempted bash/);
+});
+
 test('returns a bounded timeout error when a child ignores termination', async () => {
   const signals = [];
   const spawnImpl = () => {

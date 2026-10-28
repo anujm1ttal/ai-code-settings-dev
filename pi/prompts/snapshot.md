@@ -1,0 +1,6 @@
+---
+description: Produce a factual, scoped codebase snapshot through the read-only Pi auditor
+argument-hint: "<scope>"
+---
+
+Snapshot `$ARGUMENTS`. The main session gathers a **raw inventory** with commands and exit status for file counts/sizes, entry points, git state, tests, and configuration names; review it for secrets and private project state **before** sharing it with any child or publishing output. Give the safe inventory and source paths to `pi_role_agent` with `role: "auditor"` to compile a cited, **facts only** report. The auditor reads but cannot run shell or edit files. Request the source command's **15 sections** in one **single Markdown** report: project metadata; directory structure; file inventory; API surface; templates/configurable assets; domain DSL; security gates; configuration/environment (names, never values); logging; TODO/FIXME/HACK; module dependencies; tests; known pain points; git state; open questions. Use `file:line` citations and verbatim snippets only for non-sensitive source. Mark unchecked fields UNKNOWN or N/A with a reason, not zero; a scoped report is not exhaustive for the whole repo. Keep redacted values redacted, omit credentials and specific private-state file citations from public output. If the auditor or inventory is unavailable, stop with INCOMPLETE rather than claiming a complete snapshot. No push or deploy.

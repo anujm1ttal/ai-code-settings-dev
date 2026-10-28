@@ -12,9 +12,9 @@ reasoning_depth: shallow
 
 ## Session Boot Protocol (Automatic)
 
-The SessionStart hook (`hooks/session-boot.js`) already injects `current_task.md` whole
-(current_task.md ≤2,000 B, see `project-journal` schema) plus one pointer line per other state
-file — steps below are what the agent does **on demand** beyond that automatic injection, not a
+The SessionStart hook (`hooks/session-boot.js`) injects `current_task.md` whole when
+space permits (file cap 2,000 B; total brief cap 2,750 B), otherwise with a Read marker,
+plus one pointer line per other state file — steps below are what the agent does **on demand** beyond that automatic injection, not a
 re-read of everything at boot:
 1. **State recovery**: use the hook-injected `current_task.md` — report the active task; only
    `Read` it directly if the brief flagged truncation or the file is missing.

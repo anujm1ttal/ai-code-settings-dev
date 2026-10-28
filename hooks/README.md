@@ -101,7 +101,7 @@ guard verifies all three.)
 
 | Hook | Event | Purpose |
 |:---|:---|:---|
-| `session-boot.js` | `SessionStart` | Injects `current_task.md` whole (capped 2,000 B) + a pointer line (path + line count) per other state file + HANDOFF_BRIEF.md's `## Blockers` inline (ALB-1 T8: brief trimmed from 9,165 B to <=2,750 B) |
+| `session-boot.js` | `SessionStart` | Injects `current_task.md` whole when space permits (otherwise visibly trimmed; per-file cap 2,000 B) + a pointer line (path + line count) per other state file + HANDOFF_BRIEF.md's `## Blockers` inline (overall brief capped at 2,750 UTF-8 B; pointers/blockers take priority over task detail) |
 | `guard-paths.js` | `PreToolUse` | **Blocks** writes to binaries, secrets, build artifacts, project state files in shadow paths, bare scratch/ |
 | `guard-commands.js` | `PreToolUse` | **Blocks** dangerous shell commands (rm -rf, force push, SQL drops) and AI attribution trailers in commits |
 | `auto-lint.js` | `PostToolUse` | Reports lint violations and injects "fix before proceeding" directive (no auto-fix) |

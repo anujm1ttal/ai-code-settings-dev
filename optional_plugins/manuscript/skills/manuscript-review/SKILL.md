@@ -12,7 +12,7 @@ metadata:
 
 # Skill: Developmental Manuscript Review
 
-**Activation**: This skill is loaded only when the `strategist` has classified the project as `manuscript` type during Step 0. The `coder` agent is inactive during manuscript projects.
+**Activation**: In Claude Code, the `strategist` classifies a manuscript project at Step 0 and the `coder` role is inactive for editorial work. In the Pi pilot, require explicit project opt-in to this skill; only the configured strategist, coder and report-only auditor child roles exist. Editorial review is report-only through the auditor; do not imply a manuscript specialist or scribe child. The `model:` frontmatter selects the Claude role only; it does not select a Pi model or override the private Pi role policy.
 
 ## Deep-Load Protocol
 Load reference files ONLY when the following conditions are met:
