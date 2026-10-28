@@ -46,6 +46,67 @@ function pathDenial(raw: unknown, payload: unknown, cwd: string): string | undef
   return undefined;
 }
 
+// B1: write/edit stay inside the launch directory or the OS temp dir (security.md: write access scoped to the project).
+// Pi tool allowlists are not an OS sandbox: shell copies and redirects to non-source paths are not covered here.
+function realPathOfExistingAncestor(target: string): string | undefined {
+  let current = target;
+  const tail: string[] = [];
+  for (;;) {
+    try {
+      const real = fs.realpathSync.native(current);
+      return tail.length ? path.join(real, ...tail.reverse()) : real;
+    } catch {
+      // A dangling link cannot be resolved, so fail closed rather than write through it.
+      try { if (fs.lstatSync(current, { throwIfNoEntry: false })) return undefined; } catch { return undefined; }
+      const parent = path.dirname(current);
+      if (parent === current) return undefined;
+      tail.push(path.basename(current));
+      current = parent;
+    }
+  }
+}
+
+function isWithin(base: string, target: string): boolean {
+  const relative = path.relative(base, target);
+  return relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+}
+
+// Mirrors Pi's normalizeWindowsShellPath: /c/x, /mnt/c/x and /cygdrive/c/x mean C:\x on Windows.
+function windowsShellPath(filePath: string): string {
+  if (process.platform !== 'win32' || !filePath.startsWith('/') || filePath.startsWith('//') || filePath.includes('\\')) return filePath;
+  const match = filePath.match(/^\/(?:mnt\/|cygdrive\/)?([a-z])(?:\/(.*))?$/i);
+  if (!match) return filePath;
+  return `${match[1].toUpperCase()}:\\${(match[2] ?? '').replaceAll('/', '\\')}`;
+}
+
+function outsideProjectDenial(raw: unknown, cwd: unknown): string | undefined {
+  if (typeof cwd !== 'string' || !path.isAbsolute(cwd)) return 'Missing project directory';
+  if (typeof raw !== 'string') return 'Missing target path';
+  // Pi normalizes these Unicode spaces anywhere in a path, so the guard must see the same string.
+  let requested = raw.replace(/[\u00a0\u2000-\u200a\u202f\u205f\u3000]/g, ' ').replace(/^@/, '');
+  requested = windowsShellPath(requested);
+  if (requested === '~' || requested.startsWith('~/') || requested.startsWith('~\\')) {
+    requested = path.join(os.homedir(), requested.slice(2));
+  }
+  if (requested.startsWith('file://')) {
+    try { requested = fileURLToPath(requested); } catch { return 'Malformed file URL'; }
+  }
+  // Windows trims trailing dots/spaces, so a segment such as ".. " can mean "..".
+  if (requested.split(/[\\/]/).some(part => part !== '.' && part !== '..' && part.length > 0 && /^[. ]+$/.test(part))) {
+    return 'Ambiguous dot or space path segment';
+  }
+  let realCwd: string, realTemp: string | undefined;
+  try { realCwd = fs.realpathSync.native(cwd); } catch { return 'Unverifiable project directory'; }
+  try { realTemp = fs.realpathSync.native(os.tmpdir()); } catch { realTemp = undefined; }
+  const resolved = path.resolve(cwd, requested);
+  // UNC and extended-length paths are refused before any filesystem call, so the guard never touches a network share.
+  if (resolved.startsWith('\\\\')) return 'Network or device path';
+  const real = realPathOfExistingAncestor(resolved);
+  if (!real) return 'Unresolvable write target';
+  if (isWithin(realCwd, real) || (realTemp !== undefined && isWithin(realTemp, real))) return undefined;
+  return 'Write target outside the project directory';
+}
+
 const DANGEROUS_COMMANDS: [RegExp, string][] = [
   [/\b(?:rd|rmdir|del|erase)\b[^\n]*\/s\b/i, 'Recursive Windows deletion'],
   [/\bRemove-Item\b(?=[^\n]*-Recurse)(?=[^\n]*-Force)/i, 'Recursive PowerShell deletion'],
@@ -134,7 +195,9 @@ export default function guard(pi: ExtensionAPI) {
       if (reason) return { block: true, reason };
     }
     if (event.toolName === 'edit' || event.toolName === 'write') {
-      const reason = pathDenial(event.input.path, event.toolName === 'write' ? event.input.content : undefined, ctx.cwd);
+      if (typeof ctx.cwd !== 'string') return { block: true, reason: 'Missing project directory' };
+      const reason = outsideProjectDenial(event.input.path, ctx.cwd) ??
+        pathDenial(event.input.path, event.toolName === 'write' ? event.input.content : undefined, ctx.cwd);
       return reason ? { block: true, reason } : undefined;
     }
     if (event.toolName === 'bash' || event.toolName === 'powershell') {

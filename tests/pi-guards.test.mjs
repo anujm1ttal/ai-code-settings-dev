@@ -3,6 +3,7 @@ import { test } from 'node:test';
 import fs, { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import os from 'node:os';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -304,4 +305,152 @@ test('Pi guard registers model tool and direct user shell hooks', async () => {
   const events = await handlers();
   assert.equal(typeof events.get('tool_call'), 'function');
   assert.equal(typeof events.get('user_bash'), 'function');
+});
+
+// PI-2 Phase 2 B1: write/edit must stay inside the launch directory (or the OS temp dir).
+const write = (tool, p, cwd = root) => tool({ toolName: 'write', input: { path: p, content: 'x' } }, { cwd, hasUI: false });
+const outsideRoot = path.dirname(root);
+
+test('B1 blocks write and edit outside the launch directory, with a presence control inside', async () => {
+  const tool = (await handlers()).get('tool_call');
+  const outside = [path.join(outsideRoot, 'other-repo', 'file.txt'), '../other-repo/file.txt', '@../x.txt',
+    `${root}-evil/x.txt`, path.join(os.homedir(), 'notes.txt'), '~/notes.txt',
+    pathToFileURL(path.join(outsideRoot, 'x.txt')).href, path.join(os.tmpdir(), '..', 'x.txt')];
+  for (const target of outside) {
+    const result = await write(tool, target);
+    assert.equal(result?.block, true, `write ${target}`);
+    assert.match(result.reason, /outside/i, target);
+  }
+  assert.equal((await tool({ toolName: 'edit', input: { path: '../other-repo/file.txt', edits: [] } }, { cwd: root, hasUI: false }))?.block, true);
+  for (const target of ['src/ok.py', 'Artifacts/Evidence/x.md', path.join(root, 'docs', 'ok.md'), './docs/../docs/ok.md',
+    pathToFileURL(path.join(root, 'docs', 'ok.md')).href]) {
+    assert.equal(await write(tool, target), undefined, `inside ${target}`);
+  }
+  assert.equal(await tool({ toolName: 'edit', input: { path: 'docs/ok.md', edits: [] } }, { cwd: root, hasUI: false }), undefined);
+});
+
+test('B1 permits the OS temp directory but not its parent, and fails closed without cwd', async () => {
+  const tool = (await handlers()).get('tool_call');
+  assert.equal(await write(tool, path.join(os.tmpdir(), 'pi2p2-scratch.txt')), undefined);
+  assert.equal(await write(tool, path.join(fs.realpathSync.native(os.tmpdir()), 'pi2p2-scratch.txt')), undefined);
+  assert.equal((await write(tool, path.join(os.tmpdir(), '..', 'pi2p2-scratch.txt')))?.block, true);
+  assert.equal((await tool({ toolName: 'write', input: { path: 'src/ok.py', content: 'x' } }, { hasUI: false }))?.block, true);
+});
+
+test('B1 treats ambiguous dot/space segments and foreign drive, UNC and extended paths as outside', async () => {
+  const tool = (await handlers()).get('tool_call');
+  const targets = ['src/.. /x.md', 'src/.../x.md', 'src/..  /../../x.md'];
+  if (process.platform === 'win32') targets.push('Z:\\nope\\x.txt', '\\\\server\\share\\x.txt',
+    `\\\\?\\${path.join(outsideRoot, 'x.txt')}`, 'src\\..\\..\\x.txt');
+  for (const target of targets) assert.equal((await write(tool, target))?.block, true, target);
+});
+
+test('B1 resolves symlinks and junctions on the existing ancestor, including a new leaf', async () => {
+  const tool = (await handlers()).get('tool_call');
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'pi2p2-b1-'));
+  try {
+    const link = path.join(project, 'linked');
+    try { fs.symlinkSync(outsideRoot, link, process.platform === 'win32' ? 'junction' : 'dir'); }
+    catch (error) { assert.fail(`INCOMPLETE: cannot create link for the symlink control: ${error.code}`); }
+    fs.mkdirSync(path.join(project, 'real'));
+    const outside = await write(tool, 'linked/brand-new.txt', project);
+    assert.equal(outside?.block, true, 'new leaf below a link that escapes cwd');
+    assert.match(outside.reason, /outside/i);
+    assert.equal((await write(tool, 'linked/sub/deeper/new.txt', project))?.block, true);
+    assert.equal(await write(tool, 'real/new.txt', project), undefined, 'presence control: real inside dir is allowed');
+    assert.equal(await write(tool, 'newdir/new.txt', project), undefined, 'new leaf in a new inside dir');
+  } finally { fs.rmSync(project, { recursive: true, force: true }); }
+});
+
+test('B1 compares Windows case and 8.3 short names without letting either escape', async (t) => {
+  if (process.platform !== 'win32') return t.skip('Windows-only path semantics');
+  const tool = (await handlers()).get('tool_call');
+  assert.equal(await write(tool, path.join(root.toUpperCase(), 'docs', 'ok.md')), undefined, 'case-insensitive inside');
+  assert.equal((await write(tool, path.join(outsideRoot.toUpperCase(), 'x.txt')))?.block, true, 'case-insensitive outside');
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'pi2p2-b1-'));
+  try {
+    const longDir = path.join(project, 'long-directory-name-for-8dot3');
+    fs.mkdirSync(longDir);
+    const short = spawnSync('cmd', ['/d', '/s', '/c', `"for %I in ("${longDir}") do @echo %~sI"`], { encoding: 'utf8', windowsVerbatimArguments: true }).stdout.trim();
+    if (!short || short.toLowerCase() === longDir.toLowerCase()) return t.skip('INCOMPLETE: 8.3 short names are disabled on this volume');
+    assert.equal(await write(tool, path.join(short, 'x.txt'), longDir), undefined, 'short form of cwd is inside');
+    assert.equal((await write(tool, path.join(short, '..', '..', '..', 'x.txt'), longDir))?.block, true, 'short-form escape above OS temp');
+  } finally { fs.rmSync(project, { recursive: true, force: true }); }
+});
+
+test('B1 leaves bash, powershell, the concierge guard and the pinned rm -rf /tmp/scratch decision unchanged', async () => {
+  const tool = (await handlers()).get('tool_call');
+  const ctx = { cwd: root, hasUI: false };
+  assert.equal(await tool({ toolName: 'bash', input: { command: 'cp config.json ../elsewhere/config.json' } }, ctx), undefined);
+  assert.equal(await tool({ toolName: 'bash', input: { command: 'rm -rf /tmp/scratch' } }, ctx), undefined);
+  assert.equal(await tool({ toolName: 'read', input: { path: '../other-repo/file.txt' } }, ctx), undefined, 'reads are not restricted by B1');
+});
+
+test('B1 judges a symlinked launch directory the way Pi resolves it (lexically against the raw cwd)', async () => {
+  const tool = (await handlers()).get('tool_call');
+  const base = fs.mkdtempSync(path.join(root, 'tests', '.pi2p2-b1-cwdlink-'));
+  try {
+    fs.mkdirSync(path.join(base, 'real_proj')); fs.mkdirSync(path.join(base, 'links'));
+    const cwd = path.join(base, 'links', 'p');
+    try { fs.symlinkSync(path.join(base, 'real_proj'), cwd, process.platform === 'win32' ? 'junction' : 'dir'); }
+    catch (error) { assert.fail(`INCOMPLETE: cannot create link for the cwd-symlink control: ${error.code}`); }
+    assert.equal((await write(tool, '../real_proj/x.txt', cwd))?.block, true, 'lexical ../ from a linked cwd escapes the project');
+    assert.equal((await write(tool, '../x.txt', cwd))?.block, true);
+    assert.equal(await write(tool, 'src/ok.txt', cwd), undefined, 'presence control: in-project write via the linked cwd');
+    assert.equal(await write(tool, path.join(cwd, 'src', 'ok.txt'), cwd), undefined);
+  } finally { fs.rmSync(base, { recursive: true, force: true }); }
+});
+
+test('B1 normalizes the same Unicode spaces as Pi before judging dot segments', async () => {
+  const tool = (await handlers()).get('tool_call');
+  for (const code of [0x00a0, 0x2000, 0x200a, 0x202f, 0x205f, 0x3000]) {
+    const target = `src/..${String.fromCodePoint(code)}/x.md`;
+    assert.equal((await write(tool, target))?.block, true, target);
+  }
+});
+
+test('B1 fails closed on dangling links, allows links resolving inside, and blocks an escaping Artifacts junction', async () => {
+  const tool = (await handlers()).get('tool_call');
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'pi2p2-b1-'));
+  const gone = fs.mkdtempSync(path.join(os.tmpdir(), 'pi2p2-b1-gone-'));
+  try {
+    const kind = process.platform === 'win32' ? 'junction' : 'dir';
+    fs.mkdirSync(path.join(project, 'inner'));
+    fs.symlinkSync(path.join(project, 'inner'), path.join(project, 'alias'), kind);
+    assert.equal(await write(tool, 'alias/new.txt', project), undefined, 'link that resolves inside is allowed');
+    fs.symlinkSync(gone, path.join(project, 'dangling'), kind);
+    fs.rmSync(gone, { recursive: true, force: true });
+    const dangling = await write(tool, 'dangling/new.txt', project);
+    assert.equal(dangling?.block, true, 'write through a dangling link');
+    fs.symlinkSync(outsideRoot, path.join(project, 'Artifacts'), kind);
+    assert.equal((await write(tool, 'Artifacts/Evidence/x.md', project))?.block, true, 'Artifacts junction escaping the project');
+  } finally { fs.rmSync(project, { recursive: true, force: true }); fs.rmSync(gone, { recursive: true, force: true }); }
+});
+
+test('B1 refuses UNC and extended paths before any other check reaches the filesystem', async (t) => {
+  if (process.platform !== 'win32') return t.skip('Windows-only path semantics');
+  const tool = (await handlers()).get('tool_call');
+  const started = Date.now();
+  for (const target of ['\\\\server-unreachable\\share\\x.txt', '\\\\?\\C:\\nope\\x.txt']) {
+    const result = await write(tool, target);
+    assert.equal(result?.block, true, target);
+    assert.match(result.reason, /network or device/i, target);
+  }
+  assert.ok(Date.now() - started < 1000, 'no network lookup was attempted for the UNC target');
+});
+
+test('B1 reads Git Bash, MSYS, Cygwin and WSL drive paths the way Pi does on Windows', async (t) => {
+  if (process.platform !== 'win32') return t.skip('Windows-only path semantics');
+  const tool = (await handlers()).get('tool_call');
+  const drive = root[0].toLowerCase();
+  const shellRoot = `/${drive}${root.slice(2).split(path.sep).join('/')}`;
+  for (const prefix of [`/${drive}`, `/mnt/${drive}`, `/cygdrive/${drive}`]) {
+    const inside = `${prefix}${root.slice(2).split(path.sep).join('/')}/docs/ok.md`;
+    assert.equal(await write(tool, inside), undefined, `inside ${inside}`);
+    const outside = `${prefix}${outsideRoot.slice(2).split(path.sep).join('/')}/x.txt`;
+    assert.equal((await write(tool, outside))?.block, true, `outside ${outside}`);
+  }
+  assert.equal((await write(tool, `${shellRoot}-evil/x.txt`))?.block, true, 'sibling prefix in shell form');
+  assert.equal((await write(tool, `/${drive}`))?.block, true, 'a bare drive root is outside the project');
+  assert.equal((await tool({ toolName: 'edit', input: { path: `${shellRoot}/docs/ok.md`, edits: [] } }, { cwd: root, hasUI: false })), undefined);
 });

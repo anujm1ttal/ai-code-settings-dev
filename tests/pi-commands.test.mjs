@@ -193,6 +193,11 @@ test('Pi global preview routes each of the eight common-rule dispositions withou
   assert.match(section, /does not load.*rules\/common/i);
   assert.match(section, /no Claude `paths:`/i);
   assert.match(section, /report-only auditor/i);
+  const orchestration = section.split('\n').find(line => line.startsWith('- **orchestration**:')) ?? '';
+  assert.match(orchestration, /no implementation[^.]*before the user approves the plan/i);
+  assert.match(orchestration, /DRAFT plan or untagged task is not approved/);
+  assert.match(orchestration, /"go ahead" does not approve a draft/);
+  assert.ok(Buffer.byteLength(source, 'utf8') <= 6743, 'Pi-global.md must stay within the 512 B Phase 2 growth ceiling over 6,231 B');
 });
 
 test('/handoff updates local state only and leaves backup to a separate action', () => {
