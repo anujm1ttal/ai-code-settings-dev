@@ -1,21 +1,38 @@
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
+import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { buildAgentArgs } from './role-policy.mjs';
+import { conciergeToolDenial } from './concierge-guard.mjs';
 
 const MAX_ERROR_BYTES = 2048;
 const MAX_STREAM_BYTES = 8 * 1024 * 1024;
+const READ_ONLY_ROLES = new Set(['auditor', 'scribe']);
+const READ_ONLY_TOOLS = new Set(['read', 'grep', 'find', 'ls']);
 
 export async function runRole(policy, roleName, task, cwd, promptPath, options = {}) {
-  const args = buildAgentArgs(policy, roleName, promptPath, task);
-  const { spawnImpl = spawn, invocation = { command: 'pi', args: [] }, signal,
+  const { profile, requiredReadPath, spawnImpl = spawn, invocation = { command: 'pi', args: [] }, signal,
     timeoutMs = 10 * 60 * 1000, killGraceMs = 2000 } = options;
+  const args = buildAgentArgs(policy, roleName, promptPath, task, { profile });
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 ||
       !Number.isSafeInteger(killGraceMs) || killGraceMs <= 0) {
     throw new Error('Pi subagent timeout and kill grace must be positive milliseconds');
   }
   if (signal?.aborted) throw new Error('Agent dispatch aborted');
+  const env = { ...process.env };
+  delete env.PI_ROLE;
+  delete env.PI_CONCIERGE_ROOT;
+  if (roleName === 'concierge') {
+    if (!path.isAbsolute(cwd) || fs.realpathSync(cwd) !== path.resolve(cwd) ||
+        fs.lstatSync(cwd).isSymbolicLink() ||
+        !fs.lstatSync(path.join(cwd, 'Artifacts', '.agent')).isDirectory()) {
+      throw new Error('Concierge requires a canonical project root with Artifacts/.agent');
+    }
+    env.PI_ROLE = 'concierge';
+    env.PI_CONCIERGE_ROOT = cwd;
+  }
   const child = spawnImpl(invocation.command, [...invocation.args, ...args], {
-    cwd, shell: false, stdio: ['ignore', 'pipe', 'pipe'], signal,
+    cwd, shell: false, stdio: ['ignore', 'pipe', 'pipe'], signal, env,
   });
   let buffer = '';
   const decoder = new StringDecoder('utf8');
@@ -23,6 +40,8 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   let stderr = '';
   let lastAssistant;
   let observedViolation;
+  let evidenceRead = false;
+  const evidenceReadCalls = new Set();
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
   let streamError;
@@ -35,9 +54,19 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     if (event.type === 'extension_error') {
       observedViolation = `Pi guard extension error: ${event.error || 'unknown error'}`;
     }
-    if (roleName === 'auditor' && event.type === 'tool_execution_start' &&
-        ['bash', 'edit', 'write', 'powershell'].includes(event.toolName)) {
-      observedViolation = `Auditor attempted ${event.toolName} tool`;
+    if ((READ_ONLY_ROLES.has(roleName) || profile === 'council-read-only') &&
+        event.type === 'tool_execution_start' && !READ_ONLY_TOOLS.has(event.toolName)) {
+      observedViolation = profile === 'council-read-only'
+        ? `Council ${roleName} attempted ${event.toolName} tool`
+        : `${roleName[0].toUpperCase()}${roleName.slice(1)} attempted ${event.toolName} tool`;
+    }
+    if (requiredReadPath && event.type === 'tool_execution_start' && event.toolName === 'read' &&
+        path.resolve(cwd, event.args?.path ?? '') === requiredReadPath) evidenceReadCalls.add(event.toolCallId);
+    if (requiredReadPath && event.type === 'tool_execution_end' && event.toolName === 'read' &&
+        evidenceReadCalls.has(event.toolCallId) && event.isError === false) evidenceRead = true;
+    if (roleName === 'concierge' && event.type === 'tool_execution_start') {
+      const reason = conciergeToolDenial(cwd, event.toolName, event.args);
+      if (reason) observedViolation = `Concierge attempted ${event.toolName}: ${reason}`;
     }
     if (event.type !== 'message_end' || event.message?.role !== 'assistant') return;
     const message = event.message;
@@ -105,6 +134,7 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   if (signal?.aborted) throw new Error('Agent dispatch aborted');
   if (exitCode !== 0) throw new Error(`Pi subagent exited with code ${exitCode}: ${stderr}`);
   if (observedViolation) throw new Error(observedViolation);
+  if (requiredReadPath && !evidenceRead) throw new Error('Council evidence file was not read');
   if (!lastAssistant) throw new Error('Pi subagent produced no successful final assistant response');
   const text = lastAssistant.content.filter((part) => part.type === 'text').map((part) => part.text).join('\n');
   if (!text.trim()) throw new Error(`Pi ${roleName} subagent produced no final text`);

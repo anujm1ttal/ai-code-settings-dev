@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EventEmitter } from 'node:events';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { PassThrough } from 'node:stream';
 import { runRole } from '../pi/lib/role-runner.mjs';
 import { loadRolePolicy } from '../pi/lib/role-policy.mjs';
@@ -44,6 +47,67 @@ test('dispatches an isolated auditor and verifies observed model and thinking', 
     thinking: 'high', text: 'FAIL: revise tests', usage: { input: 1, output: 1,
       cacheRead: 0, cacheWrite: 0, totalTokens: 2,
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
+});
+
+test('concierge child receives a fixed root and rejects observed unallowlisted writes', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-concierge-runner-'));
+  fs.mkdirSync(path.join(root, 'Artifacts', '.agent'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'Artifacts', 'HANDOFF_BRIEF.md'), 'before');
+  fs.writeFileSync(path.join(root, 'Artifacts', '.agent', 'current_task.md'), 'before');
+  const expanded = { ...policy, roles: { ...policy.roles,
+    scribe: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] },
+    concierge: { model: 'pilot-claude/haiku', thinking: 'low', tools: ['read', 'grep', 'find', 'ls', 'edit', 'write'] } } };
+  try {
+    const fake = fakeSpawn([assistant('pilot-claude', 'haiku', 'low', 'Local-only sync')]);
+    const result = await runRole(expanded, 'concierge', 'Sync captured facts', root, '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl });
+    assert.equal(result.role, 'concierge');
+    assert.equal(fake.calls[0].options.env.PI_ROLE, 'concierge');
+    assert.equal(fake.calls[0].options.env.PI_CONCIERGE_ROOT, fs.realpathSync(root));
+    assert.deepEqual(fake.calls[0].args.slice(fake.calls[0].args.indexOf('--tools'), fake.calls[0].args.indexOf('--tools') + 2),
+      ['--tools', 'read,grep,find,ls,edit,write']);
+    const denied = fakeSpawn([{ type: 'tool_execution_start', toolName: 'write', args: { path: 'Artifacts/TODO.md', content: 'bad' } },
+      assistant('pilot-claude', 'haiku', 'low', 'Done')]);
+    await assert.rejects(runRole(expanded, 'concierge', 'Sync', root, '/tmp/role.md',
+      { spawnImpl: denied.spawnImpl }), /Concierge attempted|allowlist/i);
+    const wrong = fakeSpawn([assistant('pilot-claude', 'haiku', 'low', 'Should not spawn')]);
+    await assert.rejects(runRole(expanded, 'concierge', 'Sync', path.dirname(root), '/tmp/role.md',
+      { spawnImpl: wrong.spawnImpl }), /project|root|Artifacts/i);
+    assert.equal(wrong.calls.length, 0);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('read-only council coder denies observed write events despite normal writable coder policy', async () => {
+  const allowed = fakeSpawn([assistant('pilot-gpt', 'sol', 'medium', 'Perspective')]);
+  const result = await runRole(policy, 'coder', 'Critique', '.', '/tmp/council.md',
+    { spawnImpl: allowed.spawnImpl, profile: 'council-read-only' });
+  assert.equal(result.text, 'Perspective');
+  assert.equal(allowed.calls[0].args[allowed.calls[0].args.indexOf('--tools') + 1], 'read,grep,find,ls');
+  assert.equal(allowed.calls[0].args.includes('--extension'), false);
+  for (const toolName of ['bash', 'powershell', 'edit', 'write', 'mcp__write']) {
+    const denied = fakeSpawn([{ type: 'tool_execution_start', toolName, args: { path: 'src/file.md' } },
+      assistant('pilot-gpt', 'sol', 'medium', 'Done')]);
+    await assert.rejects(runRole(policy, 'coder', 'Critique', '.', '/tmp/council.md',
+      { spawnImpl: denied.spawnImpl, profile: 'council-read-only' }), /Council.*attempted/);
+  }
+});
+
+test('council profile requires an observed read of its exact immutable evidence file', async () => {
+  const file = path.resolve('C:/synthetic/case.txt');
+  const missing = fakeSpawn([assistant('pilot-gpt', 'sol', 'high', 'Opinion without data')]);
+  await assert.rejects(runRole(policy, 'strategist', 'Review', '.', '/tmp/council.md',
+    { spawnImpl: missing.spawnImpl, profile: 'council-read-only', requiredReadPath: file }), /evidence|read/i);
+  const failedRead = fakeSpawn([{ type: 'tool_execution_start', toolCallId: 'e1', toolName: 'read', args: { path: file } },
+    { type: 'tool_execution_end', toolCallId: 'e1', toolName: 'read', isError: true },
+    assistant('pilot-gpt', 'sol', 'high', 'Pretended read')]);
+  await assert.rejects(runRole(policy, 'strategist', 'Review', '.', '/tmp/council.md',
+    { spawnImpl: failedRead.spawnImpl, profile: 'council-read-only', requiredReadPath: file }), /evidence|read/i);
+  const read = fakeSpawn([{ type: 'tool_execution_start', toolCallId: 'e2', toolName: 'read', args: { path: file } },
+    { type: 'tool_execution_end', toolCallId: 'e2', toolName: 'read', isError: false },
+    assistant('pilot-gpt', 'sol', 'high', 'Evidence-backed opinion')]);
+  const result = await runRole(policy, 'strategist', 'Review', '.', '/tmp/council.md',
+    { spawnImpl: read.spawnImpl, profile: 'council-read-only', requiredReadPath: file });
+  assert.equal(result.text, 'Evidence-backed opinion');
 });
 
 test('parses a UTF-8 character split across stdout chunks', async () => {
@@ -107,6 +171,26 @@ test('fails a shell-capable role if Pi reports its explicit guard failed to load
     assistant('pilot-gpt', 'sol', 'medium', 'Work done')]);
   await assert.rejects(runRole(policy, 'coder', 'Review', '.', '/tmp/role.md',
     { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /guard.*failed to import/i);
+});
+
+test('rejects observed scribe shell or write execution even after an unsafe runtime bypass', async () => {
+  const expanded = { ...policy, roles: { ...policy.roles,
+    scribe: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+  for (const toolName of ['bash', 'powershell', 'edit', 'write']) {
+    const fake = fakeSpawn([{ type: 'tool_execution_start', toolName, args: { path: 'a.md' } },
+      assistant('pilot-gpt', 'luna', 'low', 'Explanation')]);
+    await assert.rejects(runRole(expanded, 'scribe', 'Explain', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /Scribe attempted/);
+  }
+});
+
+test('read-only scribe rejects an unexpected custom tool event, not only shell names', async () => {
+  const expanded = { ...policy, roles: { ...policy.roles,
+    scribe: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+  const fake = fakeSpawn([{ type: 'tool_execution_start', toolName: 'mcp__mutate', args: {} },
+    assistant('pilot-gpt', 'luna', 'low', 'Done')]);
+  await assert.rejects(runRole(expanded, 'scribe', 'Explain', '.', '/tmp/role.md',
+    { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /Scribe attempted mcp__mutate/);
 });
 
 test('rejects any observed auditor bash execution even if policy tools were bypassed', async () => {

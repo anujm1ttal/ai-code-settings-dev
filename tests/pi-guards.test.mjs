@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { existsSync, readFileSync } from 'node:fs';
+import fs, { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -14,6 +16,109 @@ async function handlers() {
   register({ on(name, handler) { events.set(name, handler); } });
   return events;
 }
+
+test('concierge-scoped child guard blocks unsafe tool calls while parent guard remains unchanged', async () => {
+  const project = path.join(root, 'Artifacts');
+  const previous = process.env.PI_CONCIERGE_ROOT;
+  const previousRole = process.env.PI_ROLE;
+  process.env.PI_ROLE = 'concierge';
+  process.env.PI_CONCIERGE_ROOT = root;
+  try {
+    const tool = (await handlers()).get('tool_call');
+    assert.equal((await tool({ toolName: 'write', input: { path: 'Artifacts/TODO.md', content: 'x' } },
+      { cwd: root }))?.block, true);
+    assert.equal((await tool({ toolName: 'bash', input: { command: 'echo harmless' } }, { cwd: root }))?.block, true);
+    assert.equal((await tool({ toolName: 'mcp__custom', input: {} }, { cwd: root }))?.block, true);
+    assert.equal(await tool({ toolName: 'read', input: { path: project } }, { cwd: root }), undefined);
+  } finally {
+    if (previous === undefined) delete process.env.PI_CONCIERGE_ROOT;
+    else process.env.PI_CONCIERGE_ROOT = previous;
+    if (previousRole === undefined) delete process.env.PI_ROLE;
+    else process.env.PI_ROLE = previousRole;
+  }
+});
+
+test('concierge marker fails closed with missing, blank or relative root and mismatched cwd', async () => {
+  const oldRole = process.env.PI_ROLE;
+  const oldRoot = process.env.PI_CONCIERGE_ROOT;
+  process.env.PI_ROLE = 'concierge';
+  try {
+    for (const value of [undefined, '', '   ', 'relative/path']) {
+      if (value === undefined) delete process.env.PI_CONCIERGE_ROOT;
+      else process.env.PI_CONCIERGE_ROOT = value;
+      const events = await handlers();
+      const tool = events.get('tool_call');
+      for (const toolName of ['edit', 'write', 'bash', 'powershell', 'mcp__write']) {
+        assert.equal((await tool({ toolName, input: { path: 'Artifacts/HANDOFF_BRIEF.md', command: 'echo safe' } },
+          { cwd: root }))?.block, true, `${toolName}: ${value}`);
+      }
+      assert.equal((await events.get('user_bash')({ command: 'echo safe' }, { cwd: root }))?.result?.exitCode, 1);
+    }
+    process.env.PI_CONCIERGE_ROOT = root;
+    const events = await handlers();
+    const tool = events.get('tool_call');
+    assert.equal((await tool({ toolName: 'write', input: { path: 'Artifacts/HANDOFF_BRIEF.md', content: 'x' } },
+      { cwd: path.dirname(root) }))?.block, true);
+  } finally {
+    if (oldRole === undefined) delete process.env.PI_ROLE; else process.env.PI_ROLE = oldRole;
+    if (oldRoot === undefined) delete process.env.PI_CONCIERGE_ROOT; else process.env.PI_CONCIERGE_ROOT = oldRoot;
+  }
+});
+
+test('scoped hook mediates allowed and denied writes with whole-tree before/after hashes', async () => {
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-t3-hook-'));
+  const previousRole = process.env.PI_ROLE;
+  const previousRoot = process.env.PI_CONCIERGE_ROOT;
+  const snapshot = () => {
+    const items = [];
+    function visit(dir, relative = '') {
+      for (const name of fs.readdirSync(dir).sort()) {
+        const rel = path.posix.join(relative, name);
+        const file = path.join(dir, name);
+        const stat = fs.lstatSync(file);
+        if (stat.isDirectory()) { items.push(`${rel}:dir`); visit(file, rel); }
+        else items.push(`${rel}:file:${createHash('sha256').update(fs.readFileSync(file)).digest('hex')}`);
+      }
+    }
+    visit(project);
+    return createHash('sha256').update(items.join('\n')).digest('hex');
+  };
+  fs.mkdirSync(path.join(project, 'Artifacts', '.agent'), { recursive: true });
+  fs.mkdirSync(path.join(project, 'src'));
+  for (const file of ['Artifacts/.agent/current_task.md', 'Artifacts/HANDOFF_BRIEF.md', 'Artifacts/TODO.md',
+    'src/code.ts']) fs.writeFileSync(path.join(project, file), 'before');
+  process.env.PI_ROLE = 'concierge';
+  process.env.PI_CONCIERGE_ROOT = project;
+  try {
+    const events = await handlers();
+    const hook = events.get('tool_call');
+    const execute = async (toolName, file) => {
+      const outcome = await hook({ toolName, input: { path: file, content: 'after' } }, { cwd: project });
+      if (!outcome?.block && ['write', 'edit'].includes(toolName)) fs.writeFileSync(path.join(project, file), 'after');
+      return outcome;
+    };
+    const before = snapshot();
+    const wrongCwd = await hook({ toolName: 'write', input: { path: 'Artifacts/HANDOFF_BRIEF.md', content: 'x' } },
+      { cwd: path.dirname(project) });
+    assert.equal(wrongCwd?.block, true);
+    assert.match(wrongCwd?.reason ?? '', /cwd differs from fixed root/);
+    for (const file of ['Artifacts/TODO.md', 'src/code.ts', 'src/new.ts', '../escape.md']) {
+      assert.equal((await execute('write', file))?.block, true, file);
+    }
+    assert.equal(snapshot(), before, 'denied calls do not create, remove or change any tree entry');
+    for (const file of ['Artifacts/.agent/current_task.md', 'Artifacts/HANDOFF_BRIEF.md']) {
+      assert.equal(await execute('write', file), undefined);
+    }
+    assert.notEqual(snapshot(), before);
+    assert.equal(fs.readFileSync(path.join(project, 'Artifacts/TODO.md'), 'utf8'), 'before');
+    assert.equal(fs.readFileSync(path.join(project, 'src/code.ts'), 'utf8'), 'before');
+    assert.equal((await events.get('user_bash')({ command: 'echo safe' }, { cwd: project }))?.result?.exitCode, 1);
+  } finally {
+    if (previousRole === undefined) delete process.env.PI_ROLE; else process.env.PI_ROLE = previousRole;
+    if (previousRoot === undefined) delete process.env.PI_CONCIERGE_ROOT; else process.env.PI_CONCIERGE_ROOT = previousRoot;
+    fs.rmSync(project, { recursive: true, force: true });
+  }
+});
 
 test('direct shell confirmation is time-bounded when RPC client is silent', async () => {
   const direct = (await handlers()).get('user_bash');

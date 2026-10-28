@@ -13,6 +13,44 @@ const available = process.platform === 'win32'
   : spawnSync('pi', ['--version'], { encoding: 'utf8', timeout: 5000 }).status === 0;
 const privatePolicyFixture = path.join(repo, 'tests', 'fixtures', 'pi-role-policy.json');
 
+test('T7 exposes a bounded council tool, not an automatic decision or write route', () => {
+  const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
+  assert.match(extension, /name: 'pi_council'/);
+  assert.match(extension, /runCouncilSession/);
+  assert.match(extension, /council-synthesis\.md/);
+});
+
+test('role extension exposes an explicit council-perspective route, never a writable coder alias', () => {
+  const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
+  assert.match(extension, /Type\.Literal\('council-perspective'\)/);
+  assert.match(extension, /runCouncilPerspective/);
+  assert.match(extension, /evidenceSha256/);
+  assert.match(extension, /perspective/);
+  const contract = readFileSync(path.join(repo, 'pi/agents/council-perspectives.md'), 'utf8');
+  for (const role of ['strategist', 'coder', 'auditor']) assert.match(contract, new RegExp(role));
+  assert.match(contract, /read-only/i);
+});
+
+test('role extension exposes a concierge role with required bounded captured evidence', () => {
+  const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
+  assert.match(extension, /Type\.Literal\('concierge'\)/);
+  assert.match(extension, /validateConciergeEvidence/);
+  assert.match(extension, /evidencePath/);
+  assert.match(extension, /role === 'concierge'|params\.role === 'concierge'/);
+  const prompt = readFileSync(path.join(repo, 'pi/agents/concierge.md'), 'utf8');
+  assert.match(prompt, /current_task\.md/);
+  assert.match(prompt, /HANDOFF_BRIEF\.md/);
+  assert.match(prompt, /local-only/i);
+});
+
+test('role extension exposes a scribe child schema and a dedicated prompt', () => {
+  const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
+  assert.match(extension, /Type\.Literal\('scribe'\)/);
+  const prompt = readFileSync(path.join(repo, 'pi/agents/scribe.md'), 'utf8');
+  assert.match(prompt, /codebase-navigator/);
+  assert.match(prompt, /read-only/i);
+});
+
 test('source-only parent launch documents explicit guard loading without a global install', () => {
   const readme = readFileSync(path.join(repo, 'pi/README.md'), 'utf8');
   assert.match(readme, /pi -e \.\/pi\/extensions\/guard\.ts -e \.\/pi\/extensions\/session-observability\.ts -e \.\/pi\/extensions\/role-agent\.ts/);

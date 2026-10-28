@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
+import { conciergeToolDenial } from '../lib/concierge-guard.mjs';
 
 const licenseGate = JSON.parse(fs.readFileSync(new URL('../../hooks/license-gate.json', import.meta.url), 'utf8')) as {
   source_roots: string[]; dest_prefixes: string[]; markers: string[]; self_exempt: string[];
@@ -118,7 +119,20 @@ function commandDenial(raw: unknown): string | undefined {
 
 // Explicitly selected by the pilot parent and shell/write-capable role children.
 export default function guard(pi: ExtensionAPI) {
+  // The concierge runner sets both fields at child launch. A scoped child never falls back to the parent policy.
+  const concierge = process.env.PI_ROLE === 'concierge';
+  const conciergeRoot = process.env.PI_CONCIERGE_ROOT;
   pi.on('tool_call', async (event, ctx) => {
+    if (concierge) {
+      let reason = conciergeToolDenial(conciergeRoot, event.toolName, event.input);
+      if (!reason && (event.toolName === 'write' || event.toolName === 'edit')) {
+        try {
+          if (!conciergeRoot || !path.isAbsolute(conciergeRoot) ||
+              fs.realpathSync(ctx.cwd) !== fs.realpathSync(conciergeRoot)) reason = 'Concierge cwd differs from fixed root';
+        } catch { reason = 'Unverifiable concierge cwd'; }
+      }
+      if (reason) return { block: true, reason };
+    }
     if (event.toolName === 'edit' || event.toolName === 'write') {
       const reason = pathDenial(event.input.path, event.toolName === 'write' ? event.input.content : undefined, ctx.cwd);
       return reason ? { block: true, reason } : undefined;
@@ -130,6 +144,8 @@ export default function guard(pi: ExtensionAPI) {
     return undefined;
   });
   pi.on('user_bash', async (event, ctx) => {
+    if (concierge) return { result: { output: 'Blocked: concierge has no shell', exitCode: 1,
+      cancelled: false, truncated: false } };
     const reason = commandDenial(event.command);
     if (!reason) return undefined;
     if (ctx.hasUI && await ctx.ui.confirm('Dangerous direct-shell command', `${reason}: ${event.command}\nAllow this command?`, { timeout: 10000 })) {

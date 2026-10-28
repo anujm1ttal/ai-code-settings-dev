@@ -34,6 +34,24 @@ function snapshot(root) {
   return rows;
 }
 
+test('isolated preview stages the concierge guard dependency used by the selected guard extension', async () => {
+  const root = sandbox();
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const handle = stagePreview({ sourceRoot, sandboxRoot: root });
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/concierge-guard.mjs')));
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/concierge-evidence.mjs')));
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/agents/concierge.md')));
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/agents/council-perspectives.md')));
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/council-evidence.mjs')));
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/council-perspective.mjs')));
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/council-session.mjs')));
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/agents/council-synthesis.md')));
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/prompts/council.md')));
+    rollbackPreview(handle);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
 test('fresh disposable Pi consumer sees staged commands and only its selected plugin', async () => {
   const root = sandbox();
   const launcher = path.join(os.homedir(), '.pi/agent/bin/pi-launcher.js');
@@ -192,5 +210,7 @@ test('isolated Pi preview backs up prior agent files and stages only Pi resource
     ]);
     assert.equal(settings.packages?.length ?? 0, 0);
     assert.ok(fs.existsSync(path.join(agent, 'hooks/license-gate.json')));
+    assert.equal(fs.readFileSync(path.join(agent, 'pi/agents/scribe.md'), 'utf8'),
+      fs.readFileSync(path.join(sourceRoot, 'pi/agents/scribe.md'), 'utf8'));
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });

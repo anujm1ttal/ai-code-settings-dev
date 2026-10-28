@@ -5,6 +5,8 @@ import { fileURLToPath } from 'node:url';
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
 const TOOL_NAMES = new Set(['read', 'grep', 'find', 'ls', 'bash', 'edit', 'write', 'powershell']);
 const WRITE_OR_SHELL = new Set(['bash', 'powershell', 'edit', 'write']);
+const READ_ONLY_ROLES = new Set(['auditor', 'scribe']);
+const CONCIERGE_TOOLS = new Set(['read', 'grep', 'find', 'ls', 'edit', 'write']);
 const GUARD_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../extensions/guard.ts');
 
 export function loadRolePolicy(file) {
@@ -13,35 +15,50 @@ export function loadRolePolicy(file) {
       new Set(policy.allowedModels).size !== 5 ||
       !policy.allowedModels.every((model) => typeof model === 'string' && model.includes('/')) ||
       !policy.roles || typeof policy.roles !== 'object' ||
-      Object.keys(policy.roles).sort().join(',') !== 'auditor,coder,strategist') {
+      !['auditor,coder,strategist', 'auditor,coder,scribe,strategist',
+        'auditor,coder,concierge,scribe,strategist'].includes(
+        Object.keys(policy.roles).sort().join(','))) {
     throw new Error('Invalid Pi pilot role policy or explicit model allowlist');
   }
   for (const [name, role] of Object.entries(policy.roles)) {
     if (!policy.allowedModels.includes(role.model) || !THINKING_LEVELS.has(role.thinking) ||
         !Array.isArray(role.tools) || role.tools.length === 0 ||
         !role.tools.every((tool) => TOOL_NAMES.has(tool)) ||
-        (name === 'auditor' && role.tools.some((tool) => ['bash', 'powershell', 'edit', 'write'].includes(tool)))) {
+        (READ_ONLY_ROLES.has(name) && role.tools.some((tool) => WRITE_OR_SHELL.has(tool))) ||
+        (name === 'concierge' && (role.tools.length !== CONCIERGE_TOOLS.size ||
+          new Set(role.tools).size !== CONCIERGE_TOOLS.size ||
+          !role.tools.every((tool) => CONCIERGE_TOOLS.has(tool))))) {
       throw new Error(`Invalid role configuration for ${name}`);
     }
   }
   return policy;
 }
 
-export function buildAgentArgs(policy, roleName, promptPath, task) {
+export function buildAgentArgs(policy, roleName, promptPath, task, { profile } = {}) {
   const role = policy.roles[roleName];
   if (!role) throw new Error(`Unknown role: ${roleName}`);
   if (!policy.allowedModels.includes(role.model)) {
     throw new Error(`Role ${roleName} model is not in the explicit model allowlist: ${role.model}`);
   }
-  if (roleName === 'auditor' && role.tools.some((tool) => ['bash', 'powershell', 'edit', 'write'].includes(tool))) {
-    throw new Error('Auditor tools may not include shell or write-capable tools');
+  if (READ_ONLY_ROLES.has(roleName) && role.tools.some((tool) => WRITE_OR_SHELL.has(tool))) {
+    throw new Error(`${roleName[0].toUpperCase()}${roleName.slice(1)} tools may not include shell or write-capable tools`);
+  }
+  if (roleName === 'concierge' && (role.tools.length !== CONCIERGE_TOOLS.size ||
+      new Set(role.tools).size !== CONCIERGE_TOOLS.size ||
+      !role.tools.every((tool) => CONCIERGE_TOOLS.has(tool)))) {
+    throw new Error('Concierge tools must be read,grep,find,ls,edit,write only');
+  }
+  if (profile !== undefined && (profile !== 'council-read-only' ||
+      !['strategist', 'coder', 'auditor'].includes(roleName))) {
+    throw new Error('Invalid council read-only profile or viewpoint');
   }
   if (!task || typeof task !== 'string') throw new Error('A nonempty task is required');
+  const tools = profile === 'council-read-only' ? ['read', 'grep', 'find', 'ls'] : role.tools;
   return [
     '--mode', 'json', '--print', '--no-session', '--no-extensions',
-    ...(role.tools.some((tool) => WRITE_OR_SHELL.has(tool)) ? ['--extension', GUARD_PATH] : []),
+    ...(tools.some((tool) => WRITE_OR_SHELL.has(tool)) ? ['--extension', GUARD_PATH] : []),
     '--model', role.model, '--thinking', role.thinking,
-    '--tools', role.tools.join(','), '--exclude-tools', 'mcp__*',
+    '--tools', tools.join(','), '--exclude-tools', 'mcp__*',
     '--append-system-prompt', promptPath, `Task: ${task}`,
   ];
 }

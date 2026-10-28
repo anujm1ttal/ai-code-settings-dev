@@ -22,8 +22,12 @@ for (const group of [
       assert.match(bridge, /\$\{CLAUDE_PLUGIN_ROOT\}/);
       assert.match(bridge, /skill.*location/is);
       assert.match(bridge, /creative-director.*not configured/is);
+    } else if (group.name === 'youtube') {
+      assert.match(bridge, /read-only `scribe` child is limited to `\/explain`/i);
+      assert.match(bridge, /YouTube specialist dispatch/i);
+      assert.match(bridge, /main session/i);
     } else {
-      assert.match(bridge, /(?:creative-director|scribe).*not configured/is);
+      assert.match(bridge, /creative-director.*not configured/is);
       assert.match(bridge, /main session/i);
     }
     if (!sdkPath) return t.skip('Set PI_CODING_AGENT_SDK_PATH for Pi runtime discovery');

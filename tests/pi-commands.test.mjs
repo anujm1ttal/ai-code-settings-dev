@@ -2,6 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+test('/council routes through bounded collection and retains advisory authority', () => {
+  const template = readFileSync(new URL('../pi/prompts/council.md', import.meta.url), 'utf8');
+  assert.match(template, /pi_council/);
+  assert.match(template, /evidenceSha256/);
+  assert.match(template, /advisory/i);
+  assert.match(template, /disagreement/i);
+  assert.match(template, /no.*decision.log|do not.*decision.log/i);
+  assert.match(template, /\$ARGUMENTS/);
+});
+
 test('/blueprint template requests the isolated strategist rather than impersonating it', () => {
   const template = readFileSync(new URL('../pi/prompts/blueprint.md', import.meta.url), 'utf8');
   assert.match(template, /pi_role_agent/);
@@ -31,11 +41,12 @@ test('/implement template delegates only approved bounded work to the isolated c
   assert.match(template, /\$ARGUMENTS/);
 });
 
-test('/explain uses the navigator skill without claiming an unconfigured scribe child', () => {
+test('/explain requires an isolated read-only scribe and navigator skill', () => {
   const template = readFileSync(new URL('../pi/prompts/explain.md', import.meta.url), 'utf8');
   assert.match(template, /codebase-navigator/);
-  assert.match(template, /main session/i);
-  assert.doesNotMatch(template, /role[^\n]*scribe/);
+  assert.match(template, /pi_role_agent/);
+  assert.match(template, /role[^\n]*scribe/);
+  assert.match(template, /missing.*policy.*stop|unavailable.*stop/i);
   assert.match(template, /\$ARGUMENTS/);
 });
 
@@ -82,13 +93,17 @@ test('/snapshot uses a read-only auditor and excludes secrets from factual outpu
   assert.match(template, /\$ARGUMENTS/);
 });
 
-test('/sync uses the main session without asserting an isolated concierge', () => {
+test('/sync sends bounded main-captured Git/parity facts to the isolated concierge', () => {
   const template = readFileSync(new URL('../pi/prompts/sync.md', import.meta.url), 'utf8');
   assert.match(template, /main session/i);
   assert.match(template, /deploy parity/i);
-  assert.match(template, /do not modify.*IMPLEMENTATION_PLAN/i);
+  assert.match(template, /64 KiB/i);
+  assert.match(template, /exitCode/);
+  assert.match(template, /pi_role_agent/);
+  assert.match(template, /role[^\n]*concierge/);
+  assert.match(template, /evidencePath/);
   assert.match(template, /no.*\[x\]/i);
-  assert.doesNotMatch(template, /role[^\n]*concierge/);
+  assert.match(template, /\$ARGUMENTS/);
 });
 
 test('/ingest validates external input without claiming completion', () => {
@@ -183,6 +198,11 @@ test('Pi global preview routes each of the eight common-rule dispositions withou
 test('/handoff updates local state only and leaves backup to a separate action', () => {
   const template = readFileSync(new URL('../pi/prompts/handoff.md', import.meta.url), 'utf8');
   assert.match(template, /main session/i);
+  assert.match(template, /pi_role_agent/);
+  assert.match(template, /role[^\n]*concierge/);
+  assert.match(template, /evidencePath/);
+  assert.match(template, /64 KiB/);
+  assert.match(template, /exitCode/);
   assert.match(template, /current_task\.md/);
   assert.match(template, /HANDOFF_BRIEF\.md/);
   assert.match(template, /local-only/i);

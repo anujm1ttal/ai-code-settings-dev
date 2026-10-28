@@ -30,7 +30,7 @@ Existing tracked RhinoCommon/Grasshopper/GH_IO XML files stay where they are: **
 
 ## pbi-report
 
-For a Power BI consumer, set `source` to the absolute path of `optional_plugins/pbi-report` and `skills` to `["skills/powerbi-report/SKILL.md"]`. Keep other resource arrays empty. Explicitly preview `--append-system-prompt <absolute-path-to-pi/plugins/pbi-report/APPEND_SYSTEM.md>` with a selected disposable consumer so unbound role references cannot masquerade as a child. Its six `references/` files (including `theme-defaults.json`) resolve against the reported skill location, not the consuming cwd. Loading a skill does not configure Power BI, generate a `.pbip` file, or bind a creative-director child: the three-role pilot has no such binding. An opted-in project must have a real `Artifacts/LAYOUT_SPEC.md` or explicitly use a documented fallback; do not invent one for a smoke test.
+For a Power BI consumer, set `source` to the absolute path of `optional_plugins/pbi-report` and `skills` to `["skills/powerbi-report/SKILL.md"]`. Keep other resource arrays empty. Explicitly preview `--append-system-prompt <absolute-path-to-pi/plugins/pbi-report/APPEND_SYSTEM.md>` with a selected disposable consumer so unbound role references cannot masquerade as a child. Its six `references/` files (including `theme-defaults.json`) resolve against the reported skill location, not the consuming cwd. Loading a skill does not configure Power BI, generate a `.pbip` file, or bind a creative-director child: the pilot has no creative-director binding. An opted-in project must have a real `Artifacts/LAYOUT_SPEC.md` or explicitly use a documented fallback; do not invent one for a smoke test.
 
 ## visual-storytelling
 
@@ -38,7 +38,7 @@ Set `source` to the absolute path of `optional_plugins/visual-storytelling`, wit
 
 ## youtube
 
-Set `source` to the absolute path of `optional_plugins/youtube`, with `skills` set to `["skills/youtube-strategy/SKILL.md", "skills/youtube-scriptwriting/SKILL.md", "skills/youtube-retention/SKILL.md"]`; other resource arrays empty. These three skills have no bundled files. Preview `--append-system-prompt <absolute-path-to-pi/plugins/youtube/APPEND_SYSTEM.md>` with a selected disposable consumer. Their text may name a `scribe` or `strategist`: Pi has a generic strategist binding, but **no scribe child or YouTube-specific specialist binding**. Using these skills in a main session is not an isolated role dispatch, and the six deferred YouTube commands are not thereby Pi-native commands. Do not claim script/video production or user-level enablement from skill discovery.
+Set `source` to the absolute path of `optional_plugins/youtube`, with `skills` set to `["skills/youtube-strategy/SKILL.md", "skills/youtube-scriptwriting/SKILL.md", "skills/youtube-retention/SKILL.md"]`; other resource arrays empty. These three skills have no bundled files. Preview `--append-system-prompt <absolute-path-to-pi/plugins/youtube/APPEND_SYSTEM.md>` with a selected disposable consumer. Their text may name a `scribe` or `strategist`: Pi has a strategist and a read-only scribe **only for `/explain`**, but no YouTube-specific specialist binding. Using these skills in a main session is not an isolated role dispatch, and the six deferred YouTube commands are not thereby Pi-native commands. Do not claim script/video production or user-level enablement from skill discovery.
 
 ## License and compatibility gate
 

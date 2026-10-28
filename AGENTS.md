@@ -32,7 +32,7 @@ repo source  ──platform-specific approved release──▶  user config  ─
 |:---|:---|
 | `Codex-global.md` | Codex global source (→ `~/.codex/AGENTS.md`) |
 | `CLAUDE-global.md` | Claude global source (→ `~/.claude/CLAUDE.md`) |
-| `Pi-global.md`, `pi/` | Pi global-instruction proposal and three-role source pilot; not installed |
+| `Pi-global.md`, `pi/` | Pi global-instruction proposal, three-role public fixture plus source-only scribe, two-file concierge and read-only advisory council; not installed |
 | `agents/` | Agent role definitions (`agents.overview.md` = L1 routing) |
 | `rules/common/` | Canonical standards, deployed to `~/.codex/rules/` |
 | `skills/` | Core skill source (deploys to `~/.agents/skills/`) |
