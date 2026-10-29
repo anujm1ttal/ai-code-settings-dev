@@ -18,55 +18,21 @@ async function handlers() {
   return events;
 }
 
-test('concierge-scoped child guard blocks unsafe tool calls while parent guard remains unchanged', async () => {
-  const project = path.join(root, 'Artifacts');
-  const previous = process.env.PI_CONCIERGE_ROOT;
+test('parent guard permits write and edit inside the launch directory without PI_ROLE', async () => {
   const previousRole = process.env.PI_ROLE;
-  process.env.PI_ROLE = 'concierge';
-  process.env.PI_CONCIERGE_ROOT = root;
+  delete process.env.PI_ROLE;
   try {
     const tool = (await handlers()).get('tool_call');
-    assert.equal((await tool({ toolName: 'write', input: { path: 'Artifacts/TODO.md', content: 'x' } },
-      { cwd: root }))?.block, true);
-    assert.equal((await tool({ toolName: 'bash', input: { command: 'echo harmless' } }, { cwd: root }))?.block, true);
-    assert.equal((await tool({ toolName: 'mcp__custom', input: {} }, { cwd: root }))?.block, true);
-    assert.equal(await tool({ toolName: 'read', input: { path: project } }, { cwd: root }), undefined);
-  } finally {
-    if (previous === undefined) delete process.env.PI_CONCIERGE_ROOT;
-    else process.env.PI_CONCIERGE_ROOT = previous;
-    if (previousRole === undefined) delete process.env.PI_ROLE;
-    else process.env.PI_ROLE = previousRole;
-  }
-});
-
-test('concierge marker fails closed with missing, blank or relative root and mismatched cwd', async () => {
-  const oldRole = process.env.PI_ROLE;
-  const oldRoot = process.env.PI_CONCIERGE_ROOT;
-  process.env.PI_ROLE = 'concierge';
-  try {
-    for (const value of [undefined, '', '   ', 'relative/path']) {
-      if (value === undefined) delete process.env.PI_CONCIERGE_ROOT;
-      else process.env.PI_CONCIERGE_ROOT = value;
-      const events = await handlers();
-      const tool = events.get('tool_call');
-      for (const toolName of ['edit', 'write', 'bash', 'powershell', 'mcp__write']) {
-        assert.equal((await tool({ toolName, input: { path: 'Artifacts/HANDOFF_BRIEF.md', command: 'echo safe' } },
-          { cwd: root }))?.block, true, `${toolName}: ${value}`);
-      }
-      assert.equal((await events.get('user_bash')({ command: 'echo safe' }, { cwd: root }))?.result?.exitCode, 1);
+    for (const toolName of ['write', 'edit']) {
+      assert.equal(await tool({ toolName, input: { path: 'docs/ok.md', content: 'after', edits: [] } },
+        { cwd: root }), undefined, toolName);
     }
-    process.env.PI_CONCIERGE_ROOT = root;
-    const events = await handlers();
-    const tool = events.get('tool_call');
-    assert.equal((await tool({ toolName: 'write', input: { path: 'Artifacts/HANDOFF_BRIEF.md', content: 'x' } },
-      { cwd: path.dirname(root) }))?.block, true);
   } finally {
-    if (oldRole === undefined) delete process.env.PI_ROLE; else process.env.PI_ROLE = oldRole;
-    if (oldRoot === undefined) delete process.env.PI_CONCIERGE_ROOT; else process.env.PI_CONCIERGE_ROOT = oldRoot;
+    if (previousRole === undefined) delete process.env.PI_ROLE; else process.env.PI_ROLE = previousRole;
   }
 });
 
-test('scoped hook mediates allowed and denied writes with whole-tree before/after hashes', async () => {
+test('concierge hook denies mutations for all roots with unchanged tree and a parent presence control', async (t) => {
   const project = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-t3-hook-'));
   const previousRole = process.env.PI_ROLE;
   const previousRoot = process.env.PI_CONCIERGE_ROOT;
@@ -88,32 +54,43 @@ test('scoped hook mediates allowed and denied writes with whole-tree before/afte
   fs.mkdirSync(path.join(project, 'src'));
   for (const file of ['Artifacts/.agent/current_task.md', 'Artifacts/HANDOFF_BRIEF.md', 'Artifacts/TODO.md',
     'src/code.ts']) fs.writeFileSync(path.join(project, file), 'before');
-  process.env.PI_ROLE = 'concierge';
-  process.env.PI_CONCIERGE_ROOT = project;
   try {
-    const events = await handlers();
-    const hook = events.get('tool_call');
-    const execute = async (toolName, file) => {
-      const outcome = await hook({ toolName, input: { path: file, content: 'after' } }, { cwd: project });
-      if (!outcome?.block && ['write', 'edit'].includes(toolName)) fs.writeFileSync(path.join(project, file), 'after');
-      return outcome;
-    };
+    process.env.PI_ROLE = 'concierge';
     const before = snapshot();
-    const wrongCwd = await hook({ toolName: 'write', input: { path: 'Artifacts/HANDOFF_BRIEF.md', content: 'x' } },
-      { cwd: path.dirname(project) });
-    assert.equal(wrongCwd?.block, true);
-    assert.match(wrongCwd?.reason ?? '', /cwd differs from fixed root/);
-    for (const file of ['Artifacts/TODO.md', 'src/code.ts', 'src/new.ts', '../escape.md']) {
-      assert.equal((await execute('write', file))?.block, true, file);
+    for (const value of [project, undefined, '', '   ', 'relative/path', path.join(project, 'missing')]) {
+      if (value === undefined) delete process.env.PI_CONCIERGE_ROOT;
+      else process.env.PI_CONCIERGE_ROOT = value;
+      const events = await handlers();
+      const hook = events.get('tool_call');
+      for (const toolName of ['read', 'grep', 'find', 'ls']) {
+        assert.equal(await hook({ toolName, input: { path: project } }, { cwd: project }), undefined, `${toolName}: ${value}`);
+      }
+      for (const file of ['Artifacts/.agent/current_task.md', 'Artifacts/HANDOFF_BRIEF.md', 'Artifacts/TODO.md', 'src/code.ts', 'src/new.ts']) {
+        for (const toolName of ['write', 'edit']) {
+          const input = { path: file, content: 'after', edits: [{ oldText: 'before', newText: 'after' }] };
+          const outcome = await hook({ toolName, input }, { cwd: project });
+          if (!outcome?.block) fs.writeFileSync(path.join(project, file), 'after');
+          assert.equal(outcome?.block, true, `${toolName}: ${file}, root ${value}`);
+        }
+      }
+      for (const toolName of ['bash', 'shell', 'powershell', 'mcp__write', 'unknown']) {
+        assert.equal((await hook({ toolName, input: { command: 'echo safe' } }, { cwd: project }))?.block, true, `${toolName}: ${value}`);
+      }
+      assert.equal((await events.get('user_bash')({ command: 'echo safe' }, { cwd: project }))?.result?.exitCode, 1);
+      assert.equal(snapshot(), before, `denied calls leave tree unchanged: ${value}`);
     }
-    assert.equal(snapshot(), before, 'denied calls do not create, remove or change any tree entry');
-    for (const file of ['Artifacts/.agent/current_task.md', 'Artifacts/HANDOFF_BRIEF.md']) {
-      assert.equal(await execute('write', file), undefined);
+    t.diagnostic(`denied cases tree SHA-256 before=${before} after=${snapshot()}`);
+    delete process.env.PI_ROLE;
+    const parent = (await handlers()).get('tool_call');
+    for (const [toolName, content] of [['write', 'after write'], ['edit', 'after edit']]) {
+      const file = 'Artifacts/HANDOFF_BRIEF.md';
+      assert.equal(await parent({ toolName, input: { path: file, content, edits: [{ oldText: 'before', newText: content }] } },
+        { cwd: project }), undefined, `parent ${toolName}`);
+      fs.writeFileSync(path.join(project, file), content);
+      assert.notEqual(snapshot(), before, `presence control detects parent ${toolName}`);
+      fs.writeFileSync(path.join(project, file), 'before');
+      assert.equal(snapshot(), before);
     }
-    assert.notEqual(snapshot(), before);
-    assert.equal(fs.readFileSync(path.join(project, 'Artifacts/TODO.md'), 'utf8'), 'before');
-    assert.equal(fs.readFileSync(path.join(project, 'src/code.ts'), 'utf8'), 'before');
-    assert.equal((await events.get('user_bash')({ command: 'echo safe' }, { cwd: project }))?.result?.exitCode, 1);
   } finally {
     if (previousRole === undefined) delete process.env.PI_ROLE; else process.env.PI_ROLE = previousRole;
     if (previousRoot === undefined) delete process.env.PI_CONCIERGE_ROOT; else process.env.PI_CONCIERGE_ROOT = previousRoot;

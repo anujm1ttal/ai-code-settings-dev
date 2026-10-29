@@ -224,19 +224,13 @@ function commandDenial(raw: unknown, cwd?: unknown): string | undefined {
 
 // Explicitly selected by the pilot parent and shell/write-capable role children.
 export default function guard(pi: ExtensionAPI) {
-  // The concierge runner sets both fields at child launch. A scoped child never falls back to the parent policy.
+  // A concierge child is read-only regardless of root and never falls back to the parent policy.
   const concierge = process.env.PI_ROLE === 'concierge';
   const conciergeRoot = process.env.PI_CONCIERGE_ROOT;
   pi.on('tool_call', async (event, ctx) => {
     if (concierge) {
-      let reason = conciergeToolDenial(conciergeRoot, event.toolName, event.input);
-      if (!reason && (event.toolName === 'write' || event.toolName === 'edit')) {
-        try {
-          if (!conciergeRoot || !path.isAbsolute(conciergeRoot) ||
-              fs.realpathSync(ctx.cwd) !== fs.realpathSync(conciergeRoot)) reason = 'Concierge cwd differs from fixed root';
-        } catch { reason = 'Unverifiable concierge cwd'; }
-      }
-      if (reason) return { block: true, reason };
+      const reason = conciergeToolDenial(conciergeRoot, event.toolName, event.input);
+      return reason ? { block: true, reason } : undefined;
     }
     if (event.toolName === 'edit' || event.toolName === 'write') {
       if (typeof ctx.cwd !== 'string') return { block: true, reason: 'Missing project directory' };
