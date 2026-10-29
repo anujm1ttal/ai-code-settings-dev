@@ -149,7 +149,7 @@ test('valid explorer builds exact read-only argv even when tools are reordered',
     const file = path.join(dir, 'policy.json');
     writeFileSync(file, JSON.stringify(expanded));
     const args = buildAgentArgs(loadRolePolicy(file), 'explorer', '/tmp/role.md', 'Explore');
-    assert.deepEqual(args, ['--mode', 'json', '--print', '--no-session', '--no-extensions',
+    assert.deepEqual(args, ['--mode', 'json', '--print', '--no-session', '--no-extensions', '--no-mcp',
       '--model', 'pilot-gpt/luna', '--thinking', 'low', '--tools', 'read,grep,find,ls',
       '--exclude-tools', 'mcp__*', '--append-system-prompt', '/tmp/role.md', 'Task: Explore']);
     assert.equal(args.includes('--extension'), false);

@@ -40,8 +40,6 @@ test('isolated preview stages the concierge guard dependency used by the selecte
     const { stagePreview, rollbackPreview } = await release();
     const handle = stagePreview({ sourceRoot, sandboxRoot: root });
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/concierge-guard.mjs')));
-    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/concierge-evidence.mjs')));
-    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/agents/concierge.md')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/agents/council-perspectives.md')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/council-evidence.mjs')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/council-perspective.mjs')));

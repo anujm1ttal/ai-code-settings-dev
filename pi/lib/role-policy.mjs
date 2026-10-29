@@ -65,6 +65,7 @@ export function buildAgentArgs(policy, roleName, promptPath, task, { profile } =
   const tools = profile === 'council-read-only' || roleName === 'explorer' ? EXPLORER_TOOLS : role.tools;
   return [
     '--mode', 'json', '--print', '--no-session', '--no-extensions',
+    ...(roleName === 'explorer' ? ['--no-mcp'] : []),
     ...(tools.some((tool) => WRITE_OR_SHELL.has(tool)) ? ['--extension', GUARD_PATH] : []),
     '--model', role.model, '--thinking', role.thinking,
     '--tools', tools.join(','), '--exclude-tools', 'mcp__*',

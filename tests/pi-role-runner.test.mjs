@@ -46,7 +46,64 @@ test('dispatches an isolated auditor and verifies observed model and thinking', 
   assert.deepEqual(result, { role: 'auditor', model: 'pilot-claude/sonnet',
     thinking: 'high', text: 'FAIL: revise tests', usage: { input: 1, output: 1,
       cacheRead: 0, cacheWrite: 0, totalTokens: 2,
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+    toolCounts: {}, successfulReads: 0 });
+});
+
+test('explorer dispatches without project state and reports bounded tool metadata', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-explorer-dispatch-'));
+  const expanded = { ...policy, roles: { ...policy.roles,
+    explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+  const fake = fakeSpawn([
+    { type: 'tool_execution_start', toolCallId: '1', toolName: 'read', args: { path: 'secret-argument' } },
+    { type: 'tool_execution_end', toolCallId: '1', toolName: 'read', isError: false, result: 'secret-content' },
+    { type: 'tool_execution_start', toolCallId: '2', toolName: 'read', args: { path: 'missing' } },
+    { type: 'tool_execution_end', toolCallId: '2', toolName: 'read', isError: true },
+    { type: 'tool_execution_end', toolCallId: '3', toolName: 'read' },
+    ...['grep', 'find', 'ls'].map(toolName => ({ type: 'tool_execution_start', toolName })),
+    assistant('pilot-gpt', 'luna', 'low', 'Source: file:1'),
+  ]);
+  const previousRole = process.env.PI_ROLE;
+  const previousRoot = process.env.PI_CONCIERGE_ROOT;
+  process.env.PI_ROLE = 'concierge';
+  process.env.PI_CONCIERGE_ROOT = 'inherited';
+  try {
+    const result = await runRole(expanded, 'explorer', 'Find callers', root, '/tmp/explorer.md',
+      { spawnImpl: fake.spawnImpl });
+    assert.deepEqual(result.toolCounts, { read: 2, grep: 1, find: 1, ls: 1 });
+    assert.equal(result.successfulReads, 1);
+    assert.doesNotMatch(JSON.stringify(result), /secret-argument|secret-content/);
+    const { args, options } = fake.calls[0];
+    assert.equal(args[args.indexOf('--tools') + 1], 'read,grep,find,ls');
+    assert.ok(args.includes('--no-mcp'));
+    assert.equal(args.includes('--extension'), false);
+    assert.equal(options.env.PI_ROLE, undefined);
+    assert.equal(options.env.PI_CONCIERGE_ROOT, undefined);
+    assert.equal(fs.existsSync(path.join(root, 'Artifacts')), false);
+  } finally {
+    if (previousRole === undefined) delete process.env.PI_ROLE; else process.env.PI_ROLE = previousRole;
+    if (previousRoot === undefined) delete process.env.PI_CONCIERGE_ROOT; else process.env.PI_CONCIERGE_ROOT = previousRoot;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('explorer rejects every observed non-read tool and mismatched model or thinking', async () => {
+  const expanded = { ...policy, roles: { ...policy.roles,
+    explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+  for (const toolName of ['bash', 'edit', 'write', 'unknown']) {
+    const fake = fakeSpawn([{ type: 'tool_execution_start', toolName, args: {} },
+      assistant('pilot-gpt', 'luna', 'low', 'Result')]);
+    await assert.rejects(runRole(expanded, 'explorer', 'Explore', '.', '/tmp/explorer.md',
+      { spawnImpl: fake.spawnImpl }), new RegExp(`Explorer attempted ${toolName} tool`));
+  }
+  for (const [provider, model, thinking, expected] of [
+    ['pilot-gpt', 'sol', 'low', /Unexpected model/],
+    ['pilot-gpt', 'luna', 'high', /Unexpected thinking/],
+  ]) {
+    const fake = fakeSpawn([assistant(provider, model, thinking, 'Result')]);
+    await assert.rejects(runRole(expanded, 'explorer', 'Explore', '.', '/tmp/explorer.md',
+      { spawnImpl: fake.spawnImpl }), expected);
+  }
 });
 
 test('concierge policy is rejected during load, before a child can spawn', () => {

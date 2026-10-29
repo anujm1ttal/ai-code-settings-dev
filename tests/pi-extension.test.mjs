@@ -31,16 +31,20 @@ test('role extension exposes an explicit council-perspective route, never a writ
   assert.match(contract, /read-only/i);
 });
 
-test('role extension exposes a concierge role with required bounded captured evidence', () => {
+test('role extension exposes a read-only explorer with unchanged tasks and bounded metadata', () => {
   const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
-  assert.match(extension, /Type\.Literal\('concierge'\)/);
-  assert.match(extension, /validateConciergeEvidence/);
-  assert.match(extension, /evidencePath/);
-  assert.match(extension, /role === 'concierge'|params\.role === 'concierge'/);
-  const prompt = readFileSync(path.join(repo, 'pi/agents/concierge.md'), 'utf8');
-  assert.match(prompt, /current_task\.md/);
-  assert.match(prompt, /HANDOFF_BRIEF\.md/);
-  assert.match(prompt, /local-only/i);
+  assert.match(extension, /Type\.Literal\('explorer'\)/);
+  assert.match(extension, /read-only scribe, read-only explorer/);
+  assert.doesNotMatch(extension, /concierge|validateConciergeEvidence/i);
+  assert.match(extension, /runRole\(policy, params\.role, params\.task, ctx\.cwd/);
+  assert.match(extension, /toolCounts/);
+  assert.match(extension, /successfulReads/);
+  const prompt = readFileSync(path.join(repo, 'pi/agents/explorer.md'), 'utf8');
+  for (const pattern of [/read-only/i, /read.*grep.*find.*ls/i, /file:line/i,
+    /callers/i, /imports/i, /types/i, /tests/i, /call chain/i, /coverage/i,
+    /truncat/i, /not.found/i, /unresolved/i, /secrets/i, /user config/i]) {
+    assert.match(prompt, pattern);
+  }
 });
 
 test('role extension exposes a scribe child schema and a dedicated prompt', () => {

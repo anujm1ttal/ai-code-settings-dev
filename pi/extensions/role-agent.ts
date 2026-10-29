@@ -5,7 +5,6 @@ import { Type } from '@earendil-works/pi-ai';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { loadRolePolicy } from '../lib/role-policy.mjs';
 import { runRole } from '../lib/role-runner.mjs';
-import { validateConciergeEvidence } from '../lib/concierge-evidence.mjs';
 import { runCouncilPerspective } from '../lib/council-perspective.mjs';
 import { runCouncilSession } from '../lib/council-session.mjs';
 
@@ -69,30 +68,29 @@ export default function (pi: ExtensionAPI) {
   pi.registerTool({
     name: 'pi_role_agent',
     label: 'Pi role agent',
-    description: 'Delegate a bounded task to a configured isolated strategist, coder, report-only auditor, read-only scribe, two-file concierge, or read-only council perspective. ' +
+    description: 'Delegate a bounded task to a configured isolated strategist, coder, report-only auditor, read-only scribe, read-only explorer, or read-only council perspective. ' +
       'The role policy selects one explicitly configured model and thinking level; inspect the returned evidence.',
     parameters: Type.Object({
-      role: Type.Union([Type.Literal('strategist'), Type.Literal('coder'), Type.Literal('auditor'), Type.Literal('scribe'), Type.Literal('concierge'), Type.Literal('council-perspective')]),
+      role: Type.Union([Type.Literal('strategist'), Type.Literal('coder'), Type.Literal('auditor'), Type.Literal('scribe'), Type.Literal('explorer'), Type.Literal('council-perspective')]),
       task: Type.String({ minLength: 1, description: 'Specific bounded task and expected output' }),
       perspective: Type.Optional(Type.Union([Type.Literal('strategist'), Type.Literal('coder'), Type.Literal('auditor')])),
-      evidencePath: Type.Optional(Type.String({ description: 'Absolute captured evidence under project Artifacts/Temp' })),
+      evidencePath: Type.Optional(Type.String({ description: 'Council only: absolute synthetic evidence under project Artifacts/Temp' })),
       evidenceSha256: Type.Optional(Type.String({ description: 'Council only: one common SHA-256 for all perspective calls' })),
     }),
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       const council = params.role === 'council-perspective';
       const promptPath = path.join(sourceRoot, 'agents', council ? 'council-perspectives.md' : `${params.role}.md`);
-      const task = params.role === 'concierge'
-        ? `${params.task}\nCaptured evidence: ${JSON.stringify(validateConciergeEvidence(ctx.cwd, params.evidencePath).path)}. Read and cite it; do not run commands.`
-        : params.task;
       const result = council
-        ? await runCouncilPerspective(policy, { perspective: params.perspective, question: task,
+        ? await runCouncilPerspective(policy, { perspective: params.perspective, question: params.task,
           evidencePath: params.evidencePath, evidenceSha256: params.evidenceSha256 }, ctx.cwd, promptPath,
           { signal, invocation: invocation() })
-        : await runRole(policy, params.role, task, ctx.cwd, promptPath,
+        : await runRole(policy, params.role, params.task, ctx.cwd, promptPath,
           { signal, invocation: invocation() });
       return {
         content: [{ type: 'text', text: `${result.role} (${result.model}, ${result.thinking})\n\n${result.text}` }],
         details: { role: result.role, model: result.model, thinking: result.thinking,
+          ...(result.toolCounts !== undefined ? { toolCounts: result.toolCounts } : {}),
+          ...(result.successfulReads !== undefined ? { successfulReads: result.successfulReads } : {}),
           ...(council ? { perspective: result.perspective, evidenceSha256: result.evidenceSha256 } : {}) },
         usage: result.usage,
       };
