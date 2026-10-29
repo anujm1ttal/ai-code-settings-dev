@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
 const TOOL_NAMES = new Set(['read', 'grep', 'find', 'ls', 'bash', 'edit', 'write', 'powershell']);
 const WRITE_OR_SHELL = new Set(['bash', 'powershell', 'edit', 'write']);
-const READ_ONLY_ROLES = new Set(['auditor', 'scribe', 'explorer']);
+const READ_ONLY_ROLES = new Set(['strategist', 'auditor', 'scribe', 'explorer']);
 const EXPLORER_TOOLS = ['read', 'grep', 'find', 'ls'];
 const EXPLORER_TOOL_SET = new Set(EXPLORER_TOOLS);
 

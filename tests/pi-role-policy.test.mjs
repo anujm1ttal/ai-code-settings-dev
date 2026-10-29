@@ -13,6 +13,44 @@ test('real provider bindings are not stored in the public Pi source tree', () =>
   assert.equal(existsSync(path.join(repo, 'pi', 'role-policy.json')), false);
 });
 
+test('loads a read-only strategist and a coder with shell and write tools', () => {
+  const original = loadRolePolicy(policyFile);
+  const tools = ['read', 'grep', 'find', 'ls'];
+  const coderTools = [...tools, 'bash', 'powershell', 'edit', 'write'];
+  const configured = { ...original, roles: { ...original.roles,
+    strategist: { ...original.roles.strategist, tools },
+    coder: { ...original.roles.coder, tools: coderTools } } };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-strategist-policy-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    writeFileSync(file, JSON.stringify(configured));
+    const loaded = loadRolePolicy(file);
+    assert.deepEqual(loaded.roles.strategist.tools, tools);
+    assert.deepEqual(loaded.roles.coder.tools, coderTools);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+for (const tool of ['bash', 'powershell', 'edit', 'write']) {
+  test(`rejects strategist ${tool} in a loaded policy`, () => {
+    const original = loadRolePolicy(policyFile);
+    const unsafe = { ...original, roles: { ...original.roles,
+      strategist: { ...original.roles.strategist, tools: ['read', tool] } } };
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-strategist-unsafe-'));
+    try {
+      const file = path.join(dir, 'policy.json');
+      writeFileSync(file, JSON.stringify(unsafe));
+      assert.throws(() => loadRolePolicy(file), /Invalid role configuration for strategist/);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test(`rejects strategist ${tool} during argv construction`, () => {
+    const original = loadRolePolicy(policyFile);
+    const unsafe = { ...original, roles: { ...original.roles,
+      strategist: { ...original.roles.strategist, tools: ['read', tool] } } };
+    assert.throws(() => buildAgentArgs(unsafe, 'strategist', '/tmp/role.md', 'Plan'), /Strategist tools/);
+  });
+}
+
 test('accepts a fourth, read-only scribe binding without expanding the five-model allowlist', () => {
   const original = loadRolePolicy(policyFile);
   const expanded = { ...original, roles: { ...original.roles,

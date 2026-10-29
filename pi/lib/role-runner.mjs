@@ -5,7 +5,7 @@ import { buildAgentArgs } from './role-policy.mjs';
 
 const MAX_ERROR_BYTES = 2048;
 const MAX_STREAM_BYTES = 8 * 1024 * 1024;
-const READ_ONLY_ROLES = new Set(['auditor', 'scribe', 'explorer']);
+const READ_ONLY_ROLES = new Set(['strategist', 'auditor', 'scribe', 'explorer']);
 const READ_ONLY_TOOLS = new Set(['read', 'grep', 'find', 'ls']);
 
 export async function runRole(policy, roleName, task, cwd, promptPath, options = {}) {

@@ -204,6 +204,16 @@ test('rejects incorrect observed thinking even with exit zero', async () => {
     { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /Unexpected thinking/);
 });
 
+for (const toolName of ['bash', 'powershell', 'edit', 'write', 'mcp__mutate']) {
+  test(`rejects observed strategist ${toolName} execution`, async () => {
+    const fake = fakeSpawn([{ type: 'tool_execution_start', toolName, args: {} },
+      assistant('pilot-gpt', 'sol', 'high', 'Plan')]);
+    await assert.rejects(runRole(policy, 'strategist', 'Plan', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }),
+    new RegExp(`Strategist attempted ${toolName} tool`));
+  });
+}
+
 test('rejects auditor write-tool execution and subagent error responses', async () => {
   const fake = fakeSpawn([{ type: 'tool_execution_start', toolName: 'write', args: { path: 'src/a.py' } },
     assistant('pilot-claude', 'sonnet', 'high', 'Done')]);
