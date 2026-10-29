@@ -413,6 +413,130 @@ test('the role-agent extension wires the job tool and leaves the synchronous rou
   assert.match(extension, /name: 'pi_council'/);
 });
 
+// Characterization of the existing lifecycle at the registered tool and hook entry points.
+// All runners are pending fakes; auditor admissions use a real, pinned temporary manifest.
+for (const role of ['explorer', 'strategist', 'auditor']) {
+  function lifecycleSetup(t) {
+    const f = auditFixture(t);
+    const gate = createExpensiveGate();
+    const env = setup({ strategist: true, auditor: true, gate,
+      promptPaths: { strategist: '/plan', auditor: '/audit' },
+      jobBudget: { perJobUsd: 1, perSessionUsd: 100,
+        rates: { 'pilot-gpt/luna': { inputPerMTok: 2, outputPerMTok: 4 } } } });
+    const start = (task = 'review') => env.call({ action: 'start', task, role,
+      ...(role === 'auditor' ? { evidencePath: f.manifest, evidenceSha256: f.sha } : {}) }, { cwd: f.root });
+    return { ...env, gate, start };
+  }
+
+  test(`${role}: start returns within one second with a pending runner; cancel holds admission until settlement`, async (t) => {
+    const { call, runs, gate, start } = lifecycleSetup(t);
+    const before = performance.now();
+    let watchdog;
+    const { details: { job } } = await Promise.race([
+      start(),
+      new Promise((_, reject) => { watchdog = setTimeout(() => reject(new Error('start exceeded one second')), 1000); }),
+    ]).finally(() => clearTimeout(watchdog));
+    assert.ok(performance.now() - before < 1000, 'start must return within one second');
+    assert.equal(runs.length, 1);
+    assert.equal(runs[0].role, role);
+    assert.equal((await call({ action: 'collect', jobId: job.id })).details.ready, false);
+    assert.equal((await call({ action: 'cancel', jobId: job.id })).details.job.state, 'cancelling');
+    assert.equal(runs[0].options.signal.aborted, true);
+    if (role !== 'explorer') {
+      await assert.rejects(start('blocked'), /Another expensive operation is active/);
+      assert.equal(gate.active(), `background ${role} job`);
+      assert.equal((await call({ action: 'status' })).details.budget.reservedUsd, 1);
+    }
+    assert.equal(runs.length, 1);
+    await call({ action: 'start', task: 'other slot', role: 'explorer' });
+    assert.equal(runs[1].options.signal.aborted, false);
+    await assert.rejects(call({ action: 'start', task: 'over capacity', role: 'explorer' }), /limit/i);
+    assert.equal(runs.length, 2);
+    runs[0].reject(new Error('Agent dispatch aborted')); await tick();
+    const collected = await call({ action: 'collect', jobId: job.id });
+    assert.equal(collected.details.state, 'cancelled');
+    assert.equal(collected.details.usageUnknown, true);
+    if (role !== 'explorer') {
+      assert.deepEqual(collected.details.cost, { unknown: true });
+      assert.equal(gate.active(), undefined);
+      assert.equal((await call({ action: 'status' })).details.budget.reservedUsd, 1);
+    }
+    await start('after cancellation');
+    assert.equal(runs.length, 3);
+  });
+
+  for (const event of ['session_tree', 'session_shutdown']) {
+    test(`${role}: ${event} aborts, waits, discards, and applies admission policy`, async (t) => {
+      const { call, runs, handlers, gate, start } = lifecycleSetup(t);
+      const { details: { job } } = await start();
+      let finished = false;
+      const draining = handlers.get(event)({ type: event }).then(() => { finished = true; });
+      await tick();
+      assert.equal(runs[0].options.signal.aborted, true);
+      assert.equal(finished, false);
+      await assert.rejects(start('during drain'), /closed|draining/i);
+      assert.equal(runs.length, 1);
+      // A success racing the drain is charged, but its result must not be exposed.
+      runs[0].resolve(result('discarded', 100000)); await draining;
+      await assert.rejects(call({ action: 'collect', jobId: job.id }), /unknown|expired/i);
+      assert.equal(gate.active(), undefined);
+      if (role !== 'explorer') {
+        const budget = (await call({ action: 'status' })).details.budget;
+        assert.equal(budget.spentUsd, 0.2);
+        assert.equal(budget.reservedUsd, 0);
+      }
+      if (event === 'session_tree') {
+        await start('new branch');
+        assert.equal(runs.length, 2);
+      } else {
+        await assert.rejects(start('after shutdown'), /closed/i);
+        assert.equal(runs.length, 1);
+      }
+    });
+  }
+
+  test(`${role}: unconfirmed cleanup survives tree discard and holds its slot and any expensive gate`, async (t) => {
+    const { call, runs, handlers, gate, start } = lifecycleSetup(t);
+    const { details: { job } } = await start();
+    const draining = handlers.get('session_tree')({ type: 'session_tree' });
+    assert.equal(runs[0].options.signal.aborted, true);
+    runs[0].reject(new Error('Agent dispatch aborted; cleanup unconfirmed: child did not close'));
+    await draining;
+    const out = await call({ action: 'collect', jobId: job.id });
+    assert.equal(out.details.state, 'failed');
+    assert.equal(out.details.quarantined, true);
+    if (role !== 'explorer') {
+      assert.deepEqual(out.details.cost, { unknown: true });
+      assert.equal((await call({ action: 'status' })).details.budget.reservedUsd, 1);
+      assert.equal(gate.active(), `background ${role} job`);
+      await assert.rejects(start('blocked by gate'), /Another expensive operation is active/);
+    }
+    await call({ action: 'start', task: 'slot control', role: 'explorer' });
+    assert.equal(runs.length, 2);
+    await assert.rejects(call({ action: 'start', task: 'third', role: 'explorer' }), /limit|quarantin/i);
+    assert.equal(runs.length, 2);
+  });
+
+  test(`${role}: retained uncollected results block admission; collection permits oldest-first eviction`, async (t) => {
+    const { call, runs, start } = lifecycleSetup(t);
+    const ids = [];
+    for (let i = 0; i < 16; i++) {
+      const { details: { job } } = await start(`job ${i}`); ids.push(job.id);
+      runs[i].resolve(result(`answer ${i}`)); await tick();
+    }
+    await assert.rejects(start('overflow'), /retained|uncollected|limit/i);
+    assert.equal(runs.length, 16);
+    const first = await call({ action: 'collect', jobId: ids[0] });
+    assert.match(first.content[0].text, /answer 0/);
+    if (role === 'auditor') assert.deepEqual(first.details.evidence, { status: 'VERIFIED' });
+    assert.match((await call({ action: 'collect', jobId: ids[1] })).content[0].text, /answer 1/);
+    await start('after collection');
+    assert.equal(runs.length, 17);
+    await assert.rejects(call({ action: 'status', jobId: ids[0] }), /unknown|expired/i);
+    assert.match((await call({ action: 'collect', jobId: ids[1] })).content[0].text, /answer 1/);
+  });
+}
+
 // Real Pi extension loader (SDK-gated like the other runtime-discovery tests). It never starts a job,
 // so no child process and no model call can happen here.
 test('the real Pi loader registers the job tool and only the two lifecycle hooks, and only with an eligible role',

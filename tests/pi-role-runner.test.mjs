@@ -255,6 +255,32 @@ test('rejects any observed auditor bash execution even if policy tools were bypa
     { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /Auditor attempted bash/);
 });
 
+for (const role of ['explorer', 'strategist', 'auditor']) {
+  test(`${role}: default deadline is ten minutes, not before, with a pending fake child`, async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const expanded = { ...policy, roles: { ...policy.roles,
+      explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+    const signals = [];
+    const child = new EventEmitter();
+    child.stdout = new PassThrough(); child.stderr = new PassThrough();
+    child.kill = signal => { signals.push(signal); return true; };
+    let settled = false;
+    const pending = runRole(expanded, role, 'fixture', '.', '/tmp/role.md', {
+      spawnImpl: () => child, killerImpl: () => { throw new Error('no real killer'); },
+    }).then(() => { settled = true; return null; }, error => { settled = true; return error; });
+    t.mock.timers.tick(599999);
+    await Promise.resolve();
+    assert.equal(settled, false);
+    assert.deepEqual(signals, [], 'the child is still pending just before the deadline');
+    t.mock.timers.tick(1);
+    assert.deepEqual(signals, ['SIGTERM']);
+    assert.equal(settled, false, 'timeout must wait for cleanup');
+    child.emit('close', null);
+    const error = await pending;
+    assert.match(error?.message ?? '', new RegExp(`Pi ${role} subagent timed out after 600000 ms`));
+  });
+}
+
 test('returns a bounded timeout error when a child ignores termination', async () => {
   const signals = [];
   const spawnImpl = () => {

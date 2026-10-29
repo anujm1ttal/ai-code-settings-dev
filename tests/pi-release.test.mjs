@@ -56,6 +56,57 @@ test('isolated preview stages the concierge guard dependency used by the selecte
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
+test('PI-4 preview stages exact job dependencies and loads the budget-denying job tool', async (t) => {
+  const sdkPath = process.env.PI_CODING_AGENT_SDK_PATH;
+  if (!sdkPath) return t.skip('Set PI_CODING_AGENT_SDK_PATH for Pi runtime discovery');
+  const root = sandbox();
+  const previous = process.env.PI_ROLE_POLICY_PATH;
+  let staged;
+  try {
+    const agent = path.join(root, 'agent');
+    fs.mkdirSync(agent);
+    fs.writeFileSync(path.join(agent, 'prior.txt'), 'pre-existing sandbox state');
+    const before = snapshot(agent);
+    const { stagePreview, rollbackPreview } = await release();
+    staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    const hash = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+    for (const relative of ['pi/extensions/role-agent.ts', 'pi/lib/job-manager.mjs', 'pi/lib/explorer-jobs.mjs',
+      'pi/lib/audit-evidence.mjs', 'pi/lib/job-budget.mjs', 'pi/lib/expensive-gate.mjs',
+      'pi/lib/role-policy.mjs', 'pi/lib/role-runner.mjs', 'pi/lib/council-evidence.mjs',
+      'pi/lib/council-perspective.mjs', 'pi/lib/council-session.mjs',
+      'pi/agents/explorer.md', 'pi/agents/strategist.md', 'pi/agents/auditor.md']) {
+      assert.equal(hash(path.join(staged.destination, relative)), hash(path.join(sourceRoot, relative)), relative);
+    }
+    const policyPath = path.join(root, 'policy.json');
+    fs.copyFileSync(path.join(sourceRoot, 'tests/fixtures/pi-role-policy.json'), policyPath);
+    process.env.PI_ROLE_POLICY_PATH = policyPath;
+    const { DefaultResourceLoader } = await import(pathToFileURL(sdkPath).href);
+    const loader = new DefaultResourceLoader({ cwd: root, agentDir: staged.destination, noExtensions: true,
+      additionalExtensionPaths: [path.join(staged.destination, 'pi/extensions/role-agent.ts')] });
+    await loader.reload();
+    const loaded = loader.getExtensions();
+    assert.deepEqual(loaded.errors, []);
+    const extension = loaded.extensions[0];
+    assert.ok(extension.tools.has('pi_role_agent'));
+    assert.ok(extension.tools.has('pi_council'));
+    const tool = extension.tools.get('pi_explorer_job')?.definition;
+    assert.ok(tool, 'strategist-only eligible policy must register the staged job tool');
+    const context = { cwd: root };
+    assert.match((await tool.execute('status', { action: 'status' }, undefined, undefined, context)).content[0].text, /No jobs/);
+    await assert.rejects(tool.execute('start', { action: 'start', task: 'fixture', role: 'strategist' },
+      undefined, undefined, context), /job budget is not configured/);
+    assert.match((await tool.execute('status2', { action: 'status' }, undefined, undefined, context)).content[0].text, /No jobs/);
+    rollbackPreview(staged);
+    staged = undefined;
+    assert.deepEqual(snapshot(agent), before, 'PI-4 staged runtime rollback restores prior sandbox bytes');
+    assert.equal(fs.existsSync(path.join(root, 'backup')), false);
+  } finally {
+    if (previous === undefined) delete process.env.PI_ROLE_POLICY_PATH; else process.env.PI_ROLE_POLICY_PATH = previous;
+    if (staged) (await release()).rollbackPreview(staged);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('isolated preview stages the explorer prompt unchanged and excludes retired concierge resources', async () => {
   const root = sandbox();
   try {
