@@ -24,7 +24,7 @@ function describeCollected(out) {
 }
 
 /**
- * Registers the detached role job tool and its two lifecycle hooks. The manager is
+ * Registers the detached role job tool and its session lifecycle hooks. The manager is
  * created per call, i.e. per extension runtime, so a reload or session replacement never shares jobs.
  * Jobs survive ordinary run boundaries; only session shutdown and a successful tree navigation end them.
  */
@@ -33,8 +33,10 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
   if (!ROLES.some((role) => Object.hasOwn(policy?.roles ?? {}, role) && policy.roles[role])) return undefined;
   const paths = { ...promptPaths, explorer: promptPaths?.explorer ?? promptPath };
   const budget = policy.jobBudget ? createJobBudget({ ...policy.jobBudget, modelOf: role => policy.roles[role].model }) : undefined;
+  let notify = null;
   const jobs = createJobManager({
     gate, budget,
+    onTerminal: ({ id, role, state }) => notify?.(`Job ${id} (${role}) ${state}. Use pi_explorer_job collect with this id.`),
     run: (task, { signal, context, role }) => {
       const requiredReadPath = context.manifestPath;
       const childTask = requiredReadPath
@@ -52,7 +54,9 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
       'start returns a job id immediately; the job keeps running while you continue. At most two jobs run at once; ' +
       'a third start is rejected. Results are held in memory by the job manager, and are discarded on session end or ' +
       'tree navigation. Usage is added to session totals when a result is first collected; uncollected or failed ' +
-      'jobs may be missing from those totals. Reads are not confined to the project: use trusted, non-secret projects.',
+      'jobs may be missing from those totals. The user sees a metadata-only notification when a job finishes; it never starts a model turn. ' +
+      'This notification is best-effort and appears only with an attached UI; headless and print modes are silent, while RPC may forward it to a client. ' +
+      'Reads are not confined to the project: use trusted, non-secret projects.',
     parameters: Type.Object({
       action: Type.Union(ACTIONS.map((action) => Type.Literal(action))),
       role: Type.Optional(Type.String({ description: 'start only: explorer (default), strategist, or auditor' })),
@@ -116,7 +120,14 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
     },
   });
 
-  pi.on('session_shutdown', async () => { await jobs.shutdown(); });
+  pi.on('session_start', (_event, ctx) => {
+    const ui = ctx.hasUI ? ctx.ui : null;
+    notify = ui ? (text) => {
+      const result = ui.notify(text, 'info');
+      if (result && typeof result.then === 'function') result.then(undefined, () => {});
+    } : null;
+  });
+  pi.on('session_shutdown', async () => { notify = null; await jobs.shutdown(); });
   pi.on('session_tree', async () => { await jobs.discardAll(); });
   return jobs;
 }

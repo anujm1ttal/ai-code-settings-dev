@@ -33,15 +33,149 @@ function setup({ explorer = true, strategist = false, auditor = false, accessImp
     ...(defaultAccess ? {} : { accessImpl }), invocation: { command: 'pi', args: [] }, runRoleImpl });
   const call = (params, { id = `tc-${Math.random()}`, signal, cwd = '/project' } = {}) =>
     tools.get('pi_explorer_job').execute(id, params, signal, undefined, { cwd });
-  return { tools, handlers, runs, call, policy };
+  const sessionStart = (ctx) => handlers.get('session_start')({ type: 'session_start' }, ctx);
+  return { tools, handlers, runs, call, policy, sessionStart };
 }
 const result = (text = 'Source: a.mjs:1', total = 7) => ({ role: 'explorer', model: 'pilot-gpt/luna',
   thinking: 'medium', text, usage: usage(total), toolCounts: { read: 1 }, successfulReads: 1 });
 
-test('registers the job tool and exactly the two lifecycle hooks only when an eligible role is configured', () => {
+test('detached job notification documentation states best-effort UI availability', () => {
+  const readme = readFileSync(path.join(repo, 'pi/README.md'), 'utf8');
+  const paragraph = readme.split('\n').find(line => line.startsWith('**Detached read-only jobs'));
+  const description = setup().tools.get('pi_explorer_job').description;
+  for (const text of [paragraph, description]) {
+    assert.match(text, /best-effort/i);
+    assert.match(text, /\bUI\b/);
+    assert.match(text, /metadata-only notification when a job finishes; it never starts a model turn\./);
+  }
+});
+
+test('session UI receives one metadata-only notification after a job finishes', async () => {
+  const { call, runs, sessionStart } = setup();
+  const notifications = [];
+  sessionStart({ hasUI: true, ui: { notify: (...args) => notifications.push(args) } });
+  const { details: { job } } = await call({ action: 'start', task: 'explore' });
+  assert.deepEqual(notifications, []);
+  runs[0].resolve(result('SECRET ANSWER')); await tick();
+  assert.deepEqual(notifications, [[`Job ${job.id} (explorer) succeeded. Use pi_explorer_job collect with this id.`, 'info']]);
+});
+
+test('no UI and no session_start are silent, with UI presence control', async () => {
+  const { call, runs, sessionStart } = setup(); const notifications = [];
+  let job = (await call({ action: 'start', task: 'before session start' })).details.job;
+  runs[0].resolve(result()); await tick();
+  assert.equal((await call({ action: 'collect', jobId: job.id })).details.state, 'succeeded');
+  sessionStart({ hasUI: false, ui: { notify: (...args) => notifications.push(args) } });
+  job = (await call({ action: 'start', task: 'headless' })).details.job;
+  runs[1].resolve(result()); await tick();
+  assert.deepEqual(notifications, []);
+  sessionStart({ hasUI: true, ui: { notify: (...args) => notifications.push(args) } });
+  job = (await call({ action: 'start', task: 'control' })).details.job;
+  runs[2].resolve(result()); await tick();
+  assert.deepEqual(notifications, [[`Job ${job.id} (explorer) succeeded. Use pi_explorer_job collect with this id.`, 'info']]);
+});
+
+test('session start replaces UI with headless and can restore UI notifications', async () => {
+  const { call, runs, sessionStart } = setup(); const notifications = [];
+  const ui = { notify: (...args) => notifications.push(args) };
+  sessionStart({ hasUI: true, ui });
+  const silent = (await call({ action: 'start', task: 'settle headless' })).details.job;
+  sessionStart({ hasUI: false, ui });
+  runs[0].resolve(result()); await tick();
+  assert.equal((await call({ action: 'status', jobId: silent.id })).details.job.state, 'succeeded');
+  assert.deepEqual(notifications, []);
+  sessionStart({ hasUI: true, ui });
+  const control = (await call({ action: 'start', task: 'UI control' })).details.job;
+  runs[1].resolve(result()); await tick();
+  assert.deepEqual(notifications, [[`Job ${control.id} (explorer) succeeded. Use pi_explorer_job collect with this id.`, 'info']]);
+});
+
+test('shutdown clears notifier before a late quarantined settlement', async () => {
+  const { call, runs, handlers, sessionStart } = setup(); const notifications = [];
+  sessionStart({ hasUI: true, ui: { notify: (...args) => notifications.push(args) } });
+  const control = (await call({ action: 'start', task: 'control' })).details.job;
+  runs[0].resolve(result()); await tick();
+  assert.deepEqual(notifications, [[`Job ${control.id} (explorer) succeeded. Use pi_explorer_job collect with this id.`, 'info']]);
+  await call({ action: 'start', task: 'late' });
+  const closing = handlers.get('session_shutdown')({ type: 'session_shutdown' });
+  runs[1].reject(new Error('cleanup unconfirmed')); await closing;
+  assert.equal(notifications.length, 1);
+});
+
+test('tree discard retains notifier for quarantined and fresh jobs, but not discarded normal jobs', async () => {
+  const { call, runs, handlers, sessionStart } = setup(); const notifications = [];
+  sessionStart({ hasUI: true, ui: { notify: (...args) => notifications.push(args) } });
+  const stuck = (await call({ action: 'start', task: 'stuck' })).details.job;
+  await call({ action: 'start', task: 'normal' });
+  const drain = handlers.get('session_tree')({ type: 'session_tree' });
+  runs[0].reject(new Error('cleanup unconfirmed secret')); runs[1].resolve(result('secret')); await drain;
+  assert.deepEqual(notifications, [[`Job ${stuck.id} (explorer) failed. Use pi_explorer_job collect with this id.`, 'info']]);
+  const fresh = (await call({ action: 'start', task: 'fresh' })).details.job;
+  runs[2].resolve(result()); await tick();
+  assert.deepEqual(notifications[1], [`Job ${fresh.id} (explorer) succeeded. Use pi_explorer_job collect with this id.`, 'info']);
+  assert.equal(notifications.length, 2);
+});
+
+test('throwing UI notify preserves expensive job accounting, cleanup and quarantine', async () => {
+  async function run(throws, quarantine) {
+    const gate = createExpensiveGate(); let notified = 0;
+    const { call, runs, sessionStart } = setup({ strategist: true, promptPaths: { strategist: '/plan' }, gate });
+    sessionStart({ hasUI: true, ui: { notify: () => { notified++; if (throws) throw new Error('UI failure'); } } });
+    const job = (await call({ action: 'start', task: 'plan', role: 'strategist' })).details.job;
+    if (quarantine) runs[0].reject(new Error('cleanup unconfirmed'));
+    else runs[0].resolve(result('secret', 100000));
+    await tick();
+    const first = await call({ action: 'collect', jobId: job.id });
+    const second = await call({ action: 'collect', jobId: job.id });
+    const status = await call({ action: 'status' });
+    return { notified, state: first.details.state, quarantine: first.details.quarantined, cost: first.details.cost,
+      usage: first.usage, secondUsage: second.usage, gate: gate.active(), budget: status.details.budget };
+  }
+  for (const quarantine of [false, true]) {
+    const baseline = await run(false, quarantine); const throwing = await run(true, quarantine);
+    assert.equal(throwing.notified, 1);
+    assert.deepEqual(throwing, baseline);
+  }
+});
+
+test('rejecting UI notification promises do not emit unhandledRejection or change job accounting', async () => {
+  const unhandled = [];
+  const onUnhandled = (reason) => unhandled.push(reason);
+  process.on('unhandledRejection', onUnhandled);
+  try {
+    async function run(rejectNotification, quarantine) {
+      const gate = createExpensiveGate(); let notified = 0;
+      const { call, runs, sessionStart } = setup({ strategist: true, promptPaths: { strategist: '/plan' }, gate });
+      sessionStart({ hasUI: true, ui: { notify: () => {
+        notified++;
+        if (rejectNotification) return Promise.reject(new Error('x'));
+      } } });
+      const job = (await call({ action: 'start', task: 'plan', role: 'strategist' })).details.job;
+      if (quarantine) runs[0].reject(new Error('cleanup unconfirmed'));
+      else runs[0].resolve(result('secret', 100000));
+      for (let i = 0; i < 3; i++) await tick();
+      const first = await call({ action: 'collect', jobId: job.id });
+      const second = await call({ action: 'collect', jobId: job.id });
+      const status = await call({ action: 'status' });
+      return { notified, state: first.details.state, quarantine: first.details.quarantined, cost: first.details.cost,
+        usage: first.usage, secondUsage: second.usage, gate: gate.active(), budget: status.details.budget };
+    }
+    for (const quarantine of [false, true]) {
+      const baseline = await run(false, quarantine);
+      const rejecting = await run(true, quarantine);
+      assert.equal(rejecting.notified, 1);
+      assert.deepEqual(rejecting, baseline);
+    }
+    assert.deepEqual(unhandled, []);
+  } finally {
+    process.off('unhandledRejection', onUnhandled);
+  }
+});
+
+test('registers the job tool and exactly the three lifecycle hooks only when an eligible role is configured', () => {
   const on = setup();
   assert.deepEqual([...on.tools.keys()], ['pi_explorer_job']);
-  assert.deepEqual([...on.handlers.keys()].sort?.() ?? [], ['session_shutdown', 'session_tree'].sort());
+  assert.deepEqual([...on.handlers.keys()].sort?.() ?? [], ['session_start', 'session_shutdown', 'session_tree'].sort());
   const off = setup({ explorer: false });
   assert.equal(off.tools.size, 0);
   assert.equal(off.handlers.size, 0);
@@ -212,12 +346,13 @@ test('registers for strategist or auditor even without explorer and documents ro
     const { tools, handlers } = setup(options);
     const def = tools.get('pi_explorer_job');
     assert.ok(def);
-    assert.equal(handlers.size, 2);
+    assert.equal(handlers.size, 3);
     assert.match(`${def.label} ${def.description}`, /explorer/i);
     assert.match(`${def.label} ${def.description}`, /strategist/i);
     assert.match(`${def.label} ${def.description}`, /auditor.*evidencePath.*evidenceSha256/i);
     assert.match(def.description, /advisory/i);
     assert.match(def.description, /never.*task completion/i);
+    assert.match(def.description, /metadata-only notification when a job finishes; it never starts a model turn\./);
     assert.ok(def.parameters.args[0].evidencePath && def.parameters.args[0].evidenceSha256);
     assert.ok(def.parameters.args[0].role, 'role parameter is advertised');
   }
@@ -428,6 +563,25 @@ for (const role of ['explorer', 'strategist', 'auditor']) {
     return { ...env, gate, start };
   }
 
+  for (const state of ['succeeded', 'failed', 'cancelled']) {
+    test(`${role}: ${state} produces one metadata-only UI notification`, async (t) => {
+      const { call, runs, start, sessionStart } = lifecycleSetup(t); const notifications = [];
+      sessionStart({ hasUI: true, ui: { notify: (...args) => notifications.push(args) } });
+      const { details: { job } } = await start();
+      await call({ action: 'status', jobId: job.id }); await call({ action: 'collect', jobId: job.id });
+      assert.deepEqual(notifications, []);
+      if (state === 'cancelled') await call({ action: 'cancel', jobId: job.id });
+      if (state === 'succeeded') runs[0].resolve(result('SECRET verdict PASS', 123));
+      else runs[0].reject(new Error('SECRET error'));
+      await tick();
+      assert.deepEqual(notifications, [[`Job ${job.id} (${role}) ${state}. Use pi_explorer_job collect with this id.`, 'info']]);
+      const first = await call({ action: 'collect', jobId: job.id });
+      const second = await call({ action: 'collect', jobId: job.id });
+      if (state === 'succeeded') { assert.equal(first.usage.totalTokens, 123); assert.equal(second.usage, undefined); }
+      assert.equal(notifications.length, 1);
+    });
+  }
+
   test(`${role}: start returns within one second with a pending runner; cancel holds admission until settlement`, async (t) => {
     const { call, runs, gate, start } = lifecycleSetup(t);
     const before = performance.now();
@@ -539,7 +693,7 @@ for (const role of ['explorer', 'strategist', 'auditor']) {
 
 // Real Pi extension loader (SDK-gated like the other runtime-discovery tests). It never starts a job,
 // so no child process and no model call can happen here.
-test('the real Pi loader registers the job tool and only the two lifecycle hooks, and only with an eligible role',
+test('the real Pi loader registers the job tool and only the three lifecycle hooks, and only with an eligible role',
   async (t) => {
     const sdkPath = process.env.PI_CODING_AGENT_SDK_PATH;
     if (!sdkPath) return t.skip('Set PI_CODING_AGENT_SDK_PATH for Pi runtime discovery');
@@ -569,7 +723,7 @@ test('the real Pi loader registers the job tool and only the two lifecycle hooks
       const on = await load(withExplorer);
       assert.ok(on.tools.has('pi_explorer_job'));
       assert.ok(on.tools.has('pi_role_agent') && on.tools.has('pi_council'), 'existing synchronous tools remain');
-      assert.deepEqual([...on.handlers.keys()].sort(), ['session_shutdown', 'session_tree']);
+      assert.deepEqual([...on.handlers.keys()].sort(), ['session_shutdown', 'session_start', 'session_tree']);
       for (const forbidden of ['turn_end', 'agent_end', 'agent_settled', 'session_before_tree']) {
         assert.equal(on.handlers.has(forbidden), false, `${forbidden} must not cancel jobs`);
       }

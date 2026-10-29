@@ -16,7 +16,7 @@ function truncateText(text, maxBytes) {
  * must settle only after its child process is cleaned up; a rejection that reports unconfirmed
  * cleanup quarantines the slot so capacity is never released for a possibly-live child.
  */
-export function createJobManager({ run, gate, budget, expensiveRoles = ['strategist', 'auditor'], ...overrides } = {}) {
+export function createJobManager({ run, gate, budget, onTerminal, expensiveRoles = ['strategist', 'auditor'], ...overrides } = {}) {
   if (typeof run !== 'function') throw new TypeError('A job runner function is required');
   const limits = { ...DEFAULT_LIMITS, ...overrides };
   const jobs = new Map();
@@ -75,6 +75,9 @@ export function createJobManager({ run, gate, budget, expensiveRoles = ['strateg
       job.state = job.cancelRequested && !job.quarantined ? 'cancelled' : 'failed';
     } finally {
       if (!job.quarantined) job.release?.();
+      if (isTerminal(job)) {
+        try { onTerminal?.({ id: job.id, role: job.role, state: job.state }); } catch { /* Notifications are best-effort. */ }
+      }
     }
   }
 

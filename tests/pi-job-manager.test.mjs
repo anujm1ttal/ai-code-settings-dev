@@ -21,6 +21,107 @@ function harness(options = {}) {
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
+test('terminal callback observes settled state after budget and gate release', async () => {
+  const events = [];
+  const gate = createExpensiveGate();
+  let manager;
+  const budget = { reserve: () => ({}), settle: () => { events.push('settled'); return { usd: 0.2 }; } };
+  const env = harness({ gate, budget, onTerminal: (event) => {
+    events.push({ ...event, observed: manager.status(event.id).state, gate: gate.active() });
+  } });
+  manager = env.manager;
+  const job = manager.start('plan', { role: 'strategist' });
+  assert.deepEqual(events, []);
+  env.calls[0].resolve(okResult()); await tick();
+  assert.deepEqual(events, ['settled', { id: job.id, role: 'strategist', state: 'succeeded', observed: 'succeeded', gate: undefined }]);
+});
+
+for (const role of ['explorer', 'strategist', 'auditor']) {
+  for (const state of ['succeeded', 'failed', 'cancelled']) {
+    test(`${role}: ${state} emits exactly once after settlement, not during status or collect`, async () => {
+      const events = [];
+      const { manager, calls } = harness({ onTerminal: event => events.push(event) });
+      const job = manager.start('work', { role });
+      manager.status(job.id); manager.collect(job.id);
+      assert.deepEqual(events, []);
+      if (state === 'cancelled') manager.cancel(job.id);
+      if (state === 'succeeded') calls[0].resolve(okResult('private answer', 42));
+      else calls[0].reject(new Error('private error'));
+      await tick();
+      assert.deepEqual(events, [{ id: job.id, role, state }]);
+      const first = manager.collect(job.id); const second = manager.collect(job.id);
+      manager.status(job.id); manager.cancel(job.id);
+      assert.deepEqual(events, [{ id: job.id, role, state }]);
+      if (state === 'succeeded') {
+        assert.equal(first.usage.totalTokens, 42);
+        assert.equal(second.usage, undefined);
+      }
+    });
+  }
+}
+
+test('cancellation racing duplicate settlement emits exactly one notification', async () => {
+  const events = [];
+  const { manager, calls } = harness({ onTerminal: event => events.push(event) });
+  const job = manager.start('race');
+  manager.cancel(job.id); manager.cancel(job.id);
+  calls[0].resolve(okResult()); calls[0].reject(new Error('too late'));
+  await tick(); manager.cancel(job.id); await tick();
+  assert.deepEqual(events, [{ id: job.id, role: 'explorer', state: 'succeeded' }]);
+});
+
+for (const method of ['discardAll', 'shutdown']) {
+  test(`${method} suppresses discarded outcomes, with a fresh-job presence control`, async () => {
+    const events = [];
+    const { manager, calls } = harness({ onTerminal: event => events.push(event) });
+    manager.start('discard success'); manager.start('discard failure');
+    const draining = manager[method]();
+    calls[0].resolve(okResult()); calls[1].reject(new Error('aborted'));
+    await draining;
+    assert.deepEqual(events, []);
+    const control = method === 'shutdown' ? harness({ onTerminal: event => events.push(event) }) : { manager, calls };
+    const job = control.manager.start('fresh');
+    control.calls.at(-1).resolve(okResult()); await tick();
+    assert.deepEqual(events, [{ id: job.id, role: 'explorer', state: 'succeeded' }]);
+  });
+  test(`${method} reports discarded cleanup-unconfirmed failures as quarantined`, async () => {
+    const events = [];
+    const gate = createExpensiveGate();
+    const { manager, calls } = harness({ gate, onTerminal: event => events.push({ ...event, gate: gate.active() }) });
+    const job = manager.start('stuck', { role: 'auditor' });
+    const draining = manager[method]();
+    calls[0].reject(new Error('cleanup unconfirmed')); await draining;
+    assert.deepEqual(events, [{ id: job.id, role: 'auditor', state: 'failed', gate: 'background auditor job' }]);
+    if (method === 'discardAll') assert.equal(manager.status(job.id).quarantined, true);
+  });
+}
+
+test('throwing terminal callback preserves settlement, quarantine, budget and gate behavior', async () => {
+  const { createJobBudget } = await import('../pi/lib/job-budget.mjs');
+  async function run(withCallback, outcome) {
+    const gate = createExpensiveGate(); let callbackCount = 0;
+    const budget = createJobBudget({ perJobUsd: 1, perSessionUsd: 4,
+      rates: { model: { inputPerMTok: 2, outputPerMTok: 4 } }, modelOf: () => 'model' });
+    const { manager, calls } = harness({ gate, budget, ...(withCallback ? { onTerminal: () => {
+      callbackCount++; throw new Error('notification failed');
+    } } : {}) });
+    const job = manager.start('expensive', { role: 'strategist' });
+    if (outcome === 'success') calls[0].resolve({ ...okResult(), usage: { input: 100000, output: 0 } });
+    else calls[0].reject(new Error('cleanup unconfirmed'));
+    await tick();
+    const collected = manager.collect(job.id);
+    const repeat = manager.collect(job.id);
+    return { callbackCount, state: collected.state, quarantined: collected.quarantined,
+      usage: collected.usage, repeatUsage: repeat.usage, cost: collected.cost, gate: gate.active(), budget: manager.budgetSnapshot() };
+  }
+  for (const outcome of ['success', 'quarantine']) {
+    const baseline = await run(false, outcome); const throwing = await run(true, outcome);
+    assert.equal(throwing.callbackCount, 1);
+    throwing.callbackCount = 0;
+    assert.deepEqual(throwing, baseline);
+  }
+});
+
 test('start returns an opaque job id immediately while the runner is still pending', async () => {
   const { manager, calls } = harness();
   const a = manager.start('Find callers');
