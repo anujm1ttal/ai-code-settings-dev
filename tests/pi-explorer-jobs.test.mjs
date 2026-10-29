@@ -12,7 +12,7 @@ const usage = (total) => ({ input: total, output: 0, cacheRead: 0, cacheWrite: 0
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } });
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-function setup({ explorer = true } = {}) {
+function setup({ explorer = true, strategist = false, auditor = false, accessImpl = () => {}, promptPaths, defaultAccess = false } = {}) {
   const tools = new Map();
   const handlers = new Map();
   const pi = { registerTool: (def) => tools.set(def.name, def), on: (name, handler) => handlers.set(name, handler) };
@@ -22,10 +22,11 @@ function setup({ explorer = true } = {}) {
     options.signal.addEventListener('abort', () => { run.aborted = true; }, { once: true });
     runs.push(run);
   });
-  const policy = { roles: explorer ? { explorer: { model: 'pilot-gpt/luna', thinking: 'medium',
-    tools: ['read', 'grep', 'find', 'ls'] } } : {} };
-  registerExplorerJobs(pi, { Type, policy, promptPath: '/src/agents/explorer.md',
-    invocation: { command: 'pi', args: [] }, runRoleImpl });
+  const binding = { model: 'pilot-gpt/luna', thinking: 'medium', tools: ['read', 'grep', 'find', 'ls'] };
+  const policy = { roles: { ...(explorer ? { explorer: binding } : {}),
+    ...(strategist ? { strategist: binding } : {}), ...(auditor ? { auditor: binding } : {}) } };
+  registerExplorerJobs(pi, { Type, policy, promptPath: '/src/agents/explorer.md', promptPaths,
+    ...(defaultAccess ? {} : { accessImpl }), invocation: { command: 'pi', args: [] }, runRoleImpl });
   const call = (params, { id = `tc-${Math.random()}`, signal, cwd = '/project' } = {}) =>
     tools.get('pi_explorer_job').execute(id, params, signal, undefined, { cwd });
   return { tools, handlers, runs, call, policy };
@@ -33,7 +34,7 @@ function setup({ explorer = true } = {}) {
 const result = (text = 'Source: a.mjs:1', total = 7) => ({ role: 'explorer', model: 'pilot-gpt/luna',
   thinking: 'medium', text, usage: usage(total), toolCounts: { read: 1 }, successfulReads: 1 });
 
-test('registers the job tool and exactly the two lifecycle hooks only when an explorer role is configured', () => {
+test('registers the job tool and exactly the two lifecycle hooks only when an eligible role is configured', () => {
   const on = setup();
   assert.deepEqual([...on.tools.keys()], ['pi_explorer_job']);
   assert.deepEqual([...on.handlers.keys()].sort?.() ?? [], ['session_shutdown', 'session_tree'].sort());
@@ -151,9 +152,116 @@ test('rejects unknown actions and missing arguments without launching', async ()
   assert.equal(runs.length, 0);
 });
 
+test('registers for strategist or auditor even without explorer and documents role availability', () => {
+  for (const options of [{ explorer: false, strategist: true }, { explorer: false, auditor: true }]) {
+    const { tools, handlers } = setup(options);
+    const def = tools.get('pi_explorer_job');
+    assert.ok(def);
+    assert.equal(handlers.size, 2);
+    assert.match(`${def.label} ${def.description}`, /explorer/i);
+    assert.match(`${def.label} ${def.description}`, /strategist/i);
+    assert.match(`${def.label} ${def.description}`, /auditor.*not.*enabled/i);
+    assert.ok(def.parameters.args[0].role, 'role parameter is advertised');
+  }
+});
+
+test('strategist runs with its own prompt and role is visible in status and collect', async () => {
+  const paths = { explorer: '/src/agents/explorer.md', strategist: '/src/agents/strategist.md', auditor: '/src/agents/auditor.md' };
+  const checked = [];
+  const { call, runs, policy } = setup({ explorer: false, strategist: true, promptPaths: paths,
+    accessImpl: (file, mode) => checked.push({ file, mode }) });
+  const { details: { job } } = await call({ action: 'start', task: 'Plan', role: 'strategist' });
+  assert.equal(job.role, 'strategist');
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0].policy, policy);
+  assert.equal(runs[0].role, 'strategist');
+  assert.equal(runs[0].task, 'Plan');
+  assert.equal(runs[0].cwd, '/project');
+  assert.equal(runs[0].promptPath, paths.strategist);
+  assert.deepEqual(runs[0].options.invocation, { command: 'pi', args: [] });
+  assert.deepEqual(checked, [{ file: paths.strategist, mode: (await import('node:fs')).constants.R_OK }]);
+  assert.equal((await call({ action: 'status', jobId: job.id })).details.job.role, 'strategist');
+  assert.equal((await call({ action: 'collect', jobId: job.id })).details.role, 'strategist');
+  runs[0].resolve(result('Plan result'));
+  await tick();
+  const collected = await call({ action: 'collect', jobId: job.id });
+  assert.equal(collected.details.role, 'strategist');
+  assert.match(collected.content[0].text, /strategist/);
+});
+
+test('unconfigured and unsupported roles are rejected without launching or recording jobs', async () => {
+  const { call, runs } = setup();
+  for (const role of ['strategist', 'auditor', 'coder', 'toString']) {
+    await assert.rejects(call({ action: 'start', task: 'x', role }), /role|configur|enabled/i);
+    assert.equal(runs.length, 0);
+  }
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+});
+
+test('auditor start is disabled even when configured and creates no job', async () => {
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/src/agents/auditor.md' } });
+  await assert.rejects(call({ action: 'start', task: 'review', role: 'auditor' }),
+    /auditor jobs are not enabled until evidence support is added/i);
+  assert.equal(runs.length, 0);
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+});
+
+test('unreadable role prompt fails before admission, with a readable control', async () => {
+  const paths = { explorer: '/ok', strategist: '/denied' };
+  const { call, runs } = setup({ strategist: true, promptPaths: paths, accessImpl: (file) => {
+    if (file === '/denied') throw new Error('prompt unreadable');
+  } });
+  await assert.rejects(call({ action: 'start', task: 'plan', role: 'strategist' }), /unreadable/i);
+  assert.equal(runs.length, 0);
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+  await call({ action: 'start', task: 'explore' });
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0].promptPath, '/ok');
+});
+
+test('default filesystem prompt check rejects a missing file and accepts a readable file', async () => {
+  const { call, runs } = setup({ strategist: true, defaultAccess: true,
+    promptPaths: { explorer: fileURLToPath(import.meta.url), strategist: path.join(repo, 'no-such-role-prompt.md') } });
+  await assert.rejects(call({ action: 'start', task: 'plan', role: 'strategist' }));
+  assert.equal(runs.length, 0);
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+  await call({ action: 'start', task: 'explore' });
+  assert.equal(runs.length, 1);
+});
+
+test('empty or whitespace tasks require a task without launching', async () => {
+  const { call, runs } = setup();
+  for (const task of ['', '   ', '\t\n']) {
+    await assert.rejects(call({ action: 'start', task }), /start requires a task/i);
+  }
+  assert.equal(runs.length, 0);
+});
+
+test('empty or whitespace job IDs list status and require IDs for collect and cancel', async () => {
+  const { call } = setup();
+  await call({ action: 'start', task: 'explore' });
+  for (const jobId of ['', '   ', '\t\n']) {
+    assert.equal((await call({ action: 'status', jobId })).details.jobs.length, 1);
+    for (const action of ['collect', 'cancel']) {
+      await assert.rejects(call({ action, jobId }), /requires a jobId/i);
+    }
+  }
+});
+
+test('empty or whitespace role defaults to explorer', async () => {
+  const { call, runs } = setup();
+  for (const role of ['', '   ']) {
+    const { details: { job } } = await call({ action: 'start', task: 'explore', role });
+    assert.equal(job.role, 'explorer');
+    assert.equal(runs.at(-1).role, 'explorer');
+  }
+});
+
 test('the role-agent extension wires the job tool and leaves the synchronous route unchanged', () => {
   const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
   assert.match(extension, /registerExplorerJobs\(pi/);
+  assert.match(extension, /promptPaths/);
+  for (const role of ['explorer', 'strategist', 'auditor']) assert.match(extension, new RegExp(`['\"]${role}['\"]`));
   assert.match(extension, /runRole\(policy, params\.role, params\.task, ctx\.cwd/);
   assert.match(extension, /name: 'pi_role_agent'/);
   assert.match(extension, /name: 'pi_council'/);
@@ -161,7 +269,7 @@ test('the role-agent extension wires the job tool and leaves the synchronous rou
 
 // Real Pi extension loader (SDK-gated like the other runtime-discovery tests). It never starts a job,
 // so no child process and no model call can happen here.
-test('the real Pi loader registers the job tool and only the two lifecycle hooks, and only with an explorer role',
+test('the real Pi loader registers the job tool and only the two lifecycle hooks, and only with an eligible role',
   async (t) => {
     const sdkPath = process.env.PI_CODING_AGENT_SDK_PATH;
     if (!sdkPath) return t.skip('Set PI_CODING_AGENT_SDK_PATH for Pi runtime discovery');
@@ -199,7 +307,7 @@ test('the real Pi loader registers the job tool and only the two lifecycle hooks
       const ctx = { cwd };
       assert.match((await def.execute('t1', { action: 'status' }, undefined, undefined, ctx)).content[0].text, /No jobs/);
       await assert.rejects(def.execute('t2', { action: 'start' }, undefined, undefined, ctx), /task/i);
-      // The no-explorer case is covered by the fake-pi test above: the extension reads its policy once at
+      // The explorer-less and no-eligible-role cases are covered by the fake-pi tests above: the extension reads its policy once at
       // import and Pi caches the module, so a second load in this process would reuse the first policy.
     } finally {
       if (previous === undefined) delete process.env.PI_ROLE_POLICY_PATH; else process.env.PI_ROLE_POLICY_PATH = previous;

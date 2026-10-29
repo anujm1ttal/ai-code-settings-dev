@@ -26,7 +26,7 @@ export function createJobManager({ run, ...overrides } = {}) {
 
   const isTerminal = (job) => TERMINAL.has(job.state);
   const isActive = (job) => !isTerminal(job) || job.quarantined;
-  const summary = (job) => ({ id: job.id, state: job.state, createdAt: job.createdAt,
+  const summary = (job) => ({ id: job.id, state: job.state, role: job.role, createdAt: job.createdAt,
     ...(job.quarantined ? { quarantined: true } : {}), ...(job.collected ? { collected: true } : {}) });
   const get = (id) => {
     const job = typeof id === 'string' ? jobs.get(id) : undefined;
@@ -59,7 +59,7 @@ export function createJobManager({ run, ...overrides } = {}) {
     job.state = job.cancelRequested && !job.quarantined ? 'cancelled' : 'failed';
   }
 
-  function start(task, { key, context } = {}) {
+  function start(task, { key, context, role = 'explorer' } = {}) {
     if (closed) throw new Error('Job manager is closed');
     if (draining) throw new Error('Job manager is draining; retry after cancellation completes');
     if (key !== undefined && keys.has(key)) return summary(jobs.get(keys.get(key)));
@@ -78,11 +78,11 @@ export function createJobManager({ run, ...overrides } = {}) {
     }
     const controller = new AbortController();
     const job = { id: `job-${randomUUID()}`, state: 'running', createdAt: new Date().toISOString(), controller,
-      key, cancelRequested: false, quarantined: false, collected: false, usageReported: false };
+      key, role, cancelRequested: false, quarantined: false, collected: false, usageReported: false };
     jobs.set(job.id, job);
     if (key !== undefined) keys.set(key, job.id);
     let pending;
-    try { pending = Promise.resolve(run(task, { signal: controller.signal, context })); }
+    try { pending = Promise.resolve(run(task, { signal: controller.signal, context, role })); }
     catch (error) { pending = Promise.reject(error); }
     job.settled = pending.then((value) => finish(job, 'ok', value), (error) => finish(job, 'err', error));
     return summary(job);
@@ -99,16 +99,16 @@ export function createJobManager({ run, ...overrides } = {}) {
 
   function collect(id) {
     const job = get(id);
-    if (!isTerminal(job)) return { id: job.id, state: job.state, ready: false };
+    if (!isTerminal(job)) return { id: job.id, state: job.state, role: job.role, ready: false };
     job.collected = true;
     if (job.state !== 'succeeded') {
-      return { id: job.id, state: job.state, ready: true, error: job.error, usage: null, usageUnknown: true,
+      return { id: job.id, state: job.state, role: job.role, ready: true, error: job.error, usage: null, usageUnknown: true,
         usageReported: false, ...(job.quarantined ? { quarantined: true } : {}) };
     }
     const first = !job.usageReported;
     job.usageReported = true;
     const { usage, ...rest } = job.result;
-    return { id: job.id, state: job.state, ready: true, ...rest,
+    return { id: job.id, state: job.state, role: job.role, ready: true, ...rest,
       ...(first ? { usage } : {}), usageReported: first };
   }
 

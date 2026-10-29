@@ -30,6 +30,29 @@ test('loads a read-only strategist and a coder with shell and write tools', () =
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test('read-only strategist argv contains exactly the four tools and no extension', () => {
+  const original = loadRolePolicy(policyFile);
+  const configured = { ...original, roles: { ...original.roles,
+    strategist: { ...original.roles.strategist, tools: ['read', 'grep', 'find', 'ls'] } } };
+  const args = buildAgentArgs(configured, 'strategist', '/tmp/role.md', 'Plan');
+  assert.deepEqual(args.slice(args.indexOf('--tools'), args.indexOf('--tools') + 2),
+    ['--tools', 'read,grep,find,ls']);
+  assert.equal(args.filter(arg => arg === '--tools').length, 1);
+  assert.equal(args.includes('--extension'), false);
+});
+
+test('loaded strategist policy rejects an MCP tool', () => {
+  const original = loadRolePolicy(policyFile);
+  const unsafe = { ...original, roles: { ...original.roles,
+    strategist: { ...original.roles.strategist, tools: ['read', 'grep', 'find', 'ls', 'mcp__x'] } } };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-strategist-mcp-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    writeFileSync(file, JSON.stringify(unsafe));
+    assert.throws(() => loadRolePolicy(file), /Invalid role configuration for strategist/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 for (const tool of ['bash', 'powershell', 'edit', 'write']) {
   test(`rejects strategist ${tool} in a loaded policy`, () => {
     const original = loadRolePolicy(policyFile);

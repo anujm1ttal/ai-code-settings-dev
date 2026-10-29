@@ -46,7 +46,7 @@ test('rejects a third active job before launching, then admits one after a job f
 test('collect is not_ready while running, then returns the result; usage is reported exactly once', async () => {
   const { manager, calls } = harness();
   const job = manager.start('Explore');
-  assert.deepEqual(manager.collect(job.id), { id: job.id, state: 'running', ready: false });
+  assert.deepEqual(manager.collect(job.id), { id: job.id, state: 'running', role: 'explorer', ready: false });
   calls[0].resolve(okResult('Final answer', 42));
   await tick();
   const first = manager.collect(job.id);
@@ -215,6 +215,29 @@ test('the same admission key never launches twice', async () => {
   const again = manager.start('Explore', { key: 'tool-call-1' });
   assert.equal(again.id, first.id);
   assert.equal(calls.length, 1);
+});
+
+test('role defaults to explorer and propagates through runner, status and all collect states', async () => {
+  const calls = [];
+  const manager = createJobManager({ run: (task, options) => new Promise((resolve, reject) => {
+    calls.push({ task, ...options, resolve, reject });
+  }) });
+  const explorer = manager.start('default', { context: { cwd: '/project' } });
+  const strategist = manager.start('plan', { role: 'strategist', context: { cwd: '/other' } });
+  assert.equal(explorer.role, 'explorer');
+  assert.equal(strategist.role, 'strategist');
+  assert.equal(calls[0].role, 'explorer');
+  assert.equal(calls[1].role, 'strategist');
+  assert.deepEqual(calls[1].context, { cwd: '/other' });
+  assert.equal(manager.status(strategist.id).role, 'strategist');
+  assert.equal(manager.status().find(job => job.id === explorer.id).role, 'explorer');
+  assert.equal(manager.collect(strategist.id).role, 'strategist');
+  calls[0].reject(new Error('failed'));
+  calls[1].resolve(okResult());
+  await tick();
+  assert.equal(manager.collect(explorer.id).role, 'explorer');
+  assert.equal(manager.collect(strategist.id).role, 'strategist');
+  assert.equal(manager.collect(strategist.id).role, 'strategist');
 });
 
 test('unknown or foreign ids are rejected', () => {

@@ -98,7 +98,9 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  // Detached read-only explorer jobs (registered only when the private policy configures an explorer).
-  registerExplorerJobs(pi, { Type, policy, promptPath: path.join(sourceRoot, 'agents', 'explorer.md'),
+  // Detached read-only role jobs, registered when an eligible role is configured.
+  registerExplorerJobs(pi, { Type, policy,
+    promptPaths: Object.fromEntries(['explorer', 'strategist', 'auditor'].map(role =>
+      [role, path.join(sourceRoot, 'agents', `${role}.md`)])),
     invocation: invocation() });
 }
