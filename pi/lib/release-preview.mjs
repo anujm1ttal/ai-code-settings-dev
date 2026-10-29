@@ -12,6 +12,7 @@ const FILES = [
   'pi/lib/role-policy.mjs', 'pi/lib/role-runner.mjs', 'pi/lib/concierge-guard.mjs',
   'pi/lib/council-evidence.mjs', 'pi/lib/council-perspective.mjs', 'pi/lib/council-session.mjs',
   'pi/lib/job-manager.mjs', 'pi/lib/explorer-jobs.mjs', 'pi/lib/audit-evidence.mjs',
+  'pi/lib/job-budget.mjs', 'pi/lib/expensive-gate.mjs',
 ];
 
 function verifySandbox(root) {

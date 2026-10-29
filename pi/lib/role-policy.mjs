@@ -23,6 +23,21 @@ export function loadRolePolicy(file) {
       !policy.roles || typeof policy.roles !== 'object') {
     throw new Error('Invalid Pi pilot role policy or explicit model allowlist');
   }
+  if (Object.hasOwn(policy, 'jobBudget')) {
+    const budget = policy.jobBudget;
+    const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+    const finite = (value) => typeof value === 'number' && Number.isFinite(value);
+    if (!object(budget) || !finite(budget.perJobUsd) || budget.perJobUsd <= 0 || budget.perJobUsd > 10 ||
+        !finite(budget.perSessionUsd) || budget.perSessionUsd < budget.perJobUsd || budget.perSessionUsd > 50 ||
+        !object(budget.rates) || !Object.entries(budget.rates).every(([model, rate]) =>
+          policy.allowedModels.includes(model) && object(rate) &&
+          finite(rate.inputPerMTok) && rate.inputPerMTok > 0 &&
+          finite(rate.outputPerMTok) && rate.outputPerMTok > 0 &&
+          ['cacheReadPerMTok', 'cacheWritePerMTok'].every((key) =>
+            !Object.hasOwn(rate, key) || (finite(rate[key]) && rate[key] >= 0)))) {
+      throw new Error('Invalid jobBudget');
+    }
+  }
   const roleKeys = Object.keys(policy.roles).sort();
   if (![
     ['auditor', 'coder', 'strategist'],

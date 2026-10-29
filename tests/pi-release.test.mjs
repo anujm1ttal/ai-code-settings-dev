@@ -48,6 +48,8 @@ test('isolated preview stages the concierge guard dependency used by the selecte
     for (const lib of ['pi/lib/job-manager.mjs', 'pi/lib/explorer-jobs.mjs', 'pi/lib/audit-evidence.mjs']) {
       assert.ok(fs.existsSync(path.join(handle.destination, lib)), `${lib} must be staged: role-agent.ts imports it`);
     }
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/job-budget.mjs')), 'job budget module must be staged');
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/expensive-gate.mjs')), 'expensive gate module must be staged');
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/agents/council-synthesis.md')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/prompts/council.md')));
     rollbackPreview(handle);

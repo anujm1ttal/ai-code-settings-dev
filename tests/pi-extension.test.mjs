@@ -13,6 +13,15 @@ const available = process.platform === 'win32'
   : spawnSync('pi', ['--version'], { encoding: 'utf8', timeout: 5000 }).status === 0;
 const privatePolicyFixture = path.join(repo, 'tests', 'fixtures', 'pi-role-policy.json');
 
+test('one shared expensive gate wraps synchronous expensive routes and is passed to jobs', () => {
+  const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
+  assert.equal((extension.match(/createExpensiveGate\(\)/g) ?? []).length, 1);
+  assert.match(extension, /withExpensiveGate\(gate, 'council',[\s\S]*?runCouncilSession/);
+  assert.match(extension, /\['strategist', 'auditor', 'council-perspective'\]\.includes\(params\.role\)/);
+  assert.match(extension, /await withExpensiveGate\(gate, params\.role, run\)/);
+  assert.match(extension, /registerExplorerJobs\(pi,\s*\{[^}]*\bgate\b/);
+});
+
 test('T7 exposes a bounded council tool, not an automatic decision or write route', () => {
   const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
   assert.match(extension, /name: 'pi_council'/);

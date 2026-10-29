@@ -6,6 +6,7 @@ import { test } from 'node:test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerExplorerJobs } from '../pi/lib/explorer-jobs.mjs';
+import { createExpensiveGate } from '../pi/lib/expensive-gate.mjs';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Identity-style schema builder: the tests inspect behavior, not TypeBox internals.
@@ -14,7 +15,8 @@ const usage = (total) => ({ input: total, output: 0, cacheRead: 0, cacheWrite: 0
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } });
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-function setup({ explorer = true, strategist = false, auditor = false, accessImpl = () => {}, promptPaths, defaultAccess = false } = {}) {
+function setup({ explorer = true, strategist = false, auditor = false, accessImpl = () => {}, promptPaths, defaultAccess = false,
+  jobBudget = { perJobUsd: 1, perSessionUsd: 3, rates: { 'pilot-gpt/luna': { inputPerMTok: 2, outputPerMTok: 4 } } }, gate = createExpensiveGate() } = {}) {
   const tools = new Map();
   const handlers = new Map();
   const pi = { registerTool: (def) => tools.set(def.name, def), on: (name, handler) => handlers.set(name, handler) };
@@ -25,9 +27,9 @@ function setup({ explorer = true, strategist = false, auditor = false, accessImp
     runs.push(run);
   });
   const binding = { model: 'pilot-gpt/luna', thinking: 'medium', tools: ['read', 'grep', 'find', 'ls'] };
-  const policy = { roles: { ...(explorer ? { explorer: binding } : {}),
+  const policy = { jobBudget, roles: { ...(explorer ? { explorer: binding } : {}),
     ...(strategist ? { strategist: binding } : {}), ...(auditor ? { auditor: binding } : {}) } };
-  registerExplorerJobs(pi, { Type, policy, promptPath: '/src/agents/explorer.md', promptPaths,
+  registerExplorerJobs(pi, { Type, policy, gate, promptPath: '/src/agents/explorer.md', promptPaths,
     ...(defaultAccess ? {} : { accessImpl }), invocation: { command: 'pi', args: [] }, runRoleImpl });
   const call = (params, { id = `tc-${Math.random()}`, signal, cwd = '/project' } = {}) =>
     tools.get('pi_explorer_job').execute(id, params, signal, undefined, { cwd });
@@ -117,6 +119,57 @@ test('repeating the same tool-call id never launches a second child', async () =
   const again = await call({ action: 'start', task: 'x' }, { id: 'tc-dup' });
   assert.equal(again.details.job.id, first.details.job.id);
   assert.equal(runs.length, 1);
+});
+
+test('duplicate start bypasses unreadable prompt and changed role or evidence', async (t) => {
+  const f = auditFixture(t); let readable = true;
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' },
+    accessImpl: () => { if (!readable) throw new Error('prompt unreadable'); } });
+  const params = { action: 'start', task: 'review', role: 'auditor', evidencePath: f.manifest, evidenceSha256: f.sha };
+  const first = await call(params, { id: 'same', cwd: f.root });
+  readable = false; fs.writeFileSync(f.capture, 'changed');
+  const second = await call({ action: 'start', role: 'bad', evidencePath: 'bad' }, { id: 'same', cwd: f.root });
+  assert.equal(second.details.job.id, first.details.job.id);
+  assert.equal(runs.length, 1);
+  await assert.rejects(call(params, { id: 'new', cwd: f.root }), /prompt unreadable/);
+});
+
+test('duplicate auditor call bypasses changed evidence when its prompt remains readable', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const params = { action: 'start', task: 'review', role: 'auditor', evidencePath: f.manifest, evidenceSha256: f.sha };
+  const first = await call(params, { id: 'same-evidence', cwd: f.root });
+  fs.writeFileSync(f.capture, 'changed');
+  const again = await call(params, { id: 'same-evidence', cwd: f.root });
+  assert.equal(again.details.job.id, first.details.job.id);
+  await assert.rejects(call(params, { id: 'new-evidence', cwd: f.root }), /sha|digest/i);
+  assert.equal(runs.length, 1);
+});
+
+test('without a budget strategist is denied and explorer remains available without budget status', async () => {
+  const { call, runs } = setup({ strategist: true, jobBudget: null, promptPaths: { strategist: '/plan' } });
+  await assert.rejects(call({ action: 'start', task: 'plan', role: 'strategist' }), /job budget is not configured/);
+  assert.equal(runs.length, 0);
+  await call({ action: 'start', task: 'explore' });
+  const status = await call({ action: 'status' });
+  assert.equal(status.details.budget, undefined);
+  assert.doesNotMatch(status.content[0].text, /Budget:/);
+  assert.equal(runs.length, 1);
+});
+
+test('status reports budget and collect reports cost including unknown and over budget', async () => {
+  const { call, runs } = setup({ strategist: true, promptPaths: { strategist: '/plan' } });
+  const first = await call({ action: 'start', task: 'plan', role: 'strategist' });
+  let status = await call({ action: 'status' });
+  assert.match(status.content[0].text, /Budget: spent \$0\.0000, reserved \$1\.0000, remaining \$2\.0000/);
+  assert.equal(status.details.budget.reservedUsd, 1);
+  runs[0].resolve({ ...result(), usage: { input: 1000000, output: 0 } }); await tick();
+  const collected = await call({ action: 'collect', jobId: first.details.job.id });
+  assert.match(collected.content[0].text, /Cost: \$2\.0000.*OVER the per-job budget/);
+  assert.deepEqual(collected.details.cost, { usd: 2, overBudget: true });
+  const next = await call({ action: 'start', task: 'plan', role: 'strategist' });
+  runs[1].reject(new Error('failed')); await tick();
+  assert.match((await call({ action: 'collect', jobId: next.details.job.id })).content[0].text, /Cost: unknown, remains reserved/);
 });
 
 test('session_shutdown cancels and awaits every job, then refuses new starts', async () => {

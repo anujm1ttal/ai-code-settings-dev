@@ -1,5 +1,6 @@
 import { accessSync, constants } from 'node:fs';
 import { createJobManager } from './job-manager.mjs';
+import { createJobBudget } from './job-budget.mjs';
 import { validateAuditManifest, recheckAuditManifest } from './audit-evidence.mjs';
 import { runRole } from './role-runner.mjs';
 
@@ -9,15 +10,17 @@ const omitEmpty = (value) => typeof value === 'string' && !value.trim() ? undefi
 
 function describeCollected(out) {
   if (!out.ready) return `Job ${out.id} is ${out.state}; not ready. Call collect again later.`;
+  const cost = out.cost ? (out.cost.unknown ? '\nCost: unknown, remains reserved' :
+    `\nCost: $${out.cost.usd.toFixed(4)}${out.cost.overBudget ? ' (OVER the per-job budget)' : ''}`) : '';
   if (out.state !== 'succeeded') {
     return `Job ${out.id} ${out.state}: ${out.error ?? 'no details'}${out.quarantined ? ' (cleanup unconfirmed; its slot stays occupied)' : ''}\n` +
-      'Usage for this job is unknown and was not added to session totals.';
+      'Usage for this job is unknown and was not added to session totals.' + cost;
   }
   const warning = out.evidence?.status === 'INCOMPLETE'
     ? `INCOMPLETE: evidence changed or became invalid after this job started (${out.evidence.reason}). This output does not apply to current evidence.\n\n` : '';
   return warning + `${out.role} (${out.model}, ${out.thinking}) job ${out.id}\n\n${out.text}` +
     (out.truncated ? '\n\n(Result truncated to the retained limit.)' : '') +
-    (out.usageReported ? '' : '\n\n(Usage for this job was already reported on first collection.)');
+    (out.usageReported ? '' : '\n\n(Usage for this job was already reported on first collection.)') + cost;
 }
 
 /**
@@ -26,10 +29,12 @@ function describeCollected(out) {
  * Jobs survive ordinary run boundaries; only session shutdown and a successful tree navigation end them.
  */
 export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths, invocation,
-  runRoleImpl = runRole, accessImpl = accessSync }) {
+  runRoleImpl = runRole, accessImpl = accessSync, gate }) {
   if (!ROLES.some((role) => Object.hasOwn(policy?.roles ?? {}, role) && policy.roles[role])) return undefined;
   const paths = { ...promptPaths, explorer: promptPaths?.explorer ?? promptPath };
+  const budget = policy.jobBudget ? createJobBudget({ ...policy.jobBudget, modelOf: role => policy.roles[role].model }) : undefined;
   const jobs = createJobManager({
+    gate, budget,
     run: (task, { signal, context, role }) => {
       const requiredReadPath = context.manifestPath;
       const childTask = requiredReadPath
@@ -65,6 +70,10 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
       const evidenceSha256 = omitEmpty(params?.evidenceSha256);
       if (!ACTIONS.includes(action)) throw new Error(`Unknown action; expected one of ${ACTIONS.join(', ')}`);
       if (action === 'start') {
+        const existing = jobs.lookup(toolCallId);
+        const started = (job) => ({ content: [{ type: 'text', text: `Started ${job.id} (${job.state}). Continue working; call collect with this id later.` }],
+          details: { action, job, limits: { maxActive: 2, retained: 16, taskBytes: 4096, resultBytes: 65536 } } });
+        if (existing) return started(existing);
         if (signal?.aborted) throw new Error('Job start aborted before admission');
         if (typeof task !== 'string') throw new Error('start requires a task');
         if (!ROLES.includes(role)) throw new Error('Unknown job role');
@@ -83,15 +92,17 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
         const job = jobs.start(task, { key: toolCallId, context: { cwd: ctx.cwd,
           ...(snapshot ? { manifestPath: snapshot.manifestPath } : {}) }, role,
           ...(snapshot ? { evidence: { verify: () => recheckAuditManifest(snapshot) } } : {}) });
-        return { content: [{ type: 'text', text: `Started ${job.id} (${job.state}). Continue working; call collect with this id later.` }],
-          details: { action, job, limits: { maxActive: 2, retained: 16, taskBytes: 4096, resultBytes: 65536 } } };
+        return started(job);
       }
       if (action === 'status') {
         const status = jobs.status(jobId);
-        const text = Array.isArray(status)
+        let text = Array.isArray(status)
           ? (status.length ? status.map((job) => `${job.id}: ${job.state}`).join('\n') : 'No jobs.')
           : `${status.id}: ${status.state}`;
-        return { content: [{ type: 'text', text }], details: { action, ...(Array.isArray(status) ? { jobs: status } : { job: status }) } };
+        const budget = Array.isArray(status) ? jobs.budgetSnapshot() : undefined;
+        if (budget) text += `\nBudget: spent $${budget.spentUsd.toFixed(4)}, reserved $${budget.reservedUsd.toFixed(4)}, remaining $${budget.remainingUsd.toFixed(4)}`;
+        return { content: [{ type: 'text', text }], details: { action, ...(Array.isArray(status) ? { jobs: status } : { job: status }),
+          ...(budget ? { budget } : {}) } };
       }
       if (typeof jobId !== 'string') throw new Error(`${action} requires a jobId`);
       if (action === 'cancel') {

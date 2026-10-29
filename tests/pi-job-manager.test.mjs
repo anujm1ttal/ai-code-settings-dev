@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createJobManager } from '../pi/lib/job-manager.mjs';
+import { createExpensiveGate } from '../pi/lib/expensive-gate.mjs';
 
 const usage = (total) => ({ input: total, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: total,
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } });
@@ -15,7 +16,8 @@ function harness(options = {}) {
     signal.addEventListener('abort', () => { call.aborted = true; }, { once: true });
     calls.push(call);
   });
-  return { calls, manager: createJobManager({ run, ...options }) };
+  const budget = { reserve: () => ({}), settle: () => ({ usd: 0, overBudget: false }), snapshot: () => ({}) };
+  return { calls, manager: createJobManager({ run, budget, gate: createExpensiveGate(), ...options }) };
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
@@ -261,7 +263,8 @@ test('the same admission key never launches twice', async () => {
 
 test('role defaults to explorer and propagates through runner, status and all collect states', async () => {
   const calls = [];
-  const manager = createJobManager({ run: (task, options) => new Promise((resolve, reject) => {
+  const budget = { reserve: () => ({}), settle: () => ({ usd: 0, overBudget: false }), snapshot: () => ({}) };
+  const manager = createJobManager({ budget, gate: createExpensiveGate(), run: (task, options) => new Promise((resolve, reject) => {
     calls.push({ task, ...options, resolve, reject });
   }) });
   const explorer = manager.start('default', { context: { cwd: '/project' } });
@@ -297,6 +300,91 @@ test('a runner that throws synchronously fails the job without leaking capacity'
   assert.equal(manager.status(job.id).state, 'failed');
   manager.start('again');
   manager.start('third');
+});
+
+test('expensive jobs require budget before launching; explorer remains exempt', () => {
+  const { manager, calls } = harness({ budget: undefined });
+  assert.throws(() => manager.start('plan', { role: 'strategist' }), /job budget is not configured/);
+  assert.equal(calls.length, 0);
+  manager.start('explore');
+  assert.equal(calls.length, 1);
+});
+
+async function controlled() {
+  const { createJobBudget } = await import('../pi/lib/job-budget.mjs');
+  const { createExpensiveGate } = await import('../pi/lib/expensive-gate.mjs');
+  const gate = createExpensiveGate();
+  const budget = createJobBudget({ perJobUsd: 1, perSessionUsd: 4,
+    rates: { model: { inputPerMTok: 2, outputPerMTok: 4 } }, modelOf: () => 'model' });
+  return { ...harness({ gate, budget }), gate, budget };
+}
+
+test('an expensive start without a gate is denied before launching (fail closed), explorer is unaffected', async () => {
+  const { manager, calls } = harness({ gate: undefined });
+  assert.throws(() => manager.start('plan', { role: 'strategist' }), /gate/i);
+  assert.equal(calls.length, 0);
+  manager.start('explore');
+  assert.equal(calls.length, 1);
+});
+
+test('gate excludes expensive jobs, explorer shares only two active slots, then gate releases', async () => {
+  const { manager, calls, gate } = await controlled();
+  const first = manager.start('plan', { role: 'strategist', key: 'one' });
+  assert.equal(manager.lookup('one').id, first.id);
+  assert.equal(manager.lookup('absent'), undefined);
+  assert.equal(manager.start('', { key: 'one', role: 'auditor' }).id, first.id);
+  assert.throws(() => manager.start('audit', { role: 'auditor' }), /Another expensive operation is active/);
+  assert.equal(calls.length, 1);
+  manager.start('explore');
+  assert.throws(() => manager.start('third'), /Active job limit/);
+  assert.equal(calls.length, 2);
+  calls[0].resolve({ ...okResult(), usage: { input: 100000, output: 0 } }); await tick();
+  assert.equal(gate.active(), undefined);
+  assert.deepEqual(manager.collect(first.id).cost, { usd: 0.2, overBudget: false });
+  assert.equal(manager.budgetSnapshot().spentUsd, 0.2);
+  manager.start('audit', { role: 'auditor' });
+  assert.equal(calls.length, 3);
+});
+
+test('failed and cancelled expensive work remains reserved; discard does not reset spend', async () => {
+  const { manager, calls } = await controlled();
+  const first = manager.start('plan', { role: 'strategist' });
+  calls[0].resolve({ ...okResult(), usage: { input: 100000, output: 0 } }); await tick();
+  const failed = manager.start('audit', { role: 'auditor' });
+  calls[1].reject(new Error('failure')); await tick();
+  assert.deepEqual(manager.collect(failed.id).cost, { unknown: true });
+  const cancelled = manager.start('plan again', { role: 'strategist' });
+  manager.cancel(cancelled.id); calls[2].reject(new Error('aborted')); await tick();
+  assert.equal(manager.status(cancelled.id).state, 'cancelled');
+  assert.deepEqual(manager.collect(cancelled.id).cost, { unknown: true });
+  await manager.discardAll();
+  assert.equal(manager.budgetSnapshot().spentUsd, 0.2);
+  assert.equal(manager.budgetSnapshot().reservedUsd, 2);
+  assert.throws(() => manager.status(first.id), /Unknown/);
+});
+
+test('discarded successful job is charged; quarantine holds the gate through discard', async () => {
+  const { manager, calls, gate } = await controlled();
+  manager.start('plan', { role: 'strategist' });
+  const pending = manager.discardAll();
+  calls[0].resolve({ ...okResult(), usage: { input: 100000, output: 0 } }); await pending;
+  assert.equal(manager.budgetSnapshot().spentUsd, 0.2);
+  manager.start('audit', { role: 'auditor' });
+  const discard = manager.discardAll();
+  calls[1].reject(new Error('cleanup unconfirmed')); await discard;
+  assert.equal(gate.active(), 'background auditor job');
+  assert.equal(manager.budgetSnapshot().reservedUsd, 1);
+  assert.throws(() => manager.start('plan', { role: 'strategist' }), /Another expensive operation is active/);
+  assert.equal(calls.length, 2);
+});
+
+test('failed budget reservation releases gate without launching', async () => {
+  const { createExpensiveGate } = await import('../pi/lib/expensive-gate.mjs');
+  const gate = createExpensiveGate();
+  const { manager, calls } = harness({ gate, budget: { reserve() { throw new Error('denied'); } } });
+  assert.throws(() => manager.start('plan', { role: 'strategist' }), /denied/);
+  assert.equal(gate.active(), undefined);
+  assert.equal(calls.length, 0);
 });
 
 const MARKER_ALLOWANCE = Buffer.byteLength('\n[truncated: 99999999 bytes omitted]');

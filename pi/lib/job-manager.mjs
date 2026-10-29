@@ -16,7 +16,7 @@ function truncateText(text, maxBytes) {
  * must settle only after its child process is cleaned up; a rejection that reports unconfirmed
  * cleanup quarantines the slot so capacity is never released for a possibly-live child.
  */
-export function createJobManager({ run, ...overrides } = {}) {
+export function createJobManager({ run, gate, budget, expensiveRoles = ['strategist', 'auditor'], ...overrides } = {}) {
   if (typeof run !== 'function') throw new TypeError('A job runner function is required');
   const limits = { ...DEFAULT_LIMITS, ...overrides };
   const jobs = new Map();
@@ -49,28 +49,33 @@ export function createJobManager({ run, ...overrides } = {}) {
 
   function finish(job, outcome, value) {
     if (isTerminal(job)) return; // exactly one terminal transition
-    if (job.discarded) {
-      // No result is ever published for a discarded job, but an unconfirmed cleanup must still hold its slot.
-      const reason = value instanceof Error ? value.message : String(value);
-      if (outcome === 'err' && /cleanup unconfirmed/i.test(reason)) {
-        job.error = truncateText(reason, limits.maxErrorBytes).text;
-        job.quarantined = true;
-        job.state = 'failed';
+    try {
+      if (job.reservation && outcome === 'ok') job.cost = budget.settle(job.reservation, value?.usage);
+      if (job.discarded) {
+        // No result is ever published for a discarded job, but an unconfirmed cleanup must still hold its slot.
+        const reason = value instanceof Error ? value.message : String(value);
+        if (outcome === 'err' && /cleanup unconfirmed/i.test(reason)) {
+          job.error = truncateText(reason, limits.maxErrorBytes).text;
+          job.quarantined = true;
+          job.state = 'failed';
+        }
+        return;
       }
-      return;
+      if (outcome === 'ok') {
+        const { text, truncated } = truncateText(String(value?.text ?? ''), limits.maxTextBytes);
+        job.result = { text, truncated, model: value?.model, thinking: value?.thinking, usage: value?.usage ?? null,
+          toolCounts: value?.toolCounts, successfulReads: value?.successfulReads };
+        if (job.evidence) verifyEvidence(job);
+        job.state = 'succeeded';
+        return;
+      }
+      const message = value instanceof Error ? value.message : String(value);
+      job.error = truncateText(message, limits.maxErrorBytes).text;
+      job.quarantined = /cleanup unconfirmed/i.test(message);
+      job.state = job.cancelRequested && !job.quarantined ? 'cancelled' : 'failed';
+    } finally {
+      if (!job.quarantined) job.release?.();
     }
-    if (outcome === 'ok') {
-      const { text, truncated } = truncateText(String(value?.text ?? ''), limits.maxTextBytes);
-      job.result = { text, truncated, model: value?.model, thinking: value?.thinking, usage: value?.usage ?? null,
-        toolCounts: value?.toolCounts, successfulReads: value?.successfulReads };
-      if (job.evidence) verifyEvidence(job);
-      job.state = 'succeeded';
-      return;
-    }
-    const message = value instanceof Error ? value.message : String(value);
-    job.error = truncateText(message, limits.maxErrorBytes).text;
-    job.quarantined = /cleanup unconfirmed/i.test(message);
-    job.state = job.cancelRequested && !job.quarantined ? 'cancelled' : 'failed';
   }
 
   function start(task, { key, context, role = 'explorer', evidence } = {}) {
@@ -90,9 +95,17 @@ export function createJobManager({ run, ...overrides } = {}) {
       if (!evictable) throw new Error(`Retained job limit (${limits.maxRetained}) reached: collect or cancel uncollected jobs`);
       remove(evictable);
     }
+    let release, reservation;
+    if (expensiveRoles.includes(role)) {
+      if (!budget) throw new Error('job budget is not configured; background strategist/auditor jobs are denied');
+      if (!gate) throw new Error('expensive gate is required for background strategist/auditor jobs');
+      release = gate.tryAcquire(`background ${role} job`);
+      try { reservation = budget.reserve(role); }
+      catch (error) { release?.(); throw error; }
+    }
     const controller = new AbortController();
     const job = { id: `job-${randomUUID()}`, state: 'running', createdAt: new Date().toISOString(), controller,
-      key, role, evidence, cancelRequested: false, quarantined: false, collected: false, usageReported: false };
+      key, role, evidence, reservation, release, cancelRequested: false, quarantined: false, collected: false, usageReported: false };
     jobs.set(job.id, job);
     if (key !== undefined) keys.set(key, job.id);
     let pending;
@@ -117,7 +130,8 @@ export function createJobManager({ run, ...overrides } = {}) {
     job.collected = true;
     if (job.state !== 'succeeded') {
       return { id: job.id, state: job.state, role: job.role, ready: true, error: job.error, usage: null, usageUnknown: true,
-        usageReported: false, ...(job.quarantined ? { quarantined: true } : {}) };
+        usageReported: false, ...(job.reservation ? { cost: job.cost ?? { unknown: true } } : {}),
+        ...(job.quarantined ? { quarantined: true } : {}) };
     }
     if (job.evidence) verifyEvidence(job);
     const first = !job.usageReported;
@@ -125,6 +139,7 @@ export function createJobManager({ run, ...overrides } = {}) {
     const { usage, ...rest } = job.result;
     return { id: job.id, state: job.state, role: job.role, ready: true, ...rest,
       ...(first ? { usage } : {}), usageReported: first,
+      ...(job.reservation ? { cost: job.cost ?? { unknown: true } } : {}),
       ...(job.evidence ? { evidence: job.evidenceStatus === 'VERIFIED' ? { status: 'VERIFIED' } :
         { status: 'INCOMPLETE', reason: job.evidenceReason } } : {}) };
   }
@@ -157,6 +172,8 @@ export function createJobManager({ run, ...overrides } = {}) {
 
   return {
     start, status, collect, cancel,
+    lookup(key) { const job = jobs.get(keys.get(key)); return job ? summary(job) : undefined; },
+    budgetSnapshot() { return budget?.snapshot(); },
     // Session end, reload or replacement: cancel everything, wait for cleanup, refuse new work.
     async shutdown() { closed = true; await drain({ keepQuarantined: false }); },
     // Successful tree navigation: cancel and discard, then accept new jobs on the new branch.

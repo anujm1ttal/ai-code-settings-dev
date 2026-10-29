@@ -8,6 +8,7 @@ import { runRole } from '../lib/role-runner.mjs';
 import { runCouncilPerspective } from '../lib/council-perspective.mjs';
 import { runCouncilSession } from '../lib/council-session.mjs';
 import { registerExplorerJobs } from '../lib/explorer-jobs.mjs';
+import { createExpensiveGate, withExpensiveGate } from '../lib/expensive-gate.mjs';
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const policyPath = process.env.PI_ROLE_POLICY_PATH;
@@ -25,6 +26,8 @@ function invocation() {
 }
 
 export default function (pi: ExtensionAPI) {
+  const gate = createExpensiveGate();
+  // Synchronous strategist/auditor/council spend is in normal session usage, not the background job budget.
   pi.registerTool({
     name: 'pi_council',
     label: 'Pi council (advisory)',
@@ -35,10 +38,10 @@ export default function (pi: ExtensionAPI) {
       evidenceSha256: Type.String({ description: 'SHA-256 of the captured evidence' }),
     }),
     async execute(_id, params, signal, _onUpdate, ctx) {
-      const result = await runCouncilSession(policy, params, ctx.cwd,
+      const result = await withExpensiveGate(gate, 'council', () => runCouncilSession(policy, params, ctx.cwd,
         path.join(sourceRoot, 'agents', 'council-perspectives.md'),
         path.join(sourceRoot, 'agents', 'council-synthesis.md'),
-        { signal, invocation: invocation() });
+        { signal, invocation: invocation() }));
       return {
         content: [{ type: 'text', text: `Advisory ${result.verdict}\n\n${result.synthesis.text}` }],
         details: { verdict: result.verdict, evidenceSha256: result.evidenceSha256,
@@ -81,12 +84,14 @@ export default function (pi: ExtensionAPI) {
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       const council = params.role === 'council-perspective';
       const promptPath = path.join(sourceRoot, 'agents', council ? 'council-perspectives.md' : `${params.role}.md`);
-      const result = council
-        ? await runCouncilPerspective(policy, { perspective: params.perspective, question: params.task,
+      const run = () => council
+        ? runCouncilPerspective(policy, { perspective: params.perspective, question: params.task,
           evidencePath: params.evidencePath, evidenceSha256: params.evidenceSha256 }, ctx.cwd, promptPath,
           { signal, invocation: invocation() })
-        : await runRole(policy, params.role, params.task, ctx.cwd, promptPath,
+        : runRole(policy, params.role, params.task, ctx.cwd, promptPath,
           { signal, invocation: invocation() });
+      const result = ['strategist', 'auditor', 'council-perspective'].includes(params.role)
+        ? await withExpensiveGate(gate, params.role, run) : await run();
       return {
         content: [{ type: 'text', text: `${result.role} (${result.model}, ${result.thinking})\n\n${result.text}` }],
         details: { role: result.role, model: result.model, thinking: result.thinking,
@@ -99,7 +104,7 @@ export default function (pi: ExtensionAPI) {
   });
 
   // Detached read-only role jobs, registered when an eligible role is configured.
-  registerExplorerJobs(pi, { Type, policy,
+  registerExplorerJobs(pi, { Type, policy, gate,
     promptPaths: Object.fromEntries(['explorer', 'strategist', 'auditor'].map(role =>
       [role, path.join(sourceRoot, 'agents', `${role}.md`)])),
     invocation: invocation() });

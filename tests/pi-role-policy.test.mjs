@@ -9,6 +9,31 @@ import { loadRolePolicy, buildAgentArgs } from '../pi/lib/role-policy.mjs';
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const policyFile = path.join(repo, 'tests', 'fixtures', 'pi-role-policy.json');
 
+test('optional jobBudget is validated without changing the role keys', () => {
+  const original = loadRolePolicy(policyFile);
+  assert.equal(original.jobBudget, undefined);
+  const model = original.allowedModels[0];
+  const rate = { inputPerMTok: 2, outputPerMTok: 4, cacheReadPerMTok: 0, cacheWritePerMTok: 1 };
+  const valid = { perJobUsd: 1, perSessionUsd: 3, rates: { [model]: rate } };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-job-budget-policy-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    const load = (jobBudget) => { writeFileSync(file, JSON.stringify({ ...original, jobBudget })); return loadRolePolicy(file); };
+    assert.deepEqual(load(valid).jobBudget, valid);
+    for (const edge of [{ ...valid, perJobUsd: 10, perSessionUsd: 50 }, { ...valid, perJobUsd: 3, perSessionUsd: 3 }]) {
+      assert.deepEqual(load(edge).jobBudget, edge, 'upper bounds and perSession == perJob are valid');
+    }
+    const invalid = [null, [], {},
+      ...[0, -1, 11, '1', null].map(perJobUsd => ({ ...valid, perJobUsd })),
+      ...[0, 0.5, 51, '3', null].map(perSessionUsd => ({ ...valid, perSessionUsd })),
+      ...[null, [], 'x', { 'unknown/model': rate }].map(rates => ({ ...valid, rates })),
+      ...['inputPerMTok', 'outputPerMTok'].flatMap(key => [0, -1, null, '2'].map(value => ({ ...valid, rates: { [model]: { ...rate, [key]: value } } }))),
+      ...['cacheReadPerMTok', 'cacheWritePerMTok'].flatMap(key => [-1, null, '2'].map(value => ({ ...valid, rates: { [model]: { ...rate, [key]: value } } }))),
+      { ...valid, rates: { [model]: null } }, { ...valid, rates: { [model]: [] } }];
+    for (const item of invalid) assert.throws(() => load(item), /Invalid jobBudget/, JSON.stringify(item));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('real provider bindings are not stored in the public Pi source tree', () => {
   assert.equal(existsSync(path.join(repo, 'pi', 'role-policy.json')), false);
 });
