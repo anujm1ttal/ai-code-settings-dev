@@ -7,6 +7,7 @@ import { loadRolePolicy } from '../lib/role-policy.mjs';
 import { runRole } from '../lib/role-runner.mjs';
 import { runCouncilPerspective } from '../lib/council-perspective.mjs';
 import { runCouncilSession } from '../lib/council-session.mjs';
+import { registerExplorerJobs } from '../lib/explorer-jobs.mjs';
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const policyPath = process.env.PI_ROLE_POLICY_PATH;
@@ -96,4 +97,8 @@ export default function (pi: ExtensionAPI) {
       };
     },
   });
+
+  // Detached read-only explorer jobs (registered only when the private policy configures an explorer).
+  registerExplorerJobs(pi, { Type, policy, promptPath: path.join(sourceRoot, 'agents', 'explorer.md'),
+    invocation: invocation() });
 }

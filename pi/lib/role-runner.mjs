@@ -9,7 +9,7 @@ const READ_ONLY_ROLES = new Set(['auditor', 'scribe', 'explorer']);
 const READ_ONLY_TOOLS = new Set(['read', 'grep', 'find', 'ls']);
 
 export async function runRole(policy, roleName, task, cwd, promptPath, options = {}) {
-  const { profile, requiredReadPath, spawnImpl = spawn, invocation = { command: 'pi', args: [] }, signal,
+  const { profile, requiredReadPath, spawnImpl = spawn, killerImpl = spawn, invocation = { command: 'pi', args: [] }, signal,
     timeoutMs = 10 * 60 * 1000, killGraceMs = 2000 } = options;
   const args = buildAgentArgs(policy, roleName, promptPath, task, { profile });
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 ||
@@ -21,7 +21,9 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   delete env.PI_ROLE;
   delete env.PI_CONCIERGE_ROOT;
   const child = spawnImpl(invocation.command, [...invocation.args, ...args], {
-    cwd, shell: false, stdio: ['ignore', 'pipe', 'pipe'], signal, env,
+    // No `signal` here: Node would kill only the direct child on abort and orphan descendants.
+    // Abort is handled below through the tree-aware cleanup.
+    cwd, shell: false, stdio: ['ignore', 'pipe', 'pipe'], env,
   });
   let buffer = '';
   const decoder = new StringDecoder('utf8');
@@ -90,7 +92,7 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     streamedBytes += chunk.length;
     if (streamedBytes > MAX_STREAM_BYTES) {
       streamError = new Error('Pi subagent event stream exceeded 8 MiB');
-      child.kill();
+      startCleanup(streamError);
       return;
     }
     buffer += decoder.write(chunk);
@@ -100,27 +102,70 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     }
   });
   child.stderr.on('data', (chunk) => { stderr = (stderr + chunk.toString('utf8')).slice(-MAX_ERROR_BYTES); });
-  let timedOut = false;
+  let failure;
+  let cleanupStarted = false;
+  let finished = false;
   let timeoutTimer;
   let killTimer;
-  const close = new Promise((resolve, reject) => {
-    child.once('error', reject);
-    child.once('close', resolve);
-  });
-  const deadline = new Promise((_, reject) => {
-    timeoutTimer = setTimeout(() => {
-      timedOut = true;
-      child.kill('SIGTERM');
-      killTimer = setTimeout(() => {
-        child.kill('SIGKILL');
-        reject(new Error(`Pi ${roleName} subagent timed out after ${timeoutMs} ms`));
-      }, killGraceMs);
-    }, timeoutMs);
-  });
+  let failureTimer;
+  let rejectCleanup;
+  const cleanupFailure = new Promise((_, reject) => { rejectCleanup = reject; });
+  const close = new Promise(resolve => child.once('close', resolve));
+  let childClosed = false;
+  child.once('close', () => { childClosed = true; });
+  // On Windows, killing the direct child orphans its descendants, so ask taskkill to end that PID's
+  // tree. Only target the PID while our child has neither closed nor exited: after `exit` the number
+  // may be reused. Residual race: the child can exit between this check and taskkill resolving the
+  // PID, and descendants whose parent already exited are invisible to /T (reported as unconfirmed).
+  const taskkillPath = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe');
+  const terminateWindowsTree = () => {
+    if (process.platform !== 'win32' || childClosed || child.exitCode !== null || child.signalCode !== null ||
+        !Number.isSafeInteger(child.pid) || child.pid <= 0) return false;
+    try {
+      // Asynchronous: a blocking wait cannot be bounded by the kill grace. The existing close/force/fail
+      // path bounds the cleanup; if taskkill fails to run or fails, fall back to a direct kill.
+      const killer = killerImpl(taskkillPath, ['/PID', String(child.pid), '/T', '/F'],
+        { shell: false, stdio: 'ignore', windowsHide: true });
+      const fallback = () => { try { child.kill('SIGKILL'); } catch { /* close/deadline reports it */ } };
+      killer.once('error', fallback);
+      killer.once('exit', (code) => { if (code !== 0) fallback(); });
+      killer.unref();
+      return true;
+    } catch { return false; }
+  };
+  const terminate = (signalName) => {
+    if (terminateWindowsTree()) return;
+    try { child.kill(signalName); }
+    catch (error) { failure ??= error; }
+  };
+  const startCleanup = (error) => {
+    if (finished) return;
+    failure ??= error;
+    if (cleanupStarted) return;
+    cleanupStarted = true;
+    clearTimeout(timeoutTimer);
+    killTimer = setTimeout(() => {
+      terminate('SIGKILL');
+      failureTimer = setTimeout(() => rejectCleanup(new Error(
+        `${failure.message}; cleanup unconfirmed: child did not close after forced termination`)), killGraceMs);
+    }, killGraceMs);
+    terminate('SIGTERM');
+  };
+  // An error, including an abort or a failed kill, is not proof that the child closed.
+  child.on('error', startCleanup);
+  const onAbort = () => startCleanup(new Error('Agent dispatch aborted'));
+  signal?.addEventListener('abort', onAbort, { once: true });
+  timeoutTimer = setTimeout(() => startCleanup(
+    new Error(`Pi ${roleName} subagent timed out after ${timeoutMs} ms`)), timeoutMs);
+  if (signal?.aborted) onAbort();
   let exitCode;
-  try { exitCode = await Promise.race([close, deadline]); }
-  finally { clearTimeout(timeoutTimer); clearTimeout(killTimer); }
-  if (timedOut) throw new Error(`Pi ${roleName} subagent timed out after ${timeoutMs} ms`);
+  try { exitCode = await Promise.race([close, cleanupFailure]); }
+  finally {
+    finished = true;
+    clearTimeout(timeoutTimer); clearTimeout(killTimer); clearTimeout(failureTimer);
+    signal?.removeEventListener('abort', onAbort);
+  }
+  if (failure) throw failure;
   buffer += decoder.end();
   if (buffer.trim()) acceptLine(buffer);
   if (streamError) throw streamError;
