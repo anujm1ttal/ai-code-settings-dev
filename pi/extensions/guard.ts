@@ -5,7 +5,12 @@ import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { conciergeToolDenial } from '../lib/concierge-guard.mjs';
 
-const licenseGate = JSON.parse(fs.readFileSync(new URL('../../hooks/license-gate.json', import.meta.url), 'utf8')) as {
+// Repo layout keeps the shared config under hooks/; the installed layout stages it at pi/license-gate.json because
+// Pi 1.4.0 warns (and waits for a key) whenever the agent directory contains a hooks/ folder.
+const licenseGateUrl = [new URL('../../hooks/license-gate.json', import.meta.url), new URL('../license-gate.json', import.meta.url)]
+  .find(candidate => fs.existsSync(candidate));
+if (!licenseGateUrl) throw new Error('Pi guard requires a valid license-gate.json');
+const licenseGate = JSON.parse(fs.readFileSync(licenseGateUrl, 'utf8')) as {
   source_roots: string[]; dest_prefixes: string[]; markers: string[]; self_exempt: string[];
 };
 if (!licenseGate.source_roots?.length || !licenseGate.dest_prefixes?.length ||

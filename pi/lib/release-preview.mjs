@@ -64,7 +64,7 @@ export function stagePreview({ sourceRoot, sandboxRoot }) {
   try {
     fs.mkdirSync(destination, { recursive: true });
     for (const relative of FILES) copySource(sourceRoot, relative, destination,
-      relative === 'Pi-global.md' ? 'AGENTS.md' : relative);
+      relative === 'Pi-global.md' ? 'AGENTS.md' : relative === 'hooks/license-gate.json' ? 'pi/license-gate.json' : relative);
     const promptDir = path.join(sourceRoot, 'pi/prompts');
     for (const name of fs.readdirSync(promptDir).filter(name => name.endsWith('.md'))) {
       copySource(sourceRoot, `pi/prompts/${name}`, destination);

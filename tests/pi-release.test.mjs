@@ -209,7 +209,8 @@ test('isolated Pi preview backs up prior agent files and stages only Pi resource
       'pi/extensions/guard.ts', 'pi/extensions/session-observability.ts', 'pi/extensions/role-agent.ts',
     ]);
     assert.equal(settings.packages?.length ?? 0, 0);
-    assert.ok(fs.existsSync(path.join(agent, 'hooks/license-gate.json')));
+    assert.ok(fs.existsSync(path.join(agent, 'pi/license-gate.json')));
+    assert.equal(fs.existsSync(path.join(agent, 'hooks')), false, 'Pi 1.4.0 warns on any hooks/ directory');
     assert.equal(fs.readFileSync(path.join(agent, 'pi/agents/scribe.md'), 'utf8'),
       fs.readFileSync(path.join(sourceRoot, 'pi/agents/scribe.md'), 'utf8'));
   } finally { fs.rmSync(root, { recursive: true, force: true }); }

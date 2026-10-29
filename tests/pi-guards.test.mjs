@@ -509,3 +509,37 @@ test('S-B denies shell copies whose destination is outside the project, with ins
   assert.match(direct.result.output, /outside the project/i);
   assert.equal(await h.get('user_bash')({ command: 'cp a.txt docs/a.txt' }, { cwd: root, hasUI: false }), undefined);
 });
+
+test('S-E guard loads its license config from the installed layout without a hooks/ directory, and still fails closed', async () => {
+  const layout = (withInstalled, withLegacy) => {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-sE-'));
+    fs.mkdirSync(path.join(base, 'pi/extensions'), { recursive: true });
+    fs.mkdirSync(path.join(base, 'pi/lib'), { recursive: true });
+    fs.copyFileSync(guardFile, path.join(base, 'pi/extensions/guard.ts'));
+    fs.copyFileSync(path.join(root, 'pi/lib/concierge-guard.mjs'), path.join(base, 'pi/lib/concierge-guard.mjs'));
+    const config = path.join(root, 'hooks/license-gate.json');
+    if (withInstalled) fs.copyFileSync(config, path.join(base, 'pi/license-gate.json'));
+    if (withLegacy) { fs.mkdirSync(path.join(base, 'hooks')); fs.copyFileSync(config, path.join(base, 'hooks/license-gate.json')); }
+    return base;
+  };
+  const load = async (base) => {
+    const events = new Map();
+    const { default: register } = await import(pathToFileURL(path.join(base, 'pi/extensions/guard.ts')).href);
+    register({ on(name, handler) { events.set(name, handler); } });
+    return events.get('tool_call');
+  };
+  const installed = layout(true, false);
+  const repoStyle = layout(false, true);
+  const neither = layout(false, false);
+  try {
+    assert.equal(fs.existsSync(path.join(installed, 'hooks')), false, 'installed layout has no hooks/ directory');
+    for (const base of [installed, repoStyle]) {
+      const tool = await load(base);
+      const denied = await tool({ toolName: 'write', input: { path: 'optional_plugins/ms-office/x.md', content: 'x' } }, { cwd: root, hasUI: false });
+      assert.equal(denied?.block, true, base);
+      assert.match(denied.reason, /licensed destination/i, base);
+      assert.equal(await tool({ toolName: 'write', input: { path: 'docs/ok.md', content: 'x' } }, { cwd: root, hasUI: false }), undefined, `control ${base}`);
+    }
+    await assert.rejects(() => load(neither), /ENOENT|license/i);
+  } finally { for (const dir of [installed, repoStyle, neither]) fs.rmSync(dir, { recursive: true, force: true }); }
+});
