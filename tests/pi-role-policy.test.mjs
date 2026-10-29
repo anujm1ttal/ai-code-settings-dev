@@ -55,27 +55,104 @@ test('scribe cannot receive shell or write tools, including after policy load', 
   }
 });
 
-test('concierge policy is an exact no-shell two-write-tool binding and loads the vetted guard', () => {
+test('accepts the four role sets with optional read-only scribe and explorer', () => {
   const original = loadRolePolicy(policyFile);
+  const binding = { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-explorer-policy-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    for (const optional of [[], ['scribe'], ['explorer'], ['scribe', 'explorer']]) {
+      const roles = { ...original.roles };
+      for (const name of optional) roles[name] = binding;
+      writeFileSync(file, JSON.stringify({ ...original, roles }));
+      const loaded = loadRolePolicy(file);
+      assert.deepEqual(Object.keys(loaded.roles).sort(), Object.keys(roles).sort());
+      assert.equal(loaded.allowedModels.length, 5);
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('rejects concierge and unknown role keys with a migration message', () => {
+  const original = loadRolePolicy(policyFile);
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-role-keys-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    for (const name of ['concierge', 'unknown']) {
+      for (const withScribe of [false, true]) {
+        const roles = { ...original.roles, [name]: original.roles.auditor };
+        if (withScribe) roles.scribe = original.roles.auditor;
+        writeFileSync(file, JSON.stringify({ ...original, roles }));
+        assert.throws(() => loadRolePolicy(file), (error) =>
+          /concierge/i.test(error.message) && /explorer/i.test(error.message));
+      }
+    }
+    writeFileSync(file, JSON.stringify({ ...original,
+      roles: { 'auditor,coder,strategist': original.roles.auditor } }));
+    assert.throws(() => loadRolePolicy(file), (error) =>
+      /concierge/i.test(error.message) && /explorer/i.test(error.message));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('buildAgentArgs rejects a mutated concierge role with shell and write tools', () => {
+  const original = loadRolePolicy(policyFile);
+  const mutated = { ...original, roles: { ...original.roles,
+    concierge: { ...original.roles.coder, tools: ['bash', 'edit', 'write'] } } };
+  assert.throws(() => buildAgentArgs(mutated, 'concierge', '/tmp/role.md', 'Explore'),
+    /concierge.*explorer/i);
+});
+
+test('duplicate explorer tools of the correct length are rejected at load and argv construction', () => {
+  const original = loadRolePolicy(policyFile);
+  const mutated = { ...original, roles: { ...original.roles,
+    explorer: { ...original.roles.auditor, tools: ['read', 'read', 'grep', 'find'] } } };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-explorer-duplicate-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    writeFileSync(file, JSON.stringify(mutated));
+    assert.throws(() => loadRolePolicy(file), /explorer/i);
+    assert.throws(() => buildAgentArgs(mutated, 'explorer', '/tmp/role.md', 'Explore'), /explorer/i);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('explorer requires each read tool exactly once at load and after mutation', () => {
+  const original = loadRolePolicy(policyFile);
+  const tools = ['read', 'grep', 'find', 'ls'];
   const expanded = { ...original, roles: { ...original.roles,
-    scribe: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] },
-    concierge: { model: 'pilot-claude/haiku', thinking: 'low', tools: ['read', 'grep', 'find', 'ls', 'edit', 'write'] } } };
-  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-concierge-policy-'));
+    explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools } } };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-explorer-tools-'));
   try {
     const file = path.join(dir, 'policy.json');
     writeFileSync(file, JSON.stringify(expanded));
-    assert.equal(loadRolePolicy(file).roles.concierge.model, 'pilot-claude/haiku');
-    const args = buildAgentArgs(expanded, 'concierge', '/tmp/role.md', 'Sync');
-    assert.equal(args[args.indexOf('--tools') + 1], 'read,grep,find,ls,edit,write');
-    assert.equal(args[args.indexOf('--extension') + 1], path.join(repo, 'pi/extensions/guard.ts'));
-    assert.ok(args.includes('--no-extensions'));
-    for (const tool of ['bash', 'powershell']) {
-      const unsafe = { ...expanded, roles: { ...expanded.roles,
-        concierge: { ...expanded.roles.concierge, tools: [...expanded.roles.concierge.tools, tool] } } };
-      writeFileSync(file, JSON.stringify(unsafe));
-      assert.throws(() => loadRolePolicy(file), /concierge/i);
-      assert.throws(() => buildAgentArgs(unsafe, 'concierge', '/tmp/role.md', 'Sync'), /concierge/i);
+    const loaded = loadRolePolicy(file);
+    const invalid = [
+      ...tools.map((missing) => tools.filter((tool) => tool !== missing)),
+      [...tools, 'read'],
+      ...['powershell', 'bash', 'edit', 'write', 'unknown'].map((extra) => [...tools, extra]),
+      null,
+    ];
+    for (const candidate of invalid) {
+      loaded.roles.explorer.tools = candidate;
+      writeFileSync(file, JSON.stringify(loaded));
+      assert.throws(() => loadRolePolicy(file), /explorer/i, `load: ${candidate}`);
+      assert.throws(() => buildAgentArgs(loaded, 'explorer', '/tmp/role.md', 'Explore'),
+        /explorer/i, `args: ${candidate}`);
     }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('valid explorer builds exact read-only argv even when tools are reordered', () => {
+  const original = loadRolePolicy(policyFile);
+  const expanded = { ...original, roles: { ...original.roles,
+    explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['ls', 'find', 'grep', 'read'] } } };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-explorer-argv-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    writeFileSync(file, JSON.stringify(expanded));
+    const args = buildAgentArgs(loadRolePolicy(file), 'explorer', '/tmp/role.md', 'Explore');
+    assert.deepEqual(args, ['--mode', 'json', '--print', '--no-session', '--no-extensions', '--no-mcp',
+      '--model', 'pilot-gpt/luna', '--thinking', 'low', '--tools', 'read,grep,find,ls',
+      '--exclude-tools', 'mcp__*', '--append-system-prompt', '/tmp/role.md', 'Task: Explore']);
+    assert.equal(args.includes('--extension'), false);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -157,7 +234,7 @@ test('shell/write-capable children load only the vetted guard explicitly', () =>
 
 test('unlisted model or role rejects before a child can start', () => {
   const policy = loadRolePolicy(policyFile);
-  assert.throws(() => buildAgentArgs(policy, 'concierge', '/tmp/role.md', 'x'), /Unknown role/);
+  assert.throws(() => buildAgentArgs(policy, 'unknown', '/tmp/role.md', 'x'), /Unknown role/);
   assert.throws(() => buildAgentArgs({ ...policy, roles: { ...policy.roles, coder: {
     ...policy.roles.coder, model: 'unlisted/foreign-model',
   } } }, 'coder', '/tmp/role.md', 'x'), /not in the explicit model allowlist/);

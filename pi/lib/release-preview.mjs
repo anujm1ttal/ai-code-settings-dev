@@ -7,9 +7,9 @@ const EXTENSIONS = ['pi/extensions/guard.ts', 'pi/extensions/session-observabili
 const FILES = [
   'Pi-global.md',
   'hooks/license-gate.json',
-  'pi/agents/auditor.md', 'pi/agents/coder.md', 'pi/agents/strategist.md', 'pi/agents/scribe.md', 'pi/agents/concierge.md', 'pi/agents/council-perspectives.md', 'pi/agents/council-synthesis.md',
+  'pi/agents/auditor.md', 'pi/agents/coder.md', 'pi/agents/strategist.md', 'pi/agents/scribe.md', 'pi/agents/explorer.md', 'pi/agents/council-perspectives.md', 'pi/agents/council-synthesis.md',
   ...EXTENSIONS,
-  'pi/lib/role-policy.mjs', 'pi/lib/role-runner.mjs', 'pi/lib/concierge-guard.mjs', 'pi/lib/concierge-evidence.mjs',
+  'pi/lib/role-policy.mjs', 'pi/lib/role-runner.mjs', 'pi/lib/concierge-guard.mjs',
   'pi/lib/council-evidence.mjs', 'pi/lib/council-perspective.mjs', 'pi/lib/council-session.mjs',
 ];
 

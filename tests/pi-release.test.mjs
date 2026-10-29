@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -40,8 +41,6 @@ test('isolated preview stages the concierge guard dependency used by the selecte
     const { stagePreview, rollbackPreview } = await release();
     const handle = stagePreview({ sourceRoot, sandboxRoot: root });
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/concierge-guard.mjs')));
-    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/concierge-evidence.mjs')));
-    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/agents/concierge.md')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/agents/council-perspectives.md')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/council-evidence.mjs')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/council-perspective.mjs')));
@@ -52,7 +51,24 @@ test('isolated preview stages the concierge guard dependency used by the selecte
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
-test('fresh disposable Pi consumer sees staged commands and only its selected plugin', async () => {
+test('isolated preview stages the explorer prompt unchanged and excludes retired concierge resources', async () => {
+  const root = sandbox();
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    const explorer = 'pi/agents/explorer.md';
+    const hash = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+    assert.ok(fs.existsSync(path.join(staged.destination, explorer)), 'staged explorer prompt is present');
+    assert.equal(hash(path.join(staged.destination, explorer)), hash(path.join(sourceRoot, explorer)));
+    assert.ok(fs.existsSync(path.join(staged.destination, 'pi/lib/concierge-guard.mjs')), 'retained guard is present');
+    for (const retired of ['pi/agents/concierge.md', 'pi/lib/concierge-evidence.mjs']) {
+      assert.equal(fs.existsSync(path.join(staged.destination, retired)), false, `${retired} is absent`);
+    }
+    rollbackPreview(staged);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('fresh disposable Pi consumer sees explorer roles and only its selected plugin', async () => {
   const root = sandbox();
   const launcher = path.join(os.homedir(), '.pi/agent/bin/pi-launcher.js');
   assert.ok(fs.existsSync(launcher), 'installed Pi CLI required for T16 resource smoke');
@@ -68,17 +84,26 @@ test('fresh disposable Pi consumer sees staged commands and only its selected pl
       source: path.join(sourceRoot, 'optional_plugins/manuscript'),
       skills: ['skills/manuscript-review/SKILL.md'], extensions: [], prompts: [], themes: [],
     }] }));
+    const policy = JSON.parse(fs.readFileSync(path.join(sourceRoot, 'tests/fixtures/pi-role-policy.json'), 'utf8'));
+    policy.roles.explorer = { model: policy.roles.strategist.model, thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] };
+    const policyPath = path.join(root, 'policy.json');
+    fs.writeFileSync(policyPath, JSON.stringify(policy));
     const env = { ...process.env, PI_CODING_AGENT_DIR: staged.destination,
-      PI_ROLE_POLICY_PATH: path.join(sourceRoot, 'tests/fixtures/pi-role-policy.json'),
+      PI_ROLE_POLICY_PATH: policyPath,
       PI_OFFLINE: '1', PI_TELEMETRY: '0' };
     const run = (cwd) => {
       const result = spawnSync(process.execPath,
         [launcher, '--mode', 'rpc', '--no-session', '--offline', '--no-mcp', '--approve'],
-        { cwd, env, input: '{"type":"get_commands","id":"probe"}\n', encoding: 'utf8', timeout: 20000 });
+        { cwd, env, input: '{"type":"get_commands","id":"probe"}\n{"type":"prompt","message":"/pi-roles","id":"roles"}\n', encoding: 'utf8', timeout: 20000 });
       assert.equal(result.status, 0, result.stderr);
       const response = result.stdout.split(/\r?\n/).filter(Boolean).map(JSON.parse)
         .find(event => event.id === 'probe' && event.type === 'response');
       assert.ok(response?.success, result.stdout + result.stderr);
+      const events = result.stdout.split(/\r?\n/).filter(Boolean).map(JSON.parse);
+      assert.ok(events.some(event => event.id === 'roles' && event.type === 'response' && event.success), 'pi-roles command succeeded');
+      assert.ok(events.some(event => event.type === 'extension_ui_request' && event.method === 'notify' &&
+        /explorer:.*tools: read, grep, find, ls/.test(event.message) && !/concierge:/.test(event.message)),
+      'pi-roles shows explorer and no concierge');
       return response.data.commands.map(item => item.name);
     };
     const enabled = run(opted);
@@ -183,6 +208,7 @@ test('rollback restores the prior isolated agent directory byte-for-byte', async
     const before = snapshot(agent);
     const { stagePreview, rollbackPreview } = await release();
     const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    assert.ok(fs.existsSync(path.join(staged.destination, 'pi/agents/explorer.md')), 'rollback exercised after explorer staging');
     assert.notDeepEqual(snapshot(agent), before);
     rollbackPreview(staged);
     assert.deepEqual(snapshot(agent), before);

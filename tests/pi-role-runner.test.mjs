@@ -46,34 +46,76 @@ test('dispatches an isolated auditor and verifies observed model and thinking', 
   assert.deepEqual(result, { role: 'auditor', model: 'pilot-claude/sonnet',
     thinking: 'high', text: 'FAIL: revise tests', usage: { input: 1, output: 1,
       cacheRead: 0, cacheWrite: 0, totalTokens: 2,
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
+    toolCounts: {}, successfulReads: 0 });
 });
 
-test('concierge child receives a fixed root and rejects observed unallowlisted writes', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-concierge-runner-'));
-  fs.mkdirSync(path.join(root, 'Artifacts', '.agent'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'Artifacts', 'HANDOFF_BRIEF.md'), 'before');
-  fs.writeFileSync(path.join(root, 'Artifacts', '.agent', 'current_task.md'), 'before');
+test('explorer dispatches without project state and reports bounded tool metadata', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-explorer-dispatch-'));
   const expanded = { ...policy, roles: { ...policy.roles,
+    explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+  const fake = fakeSpawn([
+    { type: 'tool_execution_start', toolCallId: '1', toolName: 'read', args: { path: 'secret-argument' } },
+    { type: 'tool_execution_end', toolCallId: '1', toolName: 'read', isError: false, result: 'secret-content' },
+    { type: 'tool_execution_start', toolCallId: '2', toolName: 'read', args: { path: 'missing' } },
+    { type: 'tool_execution_end', toolCallId: '2', toolName: 'read', isError: true },
+    { type: 'tool_execution_end', toolCallId: '3', toolName: 'read' },
+    ...['grep', 'find', 'ls'].map(toolName => ({ type: 'tool_execution_start', toolName })),
+    assistant('pilot-gpt', 'luna', 'low', 'Source: file:1'),
+  ]);
+  const previousRole = process.env.PI_ROLE;
+  const previousRoot = process.env.PI_CONCIERGE_ROOT;
+  process.env.PI_ROLE = 'concierge';
+  process.env.PI_CONCIERGE_ROOT = 'inherited';
+  try {
+    const result = await runRole(expanded, 'explorer', 'Find callers', root, '/tmp/explorer.md',
+      { spawnImpl: fake.spawnImpl });
+    assert.deepEqual(result.toolCounts, { read: 2, grep: 1, find: 1, ls: 1 });
+    assert.equal(result.successfulReads, 1);
+    assert.doesNotMatch(JSON.stringify(result), /secret-argument|secret-content/);
+    const { args, options } = fake.calls[0];
+    assert.equal(args[args.indexOf('--tools') + 1], 'read,grep,find,ls');
+    assert.ok(args.includes('--no-mcp'));
+    assert.equal(args.includes('--extension'), false);
+    assert.equal(options.env.PI_ROLE, undefined);
+    assert.equal(options.env.PI_CONCIERGE_ROOT, undefined);
+    assert.equal(fs.existsSync(path.join(root, 'Artifacts')), false);
+  } finally {
+    if (previousRole === undefined) delete process.env.PI_ROLE; else process.env.PI_ROLE = previousRole;
+    if (previousRoot === undefined) delete process.env.PI_CONCIERGE_ROOT; else process.env.PI_CONCIERGE_ROOT = previousRoot;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('explorer rejects every observed non-read tool and mismatched model or thinking', async () => {
+  const expanded = { ...policy, roles: { ...policy.roles,
+    explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+  for (const toolName of ['bash', 'edit', 'write', 'unknown']) {
+    const fake = fakeSpawn([{ type: 'tool_execution_start', toolName, args: {} },
+      assistant('pilot-gpt', 'luna', 'low', 'Result')]);
+    await assert.rejects(runRole(expanded, 'explorer', 'Explore', '.', '/tmp/explorer.md',
+      { spawnImpl: fake.spawnImpl }), new RegExp(`Explorer attempted ${toolName} tool`));
+  }
+  for (const [provider, model, thinking, expected] of [
+    ['pilot-gpt', 'sol', 'low', /Unexpected model/],
+    ['pilot-gpt', 'luna', 'high', /Unexpected thinking/],
+  ]) {
+    const fake = fakeSpawn([assistant(provider, model, thinking, 'Result')]);
+    await assert.rejects(runRole(expanded, 'explorer', 'Explore', '.', '/tmp/explorer.md',
+      { spawnImpl: fake.spawnImpl }), expected);
+  }
+});
+
+test('concierge policy is rejected during load, before a child can spawn', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-legacy-role-'));
+  const file = path.join(root, 'policy.json');
+  const legacy = { ...policy, roles: { ...policy.roles,
     scribe: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] },
     concierge: { model: 'pilot-claude/haiku', thinking: 'low', tools: ['read', 'grep', 'find', 'ls', 'edit', 'write'] } } };
   try {
-    const fake = fakeSpawn([assistant('pilot-claude', 'haiku', 'low', 'Local-only sync')]);
-    const result = await runRole(expanded, 'concierge', 'Sync captured facts', root, '/tmp/role.md',
-      { spawnImpl: fake.spawnImpl });
-    assert.equal(result.role, 'concierge');
-    assert.equal(fake.calls[0].options.env.PI_ROLE, 'concierge');
-    assert.equal(fake.calls[0].options.env.PI_CONCIERGE_ROOT, fs.realpathSync(root));
-    assert.deepEqual(fake.calls[0].args.slice(fake.calls[0].args.indexOf('--tools'), fake.calls[0].args.indexOf('--tools') + 2),
-      ['--tools', 'read,grep,find,ls,edit,write']);
-    const denied = fakeSpawn([{ type: 'tool_execution_start', toolName: 'write', args: { path: 'Artifacts/TODO.md', content: 'bad' } },
-      assistant('pilot-claude', 'haiku', 'low', 'Done')]);
-    await assert.rejects(runRole(expanded, 'concierge', 'Sync', root, '/tmp/role.md',
-      { spawnImpl: denied.spawnImpl }), /Concierge attempted|allowlist/i);
-    const wrong = fakeSpawn([assistant('pilot-claude', 'haiku', 'low', 'Should not spawn')]);
-    await assert.rejects(runRole(expanded, 'concierge', 'Sync', path.dirname(root), '/tmp/role.md',
-      { spawnImpl: wrong.spawnImpl }), /project|root|Artifacts/i);
-    assert.equal(wrong.calls.length, 0);
+    fs.writeFileSync(file, JSON.stringify(legacy));
+    assert.throws(() => loadRolePolicy(file),
+      (error) => /concierge/i.test(error.message) && /explorer/i.test(error.message));
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 

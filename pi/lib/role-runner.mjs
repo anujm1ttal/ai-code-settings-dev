@@ -1,13 +1,11 @@
 import { spawn } from 'node:child_process';
-import fs from 'node:fs';
 import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { buildAgentArgs } from './role-policy.mjs';
-import { conciergeToolDenial } from './concierge-guard.mjs';
 
 const MAX_ERROR_BYTES = 2048;
 const MAX_STREAM_BYTES = 8 * 1024 * 1024;
-const READ_ONLY_ROLES = new Set(['auditor', 'scribe']);
+const READ_ONLY_ROLES = new Set(['auditor', 'scribe', 'explorer']);
 const READ_ONLY_TOOLS = new Set(['read', 'grep', 'find', 'ls']);
 
 export async function runRole(policy, roleName, task, cwd, promptPath, options = {}) {
@@ -22,15 +20,6 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   const env = { ...process.env };
   delete env.PI_ROLE;
   delete env.PI_CONCIERGE_ROOT;
-  if (roleName === 'concierge') {
-    if (!path.isAbsolute(cwd) || fs.realpathSync(cwd) !== path.resolve(cwd) ||
-        fs.lstatSync(cwd).isSymbolicLink() ||
-        !fs.lstatSync(path.join(cwd, 'Artifacts', '.agent')).isDirectory()) {
-      throw new Error('Concierge requires a canonical project root with Artifacts/.agent');
-    }
-    env.PI_ROLE = 'concierge';
-    env.PI_CONCIERGE_ROOT = cwd;
-  }
   const child = spawnImpl(invocation.command, [...invocation.args, ...args], {
     cwd, shell: false, stdio: ['ignore', 'pipe', 'pipe'], signal, env,
   });
@@ -42,6 +31,8 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   let observedViolation;
   let evidenceRead = false;
   const evidenceReadCalls = new Set();
+  const toolCounts = new Map();
+  let successfulReads = 0;
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
   let streamError;
@@ -51,6 +42,12 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     let event;
     try { event = JSON.parse(line); }
     catch { streamError = new Error('Malformed Pi JSON event'); return; }
+    if (event.type === 'tool_execution_start' && typeof event.toolName === 'string') {
+      toolCounts.set(event.toolName, (toolCounts.get(event.toolName) ?? 0) + 1);
+    }
+    if (event.type === 'tool_execution_end' && event.toolName === 'read' && event.isError === false) {
+      successfulReads += 1;
+    }
     if (event.type === 'extension_error') {
       observedViolation = `Pi guard extension error: ${event.error || 'unknown error'}`;
     }
@@ -64,10 +61,6 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
         path.resolve(cwd, event.args?.path ?? '') === requiredReadPath) evidenceReadCalls.add(event.toolCallId);
     if (requiredReadPath && event.type === 'tool_execution_end' && event.toolName === 'read' &&
         evidenceReadCalls.has(event.toolCallId) && event.isError === false) evidenceRead = true;
-    if (roleName === 'concierge' && event.type === 'tool_execution_start') {
-      const reason = conciergeToolDenial(cwd, event.toolName, event.args);
-      if (reason) observedViolation = `Concierge attempted ${event.toolName}: ${reason}`;
-    }
     if (event.type !== 'message_end' || event.message?.role !== 'assistant') return;
     const message = event.message;
     const model = `${message.provider}/${message.model}`;
@@ -139,5 +132,6 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   const text = lastAssistant.content.filter((part) => part.type === 'text').map((part) => part.text).join('\n');
   if (!text.trim()) throw new Error(`Pi ${roleName} subagent produced no final text`);
   return { role: roleName, model: policy.roles[roleName].model,
-    thinking: policy.roles[roleName].thinking, text, usage };
+    thinking: policy.roles[roleName].thinking, text, usage,
+    toolCounts: Object.fromEntries(toolCounts), successfulReads };
 }
