@@ -49,31 +49,16 @@ test('dispatches an isolated auditor and verifies observed model and thinking', 
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } });
 });
 
-test('concierge child receives a fixed root and rejects observed unallowlisted writes', async () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-concierge-runner-'));
-  fs.mkdirSync(path.join(root, 'Artifacts', '.agent'), { recursive: true });
-  fs.writeFileSync(path.join(root, 'Artifacts', 'HANDOFF_BRIEF.md'), 'before');
-  fs.writeFileSync(path.join(root, 'Artifacts', '.agent', 'current_task.md'), 'before');
-  const expanded = { ...policy, roles: { ...policy.roles,
+test('concierge policy is rejected during load, before a child can spawn', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-legacy-role-'));
+  const file = path.join(root, 'policy.json');
+  const legacy = { ...policy, roles: { ...policy.roles,
     scribe: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] },
     concierge: { model: 'pilot-claude/haiku', thinking: 'low', tools: ['read', 'grep', 'find', 'ls', 'edit', 'write'] } } };
   try {
-    const fake = fakeSpawn([assistant('pilot-claude', 'haiku', 'low', 'Local-only sync')]);
-    const result = await runRole(expanded, 'concierge', 'Sync captured facts', root, '/tmp/role.md',
-      { spawnImpl: fake.spawnImpl });
-    assert.equal(result.role, 'concierge');
-    assert.equal(fake.calls[0].options.env.PI_ROLE, 'concierge');
-    assert.equal(fake.calls[0].options.env.PI_CONCIERGE_ROOT, fs.realpathSync(root));
-    assert.deepEqual(fake.calls[0].args.slice(fake.calls[0].args.indexOf('--tools'), fake.calls[0].args.indexOf('--tools') + 2),
-      ['--tools', 'read,grep,find,ls,edit,write']);
-    const denied = fakeSpawn([{ type: 'tool_execution_start', toolName: 'write', args: { path: 'Artifacts/TODO.md', content: 'bad' } },
-      assistant('pilot-claude', 'haiku', 'low', 'Done')]);
-    await assert.rejects(runRole(expanded, 'concierge', 'Sync', root, '/tmp/role.md',
-      { spawnImpl: denied.spawnImpl }), /Concierge attempted|allowlist/i);
-    const wrong = fakeSpawn([assistant('pilot-claude', 'haiku', 'low', 'Should not spawn')]);
-    await assert.rejects(runRole(expanded, 'concierge', 'Sync', path.dirname(root), '/tmp/role.md',
-      { spawnImpl: wrong.spawnImpl }), /project|root|Artifacts/i);
-    assert.equal(wrong.calls.length, 0);
+    fs.writeFileSync(file, JSON.stringify(legacy));
+    assert.throws(() => loadRolePolicy(file),
+      (error) => /concierge/i.test(error.message) && /explorer/i.test(error.message));
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
