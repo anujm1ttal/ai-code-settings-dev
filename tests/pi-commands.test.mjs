@@ -93,17 +93,25 @@ test('/snapshot uses a read-only auditor and excludes secrets from factual outpu
   assert.match(template, /\$ARGUMENTS/);
 });
 
-test('/sync sends bounded main-captured Git/parity facts to the isolated concierge', () => {
+test('/sync reconciles state in the main session on a real project with no child dispatch', () => {
   const template = readFileSync(new URL('../pi/prompts/sync.md', import.meta.url), 'utf8');
   assert.match(template, /main session/i);
+  assert.match(template, /real project/i);
   assert.match(template, /deploy parity/i);
-  assert.match(template, /64 KiB/i);
-  assert.match(template, /exitCode/);
-  assert.match(template, /pi_role_agent/);
-  assert.match(template, /role[^\n]*concierge/);
-  assert.match(template, /evidencePath/);
+  assert.match(template, /verify_deploy_parity/);
+  assert.match(template, /exit 1/i);
+  assert.match(template, /current_task\.md/);
+  assert.match(template, /RECONCILED/);
+  assert.match(template, /DRIFT/);
+  assert.match(template, /STALE/);
+  assert.match(template, /MISMATCH/);
+  assert.match(template, /BACKLOG/);
   assert.match(template, /no.*\[x\]/i);
+  assert.match(template, /local-only/i);
   assert.match(template, /\$ARGUMENTS/);
+  assert.doesNotMatch(template, /pi_role_agent/);
+  assert.doesNotMatch(template, /disposable/i);
+  assert.doesNotMatch(template, /concierge/i);
 });
 
 test('/ingest validates external input without claiming completion', () => {
@@ -200,18 +208,21 @@ test('Pi global preview routes each of the eight common-rule dispositions withou
   assert.ok(Buffer.byteLength(source, 'utf8') <= 6743, 'Pi-global.md must stay within the 512 B Phase 2 growth ceiling over 6,231 B');
 });
 
-test('/handoff updates local state only and leaves backup to a separate action', () => {
+test('/handoff runs in the main session, saves state locally and leaves backup to a separate action', () => {
   const template = readFileSync(new URL('../pi/prompts/handoff.md', import.meta.url), 'utf8');
   assert.match(template, /main session/i);
-  assert.match(template, /pi_role_agent/);
-  assert.match(template, /role[^\n]*concierge/);
-  assert.match(template, /evidencePath/);
-  assert.match(template, /64 KiB/);
-  assert.match(template, /exitCode/);
+  assert.match(template, /real project/i);
   assert.match(template, /current_task\.md/);
+  assert.match(template, /2,000/);
   assert.match(template, /HANDOFF_BRIEF\.md/);
+  assert.match(template, /DECISION_LOG\.md/);
+  assert.match(template, /--lite/);
+  assert.match(template, /--phase/);
   assert.match(template, /local-only/i);
   assert.match(template, /separate.*backup/i);
-  assert.doesNotMatch(template, /git\s+(?:-C\s+Artifacts\s+)?(?:commit|push)/i);
   assert.match(template, /no `?\[x\]/i);
+  assert.doesNotMatch(template, /pi_role_agent/);
+  assert.doesNotMatch(template, /disposable/i);
+  assert.doesNotMatch(template, /concierge/i);
+  assert.doesNotMatch(template, /git\s+(?:-C\s+Artifacts\s+)?(?:commit|push)/i);
 });
