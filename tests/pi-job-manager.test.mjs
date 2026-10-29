@@ -61,6 +61,48 @@ test('collect is not_ready while running, then returns the result; usage is repo
   assert.equal(second.usageReported, false);
 });
 
+test('evidence is checked after success and on every collection; absent evidence stays absent', async () => {
+  const { manager, calls } = harness(); let checks = 0;
+  const job = manager.start('audit', { role: 'auditor', evidence: { verify: () => { checks++; } } });
+  const plain = manager.start('plain');
+  calls[0].resolve(okResult()); calls[1].resolve(okResult()); await tick();
+  assert.equal(checks, 1);
+  assert.deepEqual(manager.collect(job.id).evidence, { status: 'VERIFIED' });
+  assert.deepEqual(manager.collect(job.id).evidence, { status: 'VERIFIED' });
+  assert.equal(checks, 3);
+  assert.equal(Object.hasOwn(manager.collect(plain.id), 'evidence'), false);
+});
+
+test('throwing evidence checks never crash, stay incomplete and bound the reason', async () => {
+  const { manager, calls } = harness(); let valid = false; let checks = 0;
+  const job = manager.start('audit', { evidence: { verify: () => { checks++; if (!valid) throw new Error('x'.repeat(2000)); } } });
+  calls[0].resolve(okResult()); await tick(); valid = true;
+  const out = manager.collect(job.id);
+  assert.equal(out.evidence.status, 'INCOMPLETE');
+  assert.ok(out.evidence.reason.length <= 512);
+  assert.equal(checks, 2);
+  const later = manager.start('audit later', { evidence: { verify: () => { throw new Error('broken'); } } });
+  calls[1].resolve(okResult()); await tick();
+  assert.equal(manager.collect(later.id).evidence.status, 'INCOMPLETE');
+});
+
+test('an unprintable thrown evidence value cannot crash the manager', async () => {
+  const { manager, calls } = harness();
+  const job = manager.start('audit', { evidence: { verify: () => { throw Object.create(null); } } });
+  calls[0].resolve(okResult()); await tick();
+  assert.equal(manager.status(job.id).state, 'succeeded');
+  assert.equal(manager.collect(job.id).evidence.status, 'INCOMPLETE');
+});
+
+test('a collect-time verification failure is retained on subsequent collections', async () => {
+  const { manager, calls } = harness(); let valid = true;
+  const job = manager.start('audit', { evidence: { verify: () => { if (!valid) throw new Error('changed'); } } });
+  calls[0].resolve(okResult()); await tick(); valid = false;
+  assert.deepEqual(manager.collect(job.id).evidence, { status: 'INCOMPLETE', reason: 'changed' });
+  valid = true;
+  assert.deepEqual(manager.collect(job.id).evidence, { status: 'INCOMPLETE', reason: 'changed' });
+});
+
 test('status is metadata only: it never returns text or usage and never consumes a result', async () => {
   const { manager, calls } = harness();
   const job = manager.start('Explore');

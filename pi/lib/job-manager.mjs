@@ -34,6 +34,19 @@ export function createJobManager({ run, ...overrides } = {}) {
     return job;
   };
 
+  function verifyEvidence(job) {
+    try {
+      job.evidence.verify();
+      job.evidenceStatus ??= 'VERIFIED';
+    } catch (error) {
+      job.evidenceStatus = 'INCOMPLETE';
+      if (job.evidenceReason === undefined) {
+        try { job.evidenceReason = String(error instanceof Error ? error.message : error).slice(0, 512); }
+        catch { job.evidenceReason = 'Evidence verification failed'; }
+      }
+    }
+  }
+
   function finish(job, outcome, value) {
     if (isTerminal(job)) return; // exactly one terminal transition
     if (job.discarded) {
@@ -50,6 +63,7 @@ export function createJobManager({ run, ...overrides } = {}) {
       const { text, truncated } = truncateText(String(value?.text ?? ''), limits.maxTextBytes);
       job.result = { text, truncated, model: value?.model, thinking: value?.thinking, usage: value?.usage ?? null,
         toolCounts: value?.toolCounts, successfulReads: value?.successfulReads };
+      if (job.evidence) verifyEvidence(job);
       job.state = 'succeeded';
       return;
     }
@@ -59,7 +73,7 @@ export function createJobManager({ run, ...overrides } = {}) {
     job.state = job.cancelRequested && !job.quarantined ? 'cancelled' : 'failed';
   }
 
-  function start(task, { key, context, role = 'explorer' } = {}) {
+  function start(task, { key, context, role = 'explorer', evidence } = {}) {
     if (closed) throw new Error('Job manager is closed');
     if (draining) throw new Error('Job manager is draining; retry after cancellation completes');
     if (key !== undefined && keys.has(key)) return summary(jobs.get(keys.get(key)));
@@ -78,7 +92,7 @@ export function createJobManager({ run, ...overrides } = {}) {
     }
     const controller = new AbortController();
     const job = { id: `job-${randomUUID()}`, state: 'running', createdAt: new Date().toISOString(), controller,
-      key, role, cancelRequested: false, quarantined: false, collected: false, usageReported: false };
+      key, role, evidence, cancelRequested: false, quarantined: false, collected: false, usageReported: false };
     jobs.set(job.id, job);
     if (key !== undefined) keys.set(key, job.id);
     let pending;
@@ -105,11 +119,14 @@ export function createJobManager({ run, ...overrides } = {}) {
       return { id: job.id, state: job.state, role: job.role, ready: true, error: job.error, usage: null, usageUnknown: true,
         usageReported: false, ...(job.quarantined ? { quarantined: true } : {}) };
     }
+    if (job.evidence) verifyEvidence(job);
     const first = !job.usageReported;
     job.usageReported = true;
     const { usage, ...rest } = job.result;
     return { id: job.id, state: job.state, role: job.role, ready: true, ...rest,
-      ...(first ? { usage } : {}), usageReported: first };
+      ...(first ? { usage } : {}), usageReported: first,
+      ...(job.evidence ? { evidence: job.evidenceStatus === 'VERIFIED' ? { status: 'VERIFIED' } :
+        { status: 'INCOMPLETE', reason: job.evidenceReason } } : {}) };
   }
 
   function cancel(id) {

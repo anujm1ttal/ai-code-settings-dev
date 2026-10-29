@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import fs, { readFileSync } from 'node:fs';
+import os from 'node:os';
+import { createHash } from 'node:crypto';
 import { test } from 'node:test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -160,7 +162,10 @@ test('registers for strategist or auditor even without explorer and documents ro
     assert.equal(handlers.size, 2);
     assert.match(`${def.label} ${def.description}`, /explorer/i);
     assert.match(`${def.label} ${def.description}`, /strategist/i);
-    assert.match(`${def.label} ${def.description}`, /auditor.*not.*enabled/i);
+    assert.match(`${def.label} ${def.description}`, /auditor.*evidencePath.*evidenceSha256/i);
+    assert.match(def.description, /advisory/i);
+    assert.match(def.description, /never.*task completion/i);
+    assert.ok(def.parameters.args[0].evidencePath && def.parameters.args[0].evidenceSha256);
     assert.ok(def.parameters.args[0].role, 'role parameter is advertised');
   }
 });
@@ -198,12 +203,100 @@ test('unconfigured and unsupported roles are rejected without launching or recor
   assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
 });
 
-test('auditor start is disabled even when configured and creates no job', async () => {
+test('auditor start requires evidence even when configured and creates no job', async () => {
   const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/src/agents/auditor.md' } });
-  await assert.rejects(call({ action: 'start', task: 'review', role: 'auditor' }),
-    /auditor jobs are not enabled until evidence support is added/i);
+  for (const args of [{}, { evidencePath: ' ' }, { evidencePath: '/tmp/manifest' }, { evidenceSha256: 'a'.repeat(64) }]) {
+    await assert.rejects(call({ action: 'start', task: 'review', role: 'auditor', ...args }),
+      /Auditor requires evidencePath and evidenceSha256/);
+  }
   assert.equal(runs.length, 0);
   assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+});
+
+function auditFixture(t) {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-audit-job-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const dir = path.join(root, 'Artifacts', 'Evidence'); fs.mkdirSync(dir, { recursive: true });
+  const capture = path.join(dir, 'capture'); fs.writeFileSync(capture, 'original');
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+  const manifest = path.join(dir, 'manifest.json');
+  fs.writeFileSync(manifest, JSON.stringify({ version: 1, captures: [{ path: capture, sha256: hash('original') }] }));
+  return { root, capture, manifest, sha: hash(fs.readFileSync(manifest)) };
+}
+
+test('invalid auditor evidence and evidence on other roles are rejected before admission', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, strategist: true, promptPaths: { auditor: '/audit', strategist: '/plan' } });
+  for (const role of ['explorer', 'strategist']) for (const args of [{ evidencePath: f.manifest }, { evidenceSha256: f.sha }]) {
+    await assert.rejects(call({ action: 'start', task: 'review', role, ...args }, { cwd: f.root }), /evidence parameters are auditor-only/i);
+  }
+  await assert.rejects(call({ action: 'start', task: 'review', role: 'auditor', evidencePath: f.manifest,
+    evidenceSha256: '0'.repeat(64) }, { cwd: f.root }), /sha|digest/i);
+  assert.equal(runs.length, 0);
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+  await call({ action: 'start', task: 'explore', evidencePath: ' ', evidenceSha256: '\t' });
+  assert.equal(runs.length, 1);
+});
+
+test('relative or outside-Artifacts manifest paths are rejected before admission with zero children', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const outside = path.join(f.root, 'outside.json'); fs.writeFileSync(outside, '{}');
+  for (const evidencePath of [path.relative(f.root, f.manifest), outside, path.join(f.root, 'Artifacts-evil', 'm.json')]) {
+    await assert.rejects(call({ action: 'start', task: 'review', role: 'auditor', evidencePath,
+      evidenceSha256: f.sha }, { cwd: f.root }), /absolute|inside project Artifacts/i);
+  }
+  assert.equal(runs.length, 0);
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+});
+
+test('auditor validates before start, reads manifest, and reports verified evidence', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const { details: { job } } = await call({ action: 'start', task: 'Review', role: 'auditor',
+    evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  assert.equal(runs[0].role, 'auditor');
+  assert.equal(runs[0].options.requiredReadPath, f.manifest);
+  assert.equal(runs[0].task, `Review\n\nEvidence manifest (read it first, then the captures it lists): ${f.manifest}`);
+  assert.equal((await call({ action: 'status', jobId: job.id })).details.job.role, 'auditor');
+  runs[0].resolve(result('PASS')); await tick();
+  const out = await call({ action: 'collect', jobId: job.id });
+  assert.equal(out.details.role, 'auditor');
+  assert.deepEqual(out.details.evidence, { status: 'VERIFIED' });
+  fs.writeFileSync(f.capture, 'changed!');
+  const changed = await call({ action: 'collect', jobId: job.id });
+  assert.equal(changed.details.evidence.status, 'INCOMPLETE');
+  assert.match(changed.content[0].text, /^INCOMPLETE: evidence changed or became invalid after this job started \(.+\)\. This output does not apply to current evidence\./);
+});
+
+test('auditor evidence changed after completion but before first collection is incomplete', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const { details: { job } } = await call({ action: 'start', task: 'Review', role: 'auditor',
+    evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  runs[0].resolve(result()); await tick(); fs.writeFileSync(f.capture, 'changed!');
+  const out = await call({ action: 'collect', jobId: job.id });
+  assert.equal(out.details.evidence.status, 'INCOMPLETE');
+  assert.match(out.content[0].text, /^INCOMPLETE: evidence changed or became invalid after this job started/);
+});
+
+test('auditor evidence changed during run remains incomplete even if restored before collection', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const { details: { job } } = await call({ action: 'start', task: 'Review', role: 'auditor',
+    evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  fs.writeFileSync(f.capture, 'changed!'); runs[0].resolve(result()); await tick();
+  fs.writeFileSync(f.capture, 'original');
+  const out = await call({ action: 'collect', jobId: job.id });
+  assert.equal(out.details.evidence.status, 'INCOMPLETE');
+  assert.match(out.content[0].text, /^INCOMPLETE:/);
+});
+
+test('auditor prompt validation occurs before evidence validation', async () => {
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/bad' },
+    accessImpl: () => { throw new Error('prompt unreadable'); } });
+  await assert.rejects(call({ action: 'start', task: 'review', role: 'auditor' }), /prompt unreadable/);
+  assert.equal(runs.length, 0);
 });
 
 test('unreadable role prompt fails before admission, with a readable control', async () => {
