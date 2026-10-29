@@ -27,3 +27,32 @@ test('council evidence has an exact common digest, 64 KiB cap and real single-li
     assert.throws(() => validateCouncilEvidence(root, file, digest));
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+test('S-C council evidence accepts the same file in forward-slash and dot-segment spellings, with negative controls', () => {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-council-sc-')));
+  const temp = path.join(root, 'Artifacts', 'Temp');
+  fs.mkdirSync(temp, { recursive: true });
+  const file = path.join(temp, 'evidence.txt');
+  try {
+    fs.writeFileSync(file, 'Synthetic tradeoff A versus B.\n');
+    const digest = sha(fs.readFileSync(file));
+    const forward = file.replaceAll(path.sep, '/');
+    const dotted = temp + path.sep + '.' + path.sep + 'evidence.txt';
+    for (const spelling of [file, forward, dotted]) {
+      const result = validateCouncilEvidence(root, spelling, digest);
+      assert.equal(result.sha256, digest, spelling);
+      assert.equal(result.path, file, 'returned path is the canonical native path');
+    }
+    // Negative controls: normalization must not widen acceptance.
+    fs.writeFileSync(path.join(root, 'outside.txt'), 'Synthetic tradeoff A versus B.\n');
+    for (const bad of [path.join(root, 'outside.txt'), path.join(root, 'outside.txt').replaceAll(path.sep, '/'),
+      temp + path.sep + '..' + path.sep + 'outside.txt', path.join(temp, 'nested', '..', '..', 'outside.txt'),
+      '/tmp/evidence.txt', path.join(temp, 'missing.txt')]) {
+      assert.throws(() => validateCouncilEvidence(root, bad, digest), undefined, bad);
+    }
+    assert.throws(() => validateCouncilEvidence(root, forward, '0'.repeat(64)), /SHA-256 mismatch/);
+    fs.rmSync(file);
+    fs.linkSync(path.join(root, 'outside.txt'), file);
+    assert.throws(() => validateCouncilEvidence(root, forward, digest), /single-link/);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});

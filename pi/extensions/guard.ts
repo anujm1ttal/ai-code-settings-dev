@@ -165,7 +165,42 @@ function deletesCriticalRoot(command: string): boolean {
   return false;
 }
 
-function commandDenial(raw: unknown): string | undefined {
+// S-B: shell copies are not an OS sandbox. This only catches the common cp/mv/install/rsync/ln/tee destination
+// operand; interpreters (python -c, node -e), hard links and TOCTOU remain uncovered (see pi/README.md).
+const COPY_COMMAND = /(?:^|[;&|(\n]\s*)(?:sudo\s+)?(cp|mv|install|rsync|ln|tee)\b([^\n;&|]*)/gi;
+
+function copyDestinations(command: string, name: string, args: string): string[] {
+  const tokens = args.match(/"[^"]*"|'[^']*'|\S+/g) ?? [];
+  const operands: string[] = [];
+  let target: string | undefined;
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (/^\d?>/.test(token)) { if (/^\d?>>?$/.test(token)) i++; continue; }
+    const unquoted = token.replace(/^["']|["']$/g, '');
+    if (token === '-t' || token === '--target-directory') { target = tokens[++i]?.replace(/^["']|["']$/g, ''); continue; }
+    if (token.startsWith('--target-directory=')) { target = unquoted.slice('--target-directory='.length); continue; }
+    if (token === '--' || /^-[^\s]/.test(token)) continue;
+    operands.push(unquoted);
+  }
+  if (name === 'tee') return operands;
+  if (target !== undefined) return [target];
+  return operands.length >= 2 ? [operands[operands.length - 1]] : [];
+}
+
+function copiesOutsideProject(command: string, cwd: unknown): boolean {
+  if (typeof cwd !== 'string') return false;
+  for (const match of command.matchAll(COPY_COMMAND)) {
+    const name = match[1].toLowerCase();
+    for (const destination of copyDestinations(command, name, match[2])) {
+      if (!destination || /^\/dev\/(?:null|stdout|stderr)$/.test(destination)) continue;
+      if (name === 'rsync' && /^[^/\\:]{2,}:/.test(destination)) return true;
+      if (outsideProjectDenial(destination, cwd)) return true;
+    }
+  }
+  return false;
+}
+
+function commandDenial(raw: unknown, cwd?: unknown): string | undefined {
   if (typeof raw !== 'string' || !raw.trim()) return 'Missing shell command';
   if (deletesCriticalRoot(raw)) return 'Recursive deletion of a root, home or workspace';
   const normalized = raw.replaceAll('\\', '/').toLowerCase();
@@ -175,6 +210,10 @@ function commandDenial(raw: unknown): string | undefined {
   if ((/(?:--force|-\w*f)/i.test(cleanFlags)) && (/(?:--dirs|-\w*d)/i.test(cleanFlags))) return 'Destructive git clean';
   for (const [pattern, reason] of DANGEROUS_COMMANDS) if (pattern.test(scanned)) return reason;
   if (redirectsToSource(raw)) return 'Shell redirect to source file';
+  if (/\bgit\s+commit\b/i.test(raw) && /co-authored-by:\s*claude|generated with[\s\S]*?claude code/i.test(raw)) {
+    return 'Commit message contains an AI attribution trailer';
+  }
+  if (copiesOutsideProject(raw, cwd)) return 'Shell copy writes outside the project directory';
   return undefined;
 }
 
@@ -201,7 +240,7 @@ export default function guard(pi: ExtensionAPI) {
       return reason ? { block: true, reason } : undefined;
     }
     if (event.toolName === 'bash' || event.toolName === 'powershell') {
-      const reason = commandDenial(event.input.command);
+      const reason = commandDenial(event.input.command, ctx.cwd);
       return reason ? { block: true, reason } : undefined;
     }
     return undefined;
@@ -209,7 +248,7 @@ export default function guard(pi: ExtensionAPI) {
   pi.on('user_bash', async (event, ctx) => {
     if (concierge) return { result: { output: 'Blocked: concierge has no shell', exitCode: 1,
       cancelled: false, truncated: false } };
-    const reason = commandDenial(event.command);
+    const reason = commandDenial(event.command, ctx.cwd);
     if (!reason) return undefined;
     if (ctx.hasUI && await ctx.ui.confirm('Dangerous direct-shell command', `${reason}: ${event.command}\nAllow this command?`, { timeout: 10000 })) {
       return undefined;

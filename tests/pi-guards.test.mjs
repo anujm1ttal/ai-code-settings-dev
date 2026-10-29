@@ -378,10 +378,10 @@ test('B1 compares Windows case and 8.3 short names without letting either escape
   } finally { fs.rmSync(project, { recursive: true, force: true }); }
 });
 
-test('B1 leaves bash, powershell, the concierge guard and the pinned rm -rf /tmp/scratch decision unchanged', async () => {
+test('B1 leaves the concierge guard, reads and the pinned rm -rf /tmp/scratch decision unchanged (shell cp is now covered by S-B)', async () => {
   const tool = (await handlers()).get('tool_call');
   const ctx = { cwd: root, hasUI: false };
-  assert.equal(await tool({ toolName: 'bash', input: { command: 'cp config.json ../elsewhere/config.json' } }, ctx), undefined);
+  assert.equal((await tool({ toolName: 'bash', input: { command: 'cp config.json ../elsewhere/config.json' } }, ctx))?.block, true, 'S-B supersedes the old B1 residual');
   assert.equal(await tool({ toolName: 'bash', input: { command: 'rm -rf /tmp/scratch' } }, ctx), undefined);
   assert.equal(await tool({ toolName: 'read', input: { path: '../other-repo/file.txt' } }, ctx), undefined, 'reads are not restricted by B1');
 });
@@ -453,4 +453,59 @@ test('B1 reads Git Bash, MSYS, Cygwin and WSL drive paths the way Pi does on Win
   assert.equal((await write(tool, `${shellRoot}-evil/x.txt`))?.block, true, 'sibling prefix in shell form');
   assert.equal((await write(tool, `/${drive}`))?.block, true, 'a bare drive root is outside the project');
   assert.equal((await tool({ toolName: 'edit', input: { path: `${shellRoot}/docs/ok.md`, edits: [] } }, { cwd: root, hasUI: false })), undefined);
+});
+
+test('S-A denies git commit carrying an AI attribution trailer, with presence and prose controls', async () => {
+  const h = await handlers();
+  const tool = h.get('tool_call');
+  const ctx = { cwd: root, hasUI: false };
+  const denied = [
+    'git commit -m "fix\n\nCo-Authored-By: Claude <noreply@anthropic.com>"',
+    'git commit -m "x" -m "Generated with [Claude Code](https://claude.com/claude-code)"',
+    "git commit -F - <<'EOF'\nfix\n\nCo-authored-by: Claude\nEOF",
+    'echo "Co-Authored-By: Claude" > m.txt && git commit -F m.txt',
+    'git commit -m @"\nfix\nCo-Authored-By: Claude\n"@',
+  ];
+  for (const toolName of ['bash', 'powershell']) {
+    for (const command of denied) {
+      const result = await tool({ toolName, input: { command } }, ctx);
+      assert.equal(result?.block, true, command);
+      assert.match(result.reason, /attribution/i, command);
+    }
+    for (const command of ['git commit -m "fix parser"', 'git commit -m "Co-Authored-By: Alice <a@example.com>"',
+      'git log --grep "Co-Authored-By: Claude"', 'echo "Co-Authored-By: Claude is a trailer"', 'git status']) {
+      assert.equal(await tool({ toolName, input: { command } }, ctx), undefined, `control ${command}`);
+    }
+  }
+  const direct = await h.get('user_bash')({ command: denied[0] }, { cwd: root, hasUI: false });
+  assert.equal(direct.result.exitCode, 1);
+  assert.match(direct.result.output, /attribution/i);
+});
+
+test('S-B denies shell copies whose destination is outside the project, with inside/temp/evidence controls', async () => {
+  const h = await handlers();
+  const tool = h.get('tool_call');
+  const ctx = { cwd: root, hasUI: false };
+  const tmp = path.join(os.tmpdir(), 'sb-scratch').replaceAll(path.sep, '/');
+  const outside = [
+    'cp config.json ../elsewhere/config.json', 'cp -r src ../elsewhere/', 'cp "a b.txt" "../elsewhere/a b.txt"',
+    'mv notes.txt ../elsewhere/', 'cp -t ../elsewhere a.txt b.txt', 'cp --target-directory=../elsewhere a.txt',
+    'install -m 644 a.txt ../elsewhere/a.txt', 'rsync -a src/ ../elsewhere/src/', 'ln -s a.txt ../elsewhere/link',
+    'echo hi | tee ../elsewhere/out.txt', 'cd src && cp a.txt ../../elsewhere/', 'true; cp a.txt ../elsewhere/',
+  ];
+  for (const toolName of ['bash', 'powershell']) {
+    for (const command of outside) {
+      const result = await tool({ toolName, input: { command } }, ctx);
+      assert.equal(result?.block, true, command);
+      assert.match(result.reason, /outside the project/i, command);
+    }
+    const inside = ['cp config.json docs/config.json', 'cp -r src docs/', 'mv a.txt b.txt', 'cp a.txt Artifacts/Evidence/PI-2-P4/a.txt',
+      `cp a.txt ${tmp}/a.txt`, 'echo hi | tee Artifacts/Temp/out.txt', 'echo hi | tee /dev/null', 'cp a.txt',
+      'git mv a.txt b.txt', 'echo "cp a.txt ../elsewhere/"', 'ls ../elsewhere', 'rm -rf /tmp/scratch', 'node --test tests/x.mjs 2>&1 | tee Artifacts/Temp/log.txt'];
+    for (const command of inside) assert.equal(await tool({ toolName, input: { command } }, ctx), undefined, `control ${command}`);
+  }
+  const direct = await h.get('user_bash')({ command: outside[0] }, { cwd: root, hasUI: false });
+  assert.equal(direct.result.exitCode, 1);
+  assert.match(direct.result.output, /outside the project/i);
+  assert.equal(await h.get('user_bash')({ command: 'cp a.txt docs/a.txt' }, { cwd: root, hasUI: false }), undefined);
 });

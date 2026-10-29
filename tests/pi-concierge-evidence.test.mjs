@@ -29,3 +29,33 @@ test('concierge accepts only bounded main-captured Git/parity stdout and exit in
     assert.throws(() => validateConciergeEvidence(root, file));
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
+
+test('S-C concierge evidence accepts the same file in forward-slash and dot-segment spellings, with negative controls', () => {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-concierge-sc-')));
+  const dir = path.join(root, 'Artifacts', 'Temp');
+  fs.mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, 'capture.json');
+  const data = { git: { stdout: ' M test\n', stderr: '', exitCode: 0 },
+    parity: { stdout: 'source ahead\n', stderr: '', exitCode: 0 } };
+  try {
+    fs.writeFileSync(file, JSON.stringify(data));
+    const forward = file.replaceAll(path.sep, '/');
+    const dotted = dir + path.sep + '.' + path.sep + 'capture.json';
+    for (const spelling of [file, forward, dotted]) {
+      const result = validateConciergeEvidence(root, spelling);
+      assert.match(result.sha256, /^[0-9a-f]{64}$/, spelling);
+      assert.equal(result.path, file, 'returned path is the canonical native path');
+    }
+    fs.writeFileSync(path.join(root, 'outside.json'), JSON.stringify(data));
+    for (const bad of [path.join(root, 'outside.json'), path.join(root, 'outside.json').replaceAll(path.sep, '/'),
+      dir + path.sep + '..' + path.sep + 'outside.json', path.join(dir, 'nested', '..', '..', 'outside.json'),
+      '/tmp/capture.json', path.join(dir, 'missing.json')]) {
+      assert.throws(() => validateConciergeEvidence(root, bad), undefined, bad);
+    }
+    fs.writeFileSync(file, JSON.stringify({ ...data, secret: 'x' }));
+    assert.throws(() => validateConciergeEvidence(root, forward), /stdout, stderr and exit codes only/);
+    fs.rmSync(file);
+    fs.linkSync(path.join(root, 'outside.json'), file);
+    assert.throws(() => validateConciergeEvidence(root, forward), /unlinked/);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});

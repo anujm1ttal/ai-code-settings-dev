@@ -9,6 +9,7 @@ export function validateCouncilEvidence(root, file, expectedSha256) {
   if (typeof root !== 'string' || typeof file !== 'string' || !path.isAbsolute(root) || !path.isAbsolute(file)) {
     throw new Error('Council evidence requires absolute project and file paths');
   }
+  file = path.resolve(file); // canonical native spelling; every check below still applies to the result
   const directory = path.join(path.resolve(root), 'Artifacts', 'Temp');
   if (path.dirname(file) !== directory || fs.realpathSync(root) !== path.resolve(root) ||
       fs.realpathSync(directory) !== directory) throw new Error('Council evidence must be in real project Artifacts/Temp');

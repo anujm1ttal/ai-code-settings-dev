@@ -7,6 +7,7 @@ const MAX_BYTES = 64 * 1024;
 export function validateConciergeEvidence(root, file) {
   if (typeof root !== 'string' || !path.isAbsolute(root) ||
       typeof file !== 'string' || !path.isAbsolute(file)) throw new Error('Absolute evidence and project paths required');
+  file = path.resolve(file); // canonical native spelling; every check below still applies to the result
   const expectedDir = path.join(path.resolve(root), 'Artifacts', 'Temp');
   if (path.dirname(file) !== expectedDir || fs.realpathSync(expectedDir) !== expectedDir ||
       fs.realpathSync(root) !== path.resolve(root)) throw new Error('Concierge evidence must be in real project Artifacts/Temp');
