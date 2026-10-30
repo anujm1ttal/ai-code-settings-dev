@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
+import { fileURLToPath } from 'node:url';
 import { buildAgentArgs } from './role-policy.mjs';
 
 const MAX_ERROR_BYTES = 2048;
@@ -9,7 +10,8 @@ const READ_ONLY_ROLES = new Set(['strategist', 'auditor', 'scribe', 'explorer'])
 const READ_ONLY_TOOLS = new Set(['read', 'grep', 'find', 'ls']);
 
 export async function runRole(policy, roleName, task, cwd, promptPath, options = {}) {
-  const { profile, requiredReadPath, spawnImpl = spawn, killerImpl = spawn, invocation = { command: 'pi', args: [] }, signal,
+  const { profile, requiredReadPath, spawnImpl = spawn, killerImpl = spawn,
+    invocation = { command: process.execPath, args: [fileURLToPath(new URL('./child-runtime.mjs', import.meta.url))] }, signal,
     timeoutMs = 10 * 60 * 1000, killGraceMs = 2000 } = options;
   const args = buildAgentArgs(policy, roleName, promptPath, task, { profile });
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 ||
@@ -37,13 +39,19 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   let successfulReads = 0;
   const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
     cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+  const usageCalls = [];
   let streamError;
+  let runtimeVerified = false;
 
   const acceptLine = (line) => {
     if (!line.trim() || streamError) return;
     let event;
     try { event = JSON.parse(line); }
     catch { streamError = new Error('Malformed Pi JSON event'); return; }
+    if (event.type === 'pi_child_runtime') {
+      runtimeVerified = event.retryEnabled === false && event.retryMaxRetries === 0 &&
+        event.providerMaxRetries === 0 && event.compactionEnabled === false;
+    }
     if (event.type === 'tool_execution_start' && typeof event.toolName === 'string') {
       toolCounts.set(event.toolName, (toolCounts.get(event.toolName) ?? 0) + 1);
     }
@@ -74,15 +82,24 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     if (message.stopReason === 'error' || message.stopReason === 'aborted') {
       observedViolation = `Subagent ended with ${message.stopReason}: ${message.errorMessage || 'no details'}`;
     }
-    if (message.usage) {
+    const reading = message.usage ?? null;
+    const valid = value => typeof value === 'number' && Number.isFinite(value) && value >= 0;
+    const components = ['input', 'output', 'cacheRead', 'cacheWrite'];
+    const known = reading && components.every(key => valid(reading[key])) &&
+      components.some(key => reading[key] > 0) && valid(reading.totalTokens) &&
+      ['reasoning', 'cacheWrite1h'].every(key => reading[key] === undefined || valid(reading[key])) &&
+      (reading.cost === undefined || (reading.cost && typeof reading.cost === 'object' &&
+        Object.values(reading.cost).every(valid)));
+    usageCalls.push({ stopReason: message.stopReason, completeness: known ? 'known' : 'unknown', usage: reading });
+    if (known) {
       for (const key of ['input', 'output', 'cacheRead', 'cacheWrite', 'totalTokens']) {
-        usage[key] += message.usage[key] ?? 0;
+        usage[key] += reading[key] ?? 0;
       }
       for (const key of ['input', 'output', 'cacheRead', 'cacheWrite', 'total']) {
-        usage.cost[key] += message.usage.cost?.[key] ?? 0;
+        if (valid(reading.cost?.[key])) usage.cost[key] += reading.cost[key];
       }
       for (const key of ['reasoning', 'cacheWrite1h']) {
-        if (message.usage[key] !== undefined) usage[key] = (usage[key] ?? 0) + message.usage[key];
+        if (reading[key] !== undefined) usage[key] = (usage[key] ?? 0) + reading[key];
       }
     }
     if (message.stopReason === 'stop') lastAssistant = message;
@@ -158,25 +175,36 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   timeoutTimer = setTimeout(() => startCleanup(
     new Error(`Pi ${roleName} subagent timed out after ${timeoutMs} ms`)), timeoutMs);
   if (signal?.aborted) onAbort();
-  let exitCode;
-  try { exitCode = await Promise.race([close, cleanupFailure]); }
-  finally {
-    finished = true;
-    clearTimeout(timeoutTimer); clearTimeout(killTimer); clearTimeout(failureTimer);
-    signal?.removeEventListener('abort', onAbort);
+  try {
+    let exitCode;
+    try { exitCode = await Promise.race([close, cleanupFailure]); }
+    finally {
+      finished = true;
+      clearTimeout(timeoutTimer); clearTimeout(killTimer); clearTimeout(failureTimer);
+      signal?.removeEventListener('abort', onAbort);
+    }
+    if (failure) throw failure;
+    buffer += decoder.end();
+    if (buffer.trim()) acceptLine(buffer);
+    if (streamError) throw streamError;
+    if (signal?.aborted) throw new Error('Agent dispatch aborted');
+    if (exitCode !== 0) throw new Error(`Pi subagent exited with code ${exitCode}: ${stderr}`);
+    if (observedViolation) throw new Error(observedViolation);
+    if (requiredReadPath && !evidenceRead) throw new Error('Council evidence file was not read');
+    if (!lastAssistant) throw new Error('Pi subagent produced no successful final assistant response');
+    const text = lastAssistant.content.filter((part) => part.type === 'text').map((part) => part.text).join('\n');
+    if (!text.trim()) throw new Error(`Pi ${roleName} subagent produced no final text`);
+    if (options.invocation === undefined && runtimeVerified !== true) throw new Error('Pi child runtime was not verified');
+    return { role: roleName, model: policy.roles[roleName].model,
+      thinking: policy.roles[roleName].thinking, text,
+      usage: usageCalls.some(call => call.completeness === 'unknown') ? null : usage, usageCalls,
+      runtimeVerified, toolCounts: Object.fromEntries(toolCounts), successfulReads };
+  } catch (error) {
+    error.message = `Partial Pi subagent dispatch: ${error.message}`;
+    error.partial = true;
+    error.usage = null;
+    error.usageCalls = usageCalls;
+    error.runtimeVerified = runtimeVerified;
+    throw error;
   }
-  if (failure) throw failure;
-  buffer += decoder.end();
-  if (buffer.trim()) acceptLine(buffer);
-  if (streamError) throw streamError;
-  if (signal?.aborted) throw new Error('Agent dispatch aborted');
-  if (exitCode !== 0) throw new Error(`Pi subagent exited with code ${exitCode}: ${stderr}`);
-  if (observedViolation) throw new Error(observedViolation);
-  if (requiredReadPath && !evidenceRead) throw new Error('Council evidence file was not read');
-  if (!lastAssistant) throw new Error('Pi subagent produced no successful final assistant response');
-  const text = lastAssistant.content.filter((part) => part.type === 'text').map((part) => part.text).join('\n');
-  if (!text.trim()) throw new Error(`Pi ${roleName} subagent produced no final text`);
-  return { role: roleName, model: policy.roles[roleName].model,
-    thinking: policy.roles[roleName].thinking, text, usage,
-    toolCounts: Object.fromEntries(toolCounts), successfulReads };
 }

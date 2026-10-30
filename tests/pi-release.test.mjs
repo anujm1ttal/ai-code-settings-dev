@@ -35,6 +35,41 @@ function snapshot(root) {
   return rows;
 }
 
+test('preview stages the scoped runtime at the default dispatch path', async () => {
+  const root = sandbox();
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    const runner = await import(pathToFileURL(path.join(staged.destination, 'pi/lib/role-runner.mjs')).href);
+    const { loadRolePolicy } = await import(pathToFileURL(path.join(staged.destination, 'pi/lib/role-policy.mjs')).href);
+    const { EventEmitter } = await import('node:events');
+    const { PassThrough } = await import('node:stream');
+    const policy = loadRolePolicy(path.join(sourceRoot, 'tests/fixtures/pi-role-policy.json'));
+    let dispatched;
+    const spawnImpl = (command, args) => {
+      dispatched = { command, launcher: args[0] };
+      const child = new EventEmitter();
+      child.stdout = new PassThrough(); child.stderr = new PassThrough();
+      queueMicrotask(() => {
+        for (const event of [
+          { type: 'pi_child_runtime', retryEnabled: false, retryMaxRetries: 0, providerMaxRetries: 0, compactionEnabled: false },
+          { type: 'message_end', message: { role: 'assistant', provider: 'pilot-gpt', model: 'sol', thinkingLevel: 'medium',
+            stopReason: 'stop', content: [{ type: 'text', text: 'done' }],
+            usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2 } } },
+        ]) child.stdout.write(JSON.stringify(event) + '\n');
+        child.stdout.end(); child.stderr.end(); child.emit('close', 0);
+      });
+      return child;
+    };
+    const result = await runner.runRole(policy, 'coder', 'fixture', root, '/role.md', { spawnImpl });
+    assert.equal(result.runtimeVerified, true);
+    assert.equal(dispatched.command, process.execPath);
+    assert.equal(dispatched.launcher, path.join(staged.destination, 'pi/lib/child-runtime.mjs'));
+    assert.equal(fs.readFileSync(dispatched.launcher, 'utf8'), fs.readFileSync(path.join(sourceRoot, 'pi/lib/child-runtime.mjs'), 'utf8'));
+    rollbackPreview(staged);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
 test('isolated preview stages the concierge guard dependency used by the selected guard extension', async () => {
   const root = sandbox();
   try {

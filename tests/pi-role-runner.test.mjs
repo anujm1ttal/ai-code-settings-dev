@@ -8,7 +8,11 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { PassThrough } from 'node:stream';
+import { stripTypeScriptTypes } from 'node:module';
+import { runInNewContext } from 'node:vm';
 import { runRole } from '../pi/lib/role-runner.mjs';
+import { createJobManager } from '../pi/lib/job-manager.mjs';
+import { createJobBudget } from '../pi/lib/job-budget.mjs';
 import { loadRolePolicy } from '../pi/lib/role-policy.mjs';
 
 const policy = loadRolePolicy(new URL('./fixtures/pi-role-policy.json', import.meta.url));
@@ -32,6 +36,9 @@ function fakeSpawn(events, exitCode = 0) {
   return { calls, spawnImpl };
 }
 
+const runtimeProof = { type: 'pi_child_runtime', retryEnabled: false, retryMaxRetries: 0,
+  providerMaxRetries: 0, compactionEnabled: false };
+
 const assistant = (provider, model, thinkingLevel, text) => ({ type: 'message_end', message: {
   role: 'assistant', provider, model, thinkingLevel, stopReason: 'stop',
   content: [{ type: 'text', text }], usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0,
@@ -50,7 +57,8 @@ test('dispatches an isolated auditor and verifies observed model and thinking', 
     thinking: 'high', text: 'FAIL: revise tests', usage: { input: 1, output: 1,
       cacheRead: 0, cacheWrite: 0, totalTokens: 2,
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
-    toolCounts: {}, successfulReads: 0 });
+    usageCalls: [{ stopReason: 'stop', completeness: 'known', usage: assistant('pilot-claude', 'sonnet', 'high', '').message.usage }],
+    runtimeVerified: false, toolCounts: {}, successfulReads: 0 });
 });
 
 test('explorer dispatches without project state and reports bounded tool metadata', async () => {
@@ -58,6 +66,7 @@ test('explorer dispatches without project state and reports bounded tool metadat
   const expanded = { ...policy, roles: { ...policy.roles,
     explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
   const fake = fakeSpawn([
+    runtimeProof,
     { type: 'tool_execution_start', toolCallId: '1', toolName: 'read', args: { path: 'secret-argument' } },
     { type: 'tool_execution_end', toolCallId: '1', toolName: 'read', isError: false, result: 'secret-content' },
     { type: 'tool_execution_start', toolCallId: '2', toolName: 'read', args: { path: 'missing' } },
@@ -123,7 +132,7 @@ test('concierge policy is rejected during load, before a child can spawn', () =>
 });
 
 test('read-only council coder denies observed write events despite normal writable coder policy', async () => {
-  const allowed = fakeSpawn([assistant('pilot-gpt', 'sol', 'medium', 'Perspective')]);
+  const allowed = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'Perspective')]);
   const result = await runRole(policy, 'coder', 'Critique', '.', '/tmp/council.md',
     { spawnImpl: allowed.spawnImpl, profile: 'council-read-only' });
   assert.equal(result.text, 'Perspective');
@@ -147,7 +156,7 @@ test('council profile requires an observed read of its exact immutable evidence 
     assistant('pilot-gpt', 'sol', 'high', 'Pretended read')]);
   await assert.rejects(runRole(policy, 'strategist', 'Review', '.', '/tmp/council.md',
     { spawnImpl: failedRead.spawnImpl, profile: 'council-read-only', requiredReadPath: file }), /evidence|read/i);
-  const read = fakeSpawn([{ type: 'tool_execution_start', toolCallId: 'e2', toolName: 'read', args: { path: file } },
+  const read = fakeSpawn([runtimeProof, { type: 'tool_execution_start', toolCallId: 'e2', toolName: 'read', args: { path: file } },
     { type: 'tool_execution_end', toolCallId: 'e2', toolName: 'read', isError: false },
     assistant('pilot-gpt', 'sol', 'high', 'Evidence-backed opinion')]);
   const result = await runRole(policy, 'strategist', 'Review', '.', '/tmp/council.md',
@@ -190,6 +199,179 @@ test('adds usage from every assistant turn, not only the last response', async (
   assert.equal(result.text, 'Finished');
   assert.deepEqual(result.usage, { input: 17, output: 28, cacheRead: 1, cacheWrite: 2,
     totalTokens: 48, cost: { input: 0.17, output: 0.28, cacheRead: 0.01, cacheWrite: 0.02, total: 0.48 } });
+});
+
+test('retains separate usage readings for each assistant call', async () => {
+  const first = assistant('pilot-gpt', 'sol', 'medium', 'Working');
+  first.message.stopReason = 'toolUse';
+  const second = assistant('pilot-gpt', 'sol', 'medium', 'Finished');
+  second.message.usage.input = 7;
+  second.message.usage.totalTokens = 8;
+  const fake = fakeSpawn([first, second]);
+  const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+    { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } });
+  assert.ok(Array.isArray(result.usageCalls), 'usageCalls must retain one reading per assistant call');
+  assert.equal(result.usageCalls.length, 2);
+  assert.deepEqual(result.usageCalls.map((call) => call.usage.input), [1, 7]);
+});
+
+test('reasoning and cacheWrite1h remain subsets and undefined cost retains current aggregate behavior', async () => {
+  const first = assistant('pilot-gpt', 'sol', 'medium', 'Working');
+  first.message.stopReason = 'toolUse';
+  first.message.usage = { input: 10, output: 20, cacheRead: 3, cacheWrite: 8,
+    totalTokens: 41, reasoning: 7, cacheWrite1h: 5 };
+  const second = assistant('pilot-gpt', 'sol', 'medium', 'Done');
+  second.message.usage = { input: 2, output: 4, cacheRead: 1, cacheWrite: 2,
+    totalTokens: 9, reasoning: 2, cacheWrite1h: 1 };
+  const fake = fakeSpawn([runtimeProof, first, second]);
+  const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl });
+  assert.deepEqual(result.usageCalls.map(call => call.completeness), ['known', 'known']);
+  assert.equal(result.usageCalls[0].usage.cost, undefined);
+  assert.deepEqual(result.usage, { input: 12, output: 24, cacheRead: 4, cacheWrite: 10, totalTokens: 50,
+    reasoning: 9, cacheWrite1h: 6, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } });
+});
+
+test('null usage through a budgeted job remains unknown and holds its reservation', async () => {
+  const budget = createJobBudget({ perJobUsd: 1, perSessionUsd: 3,
+    rates: { 'pilot-gpt/sol': { inputPerMTok: 2, outputPerMTok: 10 } }, modelOf: () => 'pilot-gpt/sol' });
+  let released = 0;
+  const jobs = createJobManager({ budget, gate: { tryAcquire: () => () => { released++; } },
+    run: async () => ({ text: 'done', usage: null, usageCalls: [{ completeness: 'unknown', usage: null }] }) });
+  const job = jobs.start('fixture', { role: 'strategist' });
+  assert.equal(budget.snapshot().reservedUsd, 1);
+  await new Promise(resolve => setImmediate(resolve));
+  const result = jobs.collect(job.id);
+  assert.equal(result.usage, null);
+  assert.equal(result.usageUnknown, true);
+  assert.deepEqual(result.cost, { unknown: true });
+  assert.equal(budget.snapshot().reservedUsd, 1);
+  assert.equal(budget.snapshot().spentUsd, 0);
+  assert.equal(released, 1);
+  await jobs.shutdown();
+});
+
+test('extension tool results omit unknown usage for synchronous and council calls', async () => {
+  const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
+  const js = stripTypeScriptTypes(source).replace(/^import .*;\s*$/gm, '')
+    .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
+    .replace(/export default function \(pi\s*\)/, 'function register(pi)') + '\nregister';
+  const tools = new Map();
+  const known = { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2 };
+  const single = { role: 'coder', model: 'fixture', thinking: 'medium', text: 'done', usage: null, usageCalls: [] };
+  const council = { verdict: 'ADVISORY', evidenceSha256: 'fixture',
+    perspectives: [{ perspective: 'coder', text: 'done', usage: null, usageCalls: [] }],
+    synthesis: { text: 'done', usage: known, usageCalls: [] } };
+  const sandbox = { path, process: { env: { PI_ROLE_POLICY_PATH: path.resolve('fixture-policy.json') } },
+    Type: { Object: () => ({}), String: () => ({}), Union: () => ({}), Literal: () => ({}), Optional: () => ({}) },
+    loadRolePolicy: () => policy, runRole: async () => single, runCouncilPerspective: async () => single,
+    runCouncilSession: async () => council, registerExplorerJobs: () => {}, createExpensiveGate: () => ({}),
+    withExpensiveGate: async (_gate, _label, run) => run() };
+  const register = runInNewContext(js, sandbox);
+  register({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
+  const roleResult = await tools.get('pi_role_agent').execute('id', { role: 'coder', task: 'fixture' }, undefined, undefined, { cwd: '.' });
+  const councilResult = await tools.get('pi_council').execute('id', { question: 'fixture' }, undefined, undefined, { cwd: '.' });
+  for (const result of [roleResult, councilResult]) {
+    assert.equal(Object.hasOwn(result, 'usage'), false);
+    assert.equal(result.details.usageComplete, false);
+  }
+  single.usage = known; council.perspectives[0].usage = known;
+  const roleKnown = await tools.get('pi_role_agent').execute('id', { role: 'coder', task: 'fixture' }, undefined, undefined, { cwd: '.' });
+  const councilKnown = await tools.get('pi_council').execute('id', { question: 'fixture' }, undefined, undefined, { cwd: '.' });
+  assert.equal(roleKnown.usage.input, 1);
+  assert.equal(councilKnown.usage.input, 2);
+  assert.equal(councilKnown.details.usageComplete, true);
+});
+
+test('extension does not bypass the scoped runtime for synchronous, council or background dispatch', () => {
+  const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /invocation:\s*invocation\(\)/);
+  assert.match(source, /usageCalls/);
+});
+
+test('default dispatch uses the scoped runtime without changing coder argv', async () => {
+  const proof = { type: 'pi_child_runtime', retryEnabled: false, retryMaxRetries: 0,
+    providerMaxRetries: 0, compactionEnabled: false };
+  const fake = fakeSpawn([proof, assistant('pilot-gpt', 'sol', 'medium', 'Done')]);
+  const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl });
+  assert.equal(result.runtimeVerified, true);
+  assert.equal(fake.calls[0].command, process.execPath);
+  assert.match(fake.calls[0].args[0], /child-runtime\.mjs$/);
+  assert.equal(fake.calls[0].args[fake.calls[0].args.indexOf('--tools') + 1], policy.roles.coder.tools.join(','));
+  assert.equal(fake.calls[0].args[fake.calls[0].args.indexOf('--model') + 1], policy.roles.coder.model);
+  assert.ok(fake.calls[0].args.includes('--extension'));
+});
+
+test('default dispatch rejects missing or invalid runtime proof; injected invocation remains unverified', async () => {
+  for (const proof of [null, { type: 'pi_child_runtime', retryEnabled: true, retryMaxRetries: 0,
+    providerMaxRetries: 0, compactionEnabled: false }]) {
+    const events = [...(proof ? [proof] : []), assistant('pilot-gpt', 'sol', 'medium', 'Done')];
+    const fake = fakeSpawn(events);
+    await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl }),
+      error => error.partial === true && error.runtimeVerified === false && /runtime.*verif/i.test(error.message));
+    const injected = fakeSpawn(events);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: injected.spawnImpl, invocation: { command: 'fixture', args: [] } });
+    assert.equal(result.runtimeVerified, false);
+  }
+});
+
+test('missing, zero-only and nonfinite call readings remain unknown even beside known usage', async () => {
+  for (const reading of [undefined, { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 },
+    { input: Infinity, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 1 },
+    { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, cost: { total: Infinity } },
+    { input: 1, output: 1, cacheRead: 0, cacheWrite: 0 },
+    { input: 1, output: 1 }]) {
+    const first = assistant('pilot-gpt', 'sol', 'medium', 'Working');
+    first.message.stopReason = 'toolUse'; first.message.usage = reading;
+    const fake = fakeSpawn([runtimeProof, first, assistant('pilot-gpt', 'sol', 'medium', 'Done')]);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl });
+    assert.deepEqual(result.usageCalls.map(call => call.completeness), ['unknown', 'known']);
+    assert.equal(result.usage, null, 'incomplete aggregate must not settle as a free or partial charge');
+  }
+});
+
+test('background jobs retain known and partial per-call usage on collection', async () => {
+  const calls = [{ stopReason: 'error', completeness: 'unknown', usage: null }];
+  for (const failed of [false, true]) {
+    const jobs = createJobManager({ run: async () => {
+      if (failed) { const error = new Error('context overflow'); error.usageCalls = calls; throw error; }
+      return { text: 'Done', usage: null, usageCalls: calls };
+    } });
+    const job = jobs.start('fixture');
+    await new Promise(resolve => setImmediate(resolve));
+    const result = jobs.collect(job.id);
+    assert.deepEqual(result.usageCalls, calls);
+    assert.equal(result.usageUnknown, true);
+    await jobs.shutdown();
+  }
+});
+
+test('context overflow is partial and preserves the failed call usage', async () => {
+  const event = assistant('pilot-gpt', 'sol', 'medium', '');
+  event.message.stopReason = 'error'; event.message.errorMessage = 'context overflow';
+  const fake = fakeSpawn([event]);
+  await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl }), error => {
+    assert.match(error.message, /partial.*context overflow/i);
+    assert.equal(error.partial, true);
+    assert.equal(error.usageCalls.length, 1);
+    assert.equal(error.usageCalls[0].completeness, 'known');
+    return true;
+  });
+  assert.equal(fake.calls.length, 1);
+});
+
+test('zero-usage overflow rejects as partial with unknown call and null usage', async () => {
+  const event = assistant('pilot-gpt', 'sol', 'medium', '');
+  event.message.stopReason = 'error'; event.message.errorMessage = 'context overflow';
+  event.message.usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
+  const fake = fakeSpawn([runtimeProof, event]);
+  await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl }), error => {
+    assert.match(error.message, /partial.*context overflow/i);
+    assert.equal(error.usageCalls[0].completeness, 'unknown');
+    assert.equal(error.usage, null);
+    return true;
+  });
+  assert.equal(fake.calls.length, 1);
 });
 
 test('rejects incorrect observed model even with exit zero', async () => {

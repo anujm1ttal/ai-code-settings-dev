@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Type } from '@earendil-works/pi-ai';
@@ -17,14 +16,6 @@ if (!policyPath || !path.isAbsolute(policyPath)) {
 }
 const policy = loadRolePolicy(policyPath);
 
-function invocation() {
-  const script = process.argv[1];
-  if (script && !script.startsWith('/$bunfs/') && existsSync(script)) {
-    return { command: process.execPath, args: [script] };
-  }
-  return { command: 'pi', args: [] };
-}
-
 export default function (pi: ExtensionAPI) {
   const gate = createExpensiveGate();
   // Synchronous strategist/auditor/council spend is in normal session usage, not the background job budget.
@@ -41,13 +32,16 @@ export default function (pi: ExtensionAPI) {
       const result = await withExpensiveGate(gate, 'council', () => runCouncilSession(policy, params, ctx.cwd,
         path.join(sourceRoot, 'agents', 'council-perspectives.md'),
         path.join(sourceRoot, 'agents', 'council-synthesis.md'),
-        { signal, invocation: invocation() }));
+        { signal }));
+      const completeUsage = [...result.perspectives, result.synthesis].every(p => p.usage != null);
       return {
         content: [{ type: 'text', text: `Advisory ${result.verdict}\n\n${result.synthesis.text}` }],
         details: { verdict: result.verdict, evidenceSha256: result.evidenceSha256,
-          perspectives: result.perspectives.map(({ perspective, model, thinking, text }) =>
-            ({ perspective, model, thinking, text })) },
-        usage: {
+          perspectives: result.perspectives.map(({ perspective, model, thinking, text, usageCalls }) =>
+            ({ perspective, model, thinking, text, usageCalls })),
+          synthesisUsageCalls: result.synthesis.usageCalls, usageComplete: completeUsage,
+          runtimeVerified: [...result.perspectives, result.synthesis].every(p => p.runtimeVerified === true) },
+        ...(completeUsage ? { usage: {
           input: result.perspectives.reduce((sum, p) => sum + (p.usage?.input ?? 0), result.synthesis.usage?.input ?? 0),
           output: result.perspectives.reduce((sum, p) => sum + (p.usage?.output ?? 0), result.synthesis.usage?.output ?? 0),
           cacheRead: result.perspectives.reduce((sum, p) => sum + (p.usage?.cacheRead ?? 0), result.synthesis.usage?.cacheRead ?? 0),
@@ -55,7 +49,7 @@ export default function (pi: ExtensionAPI) {
           totalTokens: result.perspectives.reduce((sum, p) => sum + (p.usage?.totalTokens ?? 0), result.synthesis.usage?.totalTokens ?? 0),
           cost: Object.fromEntries(['input', 'output', 'cacheRead', 'cacheWrite', 'total'].map(key =>
             [key, result.perspectives.reduce((sum, p) => sum + (p.usage?.cost?.[key] ?? 0), result.synthesis.usage?.cost?.[key] ?? 0)])),
-        },
+        } } : {}),
       };
     },
   });
@@ -87,9 +81,9 @@ export default function (pi: ExtensionAPI) {
       const run = () => council
         ? runCouncilPerspective(policy, { perspective: params.perspective, question: params.task,
           evidencePath: params.evidencePath, evidenceSha256: params.evidenceSha256 }, ctx.cwd, promptPath,
-          { signal, invocation: invocation() })
+          { signal })
         : runRole(policy, params.role, params.task, ctx.cwd, promptPath,
-          { signal, invocation: invocation() });
+          { signal });
       const result = ['strategist', 'auditor', 'council-perspective'].includes(params.role)
         ? await withExpensiveGate(gate, params.role, run) : await run();
       return {
@@ -97,8 +91,9 @@ export default function (pi: ExtensionAPI) {
         details: { role: result.role, model: result.model, thinking: result.thinking,
           ...(result.toolCounts !== undefined ? { toolCounts: result.toolCounts } : {}),
           ...(result.successfulReads !== undefined ? { successfulReads: result.successfulReads } : {}),
+          usageCalls: result.usageCalls, usageComplete: result.usage != null, runtimeVerified: result.runtimeVerified,
           ...(council ? { perspective: result.perspective, evidenceSha256: result.evidenceSha256 } : {}) },
-        usage: result.usage,
+        ...(result.usage ? { usage: result.usage } : {}),
       };
     },
   });
@@ -106,6 +101,5 @@ export default function (pi: ExtensionAPI) {
   // Detached read-only role jobs, registered when an eligible role is configured.
   registerExplorerJobs(pi, { Type, policy, gate,
     promptPaths: Object.fromEntries(['explorer', 'strategist', 'auditor'].map(role =>
-      [role, path.join(sourceRoot, 'agents', `${role}.md`)])),
-    invocation: invocation() });
+      [role, path.join(sourceRoot, 'agents', `${role}.md`)])) });
 }

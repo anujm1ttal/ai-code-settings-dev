@@ -64,12 +64,16 @@ export function createJobManager({ run, gate, budget, onTerminal, expensiveRoles
       if (outcome === 'ok') {
         const { text, truncated } = truncateText(String(value?.text ?? ''), limits.maxTextBytes);
         job.result = { text, truncated, model: value?.model, thinking: value?.thinking, usage: value?.usage ?? null,
+          ...(value?.usageCalls !== undefined ? { usageCalls: value.usageCalls } : {}),
+          ...(value?.runtimeVerified !== undefined ? { runtimeVerified: value.runtimeVerified } : {}),
           toolCounts: value?.toolCounts, successfulReads: value?.successfulReads };
         if (job.evidence) verifyEvidence(job);
         job.state = 'succeeded';
         return;
       }
       const message = value instanceof Error ? value.message : String(value);
+      if (Array.isArray(value?.usageCalls)) job.usageCalls = value.usageCalls;
+      if (typeof value?.runtimeVerified === 'boolean') job.runtimeVerified = value.runtimeVerified;
       job.error = truncateText(message, limits.maxErrorBytes).text;
       job.quarantined = /cleanup unconfirmed/i.test(message);
       job.state = job.cancelRequested && !job.quarantined ? 'cancelled' : 'failed';
@@ -133,6 +137,8 @@ export function createJobManager({ run, gate, budget, onTerminal, expensiveRoles
     job.collected = true;
     if (job.state !== 'succeeded') {
       return { id: job.id, state: job.state, role: job.role, ready: true, error: job.error, usage: null, usageUnknown: true,
+        ...(job.usageCalls ? { usageCalls: job.usageCalls } : {}),
+        ...(job.runtimeVerified !== undefined ? { runtimeVerified: job.runtimeVerified } : {}),
         usageReported: false, ...(job.reservation ? { cost: job.cost ?? { unknown: true } } : {}),
         ...(job.quarantined ? { quarantined: true } : {}) };
     }
@@ -142,6 +148,7 @@ export function createJobManager({ run, gate, budget, onTerminal, expensiveRoles
     const { usage, ...rest } = job.result;
     return { id: job.id, state: job.state, role: job.role, ready: true, ...rest,
       ...(first ? { usage } : {}), usageReported: first,
+      ...(usage === null ? { usageUnknown: true } : {}),
       ...(job.reservation ? { cost: job.cost ?? { unknown: true } } : {}),
       ...(job.evidence ? { evidence: job.evidenceStatus === 'VERIFIED' ? { status: 'VERIFIED' } :
         { status: 'INCOMPLETE', reason: job.evidenceReason } } : {}) };
