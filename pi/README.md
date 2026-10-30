@@ -27,7 +27,9 @@ See [`plugins/README.md`](plugins/README.md) for the source-only Pi local-packag
 
 ## Parent and Explorer routing
 
-Route read-only scans exceeding approximately two files to Explorer. Parent may inspect one to two targeted files and cited excerpts; this is guidance, not enforcement of Parent access or model. Explicit no-child workflows take precedence: `/sync` and `/handoff` are no-child and run in the main session. If the Explorer binding is missing or unavailable, stop and ask; never impersonate the child.
+Parent reads directly by default; delegate only clearly large read-only scans to Explorer, with at most one batched call per investigation (self-contained, no follow-ups). Parent may inspect targeted files and cited excerpts; this is guidance, not enforcement of Parent access or model. Explicit no-child workflows take precedence: `/sync` and `/handoff` are no-child and run in the main session. If the Explorer binding is missing or unavailable, stop and ask; never impersonate the child.
+
+Make the batched request a self-contained question list: Explorer does not see the Parent's context. No follow-up Explorer calls for the same scan or same investigation; recover from the persisted result instead (via `collect` for detached jobs). Each dispatch re-pays its own prefix, so several small calls can cost more than reading directly.
 
 For successful routed results, the full result is persisted before bounded delivery in a six-field envelope: status, summary, artifacts, findings, blockers and next action. The envelope is at most 2,048 UTF-8 bytes; its reference identifies the persisted result and hash. Use targeted recovery of relevant cited excerpts, not wholesale rereads. Persistence or verification failure yields INCOMPLETE; partial text may be recoverable via `collect` with `recoveryOffset` for detached jobs. Persistence requires hard-link support and is not fsync-durable.
 

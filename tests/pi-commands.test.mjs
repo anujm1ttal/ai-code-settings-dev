@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 const sourceText = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('Pi global routes broader read-only scans to Explorer and targeted reads to Parent', () => {
+test('Pi global defaults to direct Parent reads and preserves routing safeguards', () => {
   const files = [
     ['Pi-global.md', /Pi AI OS/],
     ['pi/README.md', /Pi role-dispatch pilot/],
@@ -20,8 +20,76 @@ test('Pi global routes broader read-only scans to Explorer and targeted reads to
   }
   const global = sourceText('Pi-global.md');
   assert.ok(Buffer.byteLength(global, 'utf8') <= 6743, 'Pi-global.md UTF-8 byte ceiling');
-  assert.match(global, /(?:read[- ]only|read.only)[^\n.]*?(?:more than|over|exceed(?:s|ing)?|>|beyond)[^\n.]*?(?:approximately|about|roughly|~)?\s*(?:two|2)\s+files[^\n.]*?explorer/i);
-  assert.match(global, /parent[^\n.]*?(?:one\s*(?:to|[-–])\s*two|1\s*(?:to|[-–])\s*2|(?:one|1)\s+or\s+(?:two|2))\s+targeted\s+files/i);
+  assert.match(global, /parent[^\n.]*?(?:inspect|read)[^\n.]*?targeted\s+files[^\n.]*?cited\s+excerpts/i);
+  assert.match(global, /parent[^\n.]*?access\s+and\s+model[^\n.]*?not\s+enforced/i);
+  assert.match(global, /never\s+impersonate/i);
+  assert.match(global, /parent[^\n.]*?(?:reads?|inspects?)[^\n.]*?direct(?:ly)?[^\n.]*?(?:by\s+default|default)|parent[^\n.]*?(?:by\s+default|default)[^\n.]*?(?:reads?|inspects?)[^\n.]*?direct(?:ly)?/i);
+});
+
+for (const path of ['Pi-global.md', 'pi/README.md']) {
+  test(`${path} routes read-only scans directly by default`, () => {
+    const text = sourceText(path);
+    assert.match(text, /read[- ]only[^\n.]*?scans?/i, `${path} scan presence control`);
+    assert.match(text, /parent[^\n.]*?(?:reads?|inspects?)[^\n.]*?direct(?:ly)?[^\n.]*?(?:by\s+default|default)|parent[^\n.]*?(?:by\s+default|default)[^\n.]*?(?:reads?|inspects?)[^\n.]*?direct(?:ly)?/i);
+  });
+
+  test(`${path} delegates only clearly large read-only scans to Explorer`, () => {
+    const text = sourceText(path);
+    assert.match(text, /read[- ]only[^\n.]*?scans?[^\n.]*?explorer|explorer[^\n.]*?read[- ]only[^\n.]*?scans?/i, `${path} routing presence control`);
+    assert.match(text, /(?:only[^\n.]*?clearly\s+large|clearly\s+large[^\n.]*?only)[^\n.]*?explorer|explorer[^\n.]*?(?:only[^\n.]*?clearly\s+large|clearly\s+large[^\n.]*?only)/i);
+  });
+
+  test(`${path} limits Explorer to at most one batched call per investigation`, () => {
+    const text = sourceText(path);
+    assert.match(text, /explorer/i, `${path} Explorer presence control`);
+    assert.match(text, /(?:at\s+most|no\s+more\s+than|only|maximum\s+of)\s+(?:one|1)\s+batched[^\n.]*?call[^\n.]*?(?:per|each)\s+investigation|(?:per|each)\s+investigation[^\n.]*?(?:at\s+most|no\s+more\s+than|only|maximum\s+of)\s+(?:one|1)\s+batched[^\n.]*?call/i);
+  });
+
+  test(`${path} keeps stop-and-ask and never-impersonate for a missing Explorer`, () => {
+    const text = sourceText(path);
+    assert.match(text, /explorer/i, `${path} Explorer presence control`);
+    assert.match(text, /stop\s+and\s+ask/i);
+    assert.match(text, /never\s+impersonate/i);
+  });
+
+  test(`${path} tells the Parent the batched call is self-contained with no follow-ups`, () => {
+    const text = sourceText(path);
+    assert.match(text, /explorer/i, `${path} Explorer presence control`);
+    assert.match(text, /batched\s+call[^\n.]*?self[- ]contained[^\n.]*?no\s+follow[- ]ups?|no\s+follow[- ]ups?[^\n.]*?self[- ]contained[^\n.]*?batched|self[- ]contained[^\n.]*?batched[^\n.]*?no\s+follow[- ]ups?/i);
+  });
+
+  // Pi-global.md has a 6,743-byte ceiling with little headroom, so the detailed batching mechanics live in pi/README.md only.
+  if (path === 'pi/README.md') test(`${path} requires a self-contained question list`, () => {
+    const text = sourceText(path);
+    assert.match(text, /explorer/i, `${path} Explorer presence control`);
+    assert.match(text, /self[- ]contained[^\n.]*?(?:question\s+list|list\s+of\s+questions)|(?:question\s+list|list\s+of\s+questions)[^\n.]*?self[- ]contained/i);
+  });
+
+  if (path === 'pi/README.md') test(`${path} prohibits follow-up Explorer calls for the same scan`, () => {
+    const text = sourceText(path);
+    assert.match(text, /explorer/i, `${path} Explorer presence control`);
+    assert.match(text, /(?:no|never|without|not)[^\n.]*?follow[- ]up[^\n.]*?(?:explorer|calls?)[^\n.]*?(?:same\s+scan|same\s+investigation)|(?:same\s+scan|same\s+investigation)[^\n.]*?(?:no|never|without|not)[^\n.]*?follow[- ]up[^\n.]*?(?:explorer|calls?)/i);
+  });
+
+  test(`${path} has no numeric scan delegation trigger`, () => {
+    const text = sourceText(path);
+    const sentences = text.split(/\n|[.!?](?=\s|$)/);
+    assert.ok(sentences.some(sentence => /read[- ]only[^\n.]*?scans?/i.test(sentence) && /explorer/i.test(sentence)), `${path} routing sentence presence control`);
+    const routingSentences = sentences.filter(sentence =>
+      /\bscans?\b/i.test(sentence) && /explorer|delegat|rout/i.test(sentence)
+    );
+    for (const sentence of routingSentences) {
+      assert.doesNotMatch(sentence, /\b(?:\d+\s+files|\d+\s*kb|\d+k\s+tokens)\b/i);
+      assert.doesNotMatch(sentence, /\b(?:approximately\s+)?two\s+files\b/i);
+    }
+  });
+}
+
+test('Explorer answers every question in a batched request in one handoff', () => {
+  const explorer = sourceText('pi/agents/explorer.md');
+  assert.match(explorer, /Pi Explorer/i, 'Explorer presence control');
+  assert.match(explorer, /answer[^\n.]*?(?:all\s+(?:of\s+)?(?:the\s+)?|every\s+)questions?/i);
+  assert.match(explorer, /(?:batched|all\s+(?:of\s+)?the\s+questions?)[^\n.]*?(?:one|single)\s+handoff|(?:one|single)\s+handoff[^\n.]*?(?:batched|all\s+(?:of\s+)?the\s+questions?)/i);
 });
 
 test('Pi global gives explicit no-child workflows precedence and fails closed without Explorer', () => {
