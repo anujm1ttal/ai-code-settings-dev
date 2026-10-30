@@ -54,9 +54,12 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
     description: 'Start, inspect, collect or cancel a detached explorer, strategist or auditor job (read, grep, find, ls only). ' +
       'Auditor jobs need evidencePath and evidenceSha256. Results are advisory; a collected verdict is never a task completion. ' +
       'start returns a job id immediately; the job keeps running while you continue. At most two jobs run at once; ' +
-      'a third start is rejected. Results are held in memory by the job manager, and are discarded on session end or ' +
-      'tree navigation. Usage is added to session totals when a result is first collected; uncollected or failed ' +
-      'jobs may be missing from those totals. The user sees a metadata-only notification when a job finishes; it never starts a model turn. ' +
+      'a third start is rejected. In-memory job records are discarded on session end or tree navigation; ' +
+      'tree navigation can retain recovery or quarantined records. Successfully persisted result and settlement files are retained. ' +
+      'Session totals receive usage on first collect; ' +
+      'uncollected or failed jobs may be missing from those totals. Task accounting is separate from session totals and tracks ' +
+      'admitted work and settlements independently of collection, with unknown usage where necessary. ' +
+      'The user sees a metadata-only notification when a job finishes; it never starts a model turn. ' +
       'This notification is best-effort and appears only with an attached UI; headless and print modes are silent, while RPC may forward it to a client. ' +
       'Reads are not confined to the project: use trusted, non-secret projects.',
     parameters: Type.Object({

@@ -2,6 +2,91 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+const sourceText = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+
+test('Pi global routes broader read-only scans to Explorer and targeted reads to Parent', () => {
+  const files = [
+    ['Pi-global.md', /Pi AI OS/],
+    ['pi/README.md', /Pi role-dispatch pilot/],
+    ['pi/agents/explorer.md', /Pi Explorer/],
+    ['pi/lib/explorer-jobs.mjs', /pi_explorer_job/],
+  ];
+  for (const [path, presence] of files) {
+    const text = sourceText(path);
+    assert.match(text, presence, `${path} presence control`);
+    assert.doesNotMatch(text, /\b(?:50k|200k)\b/i, path);
+    assert.doesNotMatch(text, /\b(?:default[- ]writer|writer[- ]grant|grant(?:s|ed|ing)?\s+(?:a\s+)?(?:default[- ]?)?writer)\b/i, path);
+    assert.doesNotMatch(text, /\b(?:tier[_-]?(?:\d+|code)|(?:const|let|var|function|class)\s+\w*tier\w*|tier\s*[=:])/i, path);
+  }
+  const global = sourceText('Pi-global.md');
+  assert.ok(Buffer.byteLength(global, 'utf8') <= 6743, 'Pi-global.md UTF-8 byte ceiling');
+  assert.match(global, /(?:read[- ]only|read.only)[^\n.]*?(?:more than|over|exceed(?:s|ing)?|>|beyond)[^\n.]*?(?:approximately|about|roughly|~)?\s*(?:two|2)\s+files[^\n.]*?explorer/i);
+  assert.match(global, /parent[^\n.]*?(?:one\s*(?:to|[-–])\s*two|1\s*(?:to|[-–])\s*2|(?:one|1)\s+or\s+(?:two|2))\s+targeted\s+files/i);
+});
+
+test('Pi global gives explicit no-child workflows precedence and fails closed without Explorer', () => {
+  const global = sourceText('Pi-global.md');
+  assert.match(global, /(?:no[- ]child[^\n.]*?(?:precedence|exception)|(?:precedence|exception)[^\n.]*?no[- ]child)/i);
+  assert.match(global, /\/sync[^\n.]*?\/handoff[^\n.]*?no[- ]child|no[- ]child[^\n.]*?\/sync[^\n.]*?\/handoff/i);
+  assert.match(global, /(?:missing|unavailable|unconfigured|not configured)[^\n.]*?explorer[^\n.]*?stop[^\n.]*?ask|explorer[^\n.]*?(?:missing|unavailable|unconfigured|not configured)[^\n.]*?stop[^\n.]*?ask/i);
+});
+
+test('Pi README explains Parent and Explorer routing and the no-child exception', () => {
+  const readme = sourceText('pi/README.md');
+  assert.match(readme, /^##\s+[^\n]*parent[^\n]*explorer[^\n]*routing|^##\s+[^\n]*explorer[^\n]*parent[^\n]*routing/im);
+  assert.match(readme, /(?:no[- ]child[^\n.]*?(?:precedence|exception)|(?:precedence|exception)[^\n.]*?no[- ]child)/i);
+  assert.match(readme, /\/sync[^\n.]*?\/handoff[^\n.]*?no[- ]child|no[- ]child[^\n.]*?\/sync[^\n.]*?\/handoff/i);
+});
+
+test('Pi README documents the persisted six-field bounded envelope and targeted recovery', () => {
+  const readme = sourceText('pi/README.md');
+  assert.match(readme, /(?:six[- ]field|6[- ]field)[^\n.]*?envelope|envelope[^\n.]*?(?:six[- ]field|6[- ]field)/i);
+  for (const field of ['status', 'summary', 'artifacts', 'findings', 'blockers', 'next action']) {
+    assert.match(readme, new RegExp(`\\b${field}\\b`, 'i'), field);
+  }
+  assert.match(readme, /(?:≤|<=|at most|maximum of?)\s*2,?048\s*(?:UTF-8\s*)?bytes/i);
+  assert.match(readme, /(?:full|complete)[^\n.]*?result[^\n.]*?persist(?:ed|s|ence)[^\n.]*?before[^\n.]*?(?:bounded|envelope|deliver)/i);
+  assert.match(readme, /targeted\s+recover(?:y|ies)/i);
+});
+
+test('Pi README documents task accounting commands and non-acceptance', () => {
+  const readme = sourceText('pi/README.md');
+  assert.match(readme, /\/pi-task bind <task> <model> <input> <output> <cacheRead> <cacheWrite>/);
+  for (const command of ['status', 'checkpoint', 'close']) {
+    assert.match(readme, new RegExp(`/pi-task[^\\n]{0,240}\\b${command}\\b`, 'i'), command);
+  }
+  assert.match(readme, /unknown/i);
+  assert.match(readme, /lower[- ]bound/i);
+  assert.match(readme, /accounting[^\n.]*?(?:not|never)[^\n.]*?acceptance/i);
+});
+
+test('Explorer handoff prioritizes cited blockers and coverage without record or verdict authority', () => {
+  const explorer = sourceText('pi/agents/explorer.md');
+  assert.match(explorer, /citation[- ]first|citations?[^\n.]*?first/i);
+  assert.match(explorer, /blocking\s+findings/i);
+  assert.match(explorer, /coverage/i);
+  assert.match(explorer, /truncat(?:ion|ed)/i);
+  assert.match(explorer, /unresolved questions/i);
+  assert.match(explorer, /(?:cannot|do not|must not|no)[^\n.]*?write[^\n.]*?(?:records|state)/i);
+  assert.match(explorer, /(?:cannot|do not|must not|no)[^\n.]*?issue verdicts/i);
+});
+
+test('detached job tool description distinguishes discarded records from retained files', () => {
+  const source = sourceText('pi/lib/explorer-jobs.mjs');
+  const description = source.split('    description: ')[1]?.split('\n    parameters:')[0]?.replace(/'\s*\+\s*'/g, '') ?? '';
+  assert.match(description, /pi_explorer_job|detached explorer/i);
+  assert.match(description, /(?:in[- ]memory|memory)[^\n.]*?(?:job\s+)?records?[^\n.]*?discard/i);
+  assert.match(description, /(?:result[^\n.]*?settlement|settlement[^\n.]*?result)[^\n.]*?(?:files?|persist)[^\n.]*?retain|retain[^\n.]*?(?:result[^\n.]*?settlement|settlement[^\n.]*?result)[^\n.]*?(?:files?|persist)/i);
+});
+
+test('detached job tool description distinguishes first-collect session totals from task accounting', () => {
+  const source = sourceText('pi/lib/explorer-jobs.mjs');
+  const description = source.split('    description: ')[1]?.split('\n    parameters:')[0]?.replace(/'\s*\+\s*'/g, '') ?? '';
+  assert.match(description, /session totals[^\n.]*?first collect|first collect[^\n.]*?session totals/i);
+  assert.match(description, /task accounting/i);
+  assert.match(description, /(?:session totals[^\n.]*?(?:distinct|different|separate|not)[^\n.]*?task accounting|task accounting[^\n.]*?(?:distinct|different|separate|not)[^\n.]*?session totals)/i);
+});
+
 test('/council routes through bounded collection and retains advisory authority', () => {
   const template = readFileSync(new URL('../pi/prompts/council.md', import.meta.url), 'utf8');
   assert.match(template, /pi_council/);
