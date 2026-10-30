@@ -3,6 +3,7 @@ import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { fileURLToPath } from 'node:url';
 import { buildAgentArgs } from './role-policy.mjs';
+import { persistFullResult, buildEnvelope, buildIncompleteEnvelope } from './result-contract.mjs';
 
 const MAX_ERROR_BYTES = 2048;
 const MAX_STREAM_BYTES = 8 * 1024 * 1024;
@@ -32,6 +33,10 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   let streamedBytes = 0;
   let stderr = '';
   let lastAssistant;
+  const receivedParts = [];
+  const pendingParts = new Map();
+  const receivedText = () => [...receivedParts, ...pendingParts.values()].join('\n');
+  const identity = options.resultStore && { dispatchId: String(options.resultStore.dispatchId ?? ''), role: roleName };
   let observedViolation;
   let evidenceRead = false;
   const evidenceReadCalls = new Set();
@@ -48,6 +53,13 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     let event;
     try { event = JSON.parse(line); }
     catch { streamError = new Error('Malformed Pi JSON event'); return; }
+    if (options.resultStore && event.type === 'message_update' &&
+        event.assistantMessageEvent?.type === 'text_delta') {
+      const delta = event.assistantMessageEvent;
+      if (Number.isSafeInteger(delta.contentIndex) && delta.contentIndex >= 0 && typeof delta.delta === 'string') {
+        pendingParts.set(delta.contentIndex, (pendingParts.get(delta.contentIndex) ?? '') + delta.delta);
+      }
+    }
     if (event.type === 'pi_child_runtime') {
       runtimeVerified = event.retryEnabled === false && event.retryMaxRetries === 0 &&
         event.providerMaxRetries === 0 && event.compactionEnabled === false;
@@ -73,6 +85,18 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
         evidenceReadCalls.has(event.toolCallId) && event.isError === false) evidenceRead = true;
     if (event.type !== 'message_end' || event.message?.role !== 'assistant') return;
     const message = event.message;
+    if (options.resultStore) {
+      for (const [index, part] of (Array.isArray(message.content) ? message.content : []).entries()) {
+        if (part.type === 'text' && typeof part.text === 'string') {
+          const streamed = pendingParts.get(index);
+          if (streamed && !part.text.startsWith(streamed)) receivedParts.push(streamed);
+          receivedParts.push(part.text);
+          pendingParts.delete(index);
+        }
+      }
+      receivedParts.push(...pendingParts.values());
+      pendingParts.clear();
+    }
     const model = `${message.provider}/${message.model}`;
     const expected = policy.roles[roleName];
     if (model !== expected.model) observedViolation = `Unexpected model ${model}; expected ${expected.model}`;
@@ -106,8 +130,16 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   };
 
   child.stdout.on('data', (chunk) => {
+    const previousBytes = streamedBytes;
     streamedBytes += chunk.length;
     if (streamedBytes > MAX_STREAM_BYTES) {
+      if (options.resultStore && previousBytes < MAX_STREAM_BYTES) {
+        buffer += decoder.write(chunk.subarray(0, MAX_STREAM_BYTES - previousBytes));
+        for (let split = buffer.indexOf('\n'); split !== -1; split = buffer.indexOf('\n')) {
+          acceptLine(buffer.slice(0, split).replace(/\r$/, ''));
+          buffer = buffer.slice(split + 1);
+        }
+      }
       streamError = new Error('Pi subagent event stream exceeded 8 MiB');
       startCleanup(streamError);
       return;
@@ -195,16 +227,42 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     const text = lastAssistant.content.filter((part) => part.type === 'text').map((part) => part.text).join('\n');
     if (!text.trim()) throw new Error(`Pi ${roleName} subagent produced no final text`);
     if (options.invocation === undefined && runtimeVerified !== true) throw new Error('Pi child runtime was not verified');
-    return { role: roleName, model: policy.roles[roleName].model,
+    const result = { role: roleName, model: policy.roles[roleName].model,
       thinking: policy.roles[roleName].thinking, text,
       usage: usageCalls.some(call => call.completeness === 'unknown') ? null : usage, usageCalls,
       runtimeVerified, toolCounts: Object.fromEntries(toolCounts), successfulReads };
+    if (options.resultStore) {
+      const fullText = receivedText();
+      result.persisted = persistFullResult({ ...options.resultStore, role: roleName, completeness: 'complete', text: fullText });
+      try {
+        result.envelope = buildEnvelope({ status: 'COMPLETE', persisted: result.persisted,
+          identity, summarySource: text, findingsSource: fullText });
+      } catch (error) { error.persisted = result.persisted; throw error; }
+    }
+    return result;
   } catch (error) {
     error.message = `Partial Pi subagent dispatch: ${error.message}`;
     error.partial = true;
     error.usage = null;
     error.usageCalls = usageCalls;
     error.runtimeVerified = runtimeVerified;
+    if (options.resultStore) {
+      const partialText = receivedText();
+      error.partialText = partialText;
+      if (!error.persisted && error.code !== 'PERSIST_FAILED') {
+        try {
+          error.persisted = persistFullResult({ ...options.resultStore, role: roleName, completeness: 'partial', text: partialText });
+        } catch (persistError) { error.persistenceError = persistError; }
+      }
+      try {
+        error.envelope = buildIncompleteEnvelope({ reason: error.message, partialText,
+          persisted: error.persisted, identity });
+      } catch (envelopeError) {
+        error.envelopeError = envelopeError;
+        error.envelope = buildIncompleteEnvelope({ reason: error.message, partialText,
+          identity, referenceUnavailable: Boolean(error.persisted) });
+      }
+    }
     throw error;
   }
 }

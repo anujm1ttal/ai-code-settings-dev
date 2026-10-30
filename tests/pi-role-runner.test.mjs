@@ -45,6 +45,206 @@ const assistant = (provider, model, thinkingLevel, text) => ({ type: 'message_en
     totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
 } });
 
+test('result store persists received text before returning a bounded envelope', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-runner-'));
+  try {
+    const fake = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'Café 🚀')]);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: 'red' } });
+    assert.ok(result.persisted, 'a persisted result must precede the envelope');
+    assert.ok(fs.existsSync(result.persisted.ref));
+    assert.match(result.envelope, /full result persisted at/);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('result store summarizes the final assistant turn, not earlier narration', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-final-'));
+  try {
+    const early = assistant('pilot-gpt', 'sol', 'medium', 'early narration '.repeat(400));
+    early.message.stopReason = 'toolUse';
+    const final = assistant('pilot-gpt', 'sol', 'medium', 'Verdict: PASS final turn');
+    const fake = fakeSpawn([runtimeProof, early, final]);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: 'final' } });
+    assert.match(result.envelope, /^Summary: Verdict: PASS final turn$/m);
+    const stored = fs.readFileSync(result.persisted.ref, 'utf8');
+    assert.ok(stored.includes(early.message.content[0].text));
+    assert.ok(stored.includes(final.message.content[0].text));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('final verdict survives lengthy final narration and earlier severe findings', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-verdict-'));
+  try {
+    const early = assistant('pilot-gpt', 'sol', 'medium', Array(20).fill('FAIL: earlier observation ' + 'x'.repeat(90)).join('\n'));
+    early.message.stopReason = 'toolUse';
+    const final = assistant('pilot-gpt', 'sol', 'medium', `${'final narration '.repeat(300)}\nVerdict: PASS final decision`);
+    const fake = fakeSpawn([runtimeProof, early, final]);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: 'verdict' } });
+    assert.match(result.envelope, /Verdict: PASS final decision/);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('runner preserves a persisted receipt when its long reference cannot fit', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-long-'));
+  try {
+    let longDir = dir;
+    while (longDir.length < 2150) {
+      longDir = path.join(longDir, 'r'.repeat(60));
+      fs.mkdirSync(longDir);
+    }
+    const fake = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'retained result')]);
+    await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir: longDir, dispatchId: 'x'.repeat(80) } }), error => {
+      assert.equal(error.partialText, 'retained result');
+      assert.equal(error.persisted.completeness, 'complete');
+      assert.ok(fs.existsSync(error.persisted.ref));
+      assert.match(error.envelope, /^Status: INCOMPLETE/m);
+      assert.match(error.envelope, /Persisted reference cannot be represented/);
+      assert.doesNotMatch(error.envelope, /no full-text copy exists/);
+      assert.ok(Buffer.byteLength(error.envelope) <= 2048);
+      return true;
+    });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('without resultStore success and failure retain old shapes and write no files', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-absent-'));
+  try {
+    const good = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'done')]);
+    const result = await runRole(policy, 'coder', 'Implement', dir, '/tmp/role.md', { spawnImpl: good.spawnImpl });
+    for (const key of ['persisted', 'envelope', 'partialText']) assert.equal(Object.hasOwn(result, key), false);
+    const bad = fakeSpawn([assistant('pilot-gpt', 'sol', 'medium', 'unfinished')], 1);
+    await assert.rejects(runRole(policy, 'coder', 'Implement', dir, '/tmp/role.md', { spawnImpl: bad.spawnImpl }), error => {
+      for (const key of ['persisted', 'envelope', 'partialText']) assert.equal(Object.hasOwn(error, key), false);
+      return true;
+    });
+    assert.deepEqual(fs.readdirSync(dir), []);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('result store retains streamed assistant deltas on abort before message_end', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-partial-'));
+  const controller = new AbortController();
+  const child = new EventEmitter();
+  child.stdout = new PassThrough(); child.stderr = new PassThrough();
+  child.kill = () => { setImmediate(() => child.emit('close', null)); return true; };
+  try {
+    const result = runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: () => child, signal: controller.signal, resultStore: { dir, dispatchId: 'delta' } });
+    child.stdout.write(`${JSON.stringify({ type: 'message_update', assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'partial café' } })}\n`);
+    controller.abort();
+    await assert.rejects(result, error => {
+      assert.equal(error.partialText, 'partial café');
+      assert.equal(error.persisted.completeness, 'partial');
+      assert.match(error.envelope, /Status: INCOMPLETE/);
+      return true;
+    });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('result store retains deltas when an error message ends without text content', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-delta-end-'));
+  try {
+    const ended = assistant('pilot-gpt', 'sol', 'medium', '');
+    ended.message.content = []; ended.message.stopReason = 'error';
+    const fake = fakeSpawn([{ type: 'message_update', assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'already received' } }, ended]);
+    await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: 'empty-end' } }), error => {
+      assert.equal(error.partialText, 'already received');
+      assert.equal(error.persisted.completeness, 'partial');
+      return true;
+    });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('result store preserves complete events preceding overflow within the same chunk', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-overflow-'));
+  const child = new EventEmitter(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
+  child.kill = () => { setImmediate(() => child.emit('close', null)); return true; };
+  try {
+    const result = runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: () => child, resultStore: { dir, dispatchId: 'overflow' } });
+    const event = Buffer.from(`${JSON.stringify(assistant('pilot-gpt', 'sol', 'medium', 'before overflow'))}\n`);
+    child.stdout.write(Buffer.concat([event, Buffer.alloc(8 * 1024 * 1024)]));
+    await assert.rejects(result, error => {
+      assert.match(error.message, /exceeded 8 MiB/);
+      assert.equal(error.partialText, 'before overflow');
+      assert.equal(error.persisted.completeness, 'partial');
+      assert.match(error.envelope, /Status: INCOMPLETE/);
+      return true;
+    });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('result store preserves all message text parts and verifies the persisted bytes', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-all-'));
+  try {
+    const first = assistant('pilot-gpt', 'sol', 'medium', 'working'); first.message.stopReason = 'toolUse';
+    const last = assistant('pilot-gpt', 'sol', 'medium', 'done café');
+    last.message.content.push({ type: 'text', text: 'extra 🚀' });
+    const fake = fakeSpawn([runtimeProof, first, last]);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: 'all' } });
+    const bytes = fs.readFileSync(result.persisted.ref);
+    assert.equal(bytes.subarray(bytes.indexOf(10) + 1).toString(), 'working\ndone café\nextra 🚀');
+    assert.equal(result.persisted.sha256, (await import('node:crypto')).createHash('sha256').update(bytes).digest('hex'));
+    assert.equal(result.persisted.completeness, 'complete');
+    assert.ok(Buffer.byteLength(result.envelope) <= 2048);
+    assert.ok(result.envelope.includes(result.persisted.ref));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('persistence failures retain received material and return an incomplete envelope', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-failure-'));
+  try {
+    for (const [id, events, exit] of [['invalid/id', [runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'received')], 0],
+      ['also/invalid', [assistant('pilot-gpt', 'sol', 'medium', 'partial')], 1]]) {
+      const fake = fakeSpawn(events, exit);
+      await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+        { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: id } }), error => {
+        assert.ok(['received', 'partial'].includes(error.partialText));
+        assert.match(error.envelope, /Status: INCOMPLETE/);
+        assert.match(error.envelope, /Persistence failed; no full-text copy exists/);
+        assert.equal(error.persisted, undefined);
+        return true;
+      });
+    }
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('nonzero exit, failed model response and timeout preserve partial work', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-interrupted-'));
+  try {
+    const failed = assistant('pilot-gpt', 'sol', 'medium', 'failed work');
+    failed.message.stopReason = 'error'; failed.message.errorMessage = 'context overflow';
+    for (const [id, events, code, expected] of [
+      ['exit', [assistant('pilot-gpt', 'sol', 'medium', 'exit work')], 1, 'exit work'],
+      ['model', [failed], 0, 'failed work']]) {
+      const fake = fakeSpawn(events, code);
+      await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+        { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: id } }), error => {
+        assert.equal(error.partialText, expected);
+        assert.equal(error.persisted.completeness, 'partial');
+        assert.match(error.envelope, /Status: INCOMPLETE/);
+        assert.ok(error.envelope.includes(error.persisted.sha256));
+        return true;
+      });
+    }
+    const child = new EventEmitter(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
+    child.kill = () => { setImmediate(() => child.emit('close', null)); return true; };
+    const pending = runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: () => child, timeoutMs: 10, killGraceMs: 100, resultStore: { dir, dispatchId: 'timeout' } });
+    child.stdout.write(`${JSON.stringify(assistant('pilot-gpt', 'sol', 'medium', 'timeout work'))}\n`);
+    await assert.rejects(pending, error => {
+      assert.match(error.message, /timed out/); assert.equal(error.partialText, 'timeout work');
+      assert.equal(error.persisted.completeness, 'partial'); assert.match(error.envelope, /Status: INCOMPLETE/);
+      return true;
+    });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('dispatches an isolated auditor and verifies observed model and thinking', async () => {
   const fake = fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', 'FAIL: revise tests')]);
   const result = await runRole(policy, 'auditor', 'Review fixture', 'C:/fixture', 'C:/role.md',
