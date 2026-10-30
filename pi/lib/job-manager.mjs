@@ -1,7 +1,13 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import fs from 'node:fs';
 import path from 'node:path';
 import { prepareResultDir, checkedDir, verifyPersisted, buildEnvelope, buildIncompleteEnvelope } from './result-contract.mjs';
+
+const jobAccounting = new AsyncLocalStorage();
+export const withJobAccounting = (ledger, fn, toolCallId) => jobAccounting.run({ ledger, toolCallId }, fn);
+export const currentJobAccounting = () => jobAccounting.getStore()?.ledger;
+const accountingEnabled = ledger => ledger && ledger.isEnabled?.() !== false;
 
 const TERMINAL = new Set(['succeeded', 'failed', 'cancelled']);
 const DEFAULT_LIMITS = { maxActive: 2, maxRetained: 16, maxTaskBytes: 4096, maxTextBytes: 64 * 1024, maxErrorBytes: 2048 };
@@ -21,7 +27,7 @@ function truncateText(text, maxBytes) {
  * Recovery jobs remain in this session registry through drains and cannot be evicted; they
  * consume retained capacity until the registry is lost, so recover partial text promptly.
  */
-export function createJobManager({ run, gate, budget, onTerminal, expensiveRoles = ['strategist', 'auditor'], ...overrides } = {}) {
+export function createJobManager({ run, gate, budget, ledger, onTerminal, expensiveRoles = ['strategist', 'auditor'], ...overrides } = {}) {
   if (typeof run !== 'function') throw new TypeError('A job runner function is required');
   const limits = { ...DEFAULT_LIMITS, ...overrides };
   const jobs = new Map();
@@ -77,6 +83,11 @@ export function createJobManager({ run, gate, budget, onTerminal, expensiveRoles
             !fs.readFileSync(file).equals(bytes)) throw error;
       }
     } finally { try { fs.unlinkSync(temp); } catch { /* original failure wins */ } }
+    if (accountingEnabled(job.ledger)) {
+      const published = fs.readFileSync(file);
+      job.ledger.reconcile({ dispatchId: job.id, bytes: published,
+        sha256: createHash('sha256').update(published).digest('hex') });
+    }
   }
 
   function finish(job, outcome, value) {
@@ -137,21 +148,38 @@ export function createJobManager({ run, gate, budget, onTerminal, expensiveRoles
     const id = `job-${randomUUID()}`;
     const resultStore = context?.cwd ? { dir: prepareResultDir(context.cwd), dispatchId: id,
       meta: { role, createdAt: new Date().toISOString() } } : undefined;
-    let release, reservation;
     if (expensiveRoles.includes(role)) {
       if (!budget) throw new Error('job budget is not configured; background strategist/auditor jobs are denied');
       if (!gate) throw new Error('expensive gate is required for background strategist/auditor jobs');
-      release = gate.tryAcquire(`background ${role} job`);
-      try { reservation = budget.reserve(role); }
-      catch (error) { release?.(); throw error; }
     }
+    let accounting, dispatchKey;
+    try {
+      const candidate = ledger ?? currentJobAccounting();
+      accounting = accountingEnabled(candidate) ? candidate : undefined;
+      if (accounting) ({ dispatchKey } = accounting.admit({ dispatchId: id, toolCallId: key ?? id }));
+    } catch { throw new Error('INCOMPLETE: accounting admission failed; child not started.'); }
     const controller = new AbortController();
+    let release, reservation;
+    if (expensiveRoles.includes(role)) {
+      try {
+        release = gate.tryAcquire(`background ${role} job`);
+        reservation = budget.reserve(role);
+      } catch (error) {
+        release?.();
+        if (accounting) {
+          try { accounting.markNotStarted({ dispatchKey }); }
+          catch { throw new Error('INCOMPLETE: accounting terminal write failed; child not started.'); }
+        }
+        throw error;
+      }
+    }
     const job = { id, state: 'running', createdAt: new Date().toISOString(), controller, resultStore,
-      key, role, evidence, reservation, release, cancelRequested: false, quarantined: false, collected: false, usageReported: false };
+      ledger: accounting, dispatchKey, key, role, evidence, reservation, release, cancelRequested: false, quarantined: false, collected: false, usageReported: false };
     jobs.set(job.id, job);
     if (key !== undefined) keys.set(key, job.id);
     let pending;
-    try { pending = Promise.resolve(run(task, { signal: controller.signal, context, role, dispatchId: id, resultStore })); }
+    try { pending = Promise.resolve(run(task, { signal: controller.signal, context, role, dispatchId: id, resultStore,
+      ...(accounting ? { ledger: accounting, dispatchKey } : {}) })); }
     catch (error) { pending = Promise.reject(error); }
     job.settled = pending.then((value) => finish(job, 'ok', value), (error) => finish(job, 'err', error));
     return summary(job);
@@ -208,9 +236,12 @@ export function createJobManager({ run, gate, budget, onTerminal, expensiveRoles
     }
   }
 
-  function collect(id, { recoveryOffset } = {}) {
+  function collect(id, { recoveryOffset, destination = 'calling-tool', deliveryId } = {}) {
     const job = get(id);
     if (!isTerminal(job)) return { id: job.id, state: job.state, role: job.role, ready: false };
+    const callId = jobAccounting.getStore()?.toolCallId;
+    const outputLedger = currentJobAccounting() ?? job.ledger;
+    const outputId = deliveryId ?? (typeof callId === 'string' ? JSON.stringify([job.id, callId]) : randomUUID());
     job.collected = true;
     if (recoveryOffset !== undefined) {
       if (!Number.isSafeInteger(recoveryOffset) || recoveryOffset < 0) throw new Error('recoveryOffset must be a nonnegative integer');
@@ -222,12 +253,15 @@ export function createJobManager({ run, gate, budget, onTerminal, expensiveRoles
         page += chars[index]; bytes += Buffer.byteLength(chars[index++]);
       }
       const next = index < chars.length ? index : null;
+      const text = `INCOMPLETE: retained partial text, code point offset ${recoveryOffset}; next offset ${next ?? 'end'}.\n${page}`;
+      if (accountingEnabled(outputLedger)) outputLedger.record({ type: 'output', destination, deliveryId: outputId, text });
       return { id: job.id, state: job.state, role: job.role, ready: true,
-        text: `INCOMPLETE: retained partial text, code point offset ${recoveryOffset}; next offset ${next ?? 'end'}.\n${page}`,
-        recoveryOffset, nextRecoveryOffset: next };
+        text, recoveryOffset, nextRecoveryOffset: next };
     }
     if (job.evidence) verifyEvidence(job);
     const envelope = job.resultStore || expensiveRoles.includes(job.role) ? collectionEnvelope(job) : undefined;
+    if (accountingEnabled(outputLedger)) outputLedger.record({ type: 'output', destination, deliveryId: outputId,
+      text: envelope ?? (job.state === 'succeeded' ? job.result.text : job.error ?? '') });
     if (job.state !== 'succeeded') {
       return { id: job.id, state: job.state, role: job.role, ready: true, error: job.error, ...(envelope ? { text: envelope, envelope } : {}), usage: null, usageUnknown: true,
         ...(job.usageCalls ? { usageCalls: job.usageCalls } : {}),

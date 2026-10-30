@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { Type } from '@earendil-works/pi-ai';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
@@ -10,6 +10,8 @@ import { runCouncilSession } from '../lib/council-session.mjs';
 import { registerExplorerJobs } from '../lib/explorer-jobs.mjs';
 import { createExpensiveGate, withExpensiveGate } from '../lib/expensive-gate.mjs';
 import { prepareResultDir, buildEnvelope, buildIncompleteEnvelope } from '../lib/result-contract.mjs';
+import { getActiveTaskUsage } from '../lib/task-usage.mjs';
+import { withJobAccounting, currentJobAccounting } from '../lib/job-manager.mjs';
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const policyPath = process.env.PI_ROLE_POLICY_PATH;
@@ -20,6 +22,44 @@ const policy = loadRolePolicy(policyPath);
 
 export default function (pi: ExtensionAPI) {
   const gate = createExpensiveGate();
+  const ledgerFor = (ctx) => typeof getActiveTaskUsage === 'function'
+    ? getActiveTaskUsage(ctx.cwd, ctx.sessionManager?.getSessionId?.()) : undefined;
+  const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+  const dispatchKeyFor = (dispatchId) => digest(Buffer.from(JSON.stringify(['dispatch', dispatchId])));
+  async function accounted(ctx, toolCallId, dispatchId, run) {
+    const ledger = ledgerFor(ctx);
+    if (!ledger) return run({});
+    const sessionId = ctx.sessionManager?.getSessionId?.();
+    const { dispatchKey } = ledger.admit({ dispatchId, toolCallId: JSON.stringify([sessionId ?? null, String(toolCallId)]) });
+    const accountingCursor: { next: number; lastStop?: string } = { next: 0 };
+    let state = 'failed';
+    try {
+      const value = await run({ ledger, dispatchKey, accountingCursor });
+      state = 'succeeded';
+      return value;
+    } catch (error) {
+      if (ledger.isEnabled?.() === false) throw error;
+      // Compatibility for injected runners that return readings only on failure. Real runners
+      // increment the shared cursor as each call arrives, so never replay their in-memory rows.
+      if (accountingCursor.next === 0) {
+        const groups = [...(Array.isArray(error?.perspectives) ? error.perspectives : []), error];
+        for (const group of groups) for (const call of Array.isArray(group?.usageCalls) ? group.usageCalls : []) {
+          ledger.record({ type: 'child', dispatchKey, callOrdinal: accountingCursor.next++,
+            model: policy.roles[group?.perspective]?.model, usage: call.usage, stopReason: call.stopReason });
+          accountingCursor.lastStop = call.stopReason;
+        }
+      }
+      if (!['error', 'aborted'].includes(accountingCursor.lastStop)) {
+        ledger.record({ type: 'child', dispatchKey, callOrdinal: accountingCursor.next++, usage: null, stopReason: 'error' });
+      }
+      throw error;
+    } finally {
+      if (ledger.isEnabled?.() !== false) {
+        const bytes = Buffer.from(JSON.stringify({ version: 1, dispatchId, state }));
+        ledger.reconcile({ dispatchId, bytes, sha256: digest(bytes) });
+      }
+    }
+  }
   // Synchronous strategist/auditor/council spend is in normal session usage, not the background job budget.
   pi.registerTool({
     name: 'pi_council',
@@ -31,10 +71,12 @@ export default function (pi: ExtensionAPI) {
       evidenceSha256: Type.String({ description: 'SHA-256 of the captured evidence' }),
     }),
     async execute(_id, params, signal, _onUpdate, ctx) {
-      const result = await withExpensiveGate(gate, 'council', () => runCouncilSession(policy, params, ctx.cwd,
-        path.join(sourceRoot, 'agents', 'council-perspectives.md'),
-        path.join(sourceRoot, 'agents', 'council-synthesis.md'),
-        { signal }));
+      const dispatchId = `council-${randomUUID()}`;
+      const result = await withExpensiveGate(gate, 'council', () => accounted(ctx, _id, dispatchId, accounting =>
+        runCouncilSession(policy, params, ctx.cwd,
+          path.join(sourceRoot, 'agents', 'council-perspectives.md'),
+          path.join(sourceRoot, 'agents', 'council-synthesis.md'),
+          { signal, ...accounting })));
       const completeUsage = [...result.perspectives, result.synthesis].every(p => p.usage != null);
       return {
         content: [{ type: 'text', text: `Advisory ${result.verdict}\n\n${result.synthesis.text}` }],
@@ -87,17 +129,19 @@ export default function (pi: ExtensionAPI) {
         const envelope = buildIncompleteEnvelope({ identity, reason: 'Project result store unavailable.' });
         throw new Error(envelope);
       }
-      const run = () => council
+      const run = () => accounted(ctx, _toolCallId, identity.dispatchId, accounting => council
         ? runCouncilPerspective(policy, { perspective: params.perspective, question: params.task,
           evidencePath: params.evidencePath, evidenceSha256: params.evidenceSha256 }, ctx.cwd, promptPath,
-          { signal, resultStore })
+          { signal, resultStore, ...accounting })
         : runRole(policy, params.role, params.task, ctx.cwd, promptPath,
-          { signal, resultStore });
+          { signal, resultStore, ...accounting }));
       let result;
       try {
         result = ['strategist', 'auditor', 'council-perspective'].includes(params.role)
           ? await withExpensiveGate(gate, params.role, run) : await run();
-      } catch (error) {
+      } catch (caught) {
+        const error = caught instanceof Error || Object.prototype.toString.call(caught) === '[object Error]'
+          ? caught : new Error('Role dispatch failed');
         try { error.envelope = buildIncompleteEnvelope({ identity, persisted: error.persisted,
           partialText: error.partialText, reason: error.message }); }
         catch { error.envelope = buildIncompleteEnvelope({ identity, reason: 'Result receipt unavailable or invalid.',
@@ -129,7 +173,21 @@ export default function (pi: ExtensionAPI) {
   });
 
   // Detached read-only role jobs, registered when an eligible role is configured.
-  registerExplorerJobs(pi, { Type, policy, gate,
-    promptPaths: Object.fromEntries(['explorer', 'strategist', 'auditor'].map(role =>
-      [role, path.join(sourceRoot, 'agents', `${role}.md`)])) });
+  const jobPi = new Proxy(pi, { get(target, property) {
+    if (property === 'registerTool') return (tool) => target.registerTool({ ...tool,
+      execute: (id, params, signal, onUpdate, ctx) => withJobAccounting(ledgerFor(ctx),
+        () => tool.execute(id, params, signal, onUpdate, ctx), id) });
+    return Reflect.get(target, property, target);
+  } });
+  {
+    const pi = jobPi;
+    registerExplorerJobs(pi, { Type, policy, gate,
+      runRoleImpl: (rolePolicy, role, task, cwd, promptPath, options) => {
+        const ledger = currentJobAccounting();
+        return runRole(rolePolicy, role, task, cwd, promptPath,
+          ledger && options.dispatchId ? { ...options, ledger, dispatchKey: dispatchKeyFor(options.dispatchId) } : options);
+      },
+      promptPaths: Object.fromEntries(['explorer', 'strategist', 'auditor'].map(role =>
+        [role, path.join(sourceRoot, 'agents', `${role}.md`)])) });
+  }
 }

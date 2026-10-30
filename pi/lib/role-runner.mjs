@@ -13,7 +13,9 @@ const READ_ONLY_TOOLS = new Set(['read', 'grep', 'find', 'ls']);
 export async function runRole(policy, roleName, task, cwd, promptPath, options = {}) {
   const { profile, requiredReadPath, spawnImpl = spawn, killerImpl = spawn,
     invocation = { command: process.execPath, args: [fileURLToPath(new URL('./child-runtime.mjs', import.meta.url))] }, signal,
-    timeoutMs = 10 * 60 * 1000, killGraceMs = 2000 } = options;
+    timeoutMs = 10 * 60 * 1000, killGraceMs = 2000, ledger, dispatchKey,
+    accountingCursor = { next: 0 } } = options;
+  if (Boolean(ledger) !== Boolean(dispatchKey)) throw new Error('Accounting ledger and dispatch key must be supplied together');
   const args = buildAgentArgs(policy, roleName, promptPath, task, { profile });
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 ||
       !Number.isSafeInteger(killGraceMs) || killGraceMs <= 0) {
@@ -114,6 +116,17 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
       ['reasoning', 'cacheWrite1h'].every(key => reading[key] === undefined || valid(reading[key])) &&
       (reading.cost === undefined || (reading.cost && typeof reading.cost === 'object' &&
         Object.values(reading.cost).every(valid)));
+    if (ledger && ledger.isEnabled?.() !== false) {
+      try {
+        ledger.record({ type: 'child', dispatchKey, callOrdinal: accountingCursor.next++,
+          model, usage: reading, stopReason: message.stopReason });
+        accountingCursor.lastStop = message.stopReason;
+      } catch (error) {
+        streamError = error instanceof Error ? error : new Error('Accounting write failed');
+        startCleanup(streamError);
+        return;
+      }
+    }
     usageCalls.push({ stopReason: message.stopReason, completeness: known ? 'known' : 'unknown', usage: reading });
     if (known) {
       for (const key of ['input', 'output', 'cacheRead', 'cacheWrite', 'totalTokens']) {
@@ -133,7 +146,7 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     const previousBytes = streamedBytes;
     streamedBytes += chunk.length;
     if (streamedBytes > MAX_STREAM_BYTES) {
-      if (options.resultStore && previousBytes < MAX_STREAM_BYTES) {
+      if ((options.resultStore || ledger) && previousBytes < MAX_STREAM_BYTES) {
         buffer += decoder.write(chunk.subarray(0, MAX_STREAM_BYTES - previousBytes));
         for (let split = buffer.indexOf('\n'); split !== -1; split = buffer.indexOf('\n')) {
           acceptLine(buffer.slice(0, split).replace(/\r$/, ''));
@@ -240,7 +253,15 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
       } catch (error) { error.persisted = result.persisted; throw error; }
     }
     return result;
-  } catch (error) {
+  } catch (caught) {
+    const error = caught instanceof Error ? caught : new Error('Pi subagent failed');
+    if (ledger && ledger.isEnabled?.() !== false && !['error', 'aborted'].includes(usageCalls.at(-1)?.stopReason)) {
+      try {
+        ledger.record({ type: 'child', dispatchKey, callOrdinal: accountingCursor.next++,
+          model: policy.roles[roleName].model, usage: null, stopReason: 'error' });
+        accountingCursor.lastStop = 'error';
+      } catch { /* Preserve the original failure; an unfinished dispatch remains incomplete. */ }
+    }
     error.message = `Partial Pi subagent dispatch: ${error.message}`;
     error.partial = true;
     error.usage = null;
