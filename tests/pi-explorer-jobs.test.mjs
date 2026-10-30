@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import fs, { readFileSync } from 'node:fs';
 import os from 'node:os';
 import { createHash } from 'node:crypto';
-import { test } from 'node:test';
+import { test, beforeEach } from 'node:test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerExplorerJobs } from '../pi/lib/explorer-jobs.mjs';
 import { createExpensiveGate } from '../pi/lib/expensive-gate.mjs';
+import { persistFullResult, buildEnvelope } from '../pi/lib/result-contract.mjs';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Identity-style schema builder: the tests inspect behavior, not TypeBox internals.
@@ -15,11 +16,21 @@ const usage = (total) => ({ input: total, output: 0, cacheRead: 0, cacheWrite: 0
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } });
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
+// Top-level tests run sequentially; each receives its own real project directory.
+let projectCwd;
+beforeEach((t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-explorer-project-')));
+  projectCwd = root;
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+});
+
 function setup({ explorer = true, strategist = false, auditor = false, accessImpl = () => {}, promptPaths, defaultAccess = false,
   jobBudget = { perJobUsd: 1, perSessionUsd: 3, rates: { 'pilot-gpt/luna': { inputPerMTok: 2, outputPerMTok: 4 } } }, gate = createExpensiveGate() } = {}) {
   const tools = new Map();
   const handlers = new Map();
-  const pi = { registerTool: (def) => tools.set(def.name, def), on: (name, handler) => handlers.set(name, handler) };
+  const messages = [];
+  const pi = { registerTool: (def) => tools.set(def.name, def), on: (name, handler) => handlers.set(name, handler),
+    sendMessage: (...args) => messages.push(['sendMessage', ...args]), sendUserMessage: (...args) => messages.push(['sendUserMessage', ...args]) };
   const runs = [];
   const runRoleImpl = (policy, role, task, cwd, promptPath, options) => new Promise((resolve, reject) => {
     const run = { policy, role, task, cwd, promptPath, options, resolve, reject };
@@ -29,15 +40,74 @@ function setup({ explorer = true, strategist = false, auditor = false, accessImp
   const binding = { model: 'pilot-gpt/luna', thinking: 'medium', tools: ['read', 'grep', 'find', 'ls'] };
   const policy = { jobBudget, roles: { ...(explorer ? { explorer: binding } : {}),
     ...(strategist ? { strategist: binding } : {}), ...(auditor ? { auditor: binding } : {}) } };
-  registerExplorerJobs(pi, { Type, policy, gate, promptPath: '/src/agents/explorer.md', promptPaths,
+  const jobs = registerExplorerJobs(pi, { Type, policy, gate, promptPath: '/src/agents/explorer.md', promptPaths,
     ...(defaultAccess ? {} : { accessImpl }), invocation: { command: 'pi', args: [] }, runRoleImpl });
-  const call = (params, { id = `tc-${Math.random()}`, signal, cwd = '/project' } = {}) =>
+  const call = (params, { id = `tc-${Math.random()}`, signal, cwd = projectCwd } = {}) =>
     tools.get('pi_explorer_job').execute(id, params, signal, undefined, { cwd });
   const sessionStart = (ctx) => handlers.get('session_start')({ type: 'session_start' }, ctx);
-  return { tools, handlers, runs, call, policy, sessionStart };
+  return { tools, handlers, runs, call, policy, sessionStart, jobs, messages };
 }
 const result = (text = 'Source: a.mjs:1', total = 7) => ({ role: 'explorer', model: 'pilot-gpt/luna',
   thinking: 'medium', text, usage: usage(total), toolCounts: { read: 1 }, successfulReads: 1 });
+
+function jobWitness(root, job, role, text, completeness = 'complete') {
+  const dir = path.join(root, 'Artifacts', '.agent', 'pi-results'); fs.mkdirSync(dir, { recursive: true });
+  const persisted = persistFullResult({ dir, dispatchId: job.id, role, text, completeness });
+  const envelope = buildEnvelope({ status: completeness === 'complete' ? 'COMPLETE' : 'INCOMPLETE', persisted,
+    identity: { dispatchId: job.id, role }, summarySource: text });
+  return { persisted, envelope };
+}
+
+test('registered collection bounds the whole response', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs, jobs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const { details: { job } } = await call({ action: 'start', task: 'review', role: 'auditor',
+    evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  const long = 'résultat🚀'.repeat(8000) + 'SECRET-FULL-TAIL';
+  const witness = jobWitness(f.root, job, 'auditor', long);
+  runs[0].resolve({ ...result(long, 1000000), ...witness, usageCalls: Array(100).fill({ secret: long }) }); await tick();
+  fs.writeFileSync(f.capture, 'changed');
+  const out = await call({ action: 'collect', jobId: job.id });
+  const text = out.content.map(part => part.text ?? '').join('');
+  const failure = (await call({ action: 'start', task: 'long error' }, { cwd: f.root })).details.job;
+  const partial = jobWitness(f.root, failure, 'explorer', 'partial control', 'partial');
+  runs[1].reject(Object.assign(new Error('é'.repeat(8000)), partial, { partialText: 'partial control' })); await tick();
+  const failed = await call({ action: 'collect', jobId: failure.id });
+  const longReason = jobs.start('long evidence reason', { context: { cwd: f.root },
+    evidence: { verify: () => { throw new Error('é'.repeat(4000)); } } });
+  const reasonWitness = jobWitness(f.root, longReason, 'explorer', 'evidence control');
+  runs[2].resolve({ ...result('evidence control'), ...reasonWitness }); await tick();
+  const reasonResult = await call({ action: 'collect', jobId: longReason.id });
+  assert.ok(Buffer.byteLength(text) <= 2048, `whole response is ${Buffer.byteLength(text)} bytes`);
+  assert.ok(text.includes(witness.persisted.ref) && text.includes(witness.persisted.sha256), 'retained descriptor present');
+  assert.match(text, /INCOMPLETE/, 'changed evidence must be visible');
+  assert.ok(!JSON.stringify(out.details).includes('SECRET-FULL-TAIL'), 'details must not contain full result');
+  assert.equal(Object.hasOwn(out.details, 'usageCalls'), false, 'details must not copy per-call arrays');
+  assert.ok(Buffer.byteLength(failed.content.map(part => part.text ?? '').join('')) <= 2048);
+  assert.ok(failed.content[0].text.includes(partial.persisted.ref));
+  assert.ok(Buffer.byteLength(reasonResult.content.map(part => part.text ?? '').join('')) <= 2048);
+  assert.match(reasonResult.content[0].text, /INCOMPLETE/);
+  assert.ok(reasonResult.content[0].text.includes(reasonWitness.persisted.ref));
+});
+
+test('completion performs no automatic collection or model action', async (t) => {
+  const f = auditFixture(t); const env = setup(); const notices = [];
+  env.sessionStart({ hasUI: true, ui: { notify: (...args) => notices.push(args) } });
+  let collects = 0; const collect = env.jobs.collect;
+  env.jobs.collect = (...args) => { collects++; return collect(...args); };
+  const { details: { job } } = await env.call({ action: 'start', task: 'no continuation' }, { cwd: f.root });
+  const witness = jobWitness(f.root, job, 'explorer', 'secret body');
+  env.runs[0].resolve({ ...result('secret body'), ...witness }); await tick();
+  const settlement = path.join(f.root, 'Artifacts', '.agent', 'pi-results', `${job.id}.settlement.json`);
+  const settledBeforeCollect = fs.existsSync(settlement);
+  assert.equal(collects, 0); assert.deepEqual(env.messages, []);
+  assert.equal(notices.length, 1); assert.ok(notices[0][0].includes(job.id));
+  assert.ok(!JSON.stringify(notices).includes('secret body'), 'notification is metadata only');
+  await env.call({ action: 'collect', jobId: job.id });
+  assert.equal(collects, 1, 'explicit collection presence control');
+  assert.deepEqual(env.messages, []);
+  assert.ok(settledBeforeCollect, 'settlement must be visible before any collection');
+});
 
 test('detached job notification documentation states best-effort UI availability', () => {
   const readme = readFileSync(path.join(repo, 'pi/README.md'), 'utf8');
@@ -184,14 +254,14 @@ test('registers the job tool and exactly the three lifecycle hooks only when an 
 test('start returns a job id without waiting and runs the pinned explorer with a job-owned signal', async () => {
   const { call, runs } = setup();
   const parent = new AbortController();
-  const out = await call({ action: 'start', task: 'Find callers' }, { signal: parent.signal, cwd: '/proj' });
+  const out = await call({ action: 'start', task: 'Find callers' }, { signal: parent.signal, cwd: projectCwd });
   assert.match(out.details.job.id, /^job-/);
   assert.equal(out.details.job.state, 'running');
   assert.match(out.content[0].text, /job-/);
   assert.equal(runs.length, 1);
   assert.equal(runs[0].role, 'explorer');
   assert.equal(runs[0].task, 'Find callers');
-  assert.equal(runs[0].cwd, '/proj');
+  assert.equal(runs[0].cwd, projectCwd);
   assert.equal(runs[0].promptPath, '/src/agents/explorer.md');
   assert.notEqual(runs[0].options.signal, parent.signal);
   parent.abort();
@@ -297,12 +367,12 @@ test('status reports budget and collect reports cost including unknown and over 
   let status = await call({ action: 'status' });
   assert.match(status.content[0].text, /Budget: spent \$0\.0000, reserved \$1\.0000, remaining \$2\.0000/);
   assert.equal(status.details.budget.reservedUsd, 1);
-  runs[0].resolve({ ...result(), usage: { input: 1000000, output: 0 } }); await tick();
+  runs[0].resolve({ ...result(), ...jobWitness(projectCwd, first.details.job, 'strategist', 'Source: a.mjs:1'), usage: { input: 1000000, output: 0 } }); await tick();
   const collected = await call({ action: 'collect', jobId: first.details.job.id });
   assert.match(collected.content[0].text, /Cost: \$2\.0000.*OVER the per-job budget/);
   assert.deepEqual(collected.details.cost, { usd: 2, overBudget: true });
   const next = await call({ action: 'start', task: 'plan', role: 'strategist' });
-  runs[1].reject(new Error('failed')); await tick();
+  runs[1].reject(Object.assign(new Error('failed'), jobWitness(projectCwd, next.details.job, 'strategist', 'partial', 'partial'))); await tick();
   assert.match((await call({ action: 'collect', jobId: next.details.job.id })).content[0].text, /Cost: unknown, remains reserved/);
 });
 
@@ -369,13 +439,13 @@ test('strategist runs with its own prompt and role is visible in status and coll
   assert.equal(runs[0].policy, policy);
   assert.equal(runs[0].role, 'strategist');
   assert.equal(runs[0].task, 'Plan');
-  assert.equal(runs[0].cwd, '/project');
+  assert.equal(runs[0].cwd, projectCwd);
   assert.equal(runs[0].promptPath, paths.strategist);
   assert.deepEqual(runs[0].options.invocation, { command: 'pi', args: [] });
   assert.deepEqual(checked, [{ file: paths.strategist, mode: (await import('node:fs')).constants.R_OK }]);
   assert.equal((await call({ action: 'status', jobId: job.id })).details.job.role, 'strategist');
   assert.equal((await call({ action: 'collect', jobId: job.id })).details.role, 'strategist');
-  runs[0].resolve(result('Plan result'));
+  runs[0].resolve({ ...result('Plan result'), ...jobWitness(projectCwd, job, 'strategist', 'Plan result') });
   await tick();
   const collected = await call({ action: 'collect', jobId: job.id });
   assert.equal(collected.details.role, 'strategist');
@@ -447,7 +517,7 @@ test('auditor validates before start, reads manifest, and reports verified evide
   assert.equal(runs[0].options.requiredReadPath, f.manifest);
   assert.equal(runs[0].task, `Review\n\nEvidence manifest (read it first, then the captures it lists): ${f.manifest}`);
   assert.equal((await call({ action: 'status', jobId: job.id })).details.job.role, 'auditor');
-  runs[0].resolve(result('PASS')); await tick();
+  runs[0].resolve({ ...result('PASS'), ...jobWitness(f.root, job, 'auditor', 'PASS') }); await tick();
   const out = await call({ action: 'collect', jobId: job.id });
   assert.equal(out.details.role, 'auditor');
   assert.deepEqual(out.details.evidence, { status: 'VERIFIED' });
@@ -462,7 +532,7 @@ test('auditor evidence changed after completion but before first collection is i
   const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
   const { details: { job } } = await call({ action: 'start', task: 'Review', role: 'auditor',
     evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
-  runs[0].resolve(result()); await tick(); fs.writeFileSync(f.capture, 'changed!');
+  runs[0].resolve({ ...result(), ...jobWitness(f.root, job, 'auditor', 'Source: a.mjs:1') }); await tick(); fs.writeFileSync(f.capture, 'changed!');
   const out = await call({ action: 'collect', jobId: job.id });
   assert.equal(out.details.evidence.status, 'INCOMPLETE');
   assert.match(out.content[0].text, /^INCOMPLETE: evidence changed or became invalid after this job started/);
@@ -473,7 +543,7 @@ test('auditor evidence changed during run remains incomplete even if restored be
   const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
   const { details: { job } } = await call({ action: 'start', task: 'Review', role: 'auditor',
     evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
-  fs.writeFileSync(f.capture, 'changed!'); runs[0].resolve(result()); await tick();
+  fs.writeFileSync(f.capture, 'changed!'); runs[0].resolve({ ...result(), ...jobWitness(f.root, job, 'auditor', 'Source: a.mjs:1') }); await tick();
   fs.writeFileSync(f.capture, 'original');
   const out = await call({ action: 'collect', jobId: job.id });
   assert.equal(out.details.evidence.status, 'INCOMPLETE');

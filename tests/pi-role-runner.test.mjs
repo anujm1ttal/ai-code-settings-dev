@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EventEmitter } from 'node:events';
 import { spawn } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import crypto, { randomBytes, createHash } from 'node:crypto';
 import net from 'node:net';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -14,8 +14,14 @@ import { runRole } from '../pi/lib/role-runner.mjs';
 import { createJobManager } from '../pi/lib/job-manager.mjs';
 import { createJobBudget } from '../pi/lib/job-budget.mjs';
 import { loadRolePolicy } from '../pi/lib/role-policy.mjs';
+import { registerExplorerJobs } from '../pi/lib/explorer-jobs.mjs';
+import * as resultContract from '../pi/lib/result-contract.mjs';
+import { runCouncilPerspective } from '../pi/lib/council-perspective.mjs';
 
+const { persistFullResult, buildEnvelope } = resultContract;
 const policy = loadRolePolicy(new URL('./fixtures/pi-role-policy.json', import.meta.url));
+// The VM strips static imports, so rebind their real module exports as globals.
+const strippedImportBindings = { ...fs, ...path, ...crypto, ...resultContract, fs, path, crypto, resultContract, Buffer };
 
 function fakeSpawn(events, exitCode = 0) {
   const calls = [];
@@ -44,6 +50,41 @@ const assistant = (provider, model, thinkingLevel, text) => ({ type: 'message_en
   content: [{ type: 'text', text }], usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0,
     totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
 } });
+
+test('runner witness survives manager bounding', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-t4-witness-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const firstText = 'café🚀'.repeat(10000); const lastText = 'final unique tail: WITNESS-TAIL-9837';
+  const first = assistant('pilot-gpt', 'luna', 'low', firstText); first.message.stopReason = 'toolUse';
+  const fake = fakeSpawn([runtimeProof, first, assistant('pilot-gpt', 'luna', 'low', lastText)]);
+  const expanded = { ...policy, roles: { ...policy.roles,
+    explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+  const tools = new Map(); let observed;
+  const Type = new Proxy({}, { get: () => () => ({}) });
+  const pi = { registerTool: def => tools.set(def.name, def), on: () => {} };
+  registerExplorerJobs(pi, { Type, policy: expanded, gate: { tryAcquire: () => () => {} }, promptPath: '/prompt',
+    accessImpl: () => {}, runRoleImpl: (p, role, task, cwd, prompt, options) => {
+      observed = options; return runRole(p, role, task, cwd, prompt, { ...options, spawnImpl: fake.spawnImpl });
+    } });
+  const execute = (params) => tools.get('pi_explorer_job').execute('witness', params, undefined, undefined, { cwd: root });
+  const job = (await execute({ action: 'start', task: 'witness' })).details.job;
+  for (let i = 0; i < 20 && (await execute({ action: 'status', jobId: job.id })).details.job.state === 'running'; i++) {
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(observed?.resultStore?.dispatchId, job.id, 'manager must give runner a dispatch-bound result store');
+  assert.equal(observed.resultStore.dir, path.join(root, 'Artifacts', '.agent', 'pi-results'));
+  assert.ok(observed.resultStore.meta && typeof observed.resultStore.meta === 'object', 'dispatch metadata is prepared with the store');
+  const ref = path.join(observed.resultStore.dir, `${job.id}.result`);
+  const data = fs.readFileSync(ref); const body = data.subarray(data.indexOf(10) + 1).toString();
+  assert.equal(body, `${firstText}\n${lastText}`, 'disk contains every received turn without manager truncation');
+  const digest = createHash('sha256').update(data).digest('hex');
+  const settlement = fs.readFileSync(path.join(observed.resultStore.dir, `${job.id}.settlement.json`), 'utf8');
+  assert.ok(settlement.includes(digest), 'settlement binds the exact runner witness');
+  const out = await execute({ action: 'collect', jobId: job.id });
+  assert.ok(Buffer.byteLength(out.content.map(part => part.text ?? '').join('')) <= 2048);
+  assert.ok(out.content[0].text.includes(digest), 'descriptor presence control');
+  assert.ok(!JSON.stringify(out.details).includes('WITNESS-TAIL-9837'), 'details contain no full-text copy');
+});
 
 test('result store persists received text before returning a bounded envelope', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-runner-'));
@@ -452,7 +493,7 @@ test('null usage through a budgeted job remains unknown and holds its reservatio
 
 test('extension tool results omit unknown usage for synchronous and council calls', async () => {
   const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
-  const js = stripTypeScriptTypes(source).replace(/^import .*;\s*$/gm, '')
+  const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*;[ \t]*$/gm, '')
     .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
     .replace(/export default function \(pi\s*\)/, 'function register(pi)') + '\nregister';
   const tools = new Map();
@@ -461,7 +502,7 @@ test('extension tool results omit unknown usage for synchronous and council call
   const council = { verdict: 'ADVISORY', evidenceSha256: 'fixture',
     perspectives: [{ perspective: 'coder', text: 'done', usage: null, usageCalls: [] }],
     synthesis: { text: 'done', usage: known, usageCalls: [] } };
-  const sandbox = { path, process: { env: { PI_ROLE_POLICY_PATH: path.resolve('fixture-policy.json') } },
+  const sandbox = { ...strippedImportBindings, process: { env: { PI_ROLE_POLICY_PATH: path.resolve('fixture-policy.json') } },
     Type: { Object: () => ({}), String: () => ({}), Union: () => ({}), Literal: () => ({}), Optional: () => ({}) },
     loadRolePolicy: () => policy, runRole: async () => single, runCouncilPerspective: async () => single,
     runCouncilSession: async () => council, registerExplorerJobs: () => {}, createExpensiveGate: () => ({}),
@@ -480,6 +521,167 @@ test('extension tool results omit unknown usage for synchronous and council call
   assert.equal(roleKnown.usage.input, 1);
   assert.equal(councilKnown.usage.input, 2);
   assert.equal(councilKnown.details.usageComplete, true);
+});
+
+test('role tool preserves persisted failures and perspective recheck errors', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-t4-role-tool-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const dir = path.join(root, 'Artifacts', '.agent', 'pi-results'); fs.mkdirSync(dir, { recursive: true });
+  const failures = [];
+  try {
+  const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
+  const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*;[ \t]*$/gm, '')
+    .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
+    .replace(/export default function \(pi\s*\)/, 'function register(pi)') + '\nregister';
+  const tools = new Map(); const seen = []; let mode = 'success';
+  const fakeRun = async (...args) => {
+    const opts = args.at(-1); seen.push(opts);
+    const id = opts.resultStore?.dispatchId ?? `fallback-${seen.length}`;
+    const role = typeof args[1] === 'string' ? args[1] : args[1].perspective;
+    const receipt = persistFullResult({ dir, dispatchId: id, role, completeness: mode === 'success' ? 'complete' : 'partial', text: 'retained control' });
+    const envelope = buildEnvelope({ status: mode === 'success' ? 'COMPLETE' : 'INCOMPLETE', persisted: receipt,
+      identity: { dispatchId: id, role }, summarySource: 'retained control' });
+    if (mode !== 'success') throw Object.assign(new Error(mode), { persisted: receipt, envelope, partialText: 'retained control' });
+    return { role, model: 'fixture', thinking: 'medium', text: 'SECRET'.repeat(10000), persisted: receipt, envelope, usage: null };
+  };
+  const sandbox = { ...strippedImportBindings, process: { env: { PI_ROLE_POLICY_PATH: path.resolve('fixture-policy.json') } },
+    Type: { Object: () => ({}), String: () => ({}), Union: () => ({}), Literal: () => ({}), Optional: () => ({}) },
+    loadRolePolicy: () => policy, runRole: fakeRun, runCouncilPerspective: fakeRun,
+    runCouncilSession: async () => ({}), registerExplorerJobs: () => {}, createExpensiveGate: () => ({}),
+    withExpensiveGate: async (_gate, _label, run) => run() };
+  runInNewContext(js, sandbox)({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
+  const execute = (params, id) => tools.get('pi_role_agent').execute(id, params, undefined, undefined, { cwd: root });
+  const success = await execute({ role: 'coder', task: 'work' }, 'sync-success');
+  const interrupted = [];
+  for (const failure of ['failed', 'aborted']) {
+    mode = failure;
+    let output; try { output = await execute({ role: 'coder', task: 'work' }, `sync-${failure}`); } catch (error) { output = error; }
+    interrupted.push({ failure, output, options: seen.at(-1) });
+  }
+  mode = 'success'; await execute({ role: 'council-perspective', perspective: 'coder', task: 'work',
+    evidencePath: '/fixture', evidenceSha256: 'a'.repeat(64) }, 'perspective');
+  assert.ok(seen[0].resultStore, 'synchronous dispatch must provide resultStore');
+  assert.equal(seen[0].resultStore.dir, dir);
+  assert.ok(Buffer.byteLength(success.content.map(p => p.text ?? '').join('')) <= 2048);
+  assert.match(success.content[0].text, /sha256/, 'descriptor presence control');
+  assert.ok(!JSON.stringify(success.details).includes('SECRETSECRET'));
+  for (const { failure, output, options } of interrupted) {
+    assert.ok(options.resultStore, `${failure} dispatch has resultStore`);
+    assert.ok(output.persisted || JSON.stringify(output).includes('sha256'), `${failure} must preserve receipt or descriptor`);
+    const text = output.envelope ?? output.content?.map(p => p.text ?? '').join('') ?? '';
+    assert.match(text, /INCOMPLETE/); assert.ok(Buffer.byteLength(text) <= 2048);
+  }
+  assert.ok(seen.at(-1).resultStore, 'council perspective also receives resultStore');
+  } catch (error) { failures.push(error); }
+
+  try {
+  const evidenceDir = path.join(root, 'Artifacts', 'Temp'); fs.mkdirSync(evidenceDir, { recursive: true });
+  const evidencePath = path.join(evidenceDir, 'evidence.txt'); fs.writeFileSync(evidencePath, 'unchanged evidence');
+  const evidenceSha256 = createHash('sha256').update(fs.readFileSync(evidencePath)).digest('hex');
+  const persisted = persistFullResult({ dir, dispatchId: 'recheck', role: 'coder', completeness: 'complete', text: 'perspective control' });
+  await assert.rejects(runCouncilPerspective(policy, { perspective: 'coder', question: 'review', evidencePath, evidenceSha256 }, root, '/prompt',
+    { resultStore: { dir, dispatchId: 'recheck' }, runRoleImpl: async (_p, _r, _t, _c, _prompt, options) => {
+      assert.equal(options.resultStore.dispatchId, 'recheck'); fs.writeFileSync(evidencePath, 'mutated evidence');
+      return { role: 'coder', text: 'perspective control', persisted };
+    } }), error => {
+    assert.strictEqual(error.persisted, persisted, 'same process-local receipt must survive recheck error');
+    assert.match(error.envelope ?? error.message, /INCOMPLETE/); return true;
+  });
+  } catch (error) { failures.push(error); }
+  assert.equal(failures.length, 0, failures.map(error => error.message).join('\n'));
+});
+
+function step3RoleTool(runRoleImpl) {
+  const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
+  const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*;[ \t]*$/gm, '')
+    .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
+    .replace(/export default function \(pi\s*\)/, 'function register(pi)') + '\nregister';
+  const tools = new Map();
+  const sandbox = { ...strippedImportBindings, process: { env: { PI_ROLE_POLICY_PATH: path.resolve('fixture-policy.json') } },
+    Type: { Object: () => ({}), String: () => ({}), Union: () => ({}), Literal: () => ({}), Optional: () => ({}) },
+    loadRolePolicy: () => policy, runRole: runRoleImpl, runCouncilPerspective: runRoleImpl,
+    runCouncilSession: async () => ({}), registerExplorerJobs: () => {}, createExpensiveGate: () => ({}),
+    withExpensiveGate: async (_gate, _label, run) => run() };
+  runInNewContext(js, sandbox)({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
+  return cwd => tools.get('pi_role_agent').execute('id', { role: 'coder', task: 'work' }, undefined, undefined, { cwd });
+}
+
+test('step3 synchronous output exposes final summary and bounded aggregate usage', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-step3-sync-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const reading = { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+  let receipt;
+  const execute = step3RoleTool(async (_p, role, _task, _cwd, _prompt, { resultStore }) => {
+    const text = 'Verdict: FAIL synchronous unique finding';
+    receipt = persistFullResult({ ...resultStore, role, completeness: 'complete', text });
+    return { role, model: 'fixture', thinking: 'medium', text, persisted: receipt, usage: reading,
+      usageCalls: [{ completeness: 'known', usage: reading }],
+      envelope: buildEnvelope({ status: 'COMPLETE', persisted: receipt,
+        identity: { dispatchId: resultStore.dispatchId, role }, summarySource: text }) };
+  });
+  const out = await execute(root); const text = out.content[0].text;
+  assert.match(text, /^Summary: Verdict: FAIL synchronous unique finding$/m);
+  assert.ok(text.includes(receipt.ref) && text.includes(receipt.sha256));
+  assert.ok(Buffer.byteLength(text) <= 2048);
+  assert.equal(out.details.usage.totalTokens, 2);
+  assert.equal(out.details.usage.complete, true);
+  assert.equal(Object.hasOwn(out.details, 'usageCalls'), false);
+  assert.equal(Array.isArray(out.details.usage), false);
+});
+
+test('step3 synchronous details include aggregate usage and completeness without call arrays', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-step3-usage-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const reading = { input: 1, output: 2, cacheRead: 0, cacheWrite: 0, totalTokens: 3,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+  const execute = step3RoleTool(async (_p, role, _task, _cwd, _prompt, { resultStore }) => {
+    const persisted = persistFullResult({ ...resultStore, role, completeness: 'complete', text: 'done' });
+    return { role, model: 'fixture', thinking: 'medium', text: 'done', persisted, usage: reading,
+      usageCalls: [{ completeness: 'known', usage: reading }] };
+  });
+  const out = await execute(root);
+  assert.equal(out.details.usage?.totalTokens, 3);
+  assert.equal(out.details.usage.complete, true);
+  assert.equal(Object.hasOwn(out.details, 'usageCalls'), false);
+  assert.equal(Array.isArray(out.details.usage), false);
+});
+
+test('step3 synchronous failure message is the bounded envelope with descriptor', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-step3-error-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let original;
+  const execute = step3RoleTool(async (_p, role, _task, _cwd, _prompt, { resultStore }) => {
+    const partialText = 'partial result';
+    const persisted = persistFullResult({ ...resultStore, role, completeness: 'partial', text: partialText });
+    original = Object.assign(new Error('failed'), { persisted, partialText, usageCalls: [{ completeness: 'unknown' }] });
+    throw original;
+  });
+  await assert.rejects(execute(root), error => {
+    assert.strictEqual(error, original);
+    assert.match(error.message, /^Status: INCOMPLETE/m);
+    assert.ok(error.message.includes(error.persisted.ref) && error.message.includes(error.persisted.sha256));
+    assert.equal(error.message, error.envelope);
+    assert.equal(error.partialText, 'partial result');
+    assert.equal(error.usageCalls.length, 1);
+    assert.ok(Buffer.byteLength(error.message) <= 2048);
+    return true;
+  });
+});
+
+test('step3 synchronous store setup failure is bounded incomplete without raw filesystem error', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-step3-setup-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'Artifacts'), 'not a directory');
+  let called = false;
+  const execute = step3RoleTool(async () => { called = true; });
+  await assert.rejects(execute(root), error => {
+    assert.match(error.message, /^Status: INCOMPLETE/m);
+    assert.doesNotMatch(error.message, /ENOTDIR|EEXIST|not a directory/i);
+    assert.ok(Buffer.byteLength(error.message) <= 2048);
+    return true;
+  });
+  assert.equal(called, false);
 });
 
 test('extension does not bypass the scoped runtime for synchronous, council or background dispatch', () => {

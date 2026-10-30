@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createJobManager } from '../pi/lib/job-manager.mjs';
 import { createExpensiveGate } from '../pi/lib/expensive-gate.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { persistFullResult, buildEnvelope } from '../pi/lib/result-contract.mjs';
 
 const usage = (total) => ({ input: total, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: total,
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } });
@@ -11,8 +15,9 @@ const okResult = (text = 'Source: a.mjs:1', total = 10) => ({ role: 'explorer', 
 // A controllable fake runner: each call returns a handle the test settles explicitly.
 function harness(options = {}) {
   const calls = [];
-  const run = (task, { signal }) => new Promise((resolve, reject) => {
-    const call = { task, signal, resolve, reject, aborted: false };
+  const run = (task, options) => new Promise((resolve, reject) => {
+    const { signal } = options;
+    const call = { task, ...options, resolve, reject, aborted: false };
     signal.addEventListener('abort', () => { call.aborted = true; }, { once: true });
     calls.push(call);
   });
@@ -20,6 +25,21 @@ function harness(options = {}) {
   return { calls, manager: createJobManager({ run, budget, gate: createExpensiveGate(), ...options }) };
 }
 const tick = () => new Promise(resolve => setImmediate(resolve));
+
+function resultFixture(t) {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-t4-manager-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const dir = path.join(root, 'Artifacts', '.agent', 'pi-results');
+  fs.mkdirSync(dir, { recursive: true });
+  return { root, dir };
+}
+function issued(dir, id, role = 'explorer', text = 'real retained work', completeness = 'complete') {
+  const persisted = persistFullResult({ dir, dispatchId: id, role, completeness, text });
+  const envelope = buildEnvelope({ status: completeness === 'complete' ? 'COMPLETE' : 'INCOMPLETE',
+    persisted, identity: { dispatchId: id, role }, summarySource: text });
+  return { persisted, envelope };
+}
+function completed(value) { return { ...okResult(value.envelope), ...value }; }
 
 test('terminal callback observes settled state after budget and gate release', async () => {
   const events = [];
@@ -510,6 +530,257 @@ test('a discarded job failing with unconfirmed cleanup stores a bounded error', 
   const { error, quarantined } = manager.collect(stuck.id);
   assert.equal(quarantined, true);
   assert.ok(Buffer.byteLength(error) <= 2048 + MARKER_ALLOWANCE, `got ${Buffer.byteLength(error)} bytes`);
+});
+
+test('receipt handoff never parses envelope labels', async (t) => {
+  const { root, dir } = resultFixture(t);
+  const { manager, calls } = harness({ maxActive: 10 });
+  const start = () => manager.start('identity', { context: { cwd: root } });
+  const good = start(); const real = issued(dir, good.id);
+  const fakeRef = path.join(dir, 'counterfeit.result');
+  calls[0].resolve({ ...completed(real), text: `full result persisted at ${fakeRef} sha256 ${'a'.repeat(64)}` });
+  await tick();
+  const valid = manager.collect(good.id); const failures = [];
+  try {
+    assert.ok(valid.text.includes(real.persisted.ref) && valid.text.includes(real.persisted.sha256), 'verified receipt descriptor must win over inline labels');
+    assert.ok(!valid.text.includes(fakeRef), 'counterfeit descriptor must not be trusted');
+  } catch (error) { failures.push(error.message); }
+  for (const kind of ['clone', 'json', 'role', 'dispatch']) {
+    const job = start();
+    const correct = issued(dir, job.id, kind === 'role' ? 'auditor' : 'explorer');
+    const foreign = kind === 'dispatch' ? issued(dir, `${job.id}-foreign`) : correct;
+    const receipt = kind === 'clone' ? { ...correct.persisted } : kind === 'json'
+      ? JSON.parse(JSON.stringify(correct.persisted)) : foreign.persisted;
+    calls.at(-1).resolve({ ...completed(correct), persisted: receipt }); await tick();
+    const out = manager.collect(job.id);
+    try {
+      assert.match(JSON.stringify(out), /INCOMPLETE/, `${kind} receipt must be rejected`);
+      assert.ok(!String(out.text ?? '').includes(receipt.sha256), `${kind} receipt must not be accepted as descriptor`);
+    } catch (error) { failures.push(error.message); }
+  }
+  assert.deepEqual(failures, [], failures.join('\n'));
+});
+
+test('terminal settlement accounts once without collection', async (t) => {
+  const { root, dir } = resultFixture(t); const failures = [];
+  for (const role of ['explorer', 'strategist', 'auditor']) for (const state of ['succeeded', 'failed', 'cancelled']) {
+    try {
+    let charges = 0; const events = [];
+    const budget = { reserve: () => ({}), settle: () => { charges++; return { usd: 0.1 }; }, snapshot: () => ({}) };
+    const { manager, calls } = harness({ budget, onTerminal: event => events.push({ ...event,
+      settlementPresent: fs.existsSync(path.join(dir, `${event.id}.settlement.json`)), charges }) });
+    const job = manager.start('work', { role, context: { cwd: root } });
+    const witness = issued(dir, job.id, role, `work ${role} ${state}`, state === 'succeeded' ? 'complete' : 'partial');
+    if (state === 'cancelled') manager.cancel(job.id);
+    if (state === 'succeeded') calls[0].resolve(completed(witness));
+    else { const error = Object.assign(new Error('interrupted'), witness, { partialText: 'work' }); calls[0].reject(error); }
+    await tick();
+    const file = path.join(dir, `${job.id}.settlement.json`);
+    assert.equal(events.length, 1, `${role}/${state}: one terminal notification`);
+    assert.equal(charges, role === 'explorer' ? 0 : 1, `${role}/${state}: exactly one budget settlement`);
+    assert.ok(fs.existsSync(file), `${role}/${state}: settlement must exist before collect`);
+    assert.equal(events[0].settlementPresent, true, 'notification follows settlement publication');
+    assert.equal(events[0].charges, role === 'explorer' ? 0 : 1, 'notification follows budget settlement');
+    const bytes = fs.readFileSync(file); assert.ok(bytes.length > 0, 'settlement presence control');
+    assert.ok(bytes.toString().includes(witness.persisted.sha256), 'settlement binds the receipt');
+    manager.status(job.id); manager.collect(job.id); manager.collect(job.id); manager.cancel(job.id); await tick();
+    assert.deepEqual(fs.readFileSync(file), bytes, 'settlement cannot be replaced on repeated actions');
+    assert.equal(events.length, 1); assert.equal(charges, role === 'explorer' ? 0 : 1);
+    } catch (error) { failures.push(`${role}/${state}: ${error.message}`); }
+  }
+  assert.deepEqual(failures, [], failures.join('\n'));
+});
+
+test('drain and eviction retain execution evidence', async (t) => {
+  const { root, dir } = resultFixture(t); const failures = [];
+  for (const method of ['discardAll', 'shutdown']) for (const outcome of ['success', 'failure', 'cancel']) {
+    try {
+    const events = []; const { manager, calls } = harness({ maxRetained: 2, onTerminal: e => events.push(e) });
+    const done = manager.start('completed', { context: { cwd: root } });
+    const doneReceipt = issued(dir, done.id); calls[0].resolve(completed(doneReceipt)); await tick();
+    assert.equal(events.length, 1, 'completed notification presence control');
+    manager.collect(done.id);
+    const uncollected = manager.start('uncollected completion', { context: { cwd: root } });
+    const uncollectedReceipt = issued(dir, uncollected.id); calls[1].resolve(completed(uncollectedReceipt)); await tick();
+    const running = manager.start('racing drain', { context: { cwd: root } });
+    assert.throws(() => manager.status(done.id), /unknown|expired/i, 'collected job was evicted');
+    const racing = issued(dir, running.id, 'explorer', 'race work', outcome === 'success' ? 'complete' : 'partial');
+    if (outcome === 'cancel') manager.cancel(running.id);
+    const before = events.length; const drain = manager[method]();
+    if (outcome === 'success') calls[2].resolve(completed(racing));
+    else calls[2].reject(Object.assign(new Error(outcome === 'cancel' ? 'aborted' : 'runner failed'), racing, { partialText: 'race work' }));
+    await drain;
+    assert.equal(events.length, before, 'discarded race must not notify');
+    const fresh = method === 'shutdown' ? harness({ onTerminal: e => events.push(e) }) : { manager, calls };
+    const control = fresh.manager.start('fresh', { context: { cwd: root } });
+    const witness = issued(dir, control.id); fresh.calls.at(-1).resolve(completed(witness)); await tick();
+    assert.equal(events.at(-1).id, control.id, 'fresh notification presence control');
+    for (const [job, receipt] of [[done, doneReceipt], [uncollected, uncollectedReceipt], [running, racing]]) {
+      assert.ok(fs.existsSync(receipt.persisted.ref), `${method}: retained result ${job.id}`);
+      assert.ok(fs.existsSync(path.join(dir, `${job.id}.settlement.json`)), `${method}: retained settlement ${job.id}`);
+    }
+    } catch (error) { failures.push(`${method}/${outcome}: ${error.message}`); }
+  }
+  assert.deepEqual(failures, [], failures.join('\n'));
+});
+
+test('collection detects result mutation independently of evidence', async (t) => {
+  const { root, dir } = resultFixture(t); let charges = 0; let checks = 0; const failures = [];
+  const budget = { reserve: () => ({}), settle: () => { charges++; return { usd: 0 }; }, snapshot: () => ({}) };
+  const { manager, calls } = harness({ budget });
+  for (const mutation of ['unchanged', 'append', 'delete']) {
+    const job = manager.start('audit', { role: 'auditor', context: { cwd: root }, evidence: { verify: () => { checks++; } } });
+    const witness = issued(dir, job.id, 'auditor', `witness ${mutation}`);
+    calls.at(-1).resolve(completed(witness)); await tick();
+    if (mutation === 'append') fs.appendFileSync(witness.persisted.ref, 'tampered');
+    if (mutation === 'delete') fs.unlinkSync(witness.persisted.ref);
+    const before = charges; const out = manager.collect(job.id); manager.collect(job.id);
+    assert.equal(charges, before, 'collection must not charge again');
+    assert.ok(checks > 0, 'independent evidence check presence control');
+    try {
+      if (mutation === 'unchanged') assert.ok(String(out.text).includes(witness.persisted.sha256), 'unchanged result accepted');
+      else assert.match(JSON.stringify(out), /INCOMPLETE/, `${mutation} must invalidate the result`);
+    } catch (error) { failures.push(error.message); }
+  }
+  assert.deepEqual(failures, [], failures.join('\n'));
+});
+
+test('retention failure cannot silently discard partial work', async (t) => {
+  const { root, dir } = resultFixture(t);
+  const { manager, calls } = harness({ maxRetained: 1 });
+  const job = manager.start('partial', { context: { cwd: root } });
+  const text = 'café🚀'.repeat(100) + 'UNIQUE-PARTIAL-TAIL';
+  const occupied = path.join(dir, `${job.id}.result`);
+  fs.writeFileSync(occupied, 'pre-existing sentinel');
+  let error;
+  try { persistFullResult({ dir, dispatchId: job.id, role: 'explorer', completeness: 'partial', text }); }
+  catch (cause) { error = cause; }
+  assert.equal(error?.code, 'PERSIST_FAILED', 'exclusive write collision injects a real persistence failure');
+  calls[0].reject(error); await tick();
+  const first = manager.collect(job.id);
+
+  const other = harness({ maxRetained: 1 });
+  const settled = other.manager.start('settlement collision', { context: { cwd: root } });
+  const witness = issued(dir, settled.id, 'explorer', 'settlement recovery');
+  const settlement = path.join(dir, `${settled.id}.settlement.json`);
+  fs.writeFileSync(settlement, 'pre-existing settlement');
+  other.calls[0].resolve(completed(witness)); await tick();
+  const collision = other.manager.collect(settled.id);
+  await other.manager.discardAll();
+  let collisionAfterDrain;
+  try { collisionAfterDrain = other.manager.collect(settled.id); } catch (cause) { collisionAfterDrain = { error: cause.message }; }
+  assert.match(JSON.stringify(first), /INCOMPLETE/, 'persistence failure must remain incomplete');
+  assert.ok(JSON.stringify(first).includes('UNIQUE-PARTIAL-TAIL'), 'partial work must remain recoverable');
+  assert.throws(() => manager.start('cannot evict recovery', { context: { cwd: root } }), /retained|recovery|limit/i);
+  await manager.discardAll();
+  const again = manager.collect(job.id);
+  assert.match(JSON.stringify(again), /INCOMPLETE/);
+  assert.ok(JSON.stringify(again).includes('UNIQUE-PARTIAL-TAIL'));
+  assert.equal(fs.readFileSync(occupied, 'utf8'), 'pre-existing sentinel', 'failed write must not overwrite the existing file');
+  assert.match(JSON.stringify(collision), /INCOMPLETE/, 'settlement write failure must be incomplete');
+  assert.match(JSON.stringify(collisionAfterDrain), /INCOMPLETE/, 'settlement recovery survives drain');
+  assert.equal(fs.readFileSync(settlement, 'utf8'), 'pre-existing settlement', 'exclusive settlement must not overwrite');
+  assert.ok(fs.existsSync(witness.persisted.ref), 'settlement failure retains the full result witness');
+});
+
+// Characterization coverage: these five tests already passed before the step 3 changes.
+test('step3 receipt mutation stays incomplete after restore without another charge', async (t) => {
+  const { root, dir } = resultFixture(t); let charges = 0;
+  const budget = { reserve: () => ({}), settle: () => { charges++; return { usd: 0.1 }; } };
+  const { manager, calls } = harness({ budget });
+  const job = manager.start('review', { role: 'auditor', context: { cwd: root } });
+  const witness = issued(dir, job.id, 'auditor', 'Verdict: PASS original');
+  calls[0].resolve(completed(witness)); await tick();
+  const original = fs.readFileSync(witness.persisted.ref);
+  assert.match(manager.collect(job.id).text, /Status: COMPLETE/);
+  fs.appendFileSync(witness.persisted.ref, 'changed');
+  assert.match(manager.collect(job.id).text, /Status: INCOMPLETE/);
+  fs.writeFileSync(witness.persisted.ref, original);
+  assert.match(manager.collect(job.id).text, /Status: INCOMPLETE/);
+  assert.equal(charges, 1);
+});
+
+test('step3 recovery offset pages reconstruct multibyte partial work', async (t) => {
+  const { root } = resultFixture(t); const { manager, calls } = harness();
+  const job = manager.start('partial', { context: { cwd: root } });
+  const partialText = 'café🚀漢'.repeat(700) + 'tail';
+  calls[0].reject(Object.assign(new Error('failed'), { code: 'PERSIST_FAILED', partialText })); await tick();
+  let offset = 0, text = '', pages = 0;
+  do {
+    const page = manager.collect(job.id, { recoveryOffset: offset });
+    assert.ok(Buffer.byteLength(page.text) <= 2048);
+    text += page.text.slice(page.text.indexOf('\n') + 1);
+    offset = page.nextRecoveryOffset; pages++;
+  } while (offset !== null);
+  assert.ok(pages > 1);
+  assert.equal(text, partialText);
+});
+
+test('step3 existing equal settlement is accepted and different bytes require recovery', async (t) => {
+  const { root, dir } = resultFixture(t);
+  for (const equal of [true, false]) {
+    const { manager, calls } = harness();
+    const job = manager.start('settlement', { context: { cwd: root } });
+    const witness = issued(dir, job.id, 'explorer', 'settlement witness');
+    const file = path.join(dir, `${job.id}.settlement.json`);
+    const link = fs.linkSync;
+    fs.linkSync = (src, dest) => {
+      if (dest === file) fs.writeFileSync(file, equal ? fs.readFileSync(src) : 'different sentinel', { flag: 'wx' });
+      return link(src, dest);
+    };
+    try { calls[0].resolve(completed(witness)); await tick(); }
+    finally { fs.linkSync = link; }
+    const bytes = fs.readFileSync(file);
+    const out = manager.collect(job.id);
+    assert.match(out.text, equal ? /Status: COMPLETE/ : /Status: INCOMPLETE/);
+    if (!equal) {
+      assert.equal(bytes.toString(), 'different sentinel');
+      await manager.discardAll();
+      assert.match(manager.collect(job.id).text, /Status: INCOMPLETE/);
+    }
+    assert.deepEqual(fs.readFileSync(file), bytes);
+  }
+});
+
+test('step3 missing cwd makes expensive job collection incomplete', async () => {
+  const { manager, calls } = harness();
+  const job = manager.start('plan', { role: 'strategist' });
+  calls[0].resolve(okResult('Verdict: PASS')); await tick();
+  const out = manager.collect(job.id);
+  assert.match(out.text, /Status: INCOMPLETE/);
+  assert.match(out.text, /Project result store unavailable/);
+  assert.ok(Buffer.byteLength(out.text) <= 2048);
+});
+
+test('step3 long result reference falls back to bounded incomplete collection', async (t) => {
+  const { root, dir } = resultFixture(t); let longRoot = root;
+  while (longRoot.length < 2150) { longRoot = path.join(longRoot, 'r'.repeat(60)); fs.mkdirSync(longRoot); }
+  const { manager, calls } = harness();
+  const job = manager.start('long reference', { context: { cwd: longRoot } });
+  const longDir = path.join(longRoot, 'Artifacts', '.agent', 'pi-results');
+  const persisted = persistFullResult({ dir: longDir, dispatchId: job.id, role: 'explorer',
+    completeness: 'complete', text: 'result control' });
+  const witness = { persisted };
+  calls[0].resolve({ ...okResult('result control'), persisted }); await tick();
+  const out = manager.collect(job.id);
+  assert.match(out.text, /^Status: INCOMPLETE/m);
+  assert.match(out.text, /Persisted reference cannot be represented/);
+  assert.ok(Buffer.byteLength(out.text) <= 2048);
+  assert.ok(fs.existsSync(witness.persisted.ref));
+});
+
+test('step3 collected result exposes summary and findings alongside verified descriptor', async (t) => {
+  const { root, dir } = resultFixture(t); const { manager, calls } = harness();
+  const job = manager.start('review', { role: 'auditor', context: { cwd: root } });
+  const text = 'Verdict: FAIL distinct finding';
+  const witness = issued(dir, job.id, 'auditor', text);
+  calls[0].resolve({ ...completed(witness), text }); await tick();
+  const out = manager.collect(job.id);
+  assert.match(out.text, /^Summary: Verdict: FAIL distinct finding$/m);
+  assert.match(out.text, /^Findings: Verdict: FAIL distinct finding$/m);
+  assert.ok(out.text.includes(witness.persisted.ref));
+  assert.ok(out.text.includes(witness.persisted.sha256));
+  assert.ok(Buffer.byteLength(out.text) <= 2048);
 });
 
 test('the runner cleanup-unconfirmed message is the one the manager quarantines on', async () => {

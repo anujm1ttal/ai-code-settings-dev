@@ -10,6 +10,8 @@ const omitEmpty = (value) => typeof value === 'string' && !value.trim() ? undefi
 
 function describeCollected(out) {
   if (!out.ready) return `Job ${out.id} is ${out.state}; not ready. Call collect again later.`;
+  if (out.envelope) return out.envelope;
+  if (out.recoveryOffset !== undefined) return out.text;
   const cost = out.cost ? (out.cost.unknown ? '\nCost: unknown, remains reserved' :
     `\nCost: $${out.cost.usd.toFixed(4)}${out.cost.overBudget ? ' (OVER the per-job budget)' : ''}`) : '';
   if (out.state !== 'succeeded') {
@@ -37,12 +39,12 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
   const jobs = createJobManager({
     gate, budget,
     onTerminal: ({ id, role, state }) => notify?.(`Job ${id} (${role}) ${state}. Use pi_explorer_job collect with this id.`),
-    run: (task, { signal, context, role }) => {
+    run: (task, { signal, context, role, resultStore, dispatchId }) => {
       const requiredReadPath = context.manifestPath;
       const childTask = requiredReadPath
         ? `${task}\n\nEvidence manifest (read it first, then the captures it lists): ${requiredReadPath}` : task;
       return runRoleImpl(policy, role, childTask, context.cwd, paths[role],
-        { signal, invocation, ...(requiredReadPath ? { requiredReadPath } : {}) });
+        { signal, invocation, resultStore, dispatchId, ...(requiredReadPath ? { requiredReadPath } : {}) });
     },
   });
 
@@ -64,6 +66,7 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
       evidencePath: Type.Optional(Type.String({ description: 'auditor start: absolute evidence manifest path' })),
       evidenceSha256: Type.Optional(Type.String({ description: 'auditor start: lowercase manifest SHA-256' })),
       jobId: Type.Optional(Type.String({ description: 'status (optional), collect, cancel: the id returned by start' })),
+      recoveryOffset: Type.Optional(Type.Integer({ minimum: 0, description: 'collect only: recover retained partial text, starting at this code point offset; use nextRecoveryOffset for subsequent pages' })),
     }),
     async execute(toolCallId, params, signal, _onUpdate, ctx) {
       const action = params?.action;
@@ -113,8 +116,8 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
         const job = jobs.cancel(jobId);
         return { content: [{ type: 'text', text: `${job.id}: ${job.state}` }], details: { action, job } };
       }
-      const out = jobs.collect(jobId);
-      const { usage, text: _text, ...details } = out;
+      const out = jobs.collect(jobId, { recoveryOffset: params?.recoveryOffset });
+      const { usage, text: _text, envelope: _envelope, error: _error, usageCalls: _usageCalls, ...details } = out;
       return { content: [{ type: 'text', text: describeCollected(out) }],
         details: { action, ...details }, ...(usage ? { usage } : {}) };
     },

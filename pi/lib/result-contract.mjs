@@ -11,7 +11,7 @@ const receipts = new WeakSet();
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const validId = id => typeof id === 'string' && /^[A-Za-z0-9._-]{1,80}$/.test(id) && id !== '.' && id !== '..';
 
-function checkedDir(dir) {
+export function checkedDir(dir) {
   if (typeof dir !== 'string' || !path.isAbsolute(dir)) throw new Error('result directory must be absolute');
   const resolved = path.resolve(dir);
   const root = path.parse(resolved).root;
@@ -23,6 +23,20 @@ function checkedDir(dir) {
   }
   if (!fs.statSync(resolved).isDirectory()) throw new Error('result directory is not a directory');
   return resolved;
+}
+
+export function prepareResultDir(cwd) {
+  if (typeof cwd !== 'string' || !cwd) throw new Error('project directory required');
+  const dir = path.join(path.resolve(cwd), 'Artifacts', '.agent', 'pi-results');
+  const root = path.parse(dir).root;
+  let current = root;
+  for (const segment of dir.slice(root.length).split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    try { fs.mkdirSync(current); } catch (error) { if (error.code !== 'EEXIST') throw error; }
+    const stat = fs.lstatSync(current);
+    if (stat.isSymbolicLink() || !stat.isDirectory()) throw new Error('result directory contains a link or non-directory');
+  }
+  return checkedDir(dir);
 }
 
 export function persistFullResult({ dir, dispatchId, role, completeness, text, meta }) {
@@ -59,7 +73,7 @@ function requireIdentity(identity) {
   }
 }
 
-function verify(persisted, identity) {
+export function verifyPersisted(persisted, identity) {
   requireIdentity(identity);
   if (!persisted || !receipts.has(persisted) || typeof persisted.ref !== 'string' || !path.isAbsolute(persisted.ref) ||
       !/^[a-f0-9]{64}$/.test(persisted.sha256 ?? '') || !['complete', 'partial'].includes(persisted.completeness)) {
@@ -87,14 +101,15 @@ function clip(value, budget) {
   return out;
 }
 
-function format({ status, summary, artifacts, findings, blockers, next }) {
+function format({ status, summary, artifacts, findings, blockers, next, maxBytes = LIMIT }) {
   const singleLine = value => String(value ?? '').replace(/[\r\n\u0085\u2028\u2029]/g, ' ');
   if (/[\r\n\u0085\u2028\u2029]/.test(artifacts)) throw new Error('recovery reference cannot be represented');
   status = singleLine(status);
   summary = singleLine(summary); findings = singleLine(findings);
   blockers = singleLine(blockers); next = singleLine(next);
   const base = `Status: ${status}\nSummary: \nArtifacts: ${artifacts}\nFindings: \nBlockers: \nNext action: `;
-  let budget = LIMIT - Buffer.byteLength(base);
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 0 || maxBytes > LIMIT) throw new Error('invalid envelope limit');
+  let budget = maxBytes - Buffer.byteLength(base);
   if (budget < 0) throw new Error('recovery reference exceeds envelope limit');
   // Reserve the fixed reference first, then blocking data and findings before narrative.
   const take = (value, cap) => { const result = clip(value, Math.min(budget, cap)); budget -= Buffer.byteLength(result); return result; };
@@ -105,8 +120,8 @@ function format({ status, summary, artifacts, findings, blockers, next }) {
   return `Status: ${status}\nSummary: ${s}\nArtifacts: ${artifacts}\nFindings: ${f}\nBlockers: ${b}\nNext action: ${n}`;
 }
 
-export function buildEnvelope({ status, persisted, identity, summarySource, findingsSource, blockers, next }) {
-  const id = verify(persisted, identity);
+export function buildEnvelope({ status, persisted, identity, summarySource, findingsSource, blockers, next, maxBytes }) {
+  const id = verifyPersisted(persisted, identity);
   if (persisted.completeness === 'partial' && status !== 'INCOMPLETE') {
     throw new Error('partial results require INCOMPLETE status');
   }
@@ -123,17 +138,17 @@ export function buildEnvelope({ status, persisted, identity, summarySource, find
     .map(line => clip(line, 300)).join('\n');
   return format({ status: clip(status ?? 'COMPLETE', 64), summary: summarySource,
     artifacts: `full result persisted at ${persisted.ref} sha256 ${persisted.sha256} completeness ${status === 'INCOMPLETE' && persisted.completeness === 'complete' ? 'not asserted' : persisted.completeness} dispatch ${id}`,
-    findings, blockers, next });
+    findings, blockers, next, maxBytes });
 }
 
-export function buildIncompleteEnvelope({ reason, partialText, persisted, identity, referenceUnavailable = false }) {
+export function buildIncompleteEnvelope({ reason, partialText, persisted, identity, referenceUnavailable = false, maxBytes }) {
   requireIdentity(identity);
   if (persisted) {
     return buildEnvelope({ status: 'INCOMPLETE', persisted, identity, summarySource: partialText,
-      findingsSource: partialText, blockers: reason, next: 'Inspect the persisted partial result.' });
+      findingsSource: partialText, blockers: reason, next: 'Inspect the persisted partial result.', maxBytes });
   }
   return format({ status: 'INCOMPLETE', summary: partialText,
     artifacts: referenceUnavailable ? 'Persisted reference cannot be represented in this envelope.' :
       'Persistence failed; no full-text copy exists.',
-    findings: '', blockers: reason, next: 'Recover retained partial text from the error.' });
+    findings: '', blockers: reason, next: 'Recover retained partial text via collect with recoveryOffset.', maxBytes });
 }

@@ -1,5 +1,6 @@
 import { validateCouncilEvidence } from './council-evidence.mjs';
 import { runRole } from './role-runner.mjs';
+import { buildIncompleteEnvelope } from './result-contract.mjs';
 
 const VIEWPOINTS = Object.freeze({
   strategist: 'Evaluate value, scope and dependency tradeoffs. Cite the evidence; state uncertainty.',
@@ -20,6 +21,18 @@ export async function runCouncilPerspective(policy, input, cwd, promptPath, opti
   const { runRoleImpl = runRole, ...roleOptions } = options;
   const result = await runRoleImpl(policy, perspective, task, cwd, promptPath,
     { ...roleOptions, profile: 'council-read-only', requiredReadPath: evidence.path });
-  validateCouncilEvidence(cwd, evidence.path, evidence.sha256);
+  try { validateCouncilEvidence(cwd, evidence.path, evidence.sha256); }
+  catch (error) {
+    error.message = `INCOMPLETE: council evidence revalidation failed: ${error.message}`;
+    for (const key of ['persisted', 'usage', 'usageCalls', 'runtimeVerified', 'model', 'thinking', 'toolCounts', 'successfulReads']) {
+      if (result[key] !== undefined) error[key] = result[key];
+    }
+    if (roleOptions.resultStore) {
+      const identity = { dispatchId: roleOptions.resultStore.dispatchId, role: perspective };
+      try { error.envelope = buildIncompleteEnvelope({ identity, persisted: result.persisted, reason: error.message, partialText: result.text }); }
+      catch { error.envelope = buildIncompleteEnvelope({ identity, reason: error.message, referenceUnavailable: Boolean(result.persisted) }); }
+    }
+    throw error;
+  }
   return { ...result, perspective, evidenceSha256: evidence.sha256 };
 }
