@@ -445,3 +445,23 @@ test('malformed reservation and settlement ledger rows fail closed', async t => 
   fs.writeFileSync(path.join(agentDir(f), 'bulk-read-ledger.jsonl'), [{ approvalId: 'test', ts, reserved: true, dispatchId: 'd', costUsd: null, costUpper: 0.1 }, { approvalId: 'test', ts, settles: 'd', costUsd: 0.01, costUpper: 0.1 }].map(x => JSON.stringify(x)).join('\n') + '\n');
   assert.equal((await bulkRead({ ...f, runWorker: okWorker() })).status, 'COMPLETE', 'well-formed pair is accepted');
 });
+
+test('a failure closing the lock handle after settlement does not lose the result either', async t => {
+  const { bulkRead } = await import('../pi/lib/bulk-read.mjs'); const f = fixture(t);
+  const open = fs.openSync; const close = fs.closeSync; let lockFd;
+  fs.openSync = (file, ...rest) => { const fd = open(file, ...rest); if (String(file).endsWith('.lock')) lockFd = fd; return fd; };
+  fs.closeSync = (fd, ...rest) => { if (fd === lockFd) { close(fd); throw new Error('EIO'); } return close(fd, ...rest); };
+  let r;
+  try { r = await bulkRead({ ...f, runWorker: okWorker() }); } finally { fs.openSync = open; fs.closeSync = close; }
+  assert.equal(r.status, 'COMPLETE'); assert.ok(fs.existsSync(r.persisted.ref));
+});
+
+test('a failure releasing the ledger lock after settlement does not lose the result, and the lock stays to fail closed', async t => {
+  const { bulkRead } = await import('../pi/lib/bulk-read.mjs'); const f = fixture(t);
+  const real = fs.unlinkSync; fs.unlinkSync = (file, ...rest) => { if (String(file).endsWith('.lock')) throw new Error('EBUSY'); return real(file, ...rest); };
+  let r;
+  try { r = await bulkRead({ ...f, runWorker: okWorker() }); } finally { fs.unlinkSync = real; }
+  assert.equal(r.status, 'COMPLETE'); assert.equal(r.summary, 'first'); assert.ok(fs.existsSync(r.persisted.ref));
+  assert.equal(fs.existsSync(path.join(agentDir(f), 'bulk-read-ledger.lock')), true, 'lock retained');
+  assert.equal((await bulkRead({ ...f, runWorker: okWorker() })).summary, 'ledger-locked');
+});

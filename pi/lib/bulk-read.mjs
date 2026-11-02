@@ -120,6 +120,10 @@ export async function bulkRead({ root, paths, question, approval, policy, runWor
     const cited = admitted.filter(p => verified.some(c => c.path === p));
     return finish(complete ? 'COMPLETE' : 'INCOMPLETE', parsed?.answer ?? '', verified, admitted, cited, unresolved, usage, raw);
   } finally {
-    if (lockFd !== undefined) { fs.closeSync(lockFd); if (!keepLock) fs.unlinkSync(lockPath); }
+    // A release failure must not lose a result whose spend is already ledgered; a retained lock fails later calls closed.
+    if (lockFd !== undefined) {
+      try { fs.closeSync(lockFd); } catch { /* retained */ }
+      if (!keepLock) { try { fs.unlinkSync(lockPath); } catch { /* retained: fails closed */ } }
+    }
   }
 }

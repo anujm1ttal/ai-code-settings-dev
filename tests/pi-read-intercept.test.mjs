@@ -14,7 +14,8 @@ const policy = { allowedModels: MODELS, roles: {
   strategist: { model: 'pilot/m1', thinking: 'high', tools: ['read', 'grep', 'find', 'ls'] },
   coder: { model: 'pilot/m2', thinking: 'medium', tools: ['read', 'grep', 'find', 'ls', 'bash', 'edit', 'write'] },
   auditor: { model: 'pilot/m3', thinking: 'high', tools: ['read', 'grep', 'find', 'ls'] },
-  explorer: { model: 'pilot/worker', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+  explorer: { model: 'pilot/worker', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } },
+  jobBudget: { perJobUsd: 1, perSessionUsd: 5, rates: { 'pilot/worker': { inputPerMTok: 1, outputPerMTok: 2 } } } };
 
 // One project with an approved file, an unapproved file and a valid approval record.
 function project(t, { approval = true, edit = a => a } = {}) {
@@ -86,7 +87,7 @@ test('bounded reads, unapproved files and fragmented reads pass (documented bypa
   });
 });
 
-test('no valid approval means no interception, never a block toward a tool that is not registered', async t => {
+test('no valid approval (or no policy rate) means no interception; tool registration itself is not checked', async t => {
   const bad = [
     ['absent', project(t, { approval: false })],
     ['expired', project(t, { edit: a => ({ ...a, approvedAt: new Date(Date.now() - 7200000).toISOString(), expiresAt: new Date(Date.now() - 3600000).toISOString() }) })],
@@ -253,5 +254,109 @@ test('shell metacharacters inside quotes do not hide a plain reader; outside quo
     assert.equal(await call('bash', { command: 'cat a.txt\\' }, p.dir), undefined, 'backslash');
     assert.equal(await call('bash', { command: 'cat a.txt ${HOME}' }, p.dir), undefined, 'brace expansion');
     assert.equal(await call('bash', { command: 'cat a.txt [x]' }, p.dir), undefined, 'glob class');
+  });
+});
+
+// ---- audit corrections (T9 MEDIUM-1..4) ----
+const touch = (file, seconds) => { const when = new Date(Date.now() + seconds * 1000); fs.utimesSync(file, when, when); };
+
+test('a file edited after approval is no longer redirected (the tool would refuse on hash); an unchanged one still is', async t => {
+  const p = project(t); const a = path.join(p.dir, 'a.txt');
+  await withGuard(p, async call => {
+    assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir)));
+    fs.writeFileSync(a, 'one\ntwo\nCHANGED\n'); touch(a, 5);
+    assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, 'edited file');
+    assert.equal(await call('bash', { command: 'cat a.txt' }, p.dir), undefined, 'edited file via shell');
+    assert.ok(blocked(await call('read', { path: 'docs/b.txt' }, p.dir)), 'sibling approved file is still redirected');
+    fs.writeFileSync(a, 'one\ntwo\nthree\n'); touch(a, 10);
+    assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir)), 'restored bytes are redirected again');
+    fs.writeFileSync(a, 'XXXXXXXXXXXXXX'); touch(a, 10);
+    assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, 'changed bytes at an equal size');
+  });
+});
+
+test('a size change with an unchanged mtime is still detected (cache keys on both)', async t => {
+  const p = project(t); const a = path.join(p.dir, 'a.txt');
+  fs.utimesSync(a, 1700000000, 1700000000); const mtimeMs = fs.statSync(a).mtimeMs;
+  await withGuard(p, async call => {
+    assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir)));
+    fs.writeFileSync(a, 'a different length of content'+String.fromCharCode(10)); fs.utimesSync(a, 1700000000, 1700000000);
+    assert.equal(fs.statSync(a).mtimeMs, mtimeMs, 'mtime restored (control)');
+    assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined);
+  });
+});
+
+test('a protected name with an NTFS stream suffix is blocked even when the file does not exist yet (Windows)', { skip: process.platform !== 'win32' }, async t => {
+  const p = project(t);
+  await withGuard(p, async call => {
+    assert.ok(blocked(await call('write', { path: 'Artifacts/.agent/bulk-read-ledger.lock::$DATA', content: 'x' }, p.dir)));
+    assert.equal(fs.existsSync(path.join(p.dir, 'Artifacts', '.agent', 'bulk-read-ledger.lock')), false, 'control: the file does not exist');
+  });
+});
+
+test('an 8.3 short name of the approval file is blocked (Windows, when short names exist)', { skip: process.platform !== 'win32' }, async t => {
+  const p = project(t); const file = path.join(p.dir, 'Artifacts', '.agent', 'bulk-read-approval.json');
+  const { spawnSync } = await import('node:child_process');
+  const short = spawnSync('cmd.exe', ['/d', '/c', `for %I in ("${file}") do @echo %~sI`], { encoding: 'utf8' }).stdout.trim();
+  if (!short || short.toLowerCase() === file.toLowerCase() || !fs.existsSync(short)) return t.skip('8.3 short names are not available here');
+  await withGuard(p, async call => { assert.ok(blocked(await call('write', { path: short, content: 'x' }, p.dir)), short); });
+});
+
+test('a policy with no rate for the approved worker disables interception (the tool would refuse rate-missing)', async t => {
+  for (const jobBudget of [undefined, { perJobUsd: 1, perSessionUsd: 5, rates: {} }, { perJobUsd: 1, perSessionUsd: 5, rates: { 'pilot/m1': { inputPerMTok: 1, outputPerMTok: 2 } } }]) {
+    const p = project(t); const next = { ...policy }; if (jobBudget) next.jobBudget = jobBudget; else delete next.jobBudget;
+    fs.writeFileSync(p.policyPath, JSON.stringify(next));
+    await withGuard(p, async call => { assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, JSON.stringify(jobBudget)); });
+  }
+});
+
+test('Windows shell path spellings and Unicode spaces cannot dodge the write block or the read redirect', { skip: process.platform !== 'win32' }, async t => {
+  const p = project(t); const rest = p.dir.slice(2).replaceAll('\\', '/'); const drive = p.dir[0].toLowerCase();
+  await withGuard(p, async call => {
+    for (const prefix of [`/${drive}`, `/mnt/${drive}`, `/cygdrive/${drive}`]) {
+      assert.ok(blocked(await call('write', { path: `${prefix}${rest}/Artifacts/.agent/bulk-read-approval.json`, content: 'x' }, p.dir)), `write ${prefix}`);
+      assert.ok(blocked(await call('edit', { path: `${prefix}${rest}/Artifacts/.agent/bulk-read-ledger.jsonl`, edits: [] }, p.dir)), `edit ${prefix}`);
+      assert.ok(blocked(await call('read', { path: `${prefix}${rest}/a.txt` }, p.dir)), `read ${prefix}`);
+    }
+    for (const tail of ['\u00a0', '\u2003', ' \u00a0.', '::$DATA']) {
+      assert.ok(blocked(await call('write', { path: `Artifacts/.agent/bulk-read-approval.json${tail}`, content: 'x' }, p.dir)), JSON.stringify(tail));
+    }
+    assert.equal(await call('write', { path: 'Artifacts/.agent/bulk-read-approval.json.bak', content: 'x' }, p.dir), undefined, 'a different file name is not protected');
+  });
+});
+
+test('documented bypasses: hard links, shell forgery of state files, and an oversized limit', async t => {
+  const p = project(t); let hard = true;
+  try { fs.linkSync(path.join(p.dir, 'a.txt'), path.join(p.dir, 'hard.txt')); } catch { hard = false; }
+  await withGuard(p, async call => {
+    if (hard) assert.equal(await call('read', { path: 'hard.txt' }, p.dir), undefined, 'a hard link is a different path (not detected)');
+    for (const command of ['cp other.txt Artifacts/.agent/bulk-read-approval.json', 'cp other.txt Artifacts/.agent/bulk-read-ledger.jsonl',
+      'node -e "require(\'fs\').writeFileSync(\'Artifacts/.agent/bulk-read-approval.json\',\'{}\')"']) {
+      assert.equal(await call('bash', { command }, p.dir), undefined, `shell forgery is not blocked: ${command}`);
+    }
+    assert.equal(await call('read', { path: 'a.txt', limit: 1e9 }, p.dir), undefined, 'any positive integer limit passes');
+  });
+});
+
+test('UNC and device paths are never resolved by the new rules (they are left to the existing guard)', { skip: process.platform !== 'win32' }, async t => {
+  const p = project(t);
+  await withGuard(p, async call => {
+    assert.equal(await call('read', { path: '\\\\no-such-host-pi\\share\\a.txt' }, p.dir), undefined);
+    const r = await call('write', { path: '\\\\no-such-host-pi\\share\\Artifacts\\.agent\\bulk-read-approval.json', content: 'x' }, p.dir);
+    assert.ok(blocked(r)); assert.match(r.reason, /Network or device path/);
+  });
+});
+
+test('with an approval present, /sync and /handoff state files stay readable and writable', async t => {
+  const p = project(t);
+  await withGuard(p, async call => {
+    for (const file of ['Artifacts/.agent/current_task.md', 'Artifacts/HANDOFF_BRIEF.md', 'Artifacts/TODO.md']) {
+      fs.writeFileSync(path.join(p.dir, file), 'state');
+      assert.equal(await call('read', { path: file }, p.dir), undefined, `read ${file}`);
+      assert.equal(await call('bash', { command: `cat ${file}` }, p.dir), undefined, `cat ${file}`);
+      assert.equal(await call('write', { path: file, content: 'x' }, p.dir), undefined, `write ${file}`);
+      assert.equal(await call('edit', { path: file, edits: [] }, p.dir), undefined, `edit ${file}`);
+    }
+    assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir)), 'presence control: approval is live');
   });
 });

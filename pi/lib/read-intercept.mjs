@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { validateApprovalRecord } from './bulk-admission.mjs';
 
@@ -11,15 +12,38 @@ const PROTECTED_STATE = new Set([APPROVAL_FILE, 'bulk-read-ledger.jsonl', 'bulk-
 const WHOLE_FILE_READERS = new Set(['cat', 'less', 'more']);
 const win = process.platform === 'win32';
 
+// Mirrors guard.ts: Pi maps /c/x, /mnt/c/x and /cygdrive/c/x to C:\\x on Windows and normalises Unicode spaces.
+function windowsShellPath(filePath) {
+  if (!win || !filePath.startsWith('/') || filePath.startsWith('//') || filePath.includes('\\')) return filePath;
+  const match = filePath.match(/^\/(?:mnt\/|cygdrive\/)?([a-z])(?:\/(.*))?$/i);
+  if (!match) return filePath;
+  return `${match[1].toUpperCase()}:\\${(match[2] ?? '').replaceAll('/', '\\')}`;
+}
+
 function resolveTarget(raw, cwd) {
   if (typeof raw !== 'string' || !raw.trim() || typeof cwd !== 'string' || !path.isAbsolute(cwd)) return undefined;
-  let requested = raw.replace(/^@/, '');
+  let requested = windowsShellPath(raw.replace(/[\u00a0\u2000-\u200a\u202f\u205f\u3000]/g, ' ').replace(/^@/, ''));
   if (requested === '~' || requested.startsWith('~/') || requested.startsWith('~\\')) requested = path.join(os.homedir(), requested.slice(2));
   if (requested.startsWith('file://')) { try { requested = fileURLToPath(requested); } catch { return undefined; } }
-  return path.resolve(cwd, requested);
+  const resolved = path.resolve(cwd, requested);
+  // UNC and device paths are never touched here: the guard must not reach a network share (B1).
+  return resolved.startsWith('\\\\') ? undefined : resolved;
 }
 function realFile(target) {
   try { const real = fs.realpathSync.native(target); return fs.statSync(real).isFile() ? real : undefined; } catch { return undefined; }
+}
+
+// Hash each file only when its size or mtime changed: this runs on every Parent read and bash call.
+const hashCache = new Map();
+function matchesHash(real, expected) {
+  try {
+    const stat = fs.statSync(real);
+    const cached = hashCache.get(real);
+    let sha;
+    if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) sha = cached.sha;
+    else { sha = createHash('sha256').update(fs.readFileSync(real)).digest('hex'); hashCache.set(real, { mtimeMs: stat.mtimeMs, size: stat.size, sha }); }
+    return typeof expected === 'string' && sha === expected.toLowerCase();
+  } catch { return false; }
 }
 
 // Returns { approved: Set of real paths } for a currently valid approval, otherwise undefined (no interception).
@@ -29,11 +53,14 @@ export function loadInterceptState({ cwd, loadPolicy, now = new Date() } = {}) {
     const record = JSON.parse(fs.readFileSync(path.join(cwd, 'Artifacts', '.agent', APPROVAL_FILE), 'utf8'));
     const policy = loadPolicy?.();
     if (!policy || !validateApprovalRecord(record, { policy, now }).ok) return undefined;
+    // pi_bulk_read refuses without a policy rate, so redirecting toward it would strand the Parent.
+    if (!policy.jobBudget?.rates?.[record.worker]) return undefined;
     const base = fs.realpathSync.native(cwd);
     const approved = new Set();
     for (const p of record.approvedPaths) {
       const real = realFile(path.join(base, ...String(p).split('/')));
-      if (real) approved.add(real);
+      // A file changed since approval would be refused on its hash, so it is no longer redirected.
+      if (real && matchesHash(real, record.approvedSha256?.[p])) approved.add(real);
     }
     return approved.size ? { approved } : undefined;
   } catch { return undefined; }
@@ -73,10 +100,13 @@ export function approvalWriteDenial({ toolName, input, cwd } = {}) {
   if (toolName !== 'write' && toolName !== 'edit') return undefined;
   const target = resolveTarget(input?.path, cwd);
   if (!target) return undefined;
-  let name = path.basename(target);
-  if (win) name = name.replace(/[ .]+$/, '').toLowerCase();
+  // An existing file is compared by its real name (resolves case and 8.3 aliases); otherwise by a normalised spelling.
+  let named = target;
+  try { named = fs.realpathSync.native(target); } catch { /* new file */ }
+  let name = path.basename(named);
+  if (win) name = name.split(':')[0].replace(/[ .]+$/, '').toLowerCase();
   if (!PROTECTED_STATE.has(name)) return undefined;
-  let dir = path.dirname(target);
+  let dir = path.dirname(named);
   try { dir = fs.realpathSync.native(dir); } catch { /* directory may not exist yet */ }
   let agent = path.join(path.resolve(cwd), 'Artifacts', '.agent');
   try { agent = fs.realpathSync.native(agent); } catch { /* not created yet */ }
