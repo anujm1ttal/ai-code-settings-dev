@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, randomBytes } from 'node:crypto';
+import { priceRequest, validateRate } from './pricing.mjs';
 
 const LIMIT = 65536;
 const FIELDS = ['input', 'output', 'cacheRead', 'cacheWrite', 'totalTokens', 'reasoning', 'cacheWrite1h'];
@@ -58,6 +59,11 @@ function publish(file, bytes) {
   } finally { if (exists) fs.unlinkSync(tmp); }
 }
 
+// An accounting rate must price every token class: a flat rate needs all four prices, a tiered rate needs them on every tier.
+const PRICE_FIELDS = ['inputPerMTok', 'outputPerMTok', 'cacheReadPerMTok', 'cacheWritePerMTok'];
+const rateComplete = rate => validateRate(rate) &&
+  (Object.hasOwn(rate, 'tiers') ? rate.tiers : [rate]).every(tier => PRICE_FIELDS.every(field => valid(tier[field])));
+
 function reading(usage, rate) {
   const values = {}; const missing = {};
   for (const field of FIELDS) {
@@ -69,10 +75,8 @@ function reading(usage, rate) {
     (!missing.cacheWrite1h && (missing.cacheWrite || values.cacheWrite1h > values.cacheWrite));
   const known = CORE.every(field => !missing[field]) &&
     CORE.slice(0, 4).some(field => values[field] > 0) && !subsetInvalid;
-  const priceFields = ['inputPerMTok', 'outputPerMTok', 'cacheReadPerMTok', 'cacheWritePerMTok'];
-  const priced = known && rate && priceFields.every(field => valid(rate[field]));
-  const estimated = priced ? (values.input * rate.inputPerMTok + values.output * rate.outputPerMTok +
-    values.cacheRead * rate.cacheReadPerMTok + values.cacheWrite * rate.cacheWritePerMTok) / 1e6 : undefined;
+  const priced = known && rateComplete(rate);
+  const estimated = priced ? priceRequest(values, rate).usd : undefined; // each request picks its own tier
   const provider = usage?.cost?.total;
   const providerKnown = valid(provider) && (known || provider > 0);
   return { usage: values, missing, known, rateKnown: valid(estimated),
@@ -155,8 +159,15 @@ export function createTaskUsage({ cwd, clock = Date.now, rates = {}, ratesByMode
     result.modelKey = id('model', model);
     const rate = Object.hasOwn(rates, model) ? rates[model] :
       (Object.hasOwn(ratesByModelKey, result.modelKey) ? ratesByModelKey[result.modelKey] : undefined);
-    if (rate && ['inputPerMTok', 'outputPerMTok', 'cacheReadPerMTok', 'cacheWritePerMTok'].every(k => valid(rate[k]))) {
-      result.rateKey = id('rate', JSON.stringify([rate.inputPerMTok, rate.outputPerMTok, rate.cacheReadPerMTok, rate.cacheWritePerMTok]));
+    if (rateComplete(rate)) {
+      // Canonical identity: prices and cache-write retention fields only (status and source are labels, not prices).
+      // A legacy flat rate keeps its original four-price identity exactly.
+      const priceTuple = t => [t.inputPerMTok, t.outputPerMTok, t.cacheReadPerMTok, t.cacheWritePerMTok];
+      const byRetention = t => Object.entries(t.cacheWriteByRetention ?? {}).sort(([a], [b]) => (a < b ? -1 : 1));
+      const retention = [rate.cacheWriteRetention ?? null, byRetention(rate)];
+      const hasRetention = rate.cacheWriteRetention !== undefined || byRetention(rate).length > 0;
+      const tiers = Object.hasOwn(rate, 'tiers') ? rate.tiers.map(t => [t.upToPromptTokens ?? null, ...priceTuple(t), byRetention(t)]) : undefined;
+      result.rateKey = id('rate', JSON.stringify(tiers ? { tiers, retention } : (hasRetention ? [...priceTuple(rate), retention] : priceTuple(rate))));
     }
     return { rate, identities: result };
   };

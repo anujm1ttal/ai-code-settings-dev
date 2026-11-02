@@ -370,7 +370,7 @@ test('status reports budget and collect reports cost including unknown and over 
   runs[0].resolve({ ...result(), ...jobWitness(projectCwd, first.details.job, 'strategist', 'Source: a.mjs:1'), usage: { input: 1000000, output: 0 } }); await tick();
   const collected = await call({ action: 'collect', jobId: first.details.job.id });
   assert.match(collected.content[0].text, /Cost: \$2\.0000.*OVER the per-job budget/);
-  assert.deepEqual(collected.details.cost, { usd: 2, overBudget: true });
+  assert.deepEqual(collected.details.cost, { usd: 2, overBudget: true, estimated: true, rateStatus: 'unlabelled' });
   const next = await call({ action: 'start', task: 'plan', role: 'strategist' });
   runs[1].reject(Object.assign(new Error('failed'), jobWitness(projectCwd, next.details.job, 'strategist', 'partial', 'partial'))); await tick();
   assert.match((await call({ action: 'collect', jobId: next.details.job.id })).content[0].text, /Cost: unknown, remains reserved/);

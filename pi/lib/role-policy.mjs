@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { validateRate } from './pricing.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,11 +31,9 @@ export function loadRolePolicy(file) {
     if (!object(budget) || !finite(budget.perJobUsd) || budget.perJobUsd <= 0 || budget.perJobUsd > 10 ||
         !finite(budget.perSessionUsd) || budget.perSessionUsd < budget.perJobUsd || budget.perSessionUsd > 50 ||
         !object(budget.rates) || !Object.entries(budget.rates).every(([model, rate]) =>
-          policy.allowedModels.includes(model) && object(rate) &&
-          finite(rate.inputPerMTok) && rate.inputPerMTok > 0 &&
-          finite(rate.outputPerMTok) && rate.outputPerMTok > 0 &&
-          ['cacheReadPerMTok', 'cacheWritePerMTok'].every((key) =>
-            !Object.hasOwn(rate, key) || (finite(rate[key]) && rate[key] >= 0)))) {
+          policy.allowedModels.includes(model) && validateRate(rate) &&
+          (Object.hasOwn(rate, 'tiers') ? rate.tiers : [rate]).every((tier) =>
+            tier.inputPerMTok > 0 && tier.outputPerMTok > 0))) {
       throw new Error('Invalid jobBudget');
     }
   }

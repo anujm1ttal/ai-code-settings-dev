@@ -3,6 +3,7 @@ import { createJobManager } from './job-manager.mjs';
 import { createJobBudget } from './job-budget.mjs';
 import { validateAuditManifest, recheckAuditManifest } from './audit-evidence.mjs';
 import { runRole } from './role-runner.mjs';
+import { costLabel } from './pricing.mjs';
 
 const ACTIONS = ['start', 'status', 'collect', 'cancel'];
 const ROLES = ['explorer', 'strategist', 'auditor'];
@@ -13,7 +14,7 @@ function describeCollected(out) {
   if (out.envelope) return out.envelope;
   if (out.recoveryOffset !== undefined) return out.text;
   const cost = out.cost ? (out.cost.unknown ? '\nCost: unknown, remains reserved' :
-    `\nCost: $${out.cost.usd.toFixed(4)}${out.cost.overBudget ? ' (OVER the per-job budget)' : ''}`) : '';
+    `\nCost: $${out.cost.usd.toFixed(4)}${costLabel(out.cost)}${out.cost.overBudget ? ' (OVER the per-job budget)' : ''}`) : '';
   if (out.state !== 'succeeded') {
     return `Job ${out.id} ${out.state}: ${out.error ?? 'no details'}${out.quarantined ? ' (cleanup unconfirmed; its slot stays occupied)' : ''}\n` +
       'Usage for this job is unknown and was not added to session totals.' + cost;

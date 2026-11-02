@@ -435,3 +435,66 @@ test('zero-usage-call-alone-is-unknown-not-free', async t => {
     }
   }
 });
+
+test('tiered rates price each recorded request in its own tier, never from the task running total', async t => {
+  const cwd = fixture(t);
+  const tiered = { status: 'verified', cacheWriteRetention: '5m', tiers: [
+    { upToPromptTokens: 100, inputPerMTok: 1, outputPerMTok: 2, cacheReadPerMTok: 0, cacheWritePerMTok: 1 },
+    { inputPerMTok: 10, outputPerMTok: 20, cacheReadPerMTok: 0, cacheWritePerMTok: 10 }] };
+  const book = (await import('../pi/lib/task-usage.mjs')).createTaskUsage({ cwd, rates: { model: tiered }, clock: () => 123456789 });
+  bind(book);
+  const small = { input: 60, output: 10, cacheRead: 0, cacheWrite: 0, totalTokens: 70 };
+  recordParent(book, small, { callOrdinal: 0 });
+  recordParent(book, small, { callOrdinal: 1 }); // 120 prompt tokens in total, but each request is 60
+  recordParent(book, { input: 500, output: 10, cacheRead: 0, cacheWrite: 0, totalTokens: 510 }, { callOrdinal: 2 });
+  const total = book.status({}).totals.rateUsdLowerBound;
+  assert.ok(Math.abs(total - (2 * (60 * 1 + 10 * 2) + (500 * 10 + 10 * 20)) / 1e6) < 1e-12, String(total));
+  assert.equal(book.status({}).completeness.rateCost, 'COMPLETE');
+});
+
+test('rate identity changes when cache-write retention prices change, and legacy flat rate identity is unchanged', async t => {
+  const cwd = fixture(t);
+  const { createTaskUsage } = await import('../pi/lib/task-usage.mjs');
+  const keyFor = (rate, dir) => {
+    const book = createTaskUsage({ cwd: path.join(cwd, dir), rates: { model: rate }, clock: () => 123456789 });
+    bind(book); recordParent(book, usage);
+    return book.status({}).rows.find(r => r.rateKey)?.rateKey;
+  };
+  for (const d of ['a', 'a2', 'b', 'c']) fs.mkdirSync(path.join(cwd, d, 'Artifacts/.agent'), { recursive: true });
+  const flat = { inputPerMTok: 2, outputPerMTok: 4, cacheReadPerMTok: 1, cacheWritePerMTok: 3 };
+  const base = keyFor(flat, 'a');
+  assert.ok(base);
+  assert.equal(keyFor({ ...flat }, 'a2'), base); // same legacy prices, same identity
+  const withRetention = keyFor({ ...flat, cacheWriteRetention: '5m', cacheWriteByRetention: { '1h': 5 } }, 'b');
+  const other = keyFor({ ...flat, cacheWriteRetention: '5m', cacheWriteByRetention: { '1h': 6 } }, 'c');
+  assert.notEqual(withRetention, base); assert.notEqual(withRetention, other);
+});
+
+test('tiered rate identity depends on per-tier cache-write retention prices', async t => {
+  const cwd = fixture(t);
+  const { createTaskUsage } = await import('../pi/lib/task-usage.mjs');
+  const mk = oneHour => ({ status: 'verified', cacheWriteRetention: '5m', tiers: [
+    { upToPromptTokens: 100, inputPerMTok: 1, outputPerMTok: 2, cacheReadPerMTok: 0, cacheWritePerMTok: 1, cacheWriteByRetention: { '1h': oneHour } },
+    { inputPerMTok: 10, outputPerMTok: 20, cacheReadPerMTok: 0, cacheWritePerMTok: 10 }] });
+  const keyFor = (rate, dir) => {
+    fs.mkdirSync(path.join(cwd, dir, 'Artifacts/.agent'), { recursive: true });
+    const book = createTaskUsage({ cwd: path.join(cwd, dir), rates: { model: rate }, clock: () => 123456789 });
+    bind(book); recordParent(book, usage);
+    return book.status({}).rows.find(r => r.rateKey)?.rateKey;
+  };
+  const a = keyFor(mk(2), 'a'); const b = keyFor(mk(3), 'b'); const a2 = keyFor({ ...mk(2), source: 'other label' }, 'c');
+  assert.ok(a); assert.notEqual(a, b); assert.equal(a, a2); // labels do not change identity, prices do
+});
+
+test('legacy flat rate identity is pinned to the original four-price hash', async t => {
+  const cwd = fixture(t);
+  const { createTaskUsage } = await import('../pi/lib/task-usage.mjs');
+  const flat = { inputPerMTok: 2, outputPerMTok: 4, cacheReadPerMTok: 1, cacheWritePerMTok: 3 };
+  const book = createTaskUsage({ cwd, rates: { model: flat }, clock: () => 123456789 });
+  bind(book); recordParent(book, usage);
+  const actual = book.status({}).rows.find(r => r.rateKey)?.rateKey;
+  // The original identity: SHA-256 over JSON.stringify(['rate', JSON.stringify([input, output, cacheRead, cacheWrite])]).
+  const expected = createHash('sha256').update(Buffer.from(JSON.stringify(['rate', JSON.stringify([2, 4, 1, 3])]))).digest('hex');
+  assert.equal(actual, expected);
+});
+

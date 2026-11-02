@@ -325,3 +325,24 @@ test('unlisted model or role rejects before a child can start', () => {
     ...policy.roles.coder, model: 'unlisted/foreign-model',
   } } }, 'coder', '/tmp/role.md', 'x'), /not in the explicit model allowlist/);
 });
+
+test('jobBudget accepts tiered and labelled rates and still rejects malformed ones', () => {
+  const original = loadRolePolicy(policyFile);
+  const model = original.allowedModels[0];
+  const tiered = { status: 'verified', source: 'test', cacheWriteRetention: '5m', tiers: [
+    { upToPromptTokens: 100000, inputPerMTok: 0.1, outputPerMTok: 0.5, cacheReadPerMTok: 0.01, cacheWritePerMTok: 0.125 },
+    { inputPerMTok: 0.5, outputPerMTok: 2.5, cacheReadPerMTok: 0.05, cacheWritePerMTok: 0.625 }] };
+  const labelled = { status: 'provisional', inputPerMTok: 1, outputPerMTok: 5 };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-tier-policy-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    const load = (rate) => { writeFileSync(file, JSON.stringify({ ...original, jobBudget: { perJobUsd: 1, perSessionUsd: 3, rates: { [model]: rate } } })); return loadRolePolicy(file); };
+    assert.deepEqual(load(tiered).jobBudget.rates[model], tiered);
+    assert.deepEqual(load(labelled).jobBudget.rates[model], labelled);
+    for (const bad of [{ ...tiered, status: 'guess' }, { tiers: [] }, { ...tiered, cacheWriteRetention: '7d' },
+      { tiers: [{ inputPerMTok: 0, outputPerMTok: 1 }] }, { inputPerMTok: 1 }]) {
+      assert.throws(() => load(bad), /Invalid jobBudget/, JSON.stringify(bad));
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+

@@ -461,7 +461,7 @@ test('gate excludes expensive jobs, explorer shares only two active slots, then 
   assert.equal(calls.length, 2);
   calls[0].resolve({ ...okResult(), usage: { input: 100000, output: 0 } }); await tick();
   assert.equal(gate.active(), undefined);
-  assert.deepEqual(manager.collect(first.id).cost, { usd: 0.2, overBudget: false });
+  assert.deepEqual(manager.collect(first.id).cost, { usd: 0.2, overBudget: false, estimated: true, rateStatus: 'unlabelled' });
   assert.equal(manager.budgetSnapshot().spentUsd, 0.2);
   manager.start('audit', { role: 'auditor' });
   assert.equal(calls.length, 3);
@@ -798,3 +798,20 @@ test('the runner cleanup-unconfirmed message is the one the manager quarantines 
   await tick();
   assert.equal(manager.status().filter((j) => j.quarantined).length, 1, 'a reworded message does not quarantine');
 });
+
+test('settlement receives the per-request usageCalls so each call is priced in its own tier', async () => {
+  const { createJobBudget } = await import('../pi/lib/job-budget.mjs');
+  const { createExpensiveGate } = await import('../pi/lib/expensive-gate.mjs');
+  const tiered = { status: 'verified', cacheWriteRetention: '5m', tiers: [
+    { upToPromptTokens: 100000, inputPerMTok: 1, outputPerMTok: 2 }, { inputPerMTok: 10, outputPerMTok: 20 }] };
+  const budget = createJobBudget({ perJobUsd: 5, perSessionUsd: 10, rates: { model: tiered }, modelOf: () => 'model' });
+  const { manager, calls } = harness({ gate: createExpensiveGate(), budget });
+  const known = (input) => ({ stopReason: 'stop', completeness: 'known', usage: { input, output: 0, cacheRead: 0, cacheWrite: 0 } });
+  const job = manager.start('plan', { role: 'strategist' });
+  calls[0].resolve({ ...okResult(), usage: { input: 120000, output: 0, cacheRead: 0, cacheWrite: 0 },
+    usageCalls: [known(60000), known(60000)] }); await tick();
+  const cost = manager.collect(job.id).cost;
+  assert.equal(cost.usd, 0.12); // two 60k requests in the cheap tier; cumulative 120k would have cost 1.2
+  assert.equal(cost.estimated, false); assert.equal(cost.rateStatus, 'verified');
+});
+

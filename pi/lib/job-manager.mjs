@@ -3,6 +3,7 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import fs from 'node:fs';
 import path from 'node:path';
 import { prepareResultDir, checkedDir, verifyPersisted, buildEnvelope, buildIncompleteEnvelope } from './result-contract.mjs';
+import { costLabel } from './pricing.mjs';
 
 const jobAccounting = new AsyncLocalStorage();
 export const withJobAccounting = (ledger, fn, toolCallId) => jobAccounting.run({ ledger, toolCallId }, fn);
@@ -104,7 +105,7 @@ export function createJobManager({ run, gate, budget, ledger, onTerminal, expens
       }
     }
     try {
-      if (job.reservation) job.cost = budget.settle(job.reservation, outcome === 'ok' ? value?.usage ?? null : null);
+      if (job.reservation) job.cost = budget.settle(job.reservation, outcome === 'ok' ? value?.usage ?? null : null, outcome === 'ok' ? value?.usageCalls : undefined);
     } catch (error) { job.recovery = true; job.recoveryReason = `Budget settlement failed: ${error.message}`; }
     if (job.resultStore) {
       try { publishSettlement(job, outcome); }
@@ -199,7 +200,7 @@ export function createJobManager({ run, gate, budget, ledger, onTerminal, expens
     const verified = verifyReceipt(job);
     const reasons = [];
     if (job.reservation) reasons.push(job.cost && !job.cost.unknown ?
-      `Cost: $${job.cost.usd.toFixed(4)}${job.cost.overBudget ? ' (OVER the per-job budget)' : ''}` : 'Cost: unknown, remains reserved');
+      `Cost: $${job.cost.usd.toFixed(4)}${costLabel(job.cost)}${job.cost.overBudget ? ' (OVER the per-job budget)' : ''}` : 'Cost: unknown, remains reserved');
     if (!job.resultStore) reasons.push('Project result store unavailable.');
     if (!verified) reasons.push('Result receipt missing, invalid, or changed.');
     if (job.recovery) reasons.push(job.recoveryReason ?? 'Result persistence failed; retained partial work requires recovery.');

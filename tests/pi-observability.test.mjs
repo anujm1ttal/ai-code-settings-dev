@@ -147,6 +147,8 @@ test('disable-retains-results-and-preview-stages-helper', async (t) => {
   assert.deepEqual(fs.readFileSync(checkpoint.path), checkpointBefore);
   assert.deepEqual(fs.readFileSync(resultFile), resultBefore);
   assert.ok(fs.existsSync(path.join(staged.destination, 'pi/lib/task-usage.mjs')), 'preview must stage accounting helper');
+  assert.deepEqual(fs.readFileSync(path.join(staged.destination, 'pi/lib/pricing.mjs')),
+    fs.readFileSync(path.join(root, 'pi/lib/pricing.mjs')), 'preview must stage the pricing module that role-policy and job-budget import');
   assert.deepEqual(fs.readFileSync(path.join(staged.destination, 'pi/lib/task-usage.mjs')),
     fs.readFileSync(path.join(root, 'pi/lib/task-usage.mjs')));
   rollbackPreview(staged);
