@@ -72,7 +72,8 @@ export function buildAgentArgs(policy, roleName, promptPath, task, { profile } =
     throw new Error(`${roleName[0].toUpperCase()}${roleName.slice(1)} tools may not include shell or write-capable tools`);
   }
   if (profile !== undefined && (!['council-read-only', 'packet-only-review'].includes(profile) ||
-      !['strategist', 'coder', 'auditor'].includes(roleName))) {
+      (!['strategist', 'coder', 'auditor'].includes(roleName) &&
+       !(profile === 'packet-only-review' && roleName === 'explorer')))) {
     throw new Error('Invalid council read-only profile or viewpoint');
   }
   if (!task || typeof task !== 'string') throw new Error('A nonempty task is required');

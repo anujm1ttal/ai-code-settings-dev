@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EventEmitter } from 'node:events';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { PassThrough } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { buildAgentArgs, loadRolePolicy } from '../pi/lib/role-policy.mjs';
@@ -23,9 +26,24 @@ for (const role of ['strategist', 'coder', 'auditor']) {
   });
 }
 test('packet-only rejects non-review roles, unknown profiles and disallowed models', () => {
-  for (const role of ['explorer', 'scribe']) assert.throws(() => buildAgentArgs(expanded, role, prompt, 'Review', { profile: 'packet-only-review' }));
+  assert.throws(() => buildAgentArgs(expanded, 'scribe', prompt, 'Review', { profile: 'packet-only-review' }));
   assert.throws(() => buildAgentArgs(policy, 'coder', prompt, 'Review', { profile: 'unknown' }));
   assert.throws(() => buildAgentArgs({ ...policy, allowedModels: [] }, 'coder', prompt, 'Review', { profile: 'packet-only-review' }), /allowlist/);
+});
+test('explorer packet-only remains tool-free without weakening explorer validation', t => {
+  const argv = buildAgentArgs(expanded, 'explorer', prompt, 'Review', { profile: 'packet-only-review' });
+  assert.deepEqual(argv, [
+    '--mode', 'json', '--print', '--no-session', '--no-extensions', '--no-tools', '--no-context-files',
+    '--no-skills', '--no-prompt-templates', '--no-mcp', '--model', expanded.roles.explorer.model,
+    '--thinking', expanded.roles.explorer.thinking, '--exclude-tools', 'mcp__*', '--system-prompt', prompt, 'Task: Review',
+  ]);
+  assert.ok(!argv.includes('--tools'));
+  const empty = { ...expanded, roles: { ...expanded.roles, explorer: { ...expanded.roles.explorer, tools: [] } } };
+  assert.throws(() => buildAgentArgs(empty, 'explorer', prompt, 'Review', { profile: 'packet-only-review' }), /tools/i);
+  const dir = mkdtempSync(path.join(tmpdir(), 'pi-policy-')); t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const file = path.join(dir, 'policy.json'); writeFileSync(file, JSON.stringify(empty));
+  assert.throws(() => loadRolePolicy(file), /Invalid role configuration for explorer/);
+  assert.throws(() => buildAgentArgs(expanded, 'explorer', prompt, 'Review', { profile: 'council-read-only' }), /profile/i);
 });
 test('existing council and normal coder argv stay unchanged', () => {
   const common = ['--mode', 'json', '--print', '--no-session', '--no-extensions'];
