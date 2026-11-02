@@ -71,11 +71,17 @@ export function buildAgentArgs(policy, roleName, promptPath, task, { profile } =
   if (READ_ONLY_ROLES.has(roleName) && role.tools.some((tool) => WRITE_OR_SHELL.has(tool))) {
     throw new Error(`${roleName[0].toUpperCase()}${roleName.slice(1)} tools may not include shell or write-capable tools`);
   }
-  if (profile !== undefined && (profile !== 'council-read-only' ||
+  if (profile !== undefined && (!['council-read-only', 'packet-only-review'].includes(profile) ||
       !['strategist', 'coder', 'auditor'].includes(roleName))) {
     throw new Error('Invalid council read-only profile or viewpoint');
   }
   if (!task || typeof task !== 'string') throw new Error('A nonempty task is required');
+  if (profile === 'packet-only-review') return [
+    '--mode', 'json', '--print', '--no-session', '--no-extensions', '--no-tools',
+    '--no-context-files', '--no-skills', '--no-prompt-templates', '--no-mcp',
+    '--model', role.model, '--thinking', role.thinking, '--exclude-tools', 'mcp__*',
+    '--append-system-prompt', promptPath, `Task: ${task}`,
+  ];
   const tools = profile === 'council-read-only' || roleName === 'explorer' ? EXPLORER_TOOLS : role.tools;
   return [
     '--mode', 'json', '--print', '--no-session', '--no-extensions',

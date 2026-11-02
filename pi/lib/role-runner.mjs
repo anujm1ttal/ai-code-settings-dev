@@ -15,6 +15,9 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     invocation = { command: process.execPath, args: [fileURLToPath(new URL('./child-runtime.mjs', import.meta.url))] }, signal,
     timeoutMs = 10 * 60 * 1000, killGraceMs = 2000, ledger, dispatchKey,
     accountingCursor = { next: 0 } } = options;
+  if (profile === 'packet-only-review' && requiredReadPath !== undefined) {
+    throw new Error('requiredReadPath cannot be used with packet-only review');
+  }
   if (Boolean(ledger) !== Boolean(dispatchKey)) throw new Error('Accounting ledger and dispatch key must be supplied together');
   const args = buildAgentArgs(policy, roleName, promptPath, task, { profile });
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 ||
@@ -40,6 +43,7 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   const receivedText = () => [...receivedParts, ...pendingParts.values()].join('\n');
   const identity = options.resultStore && { dispatchId: String(options.resultStore.dispatchId ?? ''), role: roleName };
   let observedViolation;
+  let packetToolObserved = false;
   let evidenceRead = false;
   const evidenceReadCalls = new Set();
   const toolCounts = new Map();
@@ -65,6 +69,10 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     if (event.type === 'pi_child_runtime') {
       runtimeVerified = event.retryEnabled === false && event.retryMaxRetries === 0 &&
         event.providerMaxRetries === 0 && event.compactionEnabled === false;
+    }
+    if (profile === 'packet-only-review' && event.type === 'tool_execution_start') {
+      packetToolObserved = true;
+      observedViolation = 'Packet-only review profile observed a tool call';
     }
     if (event.type === 'tool_execution_start' && typeof event.toolName === 'string') {
       toolCounts.set(event.toolName, (toolCounts.get(event.toolName) ?? 0) + 1);
@@ -234,6 +242,7 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     if (streamError) throw streamError;
     if (signal?.aborted) throw new Error('Agent dispatch aborted');
     if (exitCode !== 0) throw new Error(`Pi subagent exited with code ${exitCode}: ${stderr}`);
+    if (packetToolObserved) throw new Error('Packet-only review profile observed a tool call');
     if (observedViolation) throw new Error(observedViolation);
     if (requiredReadPath && !evidenceRead) throw new Error('Council evidence file was not read');
     if (!lastAssistant) throw new Error('Pi subagent produced no successful final assistant response');
