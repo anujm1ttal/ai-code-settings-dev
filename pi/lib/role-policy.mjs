@@ -80,7 +80,7 @@ export function buildAgentArgs(policy, roleName, promptPath, task, { profile } =
     '--mode', 'json', '--print', '--no-session', '--no-extensions', '--no-tools',
     '--no-context-files', '--no-skills', '--no-prompt-templates', '--no-mcp',
     '--model', role.model, '--thinking', role.thinking, '--exclude-tools', 'mcp__*',
-    '--append-system-prompt', promptPath, `Task: ${task}`,
+    '--system-prompt', promptPath, `Task: ${task}`, // replaces Pi's default prompt (tool, rules and docs sections); only a cwd line is added by Pi
   ];
   const tools = profile === 'council-read-only' || roleName === 'explorer' ? EXPLORER_TOOLS : role.tools;
   return [

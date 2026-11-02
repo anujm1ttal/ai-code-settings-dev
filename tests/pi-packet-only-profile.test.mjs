@@ -18,7 +18,7 @@ for (const role of ['strategist', 'coder', 'auditor']) {
     assert.deepEqual(buildAgentArgs(policy, role, prompt, 'Review', { profile: 'packet-only-review' }), [
       '--mode', 'json', '--print', '--no-session', '--no-extensions', '--no-tools', '--no-context-files',
       '--no-skills', '--no-prompt-templates', '--no-mcp', '--model', policy.roles[role].model,
-      '--thinking', policy.roles[role].thinking, '--exclude-tools', 'mcp__*', '--append-system-prompt', prompt, 'Task: Review',
+      '--thinking', policy.roles[role].thinking, '--exclude-tools', 'mcp__*', '--system-prompt', prompt, 'Task: Review',
     ]);
   });
 }
@@ -68,3 +68,11 @@ test('packet-only runner refuses a required read before spawning', async () => {
   await assert.rejects(runRole(policy, 'auditor', 'Review', '.', prompt, { ...opts(fake), requiredReadPath: '/evidence' }), /requiredReadPath/);
   assert.equal(fake.count, 0);
 });
+test('packet-only profile REPLACES the default system prompt (--system-prompt) and never appends to it', () => {
+  for (const role of ['strategist', 'coder', 'auditor']) {
+    const argv = buildAgentArgs(policy, role, prompt, 'Review', { profile: 'packet-only-review' });
+    assert.ok(argv.includes('--system-prompt')); assert.ok(!argv.includes('--append-system-prompt'));
+    assert.equal(argv[argv.indexOf('--system-prompt') + 1], prompt);
+  }
+});
+
