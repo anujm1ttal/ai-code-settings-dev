@@ -58,7 +58,7 @@ export function loadRolePolicy(file) {
   return policy;
 }
 
-export function buildAgentArgs(policy, roleName, promptPath, task, { profile } = {}) {
+export function buildAgentArgs(policy, roleName, promptPath, task, { profile, promptFile } = {}) {
   if (roleName === 'concierge') throw new Error('Migrate concierge to explorer');
   const role = policy.roles[roleName];
   if (!role) throw new Error(`Unknown role: ${roleName}`);
@@ -77,11 +77,14 @@ export function buildAgentArgs(policy, roleName, promptPath, task, { profile } =
     throw new Error('Invalid council read-only profile or viewpoint');
   }
   if (!task || typeof task !== 'string') throw new Error('A nonempty task is required');
+  if (promptFile !== undefined && (profile !== 'packet-only-review' || roleName !== 'explorer' || typeof promptFile !== 'string' || !path.isAbsolute(promptFile))) {
+    throw new Error('Prompt file requires an absolute path and packet-only explorer');
+  }
   if (profile === 'packet-only-review') return [
     '--mode', 'json', '--print', '--no-session', '--no-extensions', '--no-tools',
     '--no-context-files', '--no-skills', '--no-prompt-templates', '--no-mcp',
     '--model', role.model, '--thinking', role.thinking, '--exclude-tools', 'mcp__*',
-    '--system-prompt', promptPath, `Task: ${task}`, // replaces Pi's default prompt (tool, rules and docs sections); only a cwd line is added by Pi
+    '--system-prompt', promptPath, ...(promptFile === undefined ? [] : [`@${promptFile}`]), `Task: ${task}`, // replaces Pi's default prompt (tool, rules and docs sections); only a cwd line is added by Pi
   ];
   const tools = profile === 'council-read-only' || roleName === 'explorer' ? EXPLORER_TOOLS : role.tools;
   return [

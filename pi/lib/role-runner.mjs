@@ -11,7 +11,7 @@ const READ_ONLY_ROLES = new Set(['strategist', 'auditor', 'scribe', 'explorer'])
 const READ_ONLY_TOOLS = new Set(['read', 'grep', 'find', 'ls']);
 
 export async function runRole(policy, roleName, task, cwd, promptPath, options = {}) {
-  const { profile, requiredReadPath, spawnImpl = spawn, killerImpl = spawn,
+  const { profile, promptFile, requiredReadPath, spawnImpl = spawn, killerImpl = spawn,
     invocation = { command: process.execPath, args: [fileURLToPath(new URL('./child-runtime.mjs', import.meta.url))] }, signal,
     timeoutMs = 10 * 60 * 1000, killGraceMs = 2000, ledger, dispatchKey,
     accountingCursor = { next: 0 } } = options;
@@ -19,7 +19,7 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     throw new Error('requiredReadPath cannot be used with packet-only review');
   }
   if (Boolean(ledger) !== Boolean(dispatchKey)) throw new Error('Accounting ledger and dispatch key must be supplied together');
-  const args = buildAgentArgs(policy, roleName, promptPath, task, { profile });
+  const args = buildAgentArgs(policy, roleName, promptPath, task, { profile, promptFile });
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 ||
       !Number.isSafeInteger(killGraceMs) || killGraceMs <= 0) {
     throw new Error('Pi subagent timeout and kill grace must be positive milliseconds');
