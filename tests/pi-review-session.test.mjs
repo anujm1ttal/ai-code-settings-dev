@@ -1,13 +1,21 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import path from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
+import { runRole } from '../pi/lib/role-runner.mjs';
 import { createHash } from 'node:crypto';
 import { loadRolePolicy } from '../pi/lib/role-policy.mjs';
 import { buildReviewRequest, validateReviewRequest, STAGES } from '../pi/lib/review-packet.mjs';
 import { runReviewSession, STAGE_INSTRUCTIONS, ANTAGONISTIC_VIEWPOINTS } from '../pi/lib/review-session.mjs';
 
 const policy = loadRolePolicy(new URL('./fixtures/pi-role-policy.json', import.meta.url));
-const promptPath = path.resolve('review-prompt.md');
+const promptDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-review-session-'));
+const promptPath = path.join(promptDir, 'review-prompt.md');
+fs.writeFileSync(promptPath, 'You are a reviewer. Use only the text given in the task.' + String.fromCharCode(10));
+const promptSha = createHash('sha256').update(fs.readFileSync(promptPath)).digest('hex');
 const hash = text => createHash('sha256').update(text).digest('hex');
 const packet = 'Design packet: src/a.mjs, function go(x), verify: node --test.';
 const constraints = 'Do not modify anything.';
@@ -117,7 +125,8 @@ test('omission metadata retains full text and copies persisted fields', async ()
   assert.equal(first.omission.clipped, false); assert.equal(first.omission.fullBytes, Buffer.byteLength('one\ntwo'));
   assert.equal(first.omission.envelopeBytes, Buffer.byteLength('Status: COMPLETE\nSummary: one two'));
   assert.equal(first.persistedRef, '/result'); assert.equal(first.persistedSha256, 'abc');
-  assert.equal(second.omission.clipped, true); assert.equal(second.text, long); assert.equal(last.omission.clipped, false);
+  assert.equal(second.omission.clipped, true); assert.equal(second.text, long); assert.equal(last.omission.clipped, null, 'no envelope means unverified, never false');
+  assert.equal(result.omissionVerified, false);
 });
 test('input validation rejects duplicate or unknown viewpoints and incomplete policy or relative prompt', async () => {
   for (const viewpoints of [[], ['coder', 'coder'], ['explorer']]) {
@@ -136,5 +145,65 @@ test('omission fullBytes counts UTF-8 bytes, not UTF-16 code units (multi-byte t
   const fake = harness({ result: ({ stage }) => stage === 'comprehension' ? { text } : {} });
   const result = await run(input(), fake);
   assert.equal(result.calls[0].omission.fullBytes, Buffer.byteLength(text));
+});
+
+// ---- audit job-550f702d corrections ----
+test('omission is unverified (null), not false, when no result store or envelope exists; the session reports omissionVerified', async () => {
+  const result = await run(input(), harness());
+  assert.ok(result.calls.every(c => c.omission.clipped === null)); assert.equal(result.omissionVerified, false);
+});
+function fakeSpawn(text, role = 'auditor') {
+  let count = 0;
+  return { get count() { return count; }, spawnImpl() {
+    count++;
+    const child = new EventEmitter(); child.stdout = new PassThrough(); child.stderr = new PassThrough(); child.kill = () => {};
+    const [provider, model] = policy.roles[role].model.split('/');
+    const events = [{ type: 'pi_child_runtime', retryEnabled: false, retryMaxRetries: 0, providerMaxRetries: 0, compactionEnabled: false },
+      { type: 'message_end', message: { role: 'assistant', provider, model, thinkingLevel: policy.roles[role].thinking, stopReason: 'stop',
+        content: [{ type: 'text', text }], usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } } }];
+    queueMicrotask(() => { for (const e of events) child.stdout.write(`${JSON.stringify(e)}\n`); child.stdout.end(); child.stderr.end(); child.emit('close', 0); });
+    return child;
+  } };
+}
+test('integration: real runRole + fake spawn + result store + real buildEnvelope: a long finding is really clipped, flagged, and the full text is retained and persisted', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-review-omission-'));
+  try {
+    const long = `Readiness: NO-GO\n${'BLOCKING finding detail that the envelope must clip. '.repeat(120)}\nfinal tail marker TAIL-4471`;
+    const realRun = (p, role, task, cwd, prompt, options) => runRole(p, role, task, cwd, prompt, { ...options, spawnImpl: fakeSpawn(long, role).spawnImpl, invocation: { command: 'pi', args: [] } });
+    const result = await runReviewSession(policy, { ...input(), viewpoints: ['coder'] }, '.', { systemPromptPath: promptPath, runRoleImpl: realRun, resultStoreFor: id => ({ dir, dispatchId: id }) });
+    assert.equal(result.calls.length, 3);
+    for (const c of result.calls) { assert.equal(c.omission.clipped, true); assert.ok(c.omission.fullBytes > 2048); assert.ok(c.omission.envelopeBytes <= 2048); assert.ok(c.text.includes('TAIL-4471')); assert.ok(fs.readFileSync(c.persistedRef, 'utf8').includes('TAIL-4471')); }
+    assert.equal(result.omissionVerified, true);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+test('integration control: a short answer through the real runner is not clipped', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-review-omission2-'));
+  try {
+    const realRun = (p, role, task, cwd, prompt, options) => runRole(p, role, task, cwd, prompt, { ...options, spawnImpl: fakeSpawn('Readiness: GO' + String.fromCharCode(10) + 'short', role).spawnImpl, invocation: { command: 'pi', args: [] } });
+    const result = await runReviewSession(policy, { ...input(), viewpoints: ['coder'] }, '.', { systemPromptPath: promptPath, runRoleImpl: realRun, resultStoreFor: id => ({ dir, dispatchId: id }) });
+    assert.ok(result.calls.every(c => c.omission.clipped === false)); assert.equal(result.omissionVerified, true);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+test('argv size: a prompt above 24 KiB is refused before any child runs; 20 KiB is accepted', async () => {
+  const big = { packet: 'p'.repeat(25 * 1024), constraints, instructions: STAGE_INSTRUCTIONS };
+  const bigApproved = { ...approved(), packetSha256: hash(big.packet) };
+  const fake = harness();
+  await assert.rejects(run({ packet: big.packet, constraints, approved: bigApproved }, fake), /too large/i); assert.equal(fake.calls.length, 0);
+  const ok = 'p'.repeat(20 * 1024); const fake2 = harness();
+  await run({ packet: ok, constraints, approved: { ...approved(), packetSha256: hash(ok) } }, fake2); assert.equal(fake2.calls.length, 5);
+});
+test('each call record carries the system prompt hash; an unreadable system prompt file fails before any child', async () => {
+  const result = await run(input(), harness()); assert.ok(result.calls.every(c => c.systemPromptSha256 === promptSha));
+  const fake = harness(); await assert.rejects(runReviewSession(policy, input(), '.', { systemPromptPath: path.join(promptDir, 'missing.md'), runRoleImpl: fake.runRoleImpl }), /system prompt/i); assert.equal(fake.calls.length, 0);
+});
+test('call ids are unique per session (a session id prefix) so persisted result files cannot collide, and ledger options are passed through together', async () => {
+  const idsA = [], idsB = [], seen = [];
+  await run(input(), harness(), { resultStoreFor: id => { idsA.push(id); return { id }; } });
+  await run(input(), harness(), { resultStoreFor: id => { idsB.push(id); return { id }; } });
+  assert.equal(new Set([...idsA, ...idsB]).size, 10); assert.ok(idsA.every(id => /^[A-Za-z0-9-]+$/.test(id)));
+  const ledger = { isEnabled: () => true, record() {} }; const fake = harness();
+  await run(input(), fake, { ledger, dispatchKeyFor: id => `key-${id}` });
+  assert.ok(fake.calls.every(c => c.options.ledger === ledger && /^key-/.test(c.options.dispatchKey)));
+  await assert.rejects(run(input(), harness(), { ledger }), /ledger/i);
 });
 
