@@ -494,6 +494,7 @@ test('S-E guard loads its license config from the installed layout without a hoo
     fs.mkdirSync(path.join(base, 'pi/lib'), { recursive: true });
     fs.copyFileSync(guardFile, path.join(base, 'pi/extensions/guard.ts'));
     fs.copyFileSync(path.join(root, 'pi/lib/concierge-guard.mjs'), path.join(base, 'pi/lib/concierge-guard.mjs'));
+    for (const dep of ['role-policy', 'pricing', 'read-intercept', 'bulk-admission']) fs.copyFileSync(path.join(root, `pi/lib/${dep}.mjs`), path.join(base, `pi/lib/${dep}.mjs`));
     const config = path.join(root, 'hooks/license-gate.json');
     if (withInstalled) fs.copyFileSync(config, path.join(base, 'pi/license-gate.json'));
     if (withLegacy) { fs.mkdirSync(path.join(base, 'hooks')); fs.copyFileSync(config, path.join(base, 'hooks/license-gate.json')); }
