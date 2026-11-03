@@ -820,6 +820,41 @@ function verdictFixture(t, verdict) {
 }
 const VID = { task: 'T4', todo: 'Artifacts/Plans/X-TODO.md', taskSha256: 'd'.repeat(64) };
 
+test('detached profiles are fixed by the admitted role, not caller-supplied fields', async (t) => {
+  const f = verdictFixture(t, VID);
+  const { call, runs, policy, tools } = setup({ strategist: true, auditor: true,
+    promptPaths: { strategist: '/plan', auditor: '/audit' } });
+  policy.roles.strategist = { ...policy.roles.strategist, tools: ['read', 'edit', 'write'] };
+  assert.equal(Object.hasOwn(tools.get('pi_explorer_job').parameters.args[0], 'profile'), false);
+  const profiles = [];
+  for (const role of ['explorer', 'strategist', 'auditor']) {
+    const { details: { job } } = await call({ action: 'start', task: 'review', role,
+      profile: 'writer', options: { profile: undefined, role: 'explorer' },
+      context: { profile: undefined, role: 'explorer' },
+      ...(role === 'auditor' ? { evidencePath: f.manifest, evidenceSha256: f.sha } : {}) }, { cwd: f.root });
+    const run = runs.at(-1);
+    assert.equal(run.role, role);
+    profiles.push({ role, hasProfile: Object.hasOwn(run.options, 'profile'), profile: run.options.profile });
+    if (role === 'auditor') {
+      assert.equal(run.options.requiredReadPath, f.manifest);
+      assert.deepEqual(run.options.expectedVerdict, VID);
+      assert.ok(run.task.includes(f.manifest));
+      assert.ok(run.task.includes('VERDICT: <PASS|FAIL|INCOMPLETE>'));
+    }
+    runs.at(-1).resolve({ ...result(), ...jobWitness(f.root, job, role, 'Source: a.mjs:1') });
+    await tick();
+  }
+  for (const role of ['toString', '__proto__', { toString: () => 'strategist' }]) {
+    await assert.rejects(call({ action: 'start', task: 'review', role, profile: 'writer' }, { cwd: f.root }), /role/i);
+  }
+  assert.equal(runs.length, 3);
+  assert.deepEqual(profiles, [
+    { role: 'explorer', hasProfile: false, profile: undefined },
+    { role: 'strategist', hasProfile: true, profile: 'read-only' },
+    { role: 'auditor', hasProfile: true, profile: 'read-only' },
+  ]);
+});
+
 test('an auditor manifest with a verdict identity puts the exact required line and expectedVerdict into the run', async (t) => {
   const f = verdictFixture(t, VID);
   const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
