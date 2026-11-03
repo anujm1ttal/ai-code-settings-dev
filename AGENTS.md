@@ -87,6 +87,8 @@ repo source  ──platform-specific approved release──▶  user config  ─
   must be gitignored and obtained by users from its source, never redistributed here. Precedent:
   `optional_plugins/ms-office/` was 184 Anthropic-licensed files published for ~3 days before
   anyone read the license, which explicitly barred copying, derivative works, and distribution.
+- **Pi branches.** `pi-setup` is the Pi integration branch: every Pi phase branches from it and
+  merges back to it (`--no-ff`). `main` receives Pi work only by an explicit, approved release.
 - **Cross-project learnings** stage in `Artifacts/GLOBAL_INBOX.md`; `/graduate` promotes them.
 
 ## Pointers
