@@ -41,7 +41,7 @@ test('real provider bindings are not stored in the public Pi source tree', () =>
 test('loads a read-only strategist and a coder with shell and write tools', () => {
   const original = loadRolePolicy(policyFile);
   const tools = ['read', 'grep', 'find', 'ls'];
-  const coderTools = [...tools, 'bash', 'powershell', 'edit', 'write'];
+  const coderTools = [...tools, 'bash', 'edit', 'write'];
   const configured = { ...original, roles: { ...original.roles,
     strategist: { ...original.roles.strategist, tools },
     coder: { ...original.roles.coder, tools: coderTools } } };
@@ -78,7 +78,7 @@ test('loaded strategist policy rejects an MCP tool', () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-for (const tool of ['bash', 'powershell', 'edit', 'write']) {
+for (const tool of ['bash', 'powershell']) {
   test(`rejects strategist ${tool} in a loaded policy`, () => {
     const original = loadRolePolicy(policyFile);
     const unsafe = { ...original, roles: { ...original.roles,
@@ -126,9 +126,9 @@ test('scribe argv has only four read tools and no discovered or explicit extensi
   assert.equal(args.includes('--extension'), false);
 });
 
-test('scribe cannot receive shell or write tools, including after policy load', () => {
+test('scribe cannot receive shell tools, including after policy load', () => {
   const original = loadRolePolicy(policyFile);
-  for (const tool of ['bash', 'powershell', 'edit', 'write']) {
+  for (const tool of ['bash', 'powershell']) {
     const unsafe = { ...original, roles: { ...original.roles,
       scribe: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', tool] } } };
     const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-scribe-unsafe-'));
@@ -310,12 +310,51 @@ test('shell/write-capable children load only the vetted guard explicitly', () =>
     const args = buildAgentArgs(policy, name, '/tmp/role.md', 'Review');
     assert.ok(args.includes('--no-extensions'));
     const extensions = args.flatMap((arg, index) => arg === '--extension' ? [args[index + 1]] : []);
-    assert.equal(extensions.length, policy.roles[name].tools.some(t => ['bash', 'powershell', 'edit', 'write'].includes(t)) ? 1 : 0);
-    for (const extension of extensions) {
-      assert.ok(path.isAbsolute(extension));
-      assert.equal(extension, path.join(repo, 'pi', 'extensions', 'guard.ts'));
-    }
+    const writer = policy.roles[name].tools.some(t => ['edit', 'write'].includes(t));
+    const shell = policy.roles[name].tools.includes('bash');
+    assert.deepEqual(extensions, [...(writer ? [path.join(repo, 'pi', 'extensions', 'role-guard.ts')] : []),
+      ...(writer || shell ? [path.join(repo, 'pi', 'extensions', 'guard.ts')] : [])]);
   }
+});
+
+test('role maxima, duplicate and unknown tools are enforced at load and argv', () => {
+  const base = loadRolePolicy(policyFile);
+  const R = ['read', 'grep', 'find', 'ls'];
+  const roles = { ...base.roles, strategist: { ...base.roles.strategist, tools: [...R, 'edit', 'write'] },
+    coder: { ...base.roles.coder, tools: [...R, 'bash', 'edit', 'write'] },
+    scribe: { ...base.roles.strategist, tools: [...R, 'edit', 'write'] },
+    explorer: { ...base.roles.strategist, tools: R } };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-maxima-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    const load = value => { writeFileSync(file, JSON.stringify(value)); return loadRolePolicy(file); };
+    const full = { ...base, roles }; assert.deepEqual(load(full).roles, roles);
+    for (const [role, tools] of [['auditor', [...R, 'edit']], ['scribe', [...R, 'bash']],
+      ['explorer', [...R, 'write']], ['coder', [...R, 'powershell']], ['coder', [...R, 'read']],
+      ['strategist', [...R, 'unknown']]]) {
+      const bad = { ...full, roles: { ...roles, [role]: { ...roles[role], tools } } };
+      assert.throws(() => load(bad), /role|tools/i, `${role}: ${tools}`);
+      assert.throws(() => buildAgentArgs(bad, role, '/prompt', 'task'), /role|tools/i);
+    }
+    for (const role of ['strategist', 'auditor', 'scribe']) roles[role] = { ...roles[role], tools: R };
+    assert.deepEqual(load({ ...base, roles }).roles, roles);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('writer argv order and enforced read-only profiles for every eligible role', () => {
+  const base = loadRolePolicy(policyFile); const R = ['read', 'grep', 'find', 'ls'];
+  const roles = { ...base.roles, strategist: { ...base.roles.strategist, tools: [...R, 'edit', 'write'] },
+    scribe: { ...base.roles.strategist, tools: [...R, 'edit', 'write'] } };
+  for (const role of ['strategist', 'coder', 'auditor', 'scribe']) {
+    const args = buildAgentArgs({ ...base, roles }, role, '/prompt', 'task');
+    assert.equal(args[args.indexOf('--tools') + 1], roles[role].tools.join(','));
+    const extensions = args.flatMap((arg, i) => arg === '--extension' ? [path.basename(args[i + 1])] : []);
+    assert.deepEqual(extensions, role === 'auditor' ? [] : ['role-guard.ts', 'guard.ts']);
+    const read = buildAgentArgs({ ...base, roles }, role, '/prompt', 'task', { profile: 'read-only' });
+    assert.equal(read[read.indexOf('--tools') + 1], R.join(',')); assert.ok(!read.includes('--extension'));
+  }
+  const shell = { ...base, roles: { ...roles, coder: { ...roles.coder, tools: ['bash'] } } };
+  assert.deepEqual(buildAgentArgs(shell, 'coder', '/prompt', 'task').flatMap((x, i, a) => x === '--extension' ? [path.basename(a[i+1])] : []), ['guard.ts']);
 });
 
 test('unlisted model or role rejects before a child can start', () => {

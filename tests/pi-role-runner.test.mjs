@@ -9,6 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { PassThrough } from 'node:stream';
 import { stripTypeScriptTypes } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import { runInNewContext } from 'node:vm';
 import { runRole } from '../pi/lib/role-runner.mjs';
 import { createJobManager } from '../pi/lib/job-manager.mjs';
@@ -330,7 +331,7 @@ test('explorer dispatches without project state and reports bounded tool metadat
     assert.equal(args[args.indexOf('--tools') + 1], 'read,grep,find,ls');
     assert.ok(args.includes('--no-mcp'));
     assert.equal(args.includes('--extension'), false);
-    assert.equal(options.env.PI_ROLE, undefined);
+    assert.equal(options.env.PI_ROLE, 'explorer');
     assert.equal(options.env.PI_CONCIERGE_ROOT, undefined);
     assert.equal(fs.existsSync(path.join(root, 'Artifacts')), false);
   } finally {
@@ -603,8 +604,28 @@ function step3RoleTool(runRoleImpl) {
     runCouncilSession: async () => ({}), registerExplorerJobs: () => {}, createExpensiveGate: () => ({}),
     withExpensiveGate: async (_gate, _label, run) => run() };
   runInNewContext(js, sandbox)({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
-  return cwd => tools.get('pi_role_agent').execute('id', { role: 'coder', task: 'work' }, undefined, undefined, { cwd });
+  return (cwd, params = { role: 'coder', task: 'work' }) => tools.get('pi_role_agent').execute('id', params, undefined, undefined, { cwd });
 }
+
+test('dispatcher forwards only a valid non-council read-only profile', async t => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-profile-dispatch-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const seen = [];
+  const execute = step3RoleTool(async (_p, role, _task, _cwd, _prompt, options) => {
+    seen.push(options.profile);
+    const persisted = persistFullResult({ ...options.resultStore, role, completeness: 'complete', text: 'done' });
+    return { role, model: 'fixture', thinking: 'medium', text: 'done', persisted, usage: null };
+  });
+  for (const role of ['strategist', 'coder', 'auditor', 'scribe']) {
+    await execute(root, { role, task: 'x', profile: 'read-only' }); assert.equal(seen.at(-1), 'read-only');
+  }
+  const count = seen.length;
+  for (const params of [{ role: 'coder', profile: 'unknown' }, { role: 'coder', profile: null },
+    { role: 'council-perspective', profile: 'read-only' }, { role: 'explorer', profile: 'read-only' }]) {
+    await assert.rejects(execute(root, { task: 'x', ...params }), /profile/i);
+  }
+  assert.equal(seen.length, count);
+});
 
 test('step3 synchronous output exposes final summary and bounded aggregate usage', async (t) => {
   const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-step3-sync-')));
@@ -1131,6 +1152,42 @@ test('stream overflow escalates to SIGKILL and reports unconfirmed cleanup when 
   const error = await result;
   assert.deepEqual(signals, ['SIGTERM', 'SIGKILL']);
   assert.match(error?.message ?? '', /exceeded 8 MiB.*cleanup unconfirmed/);
+});
+
+test('writer observations follow effective role tools and enforced profiles', async () => {
+  const R = ['read', 'grep', 'find', 'ls'];
+  const expanded = { ...policy, roles: { ...policy.roles,
+    strategist: { ...policy.roles.strategist, tools: [...R, 'edit', 'write'] },
+    scribe: { model: 'pilot-gpt/luna', thinking: 'low', tools: [...R, 'edit', 'write'] } } };
+  for (const role of ['strategist', 'coder', 'auditor', 'scribe']) {
+    const binding = expanded.roles[role]; const [provider, model] = binding.model.split('/');
+    for (const toolName of ['edit', 'write', 'bash']) {
+      const fake = fakeSpawn([{ type: 'tool_execution_start', toolName }, assistant(provider, model, binding.thinking, 'done')]);
+      const options = { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } };
+      if (binding.tools.includes(toolName)) assert.equal((await runRole(expanded, role, 'task', '.', '/prompt', options)).text, 'done');
+      else await assert.rejects(runRole(expanded, role, 'task', '.', '/prompt', options), /attempted/);
+      const read = fakeSpawn([{ type: 'tool_execution_start', toolName }, assistant(provider, model, binding.thinking, 'done')]);
+      await assert.rejects(runRole(expanded, role, 'task', '.', '/prompt', { ...options, spawnImpl: read.spawnImpl, profile: 'read-only' }), /attempted/);
+    }
+    const fake = fakeSpawn([assistant(provider, model, binding.thinking, 'done')]);
+    await runRole(expanded, role, 'task', '.', '/prompt', { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } });
+    assert.equal(fake.calls[0].options.env.PI_ROLE, role);
+  }
+});
+
+test('each missing writer guard dependency refuses launch from the runner location', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-runner-closure-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const source = path.resolve('pi');
+  for (const [i, missing] of ['extensions/role-guard.ts', 'lib/role-guard-core.mjs', 'lib/role-ownership.mjs',
+    'lib/todo-ownership.mjs', 'lib/verdict.mjs'].entries()) {
+    const copy = path.join(root, String(i)); fs.cpSync(source, copy, { recursive: true });
+    const { runRole: isolated } = await import(pathToFileURL(path.join(copy, 'lib/role-runner.mjs')).href);
+    fs.rmSync(path.join(copy, missing));
+    let spawned = false;
+    await assert.rejects(isolated(policy, 'coder', 'work', '.', '/prompt', { spawnImpl: () => { spawned = true; } }), /guard|dependency|closure/i, missing);
+    assert.equal(spawned, false, missing);
+  }
 });
 
 test('rejects an error assistant response instead of treating it as a completed task', async () => {

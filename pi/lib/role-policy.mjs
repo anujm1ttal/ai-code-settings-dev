@@ -4,17 +4,30 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const THINKING_LEVELS = new Set(['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']);
-const TOOL_NAMES = new Set(['read', 'grep', 'find', 'ls', 'bash', 'edit', 'write', 'powershell']);
-const WRITE_OR_SHELL = new Set(['bash', 'powershell', 'edit', 'write']);
-const READ_ONLY_ROLES = new Set(['strategist', 'auditor', 'scribe', 'explorer']);
+const WRITE_OR_SHELL = new Set(['bash', 'edit', 'write']);
 const EXPLORER_TOOLS = ['read', 'grep', 'find', 'ls'];
 const EXPLORER_TOOL_SET = new Set(EXPLORER_TOOLS);
+const ROLE_MAXIMA = Object.freeze({
+  explorer: EXPLORER_TOOLS,
+  strategist: [...EXPLORER_TOOLS, 'edit', 'write'],
+  coder: [...EXPLORER_TOOLS, 'bash', 'edit', 'write'],
+  auditor: EXPLORER_TOOLS,
+  scribe: [...EXPLORER_TOOLS, 'edit', 'write'],
+});
+
+function validRoleTools(name, tools) {
+  const maximum = ROLE_MAXIMA[name];
+  return Boolean(maximum) && Array.isArray(tools) && tools.length > 0 &&
+    new Set(tools).size === tools.length && tools.every(tool => maximum.includes(tool)) &&
+    (name !== 'explorer' || hasExactExplorerTools(tools));
+}
 
 function hasExactExplorerTools(tools) {
   return Array.isArray(tools) && tools.length === EXPLORER_TOOLS.length &&
     new Set(tools).size === EXPLORER_TOOLS.length && tools.every((tool) => EXPLORER_TOOL_SET.has(tool));
 }
 const GUARD_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../extensions/guard.ts');
+const ROLE_GUARD_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../extensions/role-guard.ts');
 
 export function loadRolePolicy(file) {
   const policy = JSON.parse(readFileSync(file, 'utf8'));
@@ -48,10 +61,7 @@ export function loadRolePolicy(file) {
   }
   for (const [name, role] of Object.entries(policy.roles)) {
     if (!policy.allowedModels.includes(role.model) || !THINKING_LEVELS.has(role.thinking) ||
-        !Array.isArray(role.tools) || role.tools.length === 0 ||
-        !role.tools.every((tool) => TOOL_NAMES.has(tool)) ||
-        (READ_ONLY_ROLES.has(name) && role.tools.some((tool) => WRITE_OR_SHELL.has(tool))) ||
-        (name === 'explorer' && !hasExactExplorerTools(role.tools))) {
+        !validRoleTools(name, role.tools)) {
       throw new Error(`Invalid role configuration for ${name}`);
     }
   }
@@ -65,17 +75,14 @@ export function buildAgentArgs(policy, roleName, promptPath, task, { profile, pr
   if (!policy.allowedModels.includes(role.model)) {
     throw new Error(`Role ${roleName} model is not in the explicit model allowlist: ${role.model}`);
   }
-  if (roleName === 'explorer' && !hasExactExplorerTools(role.tools)) {
-    throw new Error('Explorer tools must be read,grep,find,ls only');
+  if (!validRoleTools(roleName, role.tools)) {
+    throw new Error(`${roleName[0].toUpperCase()}${roleName.slice(1)} tools violate role maximum`);
   }
-  if (READ_ONLY_ROLES.has(roleName) && role.tools.some((tool) => WRITE_OR_SHELL.has(tool))) {
-    throw new Error(`${roleName[0].toUpperCase()}${roleName.slice(1)} tools may not include shell or write-capable tools`);
-  }
-  if (profile !== undefined && (!['council-read-only', 'packet-only-review'].includes(profile) ||
-      (!['strategist', 'coder', 'auditor'].includes(roleName) &&
-       !(profile === 'packet-only-review' && roleName === 'explorer')))) {
-    throw new Error('Invalid council read-only profile or viewpoint');
-  }
+  if (profile !== undefined && !(
+    (profile === 'read-only' && ['strategist', 'coder', 'auditor', 'scribe'].includes(roleName)) ||
+    (profile === 'council-read-only' && ['strategist', 'coder', 'auditor'].includes(roleName)) ||
+    (profile === 'packet-only-review' && ['strategist', 'coder', 'auditor', 'explorer'].includes(roleName))
+  )) throw new Error('Invalid council or read-only profile or viewpoint');
   if (!task || typeof task !== 'string') throw new Error('A nonempty task is required');
   if (promptFile !== undefined && (profile !== 'packet-only-review' || roleName !== 'explorer' || typeof promptFile !== 'string' || !path.isAbsolute(promptFile))) {
     throw new Error('Prompt file requires an absolute path and packet-only explorer');
@@ -86,10 +93,11 @@ export function buildAgentArgs(policy, roleName, promptPath, task, { profile, pr
     '--model', role.model, '--thinking', role.thinking, '--exclude-tools', 'mcp__*',
     '--system-prompt', promptPath, ...(promptFile === undefined ? [] : [`@${promptFile}`]), `Task: ${task}`, // replaces Pi's default prompt (tool, rules and docs sections); only a cwd line is added by Pi
   ];
-  const tools = profile === 'council-read-only' || roleName === 'explorer' ? EXPLORER_TOOLS : role.tools;
+  const tools = profile === 'council-read-only' || profile === 'read-only' || roleName === 'explorer' ? EXPLORER_TOOLS : role.tools;
   return [
     '--mode', 'json', '--print', '--no-session', '--no-extensions',
     ...(roleName === 'explorer' ? ['--no-mcp'] : []),
+    ...(tools.some(tool => tool === 'edit' || tool === 'write') ? ['--extension', ROLE_GUARD_PATH] : []),
     ...(tools.some((tool) => WRITE_OR_SHELL.has(tool)) ? ['--extension', GUARD_PATH] : []),
     '--model', role.model, '--thinking', role.thinking,
     '--tools', tools.join(','), '--exclude-tools', 'mcp__*',

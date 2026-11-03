@@ -115,12 +115,17 @@ export default function (pi: ExtensionAPI) {
     parameters: Type.Object({
       role: Type.Union([Type.Literal('strategist'), Type.Literal('coder'), Type.Literal('auditor'), Type.Literal('scribe'), Type.Literal('explorer'), Type.Literal('council-perspective')]),
       task: Type.String({ minLength: 1, description: 'Specific bounded task and expected output' }),
+      profile: Type.Optional(Type.Literal('read-only')),
       perspective: Type.Optional(Type.Union([Type.Literal('strategist'), Type.Literal('coder'), Type.Literal('auditor')])),
       evidencePath: Type.Optional(Type.String({ description: 'Council only: absolute synthetic evidence under project Artifacts/Temp' })),
       evidenceSha256: Type.Optional(Type.String({ description: 'Council only: one common SHA-256 for all perspective calls' })),
     }),
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       const council = params.role === 'council-perspective';
+      if (params.profile !== undefined && (params.profile !== 'read-only' ||
+          !['strategist', 'coder', 'auditor', 'scribe'].includes(params.role))) {
+        throw new Error('Invalid role profile');
+      }
       const promptPath = path.join(sourceRoot, 'agents', council ? 'council-perspectives.md' : `${params.role}.md`);
       const identity = { dispatchId: `role-${randomUUID()}`, role: (council ? params.perspective : params.role) ?? params.role };
       let resultStore;
@@ -134,7 +139,7 @@ export default function (pi: ExtensionAPI) {
           evidencePath: params.evidencePath, evidenceSha256: params.evidenceSha256 }, ctx.cwd, promptPath,
           { signal, resultStore, ...accounting })
         : runRole(policy, params.role, params.task, ctx.cwd, promptPath,
-          { signal, resultStore, ...accounting }));
+          { signal, resultStore, profile: params.profile, ...accounting }));
       let result;
       try {
         result = ['strategist', 'auditor', 'council-perspective'].includes(params.role)

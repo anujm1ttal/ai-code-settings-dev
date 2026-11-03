@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { accessSync, constants, statSync } from 'node:fs';
 import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
 import { fileURLToPath } from 'node:url';
@@ -8,8 +9,18 @@ import { validateVerdictIdentity, checkExpectedVerdict } from './verdict.mjs';
 
 const MAX_ERROR_BYTES = 2048;
 const MAX_STREAM_BYTES = 8 * 1024 * 1024;
-const READ_ONLY_ROLES = new Set(['strategist', 'auditor', 'scribe', 'explorer']);
-const READ_ONLY_TOOLS = new Set(['read', 'grep', 'find', 'ls']);
+const GUARD_CLOSURE = ['../extensions/role-guard.ts', './role-guard-core.mjs', './role-ownership.mjs',
+  './todo-ownership.mjs', './verdict.mjs'];
+
+function verifyWriterGuardClosure() {
+  for (const relative of GUARD_CLOSURE) {
+    const file = fileURLToPath(new URL(relative, import.meta.url));
+    try {
+      accessSync(file, constants.R_OK);
+      if (!statSync(file).isFile()) throw new Error('not a file');
+    } catch { throw new Error(`Writer guard dependency unavailable: ${file}`); }
+  }
+}
 
 export async function runRole(policy, roleName, task, cwd, promptPath, options = {}) {
   const { profile, promptFile, requiredReadPath, spawnImpl = spawn, killerImpl = spawn,
@@ -27,6 +38,9 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     expectedVerdict = validateVerdictIdentity(options.expectedVerdict, 'expectedVerdict');
   }
   const args = buildAgentArgs(policy, roleName, promptPath, task, { profile, promptFile });
+  const toolsIndex = args.indexOf('--tools');
+  const effectiveTools = new Set(toolsIndex < 0 ? [] : args[toolsIndex + 1].split(','));
+  if (effectiveTools.has('edit') || effectiveTools.has('write')) verifyWriterGuardClosure();
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 ||
       !Number.isSafeInteger(killGraceMs) || killGraceMs <= 0) {
     throw new Error('Pi subagent timeout and kill grace must be positive milliseconds');
@@ -34,6 +48,7 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   if (signal?.aborted) throw new Error('Agent dispatch aborted');
   const env = { ...process.env };
   delete env.PI_ROLE;
+  env.PI_ROLE = roleName;
   delete env.PI_CONCIERGE_ROOT;
   const child = spawnImpl(invocation.command, [...invocation.args, ...args], {
     // No `signal` here: Node would kill only the direct child on abort and orphan descendants.
@@ -90,8 +105,7 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     if (event.type === 'extension_error') {
       observedViolation = `Pi guard extension error: ${event.error || 'unknown error'}`;
     }
-    if ((READ_ONLY_ROLES.has(roleName) || profile === 'council-read-only') &&
-        event.type === 'tool_execution_start' && !READ_ONLY_TOOLS.has(event.toolName)) {
+    if (profile !== 'packet-only-review' && event.type === 'tool_execution_start' && !effectiveTools.has(event.toolName)) {
       observedViolation = profile === 'council-read-only'
         ? `Council ${roleName} attempted ${event.toolName} tool`
         : `${roleName[0].toUpperCase()}${roleName.slice(1)} attempted ${event.toolName} tool`;

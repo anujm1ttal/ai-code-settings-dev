@@ -52,7 +52,8 @@ test('existing council and normal coder argv stay unchanged', () => {
   assert.deepEqual(buildAgentArgs(policy, 'coder', prompt, 'Review', { profile: 'council-read-only' }),
     [...common, ...tail, '--tools', 'read,grep,find,ls', ...end]);
   assert.deepEqual(buildAgentArgs(policy, 'coder', prompt, 'Review'),
-    [...common, '--extension', guard, ...tail, '--tools', policy.roles.coder.tools.join(','), ...end]);
+    [...common, '--extension', fileURLToPath(new URL('../pi/extensions/role-guard.ts', import.meta.url)),
+      '--extension', guard, ...tail, '--tools', policy.roles.coder.tools.join(','), ...end]);
 });
 function fakeSpawn(events) {
   let count = 0;
