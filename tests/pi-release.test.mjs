@@ -70,6 +70,45 @@ test('preview stages the scoped runtime at the default dispatch path', async () 
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
+test('preview stages the complete role guard closure byte-for-byte', async () => {
+  const root = sandbox();
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    const closure = ['pi/extensions/role-guard.ts', 'pi/lib/role-guard-core.mjs',
+      'pi/lib/role-ownership.mjs', 'pi/lib/todo-ownership.mjs', 'pi/lib/verdict.mjs'];
+    for (const relative of closure) {
+      const target = path.join(staged.destination, relative);
+      assert.ok(fs.existsSync(target), `${relative} must be staged`);
+      assert.deepEqual(fs.readFileSync(target), fs.readFileSync(path.join(sourceRoot, relative)), relative);
+    }
+    // Follow literal static and dynamic relative imports from the staged guard transitively.
+    const visited = new Set(), pending = [closure[0]];
+    while (pending.length) {
+      const relative = pending.pop();
+      if (visited.has(relative)) continue;
+      visited.add(relative);
+      const text = fs.readFileSync(path.join(staged.destination, relative), 'utf8');
+      const imports = [...text.matchAll(/\b(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]|\bimport\s*\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g)]
+        .map(match => match[1] ?? match[2]);
+      if (relative === closure[0] || relative === closure[1]) {
+        assert.ok(imports.length, `${relative} must have a relative import to check`);
+      }
+      for (const specifier of imports) {
+        const target = path.resolve(staged.destination, path.dirname(relative), specifier);
+        const next = path.relative(staged.destination, target);
+        assert.ok(next && next !== '..' && !next.startsWith(`..${path.sep}`) && !path.isAbsolute(next),
+          `${relative} import ${specifier} must stay inside the staged tree`);
+        assert.ok(fs.existsSync(target), `${relative} import ${specifier} must resolve in the staged tree`);
+        assert.deepEqual(fs.readFileSync(target), fs.readFileSync(path.join(sourceRoot, next)), next);
+        pending.push(next.split(path.sep).join('/'));
+      }
+    }
+    assert.ok(closure.every(relative => visited.has(relative)), 'all known guard dependencies were traversed');
+    rollbackPreview(staged);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
 test('isolated preview stages the concierge guard dependency used by the selected guard extension', async () => {
   const root = sandbox();
   try {
@@ -329,6 +368,8 @@ test('isolated Pi preview backs up prior agent files and stages only Pi resource
     assert.equal(guidance, fs.readFileSync(path.join(sourceRoot, 'Pi-global.md'), 'utf8'));
     assert.doesNotMatch(guidance, /This file is \*\*source\*\*, not an installed Pi instruction/);
     const settings = JSON.parse(fs.readFileSync(path.join(agent, 'settings.json'), 'utf8'));
+    assert.equal(settings.extensions.includes('pi/extensions/role-guard.ts'), false,
+      'the child-only role guard must not be loaded by the parent');
     assert.deepEqual(settings.extensions, [
       'pi/extensions/guard.ts', 'pi/extensions/session-observability.ts', 'pi/extensions/role-agent.ts',
     ]);
