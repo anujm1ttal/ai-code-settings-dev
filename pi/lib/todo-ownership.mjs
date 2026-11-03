@@ -20,7 +20,7 @@ const validOptions = opts => opts && typeof opts === 'object' && !Array.isArray(
   new Set(opts.approvalLinePrefixes).size === opts.approvalLinePrefixes.length &&
   !opts.approvalLinePrefixes.some((p, i, all) => all.some((q, j) => i !== j && (p.includes(q) || q.includes(p))));
 
-export function parseTodo(buffer, opts = { approvalLinePrefixes: [] }) {
+function parse(buffer, opts, strictTasks) {
   const errors = [], lines = [], tasks = [], approvals = [];
   let bom = false, finalNewline = false;
   const result = () => frozen({ eligible: errors.length === 0, errors, bom, finalNewline, lines, tasks, approvals });
@@ -58,7 +58,7 @@ export function parseTodo(buffer, opts = { approvalLinePrefixes: [] }) {
     });
     const taskLike = LOOKALIKE.test(line);
     if (fence) {
-      if (taskLike) error(i, 'task lookalike in fence');
+      if (strictTasks && taskLike) error(i, 'task lookalike in fence');
       if (occurrences.length) error(i, 'approval prefix in fence');
       if (marker && marker[1][0] === fence[0] && marker[1].length >= fence.length && !marker[2].trim()) fence = null;
       continue;
@@ -73,6 +73,7 @@ export function parseTodo(buffer, opts = { approvalLinePrefixes: [] }) {
     if (taskLike) {
       if (approval) error(i, 'task inside approval block');
       if (occurrences.length) error(i, 'approval prefix in task');
+      if (!strictTasks) continue;
       const base = stripReviewSuffix(line);
       const suffix = base === line ? null : line.slice(base.length);
       const match = TASK.exec(base);
@@ -106,9 +107,25 @@ export function parseTodo(buffer, opts = { approvalLinePrefixes: [] }) {
   return result();
 }
 
+export function parseTodo(buffer, opts = { approvalLinePrefixes: [] }) {
+  return parse(buffer, opts, true);
+}
+
+// Documents may contain task-shaped text, but it has no TODO authority.
+export function parseApprovalBlocks(buffer, opts = { approvalLinePrefixes: [] }) {
+  const result = parse(buffer, opts, false);
+  return frozen({ ok: result.eligible, errors: result.errors, approvals: result.approvals });
+}
+
 export function validateStrategistChange(originalBuf, candidateBuf, opts = { approvalLinePrefixes: [] }) {
   const a = parseTodo(originalBuf, opts), b = parseTodo(candidateBuf, opts), reasons = [];
   if (!a.eligible || !b.eligible) return answer(false, [...a.errors.map(e => `original: ${e}`), ...b.errors.map(e => `candidate: ${e}`)]);
+  if (opts.originalAbsent !== undefined && typeof opts.originalAbsent !== 'boolean') return answer(false, ['invalid originalAbsent']);
+  if (opts.originalAbsent) {
+    if (originalBuf.length !== 0) return answer(false, ['absent original must be empty']);
+    for (const t of b.tasks) if (t.marker !== ' ' || t.suffix !== null) reasons.push(`new task ${t.id} has marker or suffix`);
+    return answer(reasons.length === 0, reasons);
+  }
   if (a.bom !== b.bom) reasons.push('BOM changed');
   if (a.finalNewline !== b.finalNewline) reasons.push('final newline state changed');
   const next = new Map(b.tasks.map(t => [t.id, t]));

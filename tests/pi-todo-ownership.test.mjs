@@ -12,6 +12,49 @@ const verified = ' — Auditor-verified 2026-01-02 (ref)';
 const reviewed = ' — Auditor-reviewed 2026-01-02 (ref)';
 const args = { taskId: 'T1', verdict: 'PASS', date: '2026-01-02', ref: 'ref' };
 
+test('approval-only parser permits document task lookalikes and preserves exact approval blocks', () => {
+  const { parseApprovalBlocks: parse } = api();
+  assert.equal(typeof parse, 'function');
+  const block = '\ufeff**APPROVED yes\r\nmore\n';
+  const source = `${block}\n\`\`\`md\n- [ ] sample\n\`\`\`\n- [ ] checklist\n  - [ ] nested\n`;
+  const parsed = parse(b(source), opts);
+  assert.equal(parsed.ok, true, parsed.errors.join('; '));
+  assert.equal(parsed.approvals.length, 1);
+  assert.equal(parsed.approvals[0].bytesSha256, createHash('sha256').update(b(block)).digest('hex'));
+  assert.ok(Object.isFrozen(parsed) && Object.isFrozen(parsed.approvals));
+});
+
+test('approval-only ambiguity checks have valid presence controls', async t => {
+  const { parseApprovalBlocks: parse } = api();
+  assert.equal(typeof parse, 'function');
+  for (const [name, bad, good] of [
+    ['prose', 'words **APPROVED yes\n', '**APPROVED yes\n'],
+    ['fence', '```\n**APPROVED yes\n```\n', '**APPROVED yes\n\n```\nexample\n```\n'],
+    ['task', '- [ ] **APPROVED yes\n', '**APPROVED yes\n\n- [ ] example\n'],
+    ['multiple', '**APPROVED one **APPROVED two\n', '**APPROVED one\n\n**APPROVED two\n'],
+    ['nested block', '**APPROVED one\n**APPROVED two\n', '**APPROVED one\n\n**APPROVED two\n'],
+    ['task in block', '**APPROVED one\n- [ ] step\n', '**APPROVED one\n\n- [ ] step\n'],
+    ['fence in block', '**APPROVED one\n```\n```\n', '**APPROVED one\n\n```\n```\n'],
+    ['unclosed fence', '```\nexample\n', '```\nexample\n```\n'],
+    ['heading in block', '**APPROVED one\n# heading\n', '**APPROVED one\n\n# heading\n'],
+  ]) await t.test(name, () => {
+    assert.equal(parse(b(good), opts).ok, true);
+    assert.equal(parse(b(bad), opts).ok, false);
+  });
+  for (const prefix of ['', '**', '> ']) assert.equal(parse(b(`${prefix}**APPROVED yes\n`), opts).ok, true);
+  assert.equal(parse(Buffer.from([0xff]), opts).ok, false);
+  assert.equal(parse(b('hello'), { approvalLinePrefixes: ['A', 'AA'] }).ok, false);
+});
+
+test('absent original permits new approval, BOM and newline without weakening existing files', () => {
+  const { validateStrategistChange: validate } = api();
+  const candidate = b(`\ufeff**APPROVED yes\n\n${task()}\n`);
+  assert.equal(validate(b(''), candidate, { ...opts, originalAbsent: true }).allow, true);
+  assert.equal(validate(b(''), candidate, opts).allow, false);
+  assert.equal(validate(b(''), b(`\ufeff${task('T1', 'x', verified)}\n`), { ...opts, originalAbsent: true }).allow, false);
+  assert.equal(validate(b('existing'), candidate, { ...opts, originalAbsent: true }).allow, false);
+});
+
 test('shared parser accepts task grammar and compatible hash', () => {
   const { parseTodo } = api();
   const line = `${task()} — Blocked by: T2, T3${reviewed}`;
