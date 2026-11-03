@@ -35,6 +35,41 @@ function snapshot(root) {
   return rows;
 }
 
+test('preview stages the scoped runtime at the default dispatch path', async () => {
+  const root = sandbox();
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    const runner = await import(pathToFileURL(path.join(staged.destination, 'pi/lib/role-runner.mjs')).href);
+    const { loadRolePolicy } = await import(pathToFileURL(path.join(staged.destination, 'pi/lib/role-policy.mjs')).href);
+    const { EventEmitter } = await import('node:events');
+    const { PassThrough } = await import('node:stream');
+    const policy = loadRolePolicy(path.join(sourceRoot, 'tests/fixtures/pi-role-policy.json'));
+    let dispatched;
+    const spawnImpl = (command, args) => {
+      dispatched = { command, launcher: args[0] };
+      const child = new EventEmitter();
+      child.stdout = new PassThrough(); child.stderr = new PassThrough();
+      queueMicrotask(() => {
+        for (const event of [
+          { type: 'pi_child_runtime', retryEnabled: false, retryMaxRetries: 0, providerMaxRetries: 0, compactionEnabled: false },
+          { type: 'message_end', message: { role: 'assistant', provider: 'pilot-gpt', model: 'sol', thinkingLevel: 'medium',
+            stopReason: 'stop', content: [{ type: 'text', text: 'done' }],
+            usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2 } } },
+        ]) child.stdout.write(JSON.stringify(event) + '\n');
+        child.stdout.end(); child.stderr.end(); child.emit('close', 0);
+      });
+      return child;
+    };
+    const result = await runner.runRole(policy, 'coder', 'fixture', root, '/role.md', { spawnImpl });
+    assert.equal(result.runtimeVerified, true);
+    assert.equal(dispatched.command, process.execPath);
+    assert.equal(dispatched.launcher, path.join(staged.destination, 'pi/lib/child-runtime.mjs'));
+    assert.equal(fs.readFileSync(dispatched.launcher, 'utf8'), fs.readFileSync(path.join(sourceRoot, 'pi/lib/child-runtime.mjs'), 'utf8'));
+    rollbackPreview(staged);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
 test('isolated preview stages the concierge guard dependency used by the selected guard extension', async () => {
   const root = sandbox();
   try {
@@ -45,13 +80,73 @@ test('isolated preview stages the concierge guard dependency used by the selecte
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/council-evidence.mjs')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/council-perspective.mjs')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/council-session.mjs')));
-    for (const lib of ['pi/lib/job-manager.mjs', 'pi/lib/explorer-jobs.mjs']) {
+    for (const lib of ['pi/lib/job-manager.mjs', 'pi/lib/explorer-jobs.mjs', 'pi/lib/audit-evidence.mjs']) {
       assert.ok(fs.existsSync(path.join(handle.destination, lib)), `${lib} must be staged: role-agent.ts imports it`);
     }
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/job-budget.mjs')), 'job budget module must be staged');
+    assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/expensive-gate.mjs')), 'expensive gate module must be staged');
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/agents/council-synthesis.md')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/prompts/council.md')));
+    for (const lib of ['read-intercept', 'bulk-admission', 'role-policy', 'pricing', 'verdict']) {
+      assert.ok(fs.existsSync(path.join(handle.destination, `pi/lib/${lib}.mjs`)), `${lib} must be staged: guard.ts imports it`);
+    }
+    // The staged guard must actually load from the staged tree (a missing dependency would throw here).
+    const stagedGuard = await import(pathToFileURL(path.join(handle.destination, 'pi/extensions/guard.ts')).href);
+    const events = new Map(); stagedGuard.default({ on: (name, fn) => events.set(name, fn) });
+    assert.equal(typeof events.get('tool_call'), 'function');
     rollbackPreview(handle);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('PI-4 preview stages exact job dependencies and loads the budget-denying job tool', async (t) => {
+  const sdkPath = process.env.PI_CODING_AGENT_SDK_PATH;
+  if (!sdkPath) return t.skip('Set PI_CODING_AGENT_SDK_PATH for Pi runtime discovery');
+  const root = sandbox();
+  const previous = process.env.PI_ROLE_POLICY_PATH;
+  let staged;
+  try {
+    const agent = path.join(root, 'agent');
+    fs.mkdirSync(agent);
+    fs.writeFileSync(path.join(agent, 'prior.txt'), 'pre-existing sandbox state');
+    const before = snapshot(agent);
+    const { stagePreview, rollbackPreview } = await release();
+    staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    const hash = file => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+    for (const relative of ['pi/extensions/role-agent.ts', 'pi/lib/job-manager.mjs', 'pi/lib/explorer-jobs.mjs',
+      'pi/lib/audit-evidence.mjs', 'pi/lib/job-budget.mjs', 'pi/lib/expensive-gate.mjs',
+      'pi/lib/role-policy.mjs', 'pi/lib/role-runner.mjs', 'pi/lib/council-evidence.mjs',
+      'pi/lib/council-perspective.mjs', 'pi/lib/council-session.mjs',
+      'pi/agents/explorer.md', 'pi/agents/strategist.md', 'pi/agents/auditor.md']) {
+      assert.equal(hash(path.join(staged.destination, relative)), hash(path.join(sourceRoot, relative)), relative);
+    }
+    const policyPath = path.join(root, 'policy.json');
+    fs.copyFileSync(path.join(sourceRoot, 'tests/fixtures/pi-role-policy.json'), policyPath);
+    process.env.PI_ROLE_POLICY_PATH = policyPath;
+    const { DefaultResourceLoader } = await import(pathToFileURL(sdkPath).href);
+    const loader = new DefaultResourceLoader({ cwd: root, agentDir: staged.destination, noExtensions: true,
+      additionalExtensionPaths: [path.join(staged.destination, 'pi/extensions/role-agent.ts')] });
+    await loader.reload();
+    const loaded = loader.getExtensions();
+    assert.deepEqual(loaded.errors, []);
+    const extension = loaded.extensions[0];
+    assert.ok(extension.tools.has('pi_role_agent'));
+    assert.ok(extension.tools.has('pi_council'));
+    const tool = extension.tools.get('pi_explorer_job')?.definition;
+    assert.ok(tool, 'strategist-only eligible policy must register the staged job tool');
+    const context = { cwd: root };
+    assert.match((await tool.execute('status', { action: 'status' }, undefined, undefined, context)).content[0].text, /No jobs/);
+    await assert.rejects(tool.execute('start', { action: 'start', task: 'fixture', role: 'strategist' },
+      undefined, undefined, context), /job budget is not configured/);
+    assert.match((await tool.execute('status2', { action: 'status' }, undefined, undefined, context)).content[0].text, /No jobs/);
+    rollbackPreview(staged);
+    staged = undefined;
+    assert.deepEqual(snapshot(agent), before, 'PI-4 staged runtime rollback restores prior sandbox bytes');
+    assert.equal(fs.existsSync(path.join(root, 'backup')), false);
+  } finally {
+    if (previous === undefined) delete process.env.PI_ROLE_POLICY_PATH; else process.env.PI_ROLE_POLICY_PATH = previous;
+    if (staged) (await release()).rollbackPreview(staged);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test('isolated preview stages the explorer prompt unchanged and excludes retired concierge resources', async () => {

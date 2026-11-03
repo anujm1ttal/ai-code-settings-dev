@@ -9,9 +9,95 @@ import { loadRolePolicy, buildAgentArgs } from '../pi/lib/role-policy.mjs';
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const policyFile = path.join(repo, 'tests', 'fixtures', 'pi-role-policy.json');
 
+test('optional jobBudget is validated without changing the role keys', () => {
+  const original = loadRolePolicy(policyFile);
+  assert.equal(original.jobBudget, undefined);
+  const model = original.allowedModels[0];
+  const rate = { inputPerMTok: 2, outputPerMTok: 4, cacheReadPerMTok: 0, cacheWritePerMTok: 1 };
+  const valid = { perJobUsd: 1, perSessionUsd: 3, rates: { [model]: rate } };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-job-budget-policy-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    const load = (jobBudget) => { writeFileSync(file, JSON.stringify({ ...original, jobBudget })); return loadRolePolicy(file); };
+    assert.deepEqual(load(valid).jobBudget, valid);
+    for (const edge of [{ ...valid, perJobUsd: 10, perSessionUsd: 50 }, { ...valid, perJobUsd: 3, perSessionUsd: 3 }]) {
+      assert.deepEqual(load(edge).jobBudget, edge, 'upper bounds and perSession == perJob are valid');
+    }
+    const invalid = [null, [], {},
+      ...[0, -1, 11, '1', null].map(perJobUsd => ({ ...valid, perJobUsd })),
+      ...[0, 0.5, 51, '3', null].map(perSessionUsd => ({ ...valid, perSessionUsd })),
+      ...[null, [], 'x', { 'unknown/model': rate }].map(rates => ({ ...valid, rates })),
+      ...['inputPerMTok', 'outputPerMTok'].flatMap(key => [0, -1, null, '2'].map(value => ({ ...valid, rates: { [model]: { ...rate, [key]: value } } }))),
+      ...['cacheReadPerMTok', 'cacheWritePerMTok'].flatMap(key => [-1, null, '2'].map(value => ({ ...valid, rates: { [model]: { ...rate, [key]: value } } }))),
+      { ...valid, rates: { [model]: null } }, { ...valid, rates: { [model]: [] } }];
+    for (const item of invalid) assert.throws(() => load(item), /Invalid jobBudget/, JSON.stringify(item));
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('real provider bindings are not stored in the public Pi source tree', () => {
   assert.equal(existsSync(path.join(repo, 'pi', 'role-policy.json')), false);
 });
+
+test('loads a read-only strategist and a coder with shell and write tools', () => {
+  const original = loadRolePolicy(policyFile);
+  const tools = ['read', 'grep', 'find', 'ls'];
+  const coderTools = [...tools, 'bash', 'powershell', 'edit', 'write'];
+  const configured = { ...original, roles: { ...original.roles,
+    strategist: { ...original.roles.strategist, tools },
+    coder: { ...original.roles.coder, tools: coderTools } } };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-strategist-policy-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    writeFileSync(file, JSON.stringify(configured));
+    const loaded = loadRolePolicy(file);
+    assert.deepEqual(loaded.roles.strategist.tools, tools);
+    assert.deepEqual(loaded.roles.coder.tools, coderTools);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('read-only strategist argv contains exactly the four tools and no extension', () => {
+  const original = loadRolePolicy(policyFile);
+  const configured = { ...original, roles: { ...original.roles,
+    strategist: { ...original.roles.strategist, tools: ['read', 'grep', 'find', 'ls'] } } };
+  const args = buildAgentArgs(configured, 'strategist', '/tmp/role.md', 'Plan');
+  assert.deepEqual(args.slice(args.indexOf('--tools'), args.indexOf('--tools') + 2),
+    ['--tools', 'read,grep,find,ls']);
+  assert.equal(args.filter(arg => arg === '--tools').length, 1);
+  assert.equal(args.includes('--extension'), false);
+});
+
+test('loaded strategist policy rejects an MCP tool', () => {
+  const original = loadRolePolicy(policyFile);
+  const unsafe = { ...original, roles: { ...original.roles,
+    strategist: { ...original.roles.strategist, tools: ['read', 'grep', 'find', 'ls', 'mcp__x'] } } };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-strategist-mcp-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    writeFileSync(file, JSON.stringify(unsafe));
+    assert.throws(() => loadRolePolicy(file), /Invalid role configuration for strategist/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+for (const tool of ['bash', 'powershell', 'edit', 'write']) {
+  test(`rejects strategist ${tool} in a loaded policy`, () => {
+    const original = loadRolePolicy(policyFile);
+    const unsafe = { ...original, roles: { ...original.roles,
+      strategist: { ...original.roles.strategist, tools: ['read', tool] } } };
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-strategist-unsafe-'));
+    try {
+      const file = path.join(dir, 'policy.json');
+      writeFileSync(file, JSON.stringify(unsafe));
+      assert.throws(() => loadRolePolicy(file), /Invalid role configuration for strategist/);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+
+  test(`rejects strategist ${tool} during argv construction`, () => {
+    const original = loadRolePolicy(policyFile);
+    const unsafe = { ...original, roles: { ...original.roles,
+      strategist: { ...original.roles.strategist, tools: ['read', tool] } } };
+    assert.throws(() => buildAgentArgs(unsafe, 'strategist', '/tmp/role.md', 'Plan'), /Strategist tools/);
+  });
+}
 
 test('accepts a fourth, read-only scribe binding without expanding the five-model allowlist', () => {
   const original = loadRolePolicy(policyFile);
@@ -239,3 +325,24 @@ test('unlisted model or role rejects before a child can start', () => {
     ...policy.roles.coder, model: 'unlisted/foreign-model',
   } } }, 'coder', '/tmp/role.md', 'x'), /not in the explicit model allowlist/);
 });
+
+test('jobBudget accepts tiered and labelled rates and still rejects malformed ones', () => {
+  const original = loadRolePolicy(policyFile);
+  const model = original.allowedModels[0];
+  const tiered = { status: 'verified', source: 'test', cacheWriteRetention: '5m', tiers: [
+    { upToPromptTokens: 100000, inputPerMTok: 0.1, outputPerMTok: 0.5, cacheReadPerMTok: 0.01, cacheWritePerMTok: 0.125 },
+    { inputPerMTok: 0.5, outputPerMTok: 2.5, cacheReadPerMTok: 0.05, cacheWritePerMTok: 0.625 }] };
+  const labelled = { status: 'provisional', inputPerMTok: 1, outputPerMTok: 5 };
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-tier-policy-'));
+  try {
+    const file = path.join(dir, 'policy.json');
+    const load = (rate) => { writeFileSync(file, JSON.stringify({ ...original, jobBudget: { perJobUsd: 1, perSessionUsd: 3, rates: { [model]: rate } } })); return loadRolePolicy(file); };
+    assert.deepEqual(load(tiered).jobBudget.rates[model], tiered);
+    assert.deepEqual(load(labelled).jobBudget.rates[model], labelled);
+    for (const bad of [{ ...tiered, status: 'guess' }, { tiers: [] }, { ...tiered, cacheWriteRetention: '7d' },
+      { tiers: [{ inputPerMTok: 0, outputPerMTok: 1 }] }, { inputPerMTok: 1 }]) {
+      assert.throws(() => load(bad), /Invalid jobBudget/, JSON.stringify(bad));
+    }
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+

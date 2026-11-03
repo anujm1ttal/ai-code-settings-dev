@@ -9,9 +9,11 @@ const FILES = [
   'hooks/license-gate.json',
   'pi/agents/auditor.md', 'pi/agents/coder.md', 'pi/agents/strategist.md', 'pi/agents/scribe.md', 'pi/agents/explorer.md', 'pi/agents/council-perspectives.md', 'pi/agents/council-synthesis.md',
   ...EXTENSIONS,
-  'pi/lib/role-policy.mjs', 'pi/lib/role-runner.mjs', 'pi/lib/concierge-guard.mjs',
+  'pi/lib/role-policy.mjs', 'pi/lib/role-runner.mjs', 'pi/lib/child-runtime.mjs', 'pi/lib/result-contract.mjs', 'pi/lib/concierge-guard.mjs',
   'pi/lib/council-evidence.mjs', 'pi/lib/council-perspective.mjs', 'pi/lib/council-session.mjs',
-  'pi/lib/job-manager.mjs', 'pi/lib/explorer-jobs.mjs',
+  'pi/lib/job-manager.mjs', 'pi/lib/explorer-jobs.mjs', 'pi/lib/audit-evidence.mjs',
+  'pi/lib/job-budget.mjs', 'pi/lib/expensive-gate.mjs', 'pi/lib/task-usage.mjs', 'pi/lib/pricing.mjs',
+  'pi/lib/read-intercept.mjs', 'pi/lib/bulk-admission.mjs', 'pi/lib/verdict.mjs',
 ];
 
 function verifySandbox(root) {

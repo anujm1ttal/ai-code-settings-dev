@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { createHash, randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { Type } from '@earendil-works/pi-ai';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
@@ -8,6 +8,10 @@ import { runRole } from '../lib/role-runner.mjs';
 import { runCouncilPerspective } from '../lib/council-perspective.mjs';
 import { runCouncilSession } from '../lib/council-session.mjs';
 import { registerExplorerJobs } from '../lib/explorer-jobs.mjs';
+import { createExpensiveGate, withExpensiveGate } from '../lib/expensive-gate.mjs';
+import { prepareResultDir, buildEnvelope, buildIncompleteEnvelope } from '../lib/result-contract.mjs';
+import { getActiveTaskUsage } from '../lib/task-usage.mjs';
+import { withJobAccounting, currentJobAccounting } from '../lib/job-manager.mjs';
 
 const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const policyPath = process.env.PI_ROLE_POLICY_PATH;
@@ -16,15 +20,47 @@ if (!policyPath || !path.isAbsolute(policyPath)) {
 }
 const policy = loadRolePolicy(policyPath);
 
-function invocation() {
-  const script = process.argv[1];
-  if (script && !script.startsWith('/$bunfs/') && existsSync(script)) {
-    return { command: process.execPath, args: [script] };
-  }
-  return { command: 'pi', args: [] };
-}
-
 export default function (pi: ExtensionAPI) {
+  const gate = createExpensiveGate();
+  const ledgerFor = (ctx) => typeof getActiveTaskUsage === 'function'
+    ? getActiveTaskUsage(ctx.cwd, ctx.sessionManager?.getSessionId?.()) : undefined;
+  const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
+  const dispatchKeyFor = (dispatchId) => digest(Buffer.from(JSON.stringify(['dispatch', dispatchId])));
+  async function accounted(ctx, toolCallId, dispatchId, run) {
+    const ledger = ledgerFor(ctx);
+    if (!ledger) return run({});
+    const sessionId = ctx.sessionManager?.getSessionId?.();
+    const { dispatchKey } = ledger.admit({ dispatchId, toolCallId: JSON.stringify([sessionId ?? null, String(toolCallId)]) });
+    const accountingCursor: { next: number; lastStop?: string } = { next: 0 };
+    let state = 'failed';
+    try {
+      const value = await run({ ledger, dispatchKey, accountingCursor });
+      state = 'succeeded';
+      return value;
+    } catch (error) {
+      if (ledger.isEnabled?.() === false) throw error;
+      // Compatibility for injected runners that return readings only on failure. Real runners
+      // increment the shared cursor as each call arrives, so never replay their in-memory rows.
+      if (accountingCursor.next === 0) {
+        const groups = [...(Array.isArray(error?.perspectives) ? error.perspectives : []), error];
+        for (const group of groups) for (const call of Array.isArray(group?.usageCalls) ? group.usageCalls : []) {
+          ledger.record({ type: 'child', dispatchKey, callOrdinal: accountingCursor.next++,
+            model: policy.roles[group?.perspective]?.model, usage: call.usage, stopReason: call.stopReason });
+          accountingCursor.lastStop = call.stopReason;
+        }
+      }
+      if (!['error', 'aborted'].includes(accountingCursor.lastStop)) {
+        ledger.record({ type: 'child', dispatchKey, callOrdinal: accountingCursor.next++, usage: null, stopReason: 'error' });
+      }
+      throw error;
+    } finally {
+      if (ledger.isEnabled?.() !== false) {
+        const bytes = Buffer.from(JSON.stringify({ version: 1, dispatchId, state }));
+        ledger.reconcile({ dispatchId, bytes, sha256: digest(bytes) });
+      }
+    }
+  }
+  // Synchronous strategist/auditor/council spend is in normal session usage, not the background job budget.
   pi.registerTool({
     name: 'pi_council',
     label: 'Pi council (advisory)',
@@ -35,16 +71,21 @@ export default function (pi: ExtensionAPI) {
       evidenceSha256: Type.String({ description: 'SHA-256 of the captured evidence' }),
     }),
     async execute(_id, params, signal, _onUpdate, ctx) {
-      const result = await runCouncilSession(policy, params, ctx.cwd,
-        path.join(sourceRoot, 'agents', 'council-perspectives.md'),
-        path.join(sourceRoot, 'agents', 'council-synthesis.md'),
-        { signal, invocation: invocation() });
+      const dispatchId = `council-${randomUUID()}`;
+      const result = await withExpensiveGate(gate, 'council', () => accounted(ctx, _id, dispatchId, accounting =>
+        runCouncilSession(policy, params, ctx.cwd,
+          path.join(sourceRoot, 'agents', 'council-perspectives.md'),
+          path.join(sourceRoot, 'agents', 'council-synthesis.md'),
+          { signal, ...accounting })));
+      const completeUsage = [...result.perspectives, result.synthesis].every(p => p.usage != null);
       return {
         content: [{ type: 'text', text: `Advisory ${result.verdict}\n\n${result.synthesis.text}` }],
         details: { verdict: result.verdict, evidenceSha256: result.evidenceSha256,
-          perspectives: result.perspectives.map(({ perspective, model, thinking, text }) =>
-            ({ perspective, model, thinking, text })) },
-        usage: {
+          perspectives: result.perspectives.map(({ perspective, model, thinking, text, usageCalls }) =>
+            ({ perspective, model, thinking, text, usageCalls })),
+          synthesisUsageCalls: result.synthesis.usageCalls, usageComplete: completeUsage,
+          runtimeVerified: [...result.perspectives, result.synthesis].every(p => p.runtimeVerified === true) },
+        ...(completeUsage ? { usage: {
           input: result.perspectives.reduce((sum, p) => sum + (p.usage?.input ?? 0), result.synthesis.usage?.input ?? 0),
           output: result.perspectives.reduce((sum, p) => sum + (p.usage?.output ?? 0), result.synthesis.usage?.output ?? 0),
           cacheRead: result.perspectives.reduce((sum, p) => sum + (p.usage?.cacheRead ?? 0), result.synthesis.usage?.cacheRead ?? 0),
@@ -52,7 +93,7 @@ export default function (pi: ExtensionAPI) {
           totalTokens: result.perspectives.reduce((sum, p) => sum + (p.usage?.totalTokens ?? 0), result.synthesis.usage?.totalTokens ?? 0),
           cost: Object.fromEntries(['input', 'output', 'cacheRead', 'cacheWrite', 'total'].map(key =>
             [key, result.perspectives.reduce((sum, p) => sum + (p.usage?.cost?.[key] ?? 0), result.synthesis.usage?.cost?.[key] ?? 0)])),
-        },
+        } } : {}),
       };
     },
   });
@@ -81,24 +122,72 @@ export default function (pi: ExtensionAPI) {
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       const council = params.role === 'council-perspective';
       const promptPath = path.join(sourceRoot, 'agents', council ? 'council-perspectives.md' : `${params.role}.md`);
-      const result = council
-        ? await runCouncilPerspective(policy, { perspective: params.perspective, question: params.task,
+      const identity = { dispatchId: `role-${randomUUID()}`, role: (council ? params.perspective : params.role) ?? params.role };
+      let resultStore;
+      try { resultStore = { dir: prepareResultDir(ctx.cwd), dispatchId: identity.dispatchId, meta: { role: identity.role } }; }
+      catch {
+        const envelope = buildIncompleteEnvelope({ identity, reason: 'Project result store unavailable.' });
+        throw new Error(envelope);
+      }
+      const run = () => accounted(ctx, _toolCallId, identity.dispatchId, accounting => council
+        ? runCouncilPerspective(policy, { perspective: params.perspective, question: params.task,
           evidencePath: params.evidencePath, evidenceSha256: params.evidenceSha256 }, ctx.cwd, promptPath,
-          { signal, invocation: invocation() })
-        : await runRole(policy, params.role, params.task, ctx.cwd, promptPath,
-          { signal, invocation: invocation() });
+          { signal, resultStore, ...accounting })
+        : runRole(policy, params.role, params.task, ctx.cwd, promptPath,
+          { signal, resultStore, ...accounting }));
+      let result;
+      try {
+        result = ['strategist', 'auditor', 'council-perspective'].includes(params.role)
+          ? await withExpensiveGate(gate, params.role, run) : await run();
+      } catch (caught) {
+        const error = caught instanceof Error || Object.prototype.toString.call(caught) === '[object Error]'
+          ? caught : new Error('Role dispatch failed');
+        try { error.envelope = buildIncompleteEnvelope({ identity, persisted: error.persisted,
+          partialText: error.partialText, reason: error.message }); }
+        catch { error.envelope = buildIncompleteEnvelope({ identity, reason: 'Result receipt unavailable or invalid.',
+          referenceUnavailable: Boolean(error.persisted) }); }
+        error.message = error.envelope;
+        throw error;
+      }
+      let envelope;
+      try { envelope = buildEnvelope({ status: 'COMPLETE', persisted: result.persisted, identity,
+        summarySource: result.text, next: 'Inspect the persisted result.' }); }
+      catch { envelope = buildIncompleteEnvelope({ identity, reason: 'Result receipt missing, invalid, or unavailable.' }); }
+      // Per-call readings stay on runner results/errors (and detached jobs in memory), not in sync result files.
+      // Expose only fixed numeric aggregate fields to the model; unknown usage remains explicitly incomplete.
+      const numericFields = (source, keys) => Object.fromEntries(keys.flatMap(key =>
+        typeof source?.[key] === 'number' && Number.isFinite(source[key]) && source[key] >= 0 ? [[key, source[key]]] : []));
+      const usageSummary = { complete: result.usage != null,
+        ...numericFields(result.usage, ['input', 'output', 'cacheRead', 'cacheWrite', 'totalTokens', 'reasoning', 'cacheWrite1h']),
+        ...(result.usage?.cost ? { cost: numericFields(result.usage.cost, ['input', 'output', 'cacheRead', 'cacheWrite', 'total']) } : {}) };
       return {
-        content: [{ type: 'text', text: `${result.role} (${result.model}, ${result.thinking})\n\n${result.text}` }],
+        content: [{ type: 'text', text: envelope }],
         details: { role: result.role, model: result.model, thinking: result.thinking,
           ...(result.toolCounts !== undefined ? { toolCounts: result.toolCounts } : {}),
           ...(result.successfulReads !== undefined ? { successfulReads: result.successfulReads } : {}),
+          usage: usageSummary, usageComplete: result.usage != null, runtimeVerified: result.runtimeVerified,
           ...(council ? { perspective: result.perspective, evidenceSha256: result.evidenceSha256 } : {}) },
-        usage: result.usage,
+        ...(result.usage ? { usage: result.usage } : {}),
       };
     },
   });
 
-  // Detached read-only explorer jobs (registered only when the private policy configures an explorer).
-  registerExplorerJobs(pi, { Type, policy, promptPath: path.join(sourceRoot, 'agents', 'explorer.md'),
-    invocation: invocation() });
+  // Detached read-only role jobs, registered when an eligible role is configured.
+  const jobPi = new Proxy(pi, { get(target, property) {
+    if (property === 'registerTool') return (tool) => target.registerTool({ ...tool,
+      execute: (id, params, signal, onUpdate, ctx) => withJobAccounting(ledgerFor(ctx),
+        () => tool.execute(id, params, signal, onUpdate, ctx), id) });
+    return Reflect.get(target, property, target);
+  } });
+  {
+    const pi = jobPi;
+    registerExplorerJobs(pi, { Type, policy, gate,
+      runRoleImpl: (rolePolicy, role, task, cwd, promptPath, options) => {
+        const ledger = currentJobAccounting();
+        return runRole(rolePolicy, role, task, cwd, promptPath,
+          ledger && options.dispatchId ? { ...options, ledger, dispatchKey: dispatchKeyFor(options.dispatchId) } : options);
+      },
+      promptPaths: Object.fromEntries(['explorer', 'strategist', 'auditor'].map(role =>
+        [role, path.join(sourceRoot, 'agents', `${role}.md`)])) });
+  }
 }

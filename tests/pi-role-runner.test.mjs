@@ -2,16 +2,26 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { EventEmitter } from 'node:events';
 import { spawn } from 'node:child_process';
-import { randomBytes } from 'node:crypto';
+import crypto, { randomBytes, createHash } from 'node:crypto';
 import net from 'node:net';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { PassThrough } from 'node:stream';
+import { stripTypeScriptTypes } from 'node:module';
+import { runInNewContext } from 'node:vm';
 import { runRole } from '../pi/lib/role-runner.mjs';
+import { createJobManager } from '../pi/lib/job-manager.mjs';
+import { createJobBudget } from '../pi/lib/job-budget.mjs';
 import { loadRolePolicy } from '../pi/lib/role-policy.mjs';
+import { registerExplorerJobs } from '../pi/lib/explorer-jobs.mjs';
+import * as resultContract from '../pi/lib/result-contract.mjs';
+import { runCouncilPerspective } from '../pi/lib/council-perspective.mjs';
 
+const { persistFullResult, buildEnvelope } = resultContract;
 const policy = loadRolePolicy(new URL('./fixtures/pi-role-policy.json', import.meta.url));
+// The VM strips static imports, so rebind their real module exports as globals.
+const strippedImportBindings = { ...fs, ...path, ...crypto, ...resultContract, fs, path, crypto, resultContract, Buffer };
 
 function fakeSpawn(events, exitCode = 0) {
   const calls = [];
@@ -32,11 +42,249 @@ function fakeSpawn(events, exitCode = 0) {
   return { calls, spawnImpl };
 }
 
+const runtimeProof = { type: 'pi_child_runtime', retryEnabled: false, retryMaxRetries: 0,
+  providerMaxRetries: 0, compactionEnabled: false };
+
 const assistant = (provider, model, thinkingLevel, text) => ({ type: 'message_end', message: {
   role: 'assistant', provider, model, thinkingLevel, stopReason: 'stop',
   content: [{ type: 'text', text }], usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0,
     totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
 } });
+
+test('runner witness survives manager bounding', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-t4-witness-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const firstText = 'café🚀'.repeat(10000); const lastText = 'final unique tail: WITNESS-TAIL-9837';
+  const first = assistant('pilot-gpt', 'luna', 'low', firstText); first.message.stopReason = 'toolUse';
+  const fake = fakeSpawn([runtimeProof, first, assistant('pilot-gpt', 'luna', 'low', lastText)]);
+  const expanded = { ...policy, roles: { ...policy.roles,
+    explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+  const tools = new Map(); let observed;
+  const Type = new Proxy({}, { get: () => () => ({}) });
+  const pi = { registerTool: def => tools.set(def.name, def), on: () => {} };
+  registerExplorerJobs(pi, { Type, policy: expanded, gate: { tryAcquire: () => () => {} }, promptPath: '/prompt',
+    accessImpl: () => {}, runRoleImpl: (p, role, task, cwd, prompt, options) => {
+      observed = options; return runRole(p, role, task, cwd, prompt, { ...options, spawnImpl: fake.spawnImpl });
+    } });
+  const execute = (params) => tools.get('pi_explorer_job').execute('witness', params, undefined, undefined, { cwd: root });
+  const job = (await execute({ action: 'start', task: 'witness' })).details.job;
+  for (let i = 0; i < 20 && (await execute({ action: 'status', jobId: job.id })).details.job.state === 'running'; i++) {
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(observed?.resultStore?.dispatchId, job.id, 'manager must give runner a dispatch-bound result store');
+  assert.equal(observed.resultStore.dir, path.join(root, 'Artifacts', '.agent', 'pi-results'));
+  assert.ok(observed.resultStore.meta && typeof observed.resultStore.meta === 'object', 'dispatch metadata is prepared with the store');
+  const ref = path.join(observed.resultStore.dir, `${job.id}.result`);
+  const data = fs.readFileSync(ref); const body = data.subarray(data.indexOf(10) + 1).toString();
+  assert.equal(body, `${firstText}\n${lastText}`, 'disk contains every received turn without manager truncation');
+  const digest = createHash('sha256').update(data).digest('hex');
+  const settlement = fs.readFileSync(path.join(observed.resultStore.dir, `${job.id}.settlement.json`), 'utf8');
+  assert.ok(settlement.includes(digest), 'settlement binds the exact runner witness');
+  const out = await execute({ action: 'collect', jobId: job.id });
+  assert.ok(Buffer.byteLength(out.content.map(part => part.text ?? '').join('')) <= 2048);
+  assert.ok(out.content[0].text.includes(digest), 'descriptor presence control');
+  assert.ok(!JSON.stringify(out.details).includes('WITNESS-TAIL-9837'), 'details contain no full-text copy');
+});
+
+test('result store persists received text before returning a bounded envelope', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-runner-'));
+  try {
+    const fake = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'Café 🚀')]);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: 'red' } });
+    assert.ok(result.persisted, 'a persisted result must precede the envelope');
+    assert.ok(fs.existsSync(result.persisted.ref));
+    assert.match(result.envelope, /full result persisted at/);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('result store summarizes the final assistant turn, not earlier narration', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-final-'));
+  try {
+    const early = assistant('pilot-gpt', 'sol', 'medium', 'early narration '.repeat(400));
+    early.message.stopReason = 'toolUse';
+    const final = assistant('pilot-gpt', 'sol', 'medium', 'Verdict: PASS final turn');
+    const fake = fakeSpawn([runtimeProof, early, final]);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: 'final' } });
+    assert.match(result.envelope, /^Summary: Verdict: PASS final turn$/m);
+    const stored = fs.readFileSync(result.persisted.ref, 'utf8');
+    assert.ok(stored.includes(early.message.content[0].text));
+    assert.ok(stored.includes(final.message.content[0].text));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('final verdict survives lengthy final narration and earlier severe findings', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-verdict-'));
+  try {
+    const early = assistant('pilot-gpt', 'sol', 'medium', Array(20).fill('FAIL: earlier observation ' + 'x'.repeat(90)).join('\n'));
+    early.message.stopReason = 'toolUse';
+    const final = assistant('pilot-gpt', 'sol', 'medium', `${'final narration '.repeat(300)}\nVerdict: PASS final decision`);
+    const fake = fakeSpawn([runtimeProof, early, final]);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: 'verdict' } });
+    assert.match(result.envelope, /Verdict: PASS final decision/);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('runner preserves a persisted receipt when its long reference cannot fit', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-long-'));
+  try {
+    let longDir = dir;
+    while (longDir.length < 2150) {
+      longDir = path.join(longDir, 'r'.repeat(60));
+      fs.mkdirSync(longDir);
+    }
+    const fake = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'retained result')]);
+    await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir: longDir, dispatchId: 'x'.repeat(80) } }), error => {
+      assert.equal(error.partialText, 'retained result');
+      assert.equal(error.persisted.completeness, 'complete');
+      assert.ok(fs.existsSync(error.persisted.ref));
+      assert.match(error.envelope, /^Status: INCOMPLETE/m);
+      assert.match(error.envelope, /Persisted reference cannot be represented/);
+      assert.doesNotMatch(error.envelope, /no full-text copy exists/);
+      assert.ok(Buffer.byteLength(error.envelope) <= 2048);
+      return true;
+    });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('without resultStore success and failure retain old shapes and write no files', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-absent-'));
+  try {
+    const good = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'done')]);
+    const result = await runRole(policy, 'coder', 'Implement', dir, '/tmp/role.md', { spawnImpl: good.spawnImpl });
+    for (const key of ['persisted', 'envelope', 'partialText']) assert.equal(Object.hasOwn(result, key), false);
+    const bad = fakeSpawn([assistant('pilot-gpt', 'sol', 'medium', 'unfinished')], 1);
+    await assert.rejects(runRole(policy, 'coder', 'Implement', dir, '/tmp/role.md', { spawnImpl: bad.spawnImpl }), error => {
+      for (const key of ['persisted', 'envelope', 'partialText']) assert.equal(Object.hasOwn(error, key), false);
+      return true;
+    });
+    assert.deepEqual(fs.readdirSync(dir), []);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('result store retains streamed assistant deltas on abort before message_end', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-partial-'));
+  const controller = new AbortController();
+  const child = new EventEmitter();
+  child.stdout = new PassThrough(); child.stderr = new PassThrough();
+  child.kill = () => { setImmediate(() => child.emit('close', null)); return true; };
+  try {
+    const result = runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: () => child, signal: controller.signal, resultStore: { dir, dispatchId: 'delta' } });
+    child.stdout.write(`${JSON.stringify({ type: 'message_update', assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'partial café' } })}\n`);
+    controller.abort();
+    await assert.rejects(result, error => {
+      assert.equal(error.partialText, 'partial café');
+      assert.equal(error.persisted.completeness, 'partial');
+      assert.match(error.envelope, /Status: INCOMPLETE/);
+      return true;
+    });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('result store retains deltas when an error message ends without text content', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-delta-end-'));
+  try {
+    const ended = assistant('pilot-gpt', 'sol', 'medium', '');
+    ended.message.content = []; ended.message.stopReason = 'error';
+    const fake = fakeSpawn([{ type: 'message_update', assistantMessageEvent: { type: 'text_delta', contentIndex: 0, delta: 'already received' } }, ended]);
+    await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: 'empty-end' } }), error => {
+      assert.equal(error.partialText, 'already received');
+      assert.equal(error.persisted.completeness, 'partial');
+      return true;
+    });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('result store preserves complete events preceding overflow within the same chunk', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-overflow-'));
+  const child = new EventEmitter(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
+  child.kill = () => { setImmediate(() => child.emit('close', null)); return true; };
+  try {
+    const result = runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: () => child, resultStore: { dir, dispatchId: 'overflow' } });
+    const event = Buffer.from(`${JSON.stringify(assistant('pilot-gpt', 'sol', 'medium', 'before overflow'))}\n`);
+    child.stdout.write(Buffer.concat([event, Buffer.alloc(8 * 1024 * 1024)]));
+    await assert.rejects(result, error => {
+      assert.match(error.message, /exceeded 8 MiB/);
+      assert.equal(error.partialText, 'before overflow');
+      assert.equal(error.persisted.completeness, 'partial');
+      assert.match(error.envelope, /Status: INCOMPLETE/);
+      return true;
+    });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('result store preserves all message text parts and verifies the persisted bytes', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-all-'));
+  try {
+    const first = assistant('pilot-gpt', 'sol', 'medium', 'working'); first.message.stopReason = 'toolUse';
+    const last = assistant('pilot-gpt', 'sol', 'medium', 'done café');
+    last.message.content.push({ type: 'text', text: 'extra 🚀' });
+    const fake = fakeSpawn([runtimeProof, first, last]);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: 'all' } });
+    const bytes = fs.readFileSync(result.persisted.ref);
+    assert.equal(bytes.subarray(bytes.indexOf(10) + 1).toString(), 'working\ndone café\nextra 🚀');
+    assert.equal(result.persisted.sha256, (await import('node:crypto')).createHash('sha256').update(bytes).digest('hex'));
+    assert.equal(result.persisted.completeness, 'complete');
+    assert.ok(Buffer.byteLength(result.envelope) <= 2048);
+    assert.ok(result.envelope.includes(result.persisted.ref));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('persistence failures retain received material and return an incomplete envelope', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-failure-'));
+  try {
+    for (const [id, events, exit] of [['invalid/id', [runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'received')], 0],
+      ['also/invalid', [assistant('pilot-gpt', 'sol', 'medium', 'partial')], 1]]) {
+      const fake = fakeSpawn(events, exit);
+      await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+        { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: id } }), error => {
+        assert.ok(['received', 'partial'].includes(error.partialText));
+        assert.match(error.envelope, /Status: INCOMPLETE/);
+        assert.match(error.envelope, /Persistence failed; no full-text copy exists/);
+        assert.equal(error.persisted, undefined);
+        return true;
+      });
+    }
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('nonzero exit, failed model response and timeout preserve partial work', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-result-interrupted-'));
+  try {
+    const failed = assistant('pilot-gpt', 'sol', 'medium', 'failed work');
+    failed.message.stopReason = 'error'; failed.message.errorMessage = 'context overflow';
+    for (const [id, events, code, expected] of [
+      ['exit', [assistant('pilot-gpt', 'sol', 'medium', 'exit work')], 1, 'exit work'],
+      ['model', [failed], 0, 'failed work']]) {
+      const fake = fakeSpawn(events, code);
+      await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+        { spawnImpl: fake.spawnImpl, resultStore: { dir, dispatchId: id } }), error => {
+        assert.equal(error.partialText, expected);
+        assert.equal(error.persisted.completeness, 'partial');
+        assert.match(error.envelope, /Status: INCOMPLETE/);
+        assert.ok(error.envelope.includes(error.persisted.sha256));
+        return true;
+      });
+    }
+    const child = new EventEmitter(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
+    child.kill = () => { setImmediate(() => child.emit('close', null)); return true; };
+    const pending = runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: () => child, timeoutMs: 10, killGraceMs: 100, resultStore: { dir, dispatchId: 'timeout' } });
+    child.stdout.write(`${JSON.stringify(assistant('pilot-gpt', 'sol', 'medium', 'timeout work'))}\n`);
+    await assert.rejects(pending, error => {
+      assert.match(error.message, /timed out/); assert.equal(error.partialText, 'timeout work');
+      assert.equal(error.persisted.completeness, 'partial'); assert.match(error.envelope, /Status: INCOMPLETE/);
+      return true;
+    });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
 
 test('dispatches an isolated auditor and verifies observed model and thinking', async () => {
   const fake = fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', 'FAIL: revise tests')]);
@@ -50,7 +298,8 @@ test('dispatches an isolated auditor and verifies observed model and thinking', 
     thinking: 'high', text: 'FAIL: revise tests', usage: { input: 1, output: 1,
       cacheRead: 0, cacheWrite: 0, totalTokens: 2,
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
-    toolCounts: {}, successfulReads: 0 });
+    usageCalls: [{ stopReason: 'stop', completeness: 'known', usage: assistant('pilot-claude', 'sonnet', 'high', '').message.usage }],
+    runtimeVerified: false, toolCounts: {}, successfulReads: 0 });
 });
 
 test('explorer dispatches without project state and reports bounded tool metadata', async () => {
@@ -58,6 +307,7 @@ test('explorer dispatches without project state and reports bounded tool metadat
   const expanded = { ...policy, roles: { ...policy.roles,
     explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
   const fake = fakeSpawn([
+    runtimeProof,
     { type: 'tool_execution_start', toolCallId: '1', toolName: 'read', args: { path: 'secret-argument' } },
     { type: 'tool_execution_end', toolCallId: '1', toolName: 'read', isError: false, result: 'secret-content' },
     { type: 'tool_execution_start', toolCallId: '2', toolName: 'read', args: { path: 'missing' } },
@@ -123,7 +373,7 @@ test('concierge policy is rejected during load, before a child can spawn', () =>
 });
 
 test('read-only council coder denies observed write events despite normal writable coder policy', async () => {
-  const allowed = fakeSpawn([assistant('pilot-gpt', 'sol', 'medium', 'Perspective')]);
+  const allowed = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'Perspective')]);
   const result = await runRole(policy, 'coder', 'Critique', '.', '/tmp/council.md',
     { spawnImpl: allowed.spawnImpl, profile: 'council-read-only' });
   assert.equal(result.text, 'Perspective');
@@ -147,7 +397,7 @@ test('council profile requires an observed read of its exact immutable evidence 
     assistant('pilot-gpt', 'sol', 'high', 'Pretended read')]);
   await assert.rejects(runRole(policy, 'strategist', 'Review', '.', '/tmp/council.md',
     { spawnImpl: failedRead.spawnImpl, profile: 'council-read-only', requiredReadPath: file }), /evidence|read/i);
-  const read = fakeSpawn([{ type: 'tool_execution_start', toolCallId: 'e2', toolName: 'read', args: { path: file } },
+  const read = fakeSpawn([runtimeProof, { type: 'tool_execution_start', toolCallId: 'e2', toolName: 'read', args: { path: file } },
     { type: 'tool_execution_end', toolCallId: 'e2', toolName: 'read', isError: false },
     assistant('pilot-gpt', 'sol', 'high', 'Evidence-backed opinion')]);
   const result = await runRole(policy, 'strategist', 'Review', '.', '/tmp/council.md',
@@ -192,6 +442,340 @@ test('adds usage from every assistant turn, not only the last response', async (
     totalTokens: 48, cost: { input: 0.17, output: 0.28, cacheRead: 0.01, cacheWrite: 0.02, total: 0.48 } });
 });
 
+test('retains separate usage readings for each assistant call', async () => {
+  const first = assistant('pilot-gpt', 'sol', 'medium', 'Working');
+  first.message.stopReason = 'toolUse';
+  const second = assistant('pilot-gpt', 'sol', 'medium', 'Finished');
+  second.message.usage.input = 7;
+  second.message.usage.totalTokens = 8;
+  const fake = fakeSpawn([first, second]);
+  const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+    { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } });
+  assert.ok(Array.isArray(result.usageCalls), 'usageCalls must retain one reading per assistant call');
+  assert.equal(result.usageCalls.length, 2);
+  assert.deepEqual(result.usageCalls.map((call) => call.usage.input), [1, 7]);
+});
+
+test('reasoning and cacheWrite1h remain subsets and undefined cost retains current aggregate behavior', async () => {
+  const first = assistant('pilot-gpt', 'sol', 'medium', 'Working');
+  first.message.stopReason = 'toolUse';
+  first.message.usage = { input: 10, output: 20, cacheRead: 3, cacheWrite: 8,
+    totalTokens: 41, reasoning: 7, cacheWrite1h: 5 };
+  const second = assistant('pilot-gpt', 'sol', 'medium', 'Done');
+  second.message.usage = { input: 2, output: 4, cacheRead: 1, cacheWrite: 2,
+    totalTokens: 9, reasoning: 2, cacheWrite1h: 1 };
+  const fake = fakeSpawn([runtimeProof, first, second]);
+  const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl });
+  assert.deepEqual(result.usageCalls.map(call => call.completeness), ['known', 'known']);
+  assert.equal(result.usageCalls[0].usage.cost, undefined);
+  assert.deepEqual(result.usage, { input: 12, output: 24, cacheRead: 4, cacheWrite: 10, totalTokens: 50,
+    reasoning: 9, cacheWrite1h: 6, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } });
+});
+
+test('null usage through a budgeted job remains unknown and holds its reservation', async () => {
+  const budget = createJobBudget({ perJobUsd: 1, perSessionUsd: 3,
+    rates: { 'pilot-gpt/sol': { inputPerMTok: 2, outputPerMTok: 10 } }, modelOf: () => 'pilot-gpt/sol' });
+  let released = 0;
+  const jobs = createJobManager({ budget, gate: { tryAcquire: () => () => { released++; } },
+    run: async () => ({ text: 'done', usage: null, usageCalls: [{ completeness: 'unknown', usage: null }] }) });
+  const job = jobs.start('fixture', { role: 'strategist' });
+  assert.equal(budget.snapshot().reservedUsd, 1);
+  await new Promise(resolve => setImmediate(resolve));
+  const result = jobs.collect(job.id);
+  assert.equal(result.usage, null);
+  assert.equal(result.usageUnknown, true);
+  assert.deepEqual(result.cost, { unknown: true });
+  assert.equal(budget.snapshot().reservedUsd, 1);
+  assert.equal(budget.snapshot().spentUsd, 0);
+  assert.equal(released, 1);
+  await jobs.shutdown();
+});
+
+test('extension tool results omit unknown usage for synchronous and council calls', async () => {
+  const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
+  const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*;[ \t]*$/gm, '')
+    .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
+    .replace(/export default function \(pi\s*\)/, 'function register(pi)') + '\nregister';
+  const tools = new Map();
+  const known = { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2 };
+  const single = { role: 'coder', model: 'fixture', thinking: 'medium', text: 'done', usage: null, usageCalls: [] };
+  const council = { verdict: 'ADVISORY', evidenceSha256: 'fixture',
+    perspectives: [{ perspective: 'coder', text: 'done', usage: null, usageCalls: [] }],
+    synthesis: { text: 'done', usage: known, usageCalls: [] } };
+  const sandbox = { ...strippedImportBindings, process: { env: { PI_ROLE_POLICY_PATH: path.resolve('fixture-policy.json') } },
+    Type: { Object: () => ({}), String: () => ({}), Union: () => ({}), Literal: () => ({}), Optional: () => ({}) },
+    loadRolePolicy: () => policy, runRole: async () => single, runCouncilPerspective: async () => single,
+    runCouncilSession: async () => council, registerExplorerJobs: () => {}, createExpensiveGate: () => ({}),
+    withExpensiveGate: async (_gate, _label, run) => run() };
+  const register = runInNewContext(js, sandbox);
+  register({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
+  const roleResult = await tools.get('pi_role_agent').execute('id', { role: 'coder', task: 'fixture' }, undefined, undefined, { cwd: '.' });
+  const councilResult = await tools.get('pi_council').execute('id', { question: 'fixture' }, undefined, undefined, { cwd: '.' });
+  for (const result of [roleResult, councilResult]) {
+    assert.equal(Object.hasOwn(result, 'usage'), false);
+    assert.equal(result.details.usageComplete, false);
+  }
+  single.usage = known; council.perspectives[0].usage = known;
+  const roleKnown = await tools.get('pi_role_agent').execute('id', { role: 'coder', task: 'fixture' }, undefined, undefined, { cwd: '.' });
+  const councilKnown = await tools.get('pi_council').execute('id', { question: 'fixture' }, undefined, undefined, { cwd: '.' });
+  assert.equal(roleKnown.usage.input, 1);
+  assert.equal(councilKnown.usage.input, 2);
+  assert.equal(councilKnown.details.usageComplete, true);
+});
+
+test('role tool preserves persisted failures and perspective recheck errors', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-t4-role-tool-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const dir = path.join(root, 'Artifacts', '.agent', 'pi-results'); fs.mkdirSync(dir, { recursive: true });
+  const failures = [];
+  try {
+  const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
+  const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*;[ \t]*$/gm, '')
+    .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
+    .replace(/export default function \(pi\s*\)/, 'function register(pi)') + '\nregister';
+  const tools = new Map(); const seen = []; let mode = 'success';
+  const fakeRun = async (...args) => {
+    const opts = args.at(-1); seen.push(opts);
+    const id = opts.resultStore?.dispatchId ?? `fallback-${seen.length}`;
+    const role = typeof args[1] === 'string' ? args[1] : args[1].perspective;
+    const receipt = persistFullResult({ dir, dispatchId: id, role, completeness: mode === 'success' ? 'complete' : 'partial', text: 'retained control' });
+    const envelope = buildEnvelope({ status: mode === 'success' ? 'COMPLETE' : 'INCOMPLETE', persisted: receipt,
+      identity: { dispatchId: id, role }, summarySource: 'retained control' });
+    if (mode !== 'success') throw Object.assign(new Error(mode), { persisted: receipt, envelope, partialText: 'retained control' });
+    return { role, model: 'fixture', thinking: 'medium', text: 'SECRET'.repeat(10000), persisted: receipt, envelope, usage: null };
+  };
+  const sandbox = { ...strippedImportBindings, process: { env: { PI_ROLE_POLICY_PATH: path.resolve('fixture-policy.json') } },
+    Type: { Object: () => ({}), String: () => ({}), Union: () => ({}), Literal: () => ({}), Optional: () => ({}) },
+    loadRolePolicy: () => policy, runRole: fakeRun, runCouncilPerspective: fakeRun,
+    runCouncilSession: async () => ({}), registerExplorerJobs: () => {}, createExpensiveGate: () => ({}),
+    withExpensiveGate: async (_gate, _label, run) => run() };
+  runInNewContext(js, sandbox)({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
+  const execute = (params, id) => tools.get('pi_role_agent').execute(id, params, undefined, undefined, { cwd: root });
+  const success = await execute({ role: 'coder', task: 'work' }, 'sync-success');
+  const interrupted = [];
+  for (const failure of ['failed', 'aborted']) {
+    mode = failure;
+    let output; try { output = await execute({ role: 'coder', task: 'work' }, `sync-${failure}`); } catch (error) { output = error; }
+    interrupted.push({ failure, output, options: seen.at(-1) });
+  }
+  mode = 'success'; await execute({ role: 'council-perspective', perspective: 'coder', task: 'work',
+    evidencePath: '/fixture', evidenceSha256: 'a'.repeat(64) }, 'perspective');
+  assert.ok(seen[0].resultStore, 'synchronous dispatch must provide resultStore');
+  assert.equal(seen[0].resultStore.dir, dir);
+  assert.ok(Buffer.byteLength(success.content.map(p => p.text ?? '').join('')) <= 2048);
+  assert.match(success.content[0].text, /sha256/, 'descriptor presence control');
+  assert.ok(!JSON.stringify(success.details).includes('SECRETSECRET'));
+  for (const { failure, output, options } of interrupted) {
+    assert.ok(options.resultStore, `${failure} dispatch has resultStore`);
+    assert.ok(output.persisted || JSON.stringify(output).includes('sha256'), `${failure} must preserve receipt or descriptor`);
+    const text = output.envelope ?? output.content?.map(p => p.text ?? '').join('') ?? '';
+    assert.match(text, /INCOMPLETE/); assert.ok(Buffer.byteLength(text) <= 2048);
+  }
+  assert.ok(seen.at(-1).resultStore, 'council perspective also receives resultStore');
+  } catch (error) { failures.push(error); }
+
+  try {
+  const evidenceDir = path.join(root, 'Artifacts', 'Temp'); fs.mkdirSync(evidenceDir, { recursive: true });
+  const evidencePath = path.join(evidenceDir, 'evidence.txt'); fs.writeFileSync(evidencePath, 'unchanged evidence');
+  const evidenceSha256 = createHash('sha256').update(fs.readFileSync(evidencePath)).digest('hex');
+  const persisted = persistFullResult({ dir, dispatchId: 'recheck', role: 'coder', completeness: 'complete', text: 'perspective control' });
+  await assert.rejects(runCouncilPerspective(policy, { perspective: 'coder', question: 'review', evidencePath, evidenceSha256 }, root, '/prompt',
+    { resultStore: { dir, dispatchId: 'recheck' }, runRoleImpl: async (_p, _r, _t, _c, _prompt, options) => {
+      assert.equal(options.resultStore.dispatchId, 'recheck'); fs.writeFileSync(evidencePath, 'mutated evidence');
+      return { role: 'coder', text: 'perspective control', persisted };
+    } }), error => {
+    assert.strictEqual(error.persisted, persisted, 'same process-local receipt must survive recheck error');
+    assert.match(error.envelope ?? error.message, /INCOMPLETE/); return true;
+  });
+  } catch (error) { failures.push(error); }
+  assert.equal(failures.length, 0, failures.map(error => error.message).join('\n'));
+});
+
+function step3RoleTool(runRoleImpl) {
+  const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
+  const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*;[ \t]*$/gm, '')
+    .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
+    .replace(/export default function \(pi\s*\)/, 'function register(pi)') + '\nregister';
+  const tools = new Map();
+  const sandbox = { ...strippedImportBindings, process: { env: { PI_ROLE_POLICY_PATH: path.resolve('fixture-policy.json') } },
+    Type: { Object: () => ({}), String: () => ({}), Union: () => ({}), Literal: () => ({}), Optional: () => ({}) },
+    loadRolePolicy: () => policy, runRole: runRoleImpl, runCouncilPerspective: runRoleImpl,
+    runCouncilSession: async () => ({}), registerExplorerJobs: () => {}, createExpensiveGate: () => ({}),
+    withExpensiveGate: async (_gate, _label, run) => run() };
+  runInNewContext(js, sandbox)({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
+  return cwd => tools.get('pi_role_agent').execute('id', { role: 'coder', task: 'work' }, undefined, undefined, { cwd });
+}
+
+test('step3 synchronous output exposes final summary and bounded aggregate usage', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-step3-sync-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const reading = { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 2,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+  let receipt;
+  const execute = step3RoleTool(async (_p, role, _task, _cwd, _prompt, { resultStore }) => {
+    const text = 'Verdict: FAIL synchronous unique finding';
+    receipt = persistFullResult({ ...resultStore, role, completeness: 'complete', text });
+    return { role, model: 'fixture', thinking: 'medium', text, persisted: receipt, usage: reading,
+      usageCalls: [{ completeness: 'known', usage: reading }],
+      envelope: buildEnvelope({ status: 'COMPLETE', persisted: receipt,
+        identity: { dispatchId: resultStore.dispatchId, role }, summarySource: text }) };
+  });
+  const out = await execute(root); const text = out.content[0].text;
+  assert.match(text, /^Summary: Verdict: FAIL synchronous unique finding$/m);
+  assert.ok(text.includes(receipt.ref) && text.includes(receipt.sha256));
+  assert.ok(Buffer.byteLength(text) <= 2048);
+  assert.equal(out.details.usage.totalTokens, 2);
+  assert.equal(out.details.usage.complete, true);
+  assert.equal(Object.hasOwn(out.details, 'usageCalls'), false);
+  assert.equal(Array.isArray(out.details.usage), false);
+});
+
+test('step3 synchronous details include aggregate usage and completeness without call arrays', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-step3-usage-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const reading = { input: 1, output: 2, cacheRead: 0, cacheWrite: 0, totalTokens: 3,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
+  const execute = step3RoleTool(async (_p, role, _task, _cwd, _prompt, { resultStore }) => {
+    const persisted = persistFullResult({ ...resultStore, role, completeness: 'complete', text: 'done' });
+    return { role, model: 'fixture', thinking: 'medium', text: 'done', persisted, usage: reading,
+      usageCalls: [{ completeness: 'known', usage: reading }] };
+  });
+  const out = await execute(root);
+  assert.equal(out.details.usage?.totalTokens, 3);
+  assert.equal(out.details.usage.complete, true);
+  assert.equal(Object.hasOwn(out.details, 'usageCalls'), false);
+  assert.equal(Array.isArray(out.details.usage), false);
+});
+
+test('step3 synchronous failure message is the bounded envelope with descriptor', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-step3-error-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  let original;
+  const execute = step3RoleTool(async (_p, role, _task, _cwd, _prompt, { resultStore }) => {
+    const partialText = 'partial result';
+    const persisted = persistFullResult({ ...resultStore, role, completeness: 'partial', text: partialText });
+    original = Object.assign(new Error('failed'), { persisted, partialText, usageCalls: [{ completeness: 'unknown' }] });
+    throw original;
+  });
+  await assert.rejects(execute(root), error => {
+    assert.strictEqual(error, original);
+    assert.match(error.message, /^Status: INCOMPLETE/m);
+    assert.ok(error.message.includes(error.persisted.ref) && error.message.includes(error.persisted.sha256));
+    assert.equal(error.message, error.envelope);
+    assert.equal(error.partialText, 'partial result');
+    assert.equal(error.usageCalls.length, 1);
+    assert.ok(Buffer.byteLength(error.message) <= 2048);
+    return true;
+  });
+});
+
+test('step3 synchronous store setup failure is bounded incomplete without raw filesystem error', async (t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-step3-setup-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'Artifacts'), 'not a directory');
+  let called = false;
+  const execute = step3RoleTool(async () => { called = true; });
+  await assert.rejects(execute(root), error => {
+    assert.match(error.message, /^Status: INCOMPLETE/m);
+    assert.doesNotMatch(error.message, /ENOTDIR|EEXIST|not a directory/i);
+    assert.ok(Buffer.byteLength(error.message) <= 2048);
+    return true;
+  });
+  assert.equal(called, false);
+});
+
+test('extension does not bypass the scoped runtime for synchronous, council or background dispatch', () => {
+  const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /invocation:\s*invocation\(\)/);
+  assert.match(source, /usageCalls/);
+});
+
+test('default dispatch uses the scoped runtime without changing coder argv', async () => {
+  const proof = { type: 'pi_child_runtime', retryEnabled: false, retryMaxRetries: 0,
+    providerMaxRetries: 0, compactionEnabled: false };
+  const fake = fakeSpawn([proof, assistant('pilot-gpt', 'sol', 'medium', 'Done')]);
+  const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl });
+  assert.equal(result.runtimeVerified, true);
+  assert.equal(fake.calls[0].command, process.execPath);
+  assert.match(fake.calls[0].args[0], /child-runtime\.mjs$/);
+  assert.equal(fake.calls[0].args[fake.calls[0].args.indexOf('--tools') + 1], policy.roles.coder.tools.join(','));
+  assert.equal(fake.calls[0].args[fake.calls[0].args.indexOf('--model') + 1], policy.roles.coder.model);
+  assert.ok(fake.calls[0].args.includes('--extension'));
+});
+
+test('default dispatch rejects missing or invalid runtime proof; injected invocation remains unverified', async () => {
+  for (const proof of [null, { type: 'pi_child_runtime', retryEnabled: true, retryMaxRetries: 0,
+    providerMaxRetries: 0, compactionEnabled: false }]) {
+    const events = [...(proof ? [proof] : []), assistant('pilot-gpt', 'sol', 'medium', 'Done')];
+    const fake = fakeSpawn(events);
+    await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl }),
+      error => error.partial === true && error.runtimeVerified === false && /runtime.*verif/i.test(error.message));
+    const injected = fakeSpawn(events);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
+      { spawnImpl: injected.spawnImpl, invocation: { command: 'fixture', args: [] } });
+    assert.equal(result.runtimeVerified, false);
+  }
+});
+
+test('missing, zero-only and nonfinite call readings remain unknown even beside known usage', async () => {
+  for (const reading of [undefined, { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 },
+    { input: Infinity, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 1 },
+    { input: 1, output: 1, cacheRead: 0, cacheWrite: 0, cost: { total: Infinity } },
+    { input: 1, output: 1, cacheRead: 0, cacheWrite: 0 },
+    { input: 1, output: 1 }]) {
+    const first = assistant('pilot-gpt', 'sol', 'medium', 'Working');
+    first.message.stopReason = 'toolUse'; first.message.usage = reading;
+    const fake = fakeSpawn([runtimeProof, first, assistant('pilot-gpt', 'sol', 'medium', 'Done')]);
+    const result = await runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl });
+    assert.deepEqual(result.usageCalls.map(call => call.completeness), ['unknown', 'known']);
+    assert.equal(result.usage, null, 'incomplete aggregate must not settle as a free or partial charge');
+  }
+});
+
+test('background jobs retain known and partial per-call usage on collection', async () => {
+  const calls = [{ stopReason: 'error', completeness: 'unknown', usage: null }];
+  for (const failed of [false, true]) {
+    const jobs = createJobManager({ run: async () => {
+      if (failed) { const error = new Error('context overflow'); error.usageCalls = calls; throw error; }
+      return { text: 'Done', usage: null, usageCalls: calls };
+    } });
+    const job = jobs.start('fixture');
+    await new Promise(resolve => setImmediate(resolve));
+    const result = jobs.collect(job.id);
+    assert.deepEqual(result.usageCalls, calls);
+    assert.equal(result.usageUnknown, true);
+    await jobs.shutdown();
+  }
+});
+
+test('context overflow is partial and preserves the failed call usage', async () => {
+  const event = assistant('pilot-gpt', 'sol', 'medium', '');
+  event.message.stopReason = 'error'; event.message.errorMessage = 'context overflow';
+  const fake = fakeSpawn([event]);
+  await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl }), error => {
+    assert.match(error.message, /partial.*context overflow/i);
+    assert.equal(error.partial, true);
+    assert.equal(error.usageCalls.length, 1);
+    assert.equal(error.usageCalls[0].completeness, 'known');
+    return true;
+  });
+  assert.equal(fake.calls.length, 1);
+});
+
+test('zero-usage overflow rejects as partial with unknown call and null usage', async () => {
+  const event = assistant('pilot-gpt', 'sol', 'medium', '');
+  event.message.stopReason = 'error'; event.message.errorMessage = 'context overflow';
+  event.message.usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
+  const fake = fakeSpawn([runtimeProof, event]);
+  await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md', { spawnImpl: fake.spawnImpl }), error => {
+    assert.match(error.message, /partial.*context overflow/i);
+    assert.equal(error.usageCalls[0].completeness, 'unknown');
+    assert.equal(error.usage, null);
+    return true;
+  });
+  assert.equal(fake.calls.length, 1);
+});
+
 test('rejects incorrect observed model even with exit zero', async () => {
   const fake = fakeSpawn([assistant('google', 'gemini-2.5-pro', 'high', 'Not permitted')]);
   await assert.rejects(runRole(policy, 'auditor', 'Review', '.', '/tmp/role.md',
@@ -203,6 +787,16 @@ test('rejects incorrect observed thinking even with exit zero', async () => {
   await assert.rejects(runRole(policy, 'strategist', 'Plan', '.', '/tmp/role.md',
     { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /Unexpected thinking/);
 });
+
+for (const toolName of ['bash', 'powershell', 'edit', 'write', 'mcp__mutate']) {
+  test(`rejects observed strategist ${toolName} execution`, async () => {
+    const fake = fakeSpawn([{ type: 'tool_execution_start', toolName, args: {} },
+      assistant('pilot-gpt', 'sol', 'high', 'Plan')]);
+    await assert.rejects(runRole(policy, 'strategist', 'Plan', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }),
+    new RegExp(`Strategist attempted ${toolName} tool`));
+  });
+}
 
 test('rejects auditor write-tool execution and subagent error responses', async () => {
   const fake = fakeSpawn([{ type: 'tool_execution_start', toolName: 'write', args: { path: 'src/a.py' } },
@@ -244,6 +838,32 @@ test('rejects any observed auditor bash execution even if policy tools were bypa
   await assert.rejects(runRole(policy, 'auditor', 'Review', '.', '/tmp/role.md',
     { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /Auditor attempted bash/);
 });
+
+for (const role of ['explorer', 'strategist', 'auditor']) {
+  test(`${role}: default deadline is ten minutes, not before, with a pending fake child`, async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const expanded = { ...policy, roles: { ...policy.roles,
+      explorer: { model: 'pilot-gpt/luna', thinking: 'low', tools: ['read', 'grep', 'find', 'ls'] } } };
+    const signals = [];
+    const child = new EventEmitter();
+    child.stdout = new PassThrough(); child.stderr = new PassThrough();
+    child.kill = signal => { signals.push(signal); return true; };
+    let settled = false;
+    const pending = runRole(expanded, role, 'fixture', '.', '/tmp/role.md', {
+      spawnImpl: () => child, killerImpl: () => { throw new Error('no real killer'); },
+    }).then(() => { settled = true; return null; }, error => { settled = true; return error; });
+    t.mock.timers.tick(599999);
+    await Promise.resolve();
+    assert.equal(settled, false);
+    assert.deepEqual(signals, [], 'the child is still pending just before the deadline');
+    t.mock.timers.tick(1);
+    assert.deepEqual(signals, ['SIGTERM']);
+    assert.equal(settled, false, 'timeout must wait for cleanup');
+    child.emit('close', null);
+    const error = await pending;
+    assert.match(error?.message ?? '', new RegExp(`Pi ${role} subagent timed out after 600000 ms`));
+  });
+}
 
 test('returns a bounded timeout error when a child ignores termination', async () => {
   const signals = [];
@@ -562,4 +1182,110 @@ test('fails if child exits without a final assistant response', async () => {
   const fake = fakeSpawn([], 1);
   await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
     { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /exited with code 1/);
+});
+
+// ---- PI-8 T4: expectedVerdict (auditor VERDICT line enforced in the runner)
+const V = { task: 'T4', todo: 'Artifacts/Plans/X-TODO.md', taskSha256: 'a'.repeat(64) };
+const vline = (verdict = 'PASS', o = {}) => `VERDICT: ${verdict} task=${o.task ?? V.task} todo=${o.todo ?? V.todo} taskSha256=${o.taskSha256 ?? V.taskSha256}`;
+async function auditWith(text, expectedVerdict = V, id = 'v1') {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-verdict-runner-'));
+  try {
+    const fake = fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', text)]);
+    const result = await runRole(policy, 'auditor', 'Review', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] }, resultStore: { dir, dispatchId: id }, expectedVerdict });
+    const file = fs.readFileSync(result.persisted.ref, 'utf8');
+    return { result, header: JSON.parse(file.slice(0, file.indexOf('\n'))), files: fs.readdirSync(dir) };
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
+
+test('expectedVerdict: a final matching VERDICT line stays complete', async () => {
+  for (const v of ['PASS', 'FAIL', 'INCOMPLETE']) {
+    const { result, header } = await auditWith(`Findings.\n${vline(v)}`, V, `ok-${v}`);
+    assert.equal(header.completeness, 'complete', v);
+    assert.equal(result.persisted.completeness, 'complete');
+    assert.match(result.envelope, /Status: COMPLETE/);
+    assert.equal(result.verdictStatus, 'ok');
+  }
+});
+
+test('expectedVerdict: absent, duplicate, trailing, wrong-hash, wrong-task and malformed lines persist as partial and report INCOMPLETE', async () => {
+  const cases = {
+    absent: 'Looks fine. PASS',
+    duplicate: `${vline()}\n${vline('FAIL')}`,
+    trailing: `${vline()}\nextra words`,
+    wrongHash: vline('PASS', { taskSha256: 'b'.repeat(64) }),
+    wrongTask: vline('PASS', { task: 'T5' }),
+    wrongTodo: vline('PASS', { todo: 'Artifacts/Plans/Y-TODO.md' }),
+    malformed: 'VERDICT: pass task=T4',
+    quoted: `The line is ${vline()} here\n${vline()}`,
+  };
+  for (const [name, text] of Object.entries(cases)) {
+    const { result, header } = await auditWith(text, V, `bad-${name}`);
+    assert.equal(header.completeness, 'partial', name);
+    assert.equal(result.persisted.completeness, 'partial', name);
+    assert.match(result.envelope, /Status: INCOMPLETE/, name);
+    assert.match(result.envelope, /VERDICT/, name);
+    assert.equal(result.verdictStatus, 'INCOMPLETE', name);
+  }
+});
+
+test('expectedVerdict: a bad line does not make usage unknown or throw', async () => {
+  const { result } = await auditWith('no verdict', V, 'usage');
+  assert.notEqual(result.usage, null);
+});
+
+test('expectedVerdict is validated: auditor-only, well-formed fields', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-verdict-opts-'));
+  try {
+    const run = (role, expectedVerdict) => runRole(policy, role, 'x', '.', '/tmp/role.md',
+      { spawnImpl: fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', 'x')]).spawnImpl, invocation: { command: 'pi', args: [] },
+        resultStore: { dir, dispatchId: 'opt' }, expectedVerdict });
+    await assert.rejects(run('coder', V), /auditor/);
+    await assert.rejects(run('auditor', { ...V, taskSha256: 'short' }), /expectedVerdict/);
+    await assert.rejects(run('auditor', { task: 'T4' }), /expectedVerdict/);
+    await assert.rejects(run('auditor', 'T4'), /expectedVerdict/);
+    assert.deepEqual(fs.readdirSync(dir), []);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('without expectedVerdict an auditor result is unchanged (no line required)', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-verdict-none-'));
+  try {
+    const fake = fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', 'PASS with no verdict line')]);
+    const result = await runRole(policy, 'auditor', 'Review', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] }, resultStore: { dir, dispatchId: 'plain' } });
+    assert.equal(result.persisted.completeness, 'complete');
+    assert.equal(result.verdictStatus, undefined);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---- T5 mutation-pass additions (survivors turned into tests)
+test('T5: expectedVerdict without a resultStore is refused, and falsy values are not silently ignored', async () => {
+  const run = (expectedVerdict, resultStore) => runRole(policy, 'auditor', 'x', '.', '/tmp/role.md',
+    { spawnImpl: fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', 'x')]).spawnImpl, invocation: { command: 'pi', args: [] },
+      expectedVerdict, ...(resultStore ? { resultStore } : {}) });
+  await assert.rejects(run(V), /resultStore/);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-verdict-falsy-'));
+  try {
+    for (const bad of [null, '', 0, false]) await assert.rejects(run(bad, { dir, dispatchId: 'f' }), /expectedVerdict/, String(bad));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('T5: the whole persisted text is checked, so a quoted line in earlier narration makes the audit INCOMPLETE', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-verdict-narr-'));
+  try {
+    const fake = fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', `Draft: ${vline('FAIL')}`), assistant('pilot-claude', 'sonnet', 'high', vline())]);
+    const result = await runRole(policy, 'auditor', 'Review', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] }, resultStore: { dir, dispatchId: 'narr' }, expectedVerdict: V });
+    assert.equal(result.verdictStatus, 'INCOMPLETE');
+    assert.equal(result.persisted.completeness, 'partial');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('T5: the INCOMPLETE envelope names the specific reason and keeps the final text as the summary', async () => {
+  const { result } = await auditWith('Looks fine, ship it', V, 'reason');
+  assert.match(result.envelope, /no VERDICT line/);
+  assert.match(result.envelope, /Summary: Looks fine, ship it/);
+  const wrong = await auditWith(vline('PASS', { task: 'T5' }), V, 'reason2');
+  assert.match(wrong.result.envelope, /task does not match/);
 });

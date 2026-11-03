@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { test } from 'node:test';
+import fs, { readFileSync } from 'node:fs';
+import os from 'node:os';
+import { createHash } from 'node:crypto';
+import { test, beforeEach } from 'node:test';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { registerExplorerJobs } from '../pi/lib/explorer-jobs.mjs';
+import { createExpensiveGate } from '../pi/lib/expensive-gate.mjs';
+import { persistFullResult, buildEnvelope } from '../pi/lib/result-contract.mjs';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Identity-style schema builder: the tests inspect behavior, not TypeBox internals.
@@ -12,31 +16,236 @@ const usage = (total) => ({ input: total, output: 0, cacheRead: 0, cacheWrite: 0
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } });
 const tick = () => new Promise(resolve => setImmediate(resolve));
 
-function setup({ explorer = true } = {}) {
+// Top-level tests run sequentially; each receives its own real project directory.
+let projectCwd;
+beforeEach((t) => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-explorer-project-')));
+  projectCwd = root;
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+});
+
+function setup({ explorer = true, strategist = false, auditor = false, accessImpl = () => {}, promptPaths, defaultAccess = false,
+  jobBudget = { perJobUsd: 1, perSessionUsd: 3, rates: { 'pilot-gpt/luna': { inputPerMTok: 2, outputPerMTok: 4 } } }, gate = createExpensiveGate() } = {}) {
   const tools = new Map();
   const handlers = new Map();
-  const pi = { registerTool: (def) => tools.set(def.name, def), on: (name, handler) => handlers.set(name, handler) };
+  const messages = [];
+  const pi = { registerTool: (def) => tools.set(def.name, def), on: (name, handler) => handlers.set(name, handler),
+    sendMessage: (...args) => messages.push(['sendMessage', ...args]), sendUserMessage: (...args) => messages.push(['sendUserMessage', ...args]) };
   const runs = [];
   const runRoleImpl = (policy, role, task, cwd, promptPath, options) => new Promise((resolve, reject) => {
     const run = { policy, role, task, cwd, promptPath, options, resolve, reject };
     options.signal.addEventListener('abort', () => { run.aborted = true; }, { once: true });
     runs.push(run);
   });
-  const policy = { roles: explorer ? { explorer: { model: 'pilot-gpt/luna', thinking: 'medium',
-    tools: ['read', 'grep', 'find', 'ls'] } } : {} };
-  registerExplorerJobs(pi, { Type, policy, promptPath: '/src/agents/explorer.md',
-    invocation: { command: 'pi', args: [] }, runRoleImpl });
-  const call = (params, { id = `tc-${Math.random()}`, signal, cwd = '/project' } = {}) =>
+  const binding = { model: 'pilot-gpt/luna', thinking: 'medium', tools: ['read', 'grep', 'find', 'ls'] };
+  const policy = { jobBudget, roles: { ...(explorer ? { explorer: binding } : {}),
+    ...(strategist ? { strategist: binding } : {}), ...(auditor ? { auditor: binding } : {}) } };
+  const jobs = registerExplorerJobs(pi, { Type, policy, gate, promptPath: '/src/agents/explorer.md', promptPaths,
+    ...(defaultAccess ? {} : { accessImpl }), invocation: { command: 'pi', args: [] }, runRoleImpl });
+  const call = (params, { id = `tc-${Math.random()}`, signal, cwd = projectCwd } = {}) =>
     tools.get('pi_explorer_job').execute(id, params, signal, undefined, { cwd });
-  return { tools, handlers, runs, call, policy };
+  const sessionStart = (ctx) => handlers.get('session_start')({ type: 'session_start' }, ctx);
+  return { tools, handlers, runs, call, policy, sessionStart, jobs, messages };
 }
 const result = (text = 'Source: a.mjs:1', total = 7) => ({ role: 'explorer', model: 'pilot-gpt/luna',
   thinking: 'medium', text, usage: usage(total), toolCounts: { read: 1 }, successfulReads: 1 });
 
-test('registers the job tool and exactly the two lifecycle hooks only when an explorer role is configured', () => {
+function jobWitness(root, job, role, text, completeness = 'complete') {
+  const dir = path.join(root, 'Artifacts', '.agent', 'pi-results'); fs.mkdirSync(dir, { recursive: true });
+  const persisted = persistFullResult({ dir, dispatchId: job.id, role, text, completeness });
+  const envelope = buildEnvelope({ status: completeness === 'complete' ? 'COMPLETE' : 'INCOMPLETE', persisted,
+    identity: { dispatchId: job.id, role }, summarySource: text });
+  return { persisted, envelope };
+}
+
+test('registered collection bounds the whole response', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs, jobs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const { details: { job } } = await call({ action: 'start', task: 'review', role: 'auditor',
+    evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  const long = 'résultat🚀'.repeat(8000) + 'SECRET-FULL-TAIL';
+  const witness = jobWitness(f.root, job, 'auditor', long);
+  runs[0].resolve({ ...result(long, 1000000), ...witness, usageCalls: Array(100).fill({ secret: long }) }); await tick();
+  fs.writeFileSync(f.capture, 'changed');
+  const out = await call({ action: 'collect', jobId: job.id });
+  const text = out.content.map(part => part.text ?? '').join('');
+  const failure = (await call({ action: 'start', task: 'long error' }, { cwd: f.root })).details.job;
+  const partial = jobWitness(f.root, failure, 'explorer', 'partial control', 'partial');
+  runs[1].reject(Object.assign(new Error('é'.repeat(8000)), partial, { partialText: 'partial control' })); await tick();
+  const failed = await call({ action: 'collect', jobId: failure.id });
+  const longReason = jobs.start('long evidence reason', { context: { cwd: f.root },
+    evidence: { verify: () => { throw new Error('é'.repeat(4000)); } } });
+  const reasonWitness = jobWitness(f.root, longReason, 'explorer', 'evidence control');
+  runs[2].resolve({ ...result('evidence control'), ...reasonWitness }); await tick();
+  const reasonResult = await call({ action: 'collect', jobId: longReason.id });
+  assert.ok(Buffer.byteLength(text) <= 2048, `whole response is ${Buffer.byteLength(text)} bytes`);
+  assert.ok(text.includes(witness.persisted.ref) && text.includes(witness.persisted.sha256), 'retained descriptor present');
+  assert.match(text, /INCOMPLETE/, 'changed evidence must be visible');
+  assert.ok(!JSON.stringify(out.details).includes('SECRET-FULL-TAIL'), 'details must not contain full result');
+  assert.equal(Object.hasOwn(out.details, 'usageCalls'), false, 'details must not copy per-call arrays');
+  assert.ok(Buffer.byteLength(failed.content.map(part => part.text ?? '').join('')) <= 2048);
+  assert.ok(failed.content[0].text.includes(partial.persisted.ref));
+  assert.ok(Buffer.byteLength(reasonResult.content.map(part => part.text ?? '').join('')) <= 2048);
+  assert.match(reasonResult.content[0].text, /INCOMPLETE/);
+  assert.ok(reasonResult.content[0].text.includes(reasonWitness.persisted.ref));
+});
+
+test('completion performs no automatic collection or model action', async (t) => {
+  const f = auditFixture(t); const env = setup(); const notices = [];
+  env.sessionStart({ hasUI: true, ui: { notify: (...args) => notices.push(args) } });
+  let collects = 0; const collect = env.jobs.collect;
+  env.jobs.collect = (...args) => { collects++; return collect(...args); };
+  const { details: { job } } = await env.call({ action: 'start', task: 'no continuation' }, { cwd: f.root });
+  const witness = jobWitness(f.root, job, 'explorer', 'secret body');
+  env.runs[0].resolve({ ...result('secret body'), ...witness }); await tick();
+  const settlement = path.join(f.root, 'Artifacts', '.agent', 'pi-results', `${job.id}.settlement.json`);
+  const settledBeforeCollect = fs.existsSync(settlement);
+  assert.equal(collects, 0); assert.deepEqual(env.messages, []);
+  assert.equal(notices.length, 1); assert.ok(notices[0][0].includes(job.id));
+  assert.ok(!JSON.stringify(notices).includes('secret body'), 'notification is metadata only');
+  await env.call({ action: 'collect', jobId: job.id });
+  assert.equal(collects, 1, 'explicit collection presence control');
+  assert.deepEqual(env.messages, []);
+  assert.ok(settledBeforeCollect, 'settlement must be visible before any collection');
+});
+
+test('detached job notification documentation states best-effort UI availability', () => {
+  const readme = readFileSync(path.join(repo, 'pi/README.md'), 'utf8');
+  const paragraph = readme.split('\n').find(line => line.startsWith('**Detached read-only jobs'));
+  const description = setup().tools.get('pi_explorer_job').description;
+  for (const text of [paragraph, description]) {
+    assert.match(text, /best-effort/i);
+    assert.match(text, /\bUI\b/);
+    assert.match(text, /metadata-only notification when a job finishes; it never starts a model turn\./);
+  }
+});
+
+test('session UI receives one metadata-only notification after a job finishes', async () => {
+  const { call, runs, sessionStart } = setup();
+  const notifications = [];
+  sessionStart({ hasUI: true, ui: { notify: (...args) => notifications.push(args) } });
+  const { details: { job } } = await call({ action: 'start', task: 'explore' });
+  assert.deepEqual(notifications, []);
+  runs[0].resolve(result('SECRET ANSWER')); await tick();
+  assert.deepEqual(notifications, [[`Job ${job.id} (explorer) succeeded. Use pi_explorer_job collect with this id.`, 'info']]);
+});
+
+test('no UI and no session_start are silent, with UI presence control', async () => {
+  const { call, runs, sessionStart } = setup(); const notifications = [];
+  let job = (await call({ action: 'start', task: 'before session start' })).details.job;
+  runs[0].resolve(result()); await tick();
+  assert.equal((await call({ action: 'collect', jobId: job.id })).details.state, 'succeeded');
+  sessionStart({ hasUI: false, ui: { notify: (...args) => notifications.push(args) } });
+  job = (await call({ action: 'start', task: 'headless' })).details.job;
+  runs[1].resolve(result()); await tick();
+  assert.deepEqual(notifications, []);
+  sessionStart({ hasUI: true, ui: { notify: (...args) => notifications.push(args) } });
+  job = (await call({ action: 'start', task: 'control' })).details.job;
+  runs[2].resolve(result()); await tick();
+  assert.deepEqual(notifications, [[`Job ${job.id} (explorer) succeeded. Use pi_explorer_job collect with this id.`, 'info']]);
+});
+
+test('session start replaces UI with headless and can restore UI notifications', async () => {
+  const { call, runs, sessionStart } = setup(); const notifications = [];
+  const ui = { notify: (...args) => notifications.push(args) };
+  sessionStart({ hasUI: true, ui });
+  const silent = (await call({ action: 'start', task: 'settle headless' })).details.job;
+  sessionStart({ hasUI: false, ui });
+  runs[0].resolve(result()); await tick();
+  assert.equal((await call({ action: 'status', jobId: silent.id })).details.job.state, 'succeeded');
+  assert.deepEqual(notifications, []);
+  sessionStart({ hasUI: true, ui });
+  const control = (await call({ action: 'start', task: 'UI control' })).details.job;
+  runs[1].resolve(result()); await tick();
+  assert.deepEqual(notifications, [[`Job ${control.id} (explorer) succeeded. Use pi_explorer_job collect with this id.`, 'info']]);
+});
+
+test('shutdown clears notifier before a late quarantined settlement', async () => {
+  const { call, runs, handlers, sessionStart } = setup(); const notifications = [];
+  sessionStart({ hasUI: true, ui: { notify: (...args) => notifications.push(args) } });
+  const control = (await call({ action: 'start', task: 'control' })).details.job;
+  runs[0].resolve(result()); await tick();
+  assert.deepEqual(notifications, [[`Job ${control.id} (explorer) succeeded. Use pi_explorer_job collect with this id.`, 'info']]);
+  await call({ action: 'start', task: 'late' });
+  const closing = handlers.get('session_shutdown')({ type: 'session_shutdown' });
+  runs[1].reject(new Error('cleanup unconfirmed')); await closing;
+  assert.equal(notifications.length, 1);
+});
+
+test('tree discard retains notifier for quarantined and fresh jobs, but not discarded normal jobs', async () => {
+  const { call, runs, handlers, sessionStart } = setup(); const notifications = [];
+  sessionStart({ hasUI: true, ui: { notify: (...args) => notifications.push(args) } });
+  const stuck = (await call({ action: 'start', task: 'stuck' })).details.job;
+  await call({ action: 'start', task: 'normal' });
+  const drain = handlers.get('session_tree')({ type: 'session_tree' });
+  runs[0].reject(new Error('cleanup unconfirmed secret')); runs[1].resolve(result('secret')); await drain;
+  assert.deepEqual(notifications, [[`Job ${stuck.id} (explorer) failed. Use pi_explorer_job collect with this id.`, 'info']]);
+  const fresh = (await call({ action: 'start', task: 'fresh' })).details.job;
+  runs[2].resolve(result()); await tick();
+  assert.deepEqual(notifications[1], [`Job ${fresh.id} (explorer) succeeded. Use pi_explorer_job collect with this id.`, 'info']);
+  assert.equal(notifications.length, 2);
+});
+
+test('throwing UI notify preserves expensive job accounting, cleanup and quarantine', async () => {
+  async function run(throws, quarantine) {
+    const gate = createExpensiveGate(); let notified = 0;
+    const { call, runs, sessionStart } = setup({ strategist: true, promptPaths: { strategist: '/plan' }, gate });
+    sessionStart({ hasUI: true, ui: { notify: () => { notified++; if (throws) throw new Error('UI failure'); } } });
+    const job = (await call({ action: 'start', task: 'plan', role: 'strategist' })).details.job;
+    if (quarantine) runs[0].reject(new Error('cleanup unconfirmed'));
+    else runs[0].resolve(result('secret', 100000));
+    await tick();
+    const first = await call({ action: 'collect', jobId: job.id });
+    const second = await call({ action: 'collect', jobId: job.id });
+    const status = await call({ action: 'status' });
+    return { notified, state: first.details.state, quarantine: first.details.quarantined, cost: first.details.cost,
+      usage: first.usage, secondUsage: second.usage, gate: gate.active(), budget: status.details.budget };
+  }
+  for (const quarantine of [false, true]) {
+    const baseline = await run(false, quarantine); const throwing = await run(true, quarantine);
+    assert.equal(throwing.notified, 1);
+    assert.deepEqual(throwing, baseline);
+  }
+});
+
+test('rejecting UI notification promises do not emit unhandledRejection or change job accounting', async () => {
+  const unhandled = [];
+  const onUnhandled = (reason) => unhandled.push(reason);
+  process.on('unhandledRejection', onUnhandled);
+  try {
+    async function run(rejectNotification, quarantine) {
+      const gate = createExpensiveGate(); let notified = 0;
+      const { call, runs, sessionStart } = setup({ strategist: true, promptPaths: { strategist: '/plan' }, gate });
+      sessionStart({ hasUI: true, ui: { notify: () => {
+        notified++;
+        if (rejectNotification) return Promise.reject(new Error('x'));
+      } } });
+      const job = (await call({ action: 'start', task: 'plan', role: 'strategist' })).details.job;
+      if (quarantine) runs[0].reject(new Error('cleanup unconfirmed'));
+      else runs[0].resolve(result('secret', 100000));
+      for (let i = 0; i < 3; i++) await tick();
+      const first = await call({ action: 'collect', jobId: job.id });
+      const second = await call({ action: 'collect', jobId: job.id });
+      const status = await call({ action: 'status' });
+      return { notified, state: first.details.state, quarantine: first.details.quarantined, cost: first.details.cost,
+        usage: first.usage, secondUsage: second.usage, gate: gate.active(), budget: status.details.budget };
+    }
+    for (const quarantine of [false, true]) {
+      const baseline = await run(false, quarantine);
+      const rejecting = await run(true, quarantine);
+      assert.equal(rejecting.notified, 1);
+      assert.deepEqual(rejecting, baseline);
+    }
+    assert.deepEqual(unhandled, []);
+  } finally {
+    process.off('unhandledRejection', onUnhandled);
+  }
+});
+
+test('registers the job tool and exactly the three lifecycle hooks only when an eligible role is configured', () => {
   const on = setup();
   assert.deepEqual([...on.tools.keys()], ['pi_explorer_job']);
-  assert.deepEqual([...on.handlers.keys()].sort?.() ?? [], ['session_shutdown', 'session_tree'].sort());
+  assert.deepEqual([...on.handlers.keys()].sort?.() ?? [], ['session_start', 'session_shutdown', 'session_tree'].sort());
   const off = setup({ explorer: false });
   assert.equal(off.tools.size, 0);
   assert.equal(off.handlers.size, 0);
@@ -45,14 +254,14 @@ test('registers the job tool and exactly the two lifecycle hooks only when an ex
 test('start returns a job id without waiting and runs the pinned explorer with a job-owned signal', async () => {
   const { call, runs } = setup();
   const parent = new AbortController();
-  const out = await call({ action: 'start', task: 'Find callers' }, { signal: parent.signal, cwd: '/proj' });
+  const out = await call({ action: 'start', task: 'Find callers' }, { signal: parent.signal, cwd: projectCwd });
   assert.match(out.details.job.id, /^job-/);
   assert.equal(out.details.job.state, 'running');
   assert.match(out.content[0].text, /job-/);
   assert.equal(runs.length, 1);
   assert.equal(runs[0].role, 'explorer');
   assert.equal(runs[0].task, 'Find callers');
-  assert.equal(runs[0].cwd, '/proj');
+  assert.equal(runs[0].cwd, projectCwd);
   assert.equal(runs[0].promptPath, '/src/agents/explorer.md');
   assert.notEqual(runs[0].options.signal, parent.signal);
   parent.abort();
@@ -116,6 +325,57 @@ test('repeating the same tool-call id never launches a second child', async () =
   assert.equal(runs.length, 1);
 });
 
+test('duplicate start bypasses unreadable prompt and changed role or evidence', async (t) => {
+  const f = auditFixture(t); let readable = true;
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' },
+    accessImpl: () => { if (!readable) throw new Error('prompt unreadable'); } });
+  const params = { action: 'start', task: 'review', role: 'auditor', evidencePath: f.manifest, evidenceSha256: f.sha };
+  const first = await call(params, { id: 'same', cwd: f.root });
+  readable = false; fs.writeFileSync(f.capture, 'changed');
+  const second = await call({ action: 'start', role: 'bad', evidencePath: 'bad' }, { id: 'same', cwd: f.root });
+  assert.equal(second.details.job.id, first.details.job.id);
+  assert.equal(runs.length, 1);
+  await assert.rejects(call(params, { id: 'new', cwd: f.root }), /prompt unreadable/);
+});
+
+test('duplicate auditor call bypasses changed evidence when its prompt remains readable', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const params = { action: 'start', task: 'review', role: 'auditor', evidencePath: f.manifest, evidenceSha256: f.sha };
+  const first = await call(params, { id: 'same-evidence', cwd: f.root });
+  fs.writeFileSync(f.capture, 'changed');
+  const again = await call(params, { id: 'same-evidence', cwd: f.root });
+  assert.equal(again.details.job.id, first.details.job.id);
+  await assert.rejects(call(params, { id: 'new-evidence', cwd: f.root }), /sha|digest/i);
+  assert.equal(runs.length, 1);
+});
+
+test('without a budget strategist is denied and explorer remains available without budget status', async () => {
+  const { call, runs } = setup({ strategist: true, jobBudget: null, promptPaths: { strategist: '/plan' } });
+  await assert.rejects(call({ action: 'start', task: 'plan', role: 'strategist' }), /job budget is not configured/);
+  assert.equal(runs.length, 0);
+  await call({ action: 'start', task: 'explore' });
+  const status = await call({ action: 'status' });
+  assert.equal(status.details.budget, undefined);
+  assert.doesNotMatch(status.content[0].text, /Budget:/);
+  assert.equal(runs.length, 1);
+});
+
+test('status reports budget and collect reports cost including unknown and over budget', async () => {
+  const { call, runs } = setup({ strategist: true, promptPaths: { strategist: '/plan' } });
+  const first = await call({ action: 'start', task: 'plan', role: 'strategist' });
+  let status = await call({ action: 'status' });
+  assert.match(status.content[0].text, /Budget: spent \$0\.0000, reserved \$1\.0000, remaining \$2\.0000/);
+  assert.equal(status.details.budget.reservedUsd, 1);
+  runs[0].resolve({ ...result(), ...jobWitness(projectCwd, first.details.job, 'strategist', 'Source: a.mjs:1'), usage: { input: 1000000, output: 0 } }); await tick();
+  const collected = await call({ action: 'collect', jobId: first.details.job.id });
+  assert.match(collected.content[0].text, /Cost: \$2\.0000.*OVER the per-job budget/);
+  assert.deepEqual(collected.details.cost, { usd: 2, overBudget: true, estimated: true, rateStatus: 'unlabelled' });
+  const next = await call({ action: 'start', task: 'plan', role: 'strategist' });
+  runs[1].reject(Object.assign(new Error('failed'), jobWitness(projectCwd, next.details.job, 'strategist', 'partial', 'partial'))); await tick();
+  assert.match((await call({ action: 'collect', jobId: next.details.job.id })).content[0].text, /Cost: unknown, remains reserved/);
+});
+
 test('session_shutdown cancels and awaits every job, then refuses new starts', async () => {
   const { call, runs, handlers } = setup();
   await call({ action: 'start', task: 'a' });
@@ -151,17 +411,359 @@ test('rejects unknown actions and missing arguments without launching', async ()
   assert.equal(runs.length, 0);
 });
 
+test('registers for strategist or auditor even without explorer and documents role availability', () => {
+  for (const options of [{ explorer: false, strategist: true }, { explorer: false, auditor: true }]) {
+    const { tools, handlers } = setup(options);
+    const def = tools.get('pi_explorer_job');
+    assert.ok(def);
+    assert.equal(handlers.size, 3);
+    assert.match(`${def.label} ${def.description}`, /explorer/i);
+    assert.match(`${def.label} ${def.description}`, /strategist/i);
+    assert.match(`${def.label} ${def.description}`, /auditor.*evidencePath.*evidenceSha256/i);
+    assert.match(def.description, /advisory/i);
+    assert.match(def.description, /never.*task completion/i);
+    assert.match(def.description, /metadata-only notification when a job finishes; it never starts a model turn\./);
+    assert.ok(def.parameters.args[0].evidencePath && def.parameters.args[0].evidenceSha256);
+    assert.ok(def.parameters.args[0].role, 'role parameter is advertised');
+  }
+});
+
+test('strategist runs with its own prompt and role is visible in status and collect', async () => {
+  const paths = { explorer: '/src/agents/explorer.md', strategist: '/src/agents/strategist.md', auditor: '/src/agents/auditor.md' };
+  const checked = [];
+  const { call, runs, policy } = setup({ explorer: false, strategist: true, promptPaths: paths,
+    accessImpl: (file, mode) => checked.push({ file, mode }) });
+  const { details: { job } } = await call({ action: 'start', task: 'Plan', role: 'strategist' });
+  assert.equal(job.role, 'strategist');
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0].policy, policy);
+  assert.equal(runs[0].role, 'strategist');
+  assert.equal(runs[0].task, 'Plan');
+  assert.equal(runs[0].cwd, projectCwd);
+  assert.equal(runs[0].promptPath, paths.strategist);
+  assert.deepEqual(runs[0].options.invocation, { command: 'pi', args: [] });
+  assert.deepEqual(checked, [{ file: paths.strategist, mode: (await import('node:fs')).constants.R_OK }]);
+  assert.equal((await call({ action: 'status', jobId: job.id })).details.job.role, 'strategist');
+  assert.equal((await call({ action: 'collect', jobId: job.id })).details.role, 'strategist');
+  runs[0].resolve({ ...result('Plan result'), ...jobWitness(projectCwd, job, 'strategist', 'Plan result') });
+  await tick();
+  const collected = await call({ action: 'collect', jobId: job.id });
+  assert.equal(collected.details.role, 'strategist');
+  assert.match(collected.content[0].text, /strategist/);
+});
+
+test('unconfigured and unsupported roles are rejected without launching or recording jobs', async () => {
+  const { call, runs } = setup();
+  for (const role of ['strategist', 'auditor', 'coder', 'toString']) {
+    await assert.rejects(call({ action: 'start', task: 'x', role }), /role|configur|enabled/i);
+    assert.equal(runs.length, 0);
+  }
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+});
+
+test('auditor start requires evidence even when configured and creates no job', async () => {
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/src/agents/auditor.md' } });
+  for (const args of [{}, { evidencePath: ' ' }, { evidencePath: '/tmp/manifest' }, { evidenceSha256: 'a'.repeat(64) }]) {
+    await assert.rejects(call({ action: 'start', task: 'review', role: 'auditor', ...args }),
+      /Auditor requires evidencePath and evidenceSha256/);
+  }
+  assert.equal(runs.length, 0);
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+});
+
+function auditFixture(t) {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-audit-job-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const dir = path.join(root, 'Artifacts', 'Evidence'); fs.mkdirSync(dir, { recursive: true });
+  const capture = path.join(dir, 'capture'); fs.writeFileSync(capture, 'original');
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+  const manifest = path.join(dir, 'manifest.json');
+  fs.writeFileSync(manifest, JSON.stringify({ version: 1, captures: [{ path: capture, sha256: hash('original') }] }));
+  return { root, capture, manifest, sha: hash(fs.readFileSync(manifest)) };
+}
+
+test('invalid auditor evidence and evidence on other roles are rejected before admission', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, strategist: true, promptPaths: { auditor: '/audit', strategist: '/plan' } });
+  for (const role of ['explorer', 'strategist']) for (const args of [{ evidencePath: f.manifest }, { evidenceSha256: f.sha }]) {
+    await assert.rejects(call({ action: 'start', task: 'review', role, ...args }, { cwd: f.root }), /evidence parameters are auditor-only/i);
+  }
+  await assert.rejects(call({ action: 'start', task: 'review', role: 'auditor', evidencePath: f.manifest,
+    evidenceSha256: '0'.repeat(64) }, { cwd: f.root }), /sha|digest/i);
+  assert.equal(runs.length, 0);
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+  await call({ action: 'start', task: 'explore', evidencePath: ' ', evidenceSha256: '\t' });
+  assert.equal(runs.length, 1);
+});
+
+test('relative or outside-Artifacts manifest paths are rejected before admission with zero children', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const outside = path.join(f.root, 'outside.json'); fs.writeFileSync(outside, '{}');
+  for (const evidencePath of [path.relative(f.root, f.manifest), outside, path.join(f.root, 'Artifacts-evil', 'm.json')]) {
+    await assert.rejects(call({ action: 'start', task: 'review', role: 'auditor', evidencePath,
+      evidenceSha256: f.sha }, { cwd: f.root }), /absolute|inside project Artifacts/i);
+  }
+  assert.equal(runs.length, 0);
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+});
+
+test('auditor validates before start, reads manifest, and reports verified evidence', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const { details: { job } } = await call({ action: 'start', task: 'Review', role: 'auditor',
+    evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  assert.equal(runs[0].role, 'auditor');
+  assert.equal(runs[0].options.requiredReadPath, f.manifest);
+  assert.equal(runs[0].task, `Review\n\nEvidence manifest (read it first, then the captures it lists): ${f.manifest}`);
+  assert.equal((await call({ action: 'status', jobId: job.id })).details.job.role, 'auditor');
+  runs[0].resolve({ ...result('PASS'), ...jobWitness(f.root, job, 'auditor', 'PASS') }); await tick();
+  const out = await call({ action: 'collect', jobId: job.id });
+  assert.equal(out.details.role, 'auditor');
+  assert.deepEqual(out.details.evidence, { status: 'VERIFIED' });
+  fs.writeFileSync(f.capture, 'changed!');
+  const changed = await call({ action: 'collect', jobId: job.id });
+  assert.equal(changed.details.evidence.status, 'INCOMPLETE');
+  assert.match(changed.content[0].text, /^INCOMPLETE: evidence changed or became invalid after this job started \(.+\)\. This output does not apply to current evidence\./);
+});
+
+test('auditor evidence changed after completion but before first collection is incomplete', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const { details: { job } } = await call({ action: 'start', task: 'Review', role: 'auditor',
+    evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  runs[0].resolve({ ...result(), ...jobWitness(f.root, job, 'auditor', 'Source: a.mjs:1') }); await tick(); fs.writeFileSync(f.capture, 'changed!');
+  const out = await call({ action: 'collect', jobId: job.id });
+  assert.equal(out.details.evidence.status, 'INCOMPLETE');
+  assert.match(out.content[0].text, /^INCOMPLETE: evidence changed or became invalid after this job started/);
+});
+
+test('auditor evidence changed during run remains incomplete even if restored before collection', async (t) => {
+  const f = auditFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  const { details: { job } } = await call({ action: 'start', task: 'Review', role: 'auditor',
+    evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  fs.writeFileSync(f.capture, 'changed!'); runs[0].resolve({ ...result(), ...jobWitness(f.root, job, 'auditor', 'Source: a.mjs:1') }); await tick();
+  fs.writeFileSync(f.capture, 'original');
+  const out = await call({ action: 'collect', jobId: job.id });
+  assert.equal(out.details.evidence.status, 'INCOMPLETE');
+  assert.match(out.content[0].text, /^INCOMPLETE:/);
+});
+
+test('auditor prompt validation occurs before evidence validation', async () => {
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/bad' },
+    accessImpl: () => { throw new Error('prompt unreadable'); } });
+  await assert.rejects(call({ action: 'start', task: 'review', role: 'auditor' }), /prompt unreadable/);
+  assert.equal(runs.length, 0);
+});
+
+test('unreadable role prompt fails before admission, with a readable control', async () => {
+  const paths = { explorer: '/ok', strategist: '/denied' };
+  const { call, runs } = setup({ strategist: true, promptPaths: paths, accessImpl: (file) => {
+    if (file === '/denied') throw new Error('prompt unreadable');
+  } });
+  await assert.rejects(call({ action: 'start', task: 'plan', role: 'strategist' }), /unreadable/i);
+  assert.equal(runs.length, 0);
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+  await call({ action: 'start', task: 'explore' });
+  assert.equal(runs.length, 1);
+  assert.equal(runs[0].promptPath, '/ok');
+});
+
+test('default filesystem prompt check rejects a missing file and accepts a readable file', async () => {
+  const { call, runs } = setup({ strategist: true, defaultAccess: true,
+    promptPaths: { explorer: fileURLToPath(import.meta.url), strategist: path.join(repo, 'no-such-role-prompt.md') } });
+  await assert.rejects(call({ action: 'start', task: 'plan', role: 'strategist' }));
+  assert.equal(runs.length, 0);
+  assert.deepEqual((await call({ action: 'status' })).details.jobs, []);
+  await call({ action: 'start', task: 'explore' });
+  assert.equal(runs.length, 1);
+});
+
+test('empty or whitespace tasks require a task without launching', async () => {
+  const { call, runs } = setup();
+  for (const task of ['', '   ', '\t\n']) {
+    await assert.rejects(call({ action: 'start', task }), /start requires a task/i);
+  }
+  assert.equal(runs.length, 0);
+});
+
+test('empty or whitespace job IDs list status and require IDs for collect and cancel', async () => {
+  const { call } = setup();
+  await call({ action: 'start', task: 'explore' });
+  for (const jobId of ['', '   ', '\t\n']) {
+    assert.equal((await call({ action: 'status', jobId })).details.jobs.length, 1);
+    for (const action of ['collect', 'cancel']) {
+      await assert.rejects(call({ action, jobId }), /requires a jobId/i);
+    }
+  }
+});
+
+test('empty or whitespace role defaults to explorer', async () => {
+  const { call, runs } = setup();
+  for (const role of ['', '   ']) {
+    const { details: { job } } = await call({ action: 'start', task: 'explore', role });
+    assert.equal(job.role, 'explorer');
+    assert.equal(runs.at(-1).role, 'explorer');
+  }
+});
+
 test('the role-agent extension wires the job tool and leaves the synchronous route unchanged', () => {
   const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
   assert.match(extension, /registerExplorerJobs\(pi/);
+  assert.match(extension, /promptPaths/);
+  for (const role of ['explorer', 'strategist', 'auditor']) assert.match(extension, new RegExp(`['\"]${role}['\"]`));
   assert.match(extension, /runRole\(policy, params\.role, params\.task, ctx\.cwd/);
   assert.match(extension, /name: 'pi_role_agent'/);
   assert.match(extension, /name: 'pi_council'/);
 });
 
+// Characterization of the existing lifecycle at the registered tool and hook entry points.
+// All runners are pending fakes; auditor admissions use a real, pinned temporary manifest.
+for (const role of ['explorer', 'strategist', 'auditor']) {
+  function lifecycleSetup(t) {
+    const f = auditFixture(t);
+    const gate = createExpensiveGate();
+    const env = setup({ strategist: true, auditor: true, gate,
+      promptPaths: { strategist: '/plan', auditor: '/audit' },
+      jobBudget: { perJobUsd: 1, perSessionUsd: 100,
+        rates: { 'pilot-gpt/luna': { inputPerMTok: 2, outputPerMTok: 4 } } } });
+    const start = (task = 'review') => env.call({ action: 'start', task, role,
+      ...(role === 'auditor' ? { evidencePath: f.manifest, evidenceSha256: f.sha } : {}) }, { cwd: f.root });
+    return { ...env, gate, start };
+  }
+
+  for (const state of ['succeeded', 'failed', 'cancelled']) {
+    test(`${role}: ${state} produces one metadata-only UI notification`, async (t) => {
+      const { call, runs, start, sessionStart } = lifecycleSetup(t); const notifications = [];
+      sessionStart({ hasUI: true, ui: { notify: (...args) => notifications.push(args) } });
+      const { details: { job } } = await start();
+      await call({ action: 'status', jobId: job.id }); await call({ action: 'collect', jobId: job.id });
+      assert.deepEqual(notifications, []);
+      if (state === 'cancelled') await call({ action: 'cancel', jobId: job.id });
+      if (state === 'succeeded') runs[0].resolve(result('SECRET verdict PASS', 123));
+      else runs[0].reject(new Error('SECRET error'));
+      await tick();
+      assert.deepEqual(notifications, [[`Job ${job.id} (${role}) ${state}. Use pi_explorer_job collect with this id.`, 'info']]);
+      const first = await call({ action: 'collect', jobId: job.id });
+      const second = await call({ action: 'collect', jobId: job.id });
+      if (state === 'succeeded') { assert.equal(first.usage.totalTokens, 123); assert.equal(second.usage, undefined); }
+      assert.equal(notifications.length, 1);
+    });
+  }
+
+  test(`${role}: start returns within one second with a pending runner; cancel holds admission until settlement`, async (t) => {
+    const { call, runs, gate, start } = lifecycleSetup(t);
+    const before = performance.now();
+    let watchdog;
+    const { details: { job } } = await Promise.race([
+      start(),
+      new Promise((_, reject) => { watchdog = setTimeout(() => reject(new Error('start exceeded one second')), 1000); }),
+    ]).finally(() => clearTimeout(watchdog));
+    assert.ok(performance.now() - before < 1000, 'start must return within one second');
+    assert.equal(runs.length, 1);
+    assert.equal(runs[0].role, role);
+    assert.equal((await call({ action: 'collect', jobId: job.id })).details.ready, false);
+    assert.equal((await call({ action: 'cancel', jobId: job.id })).details.job.state, 'cancelling');
+    assert.equal(runs[0].options.signal.aborted, true);
+    if (role !== 'explorer') {
+      await assert.rejects(start('blocked'), /Another expensive operation is active/);
+      assert.equal(gate.active(), `background ${role} job`);
+      assert.equal((await call({ action: 'status' })).details.budget.reservedUsd, 1);
+    }
+    assert.equal(runs.length, 1);
+    await call({ action: 'start', task: 'other slot', role: 'explorer' });
+    assert.equal(runs[1].options.signal.aborted, false);
+    await assert.rejects(call({ action: 'start', task: 'over capacity', role: 'explorer' }), /limit/i);
+    assert.equal(runs.length, 2);
+    runs[0].reject(new Error('Agent dispatch aborted')); await tick();
+    const collected = await call({ action: 'collect', jobId: job.id });
+    assert.equal(collected.details.state, 'cancelled');
+    assert.equal(collected.details.usageUnknown, true);
+    if (role !== 'explorer') {
+      assert.deepEqual(collected.details.cost, { unknown: true });
+      assert.equal(gate.active(), undefined);
+      assert.equal((await call({ action: 'status' })).details.budget.reservedUsd, 1);
+    }
+    await start('after cancellation');
+    assert.equal(runs.length, 3);
+  });
+
+  for (const event of ['session_tree', 'session_shutdown']) {
+    test(`${role}: ${event} aborts, waits, discards, and applies admission policy`, async (t) => {
+      const { call, runs, handlers, gate, start } = lifecycleSetup(t);
+      const { details: { job } } = await start();
+      let finished = false;
+      const draining = handlers.get(event)({ type: event }).then(() => { finished = true; });
+      await tick();
+      assert.equal(runs[0].options.signal.aborted, true);
+      assert.equal(finished, false);
+      await assert.rejects(start('during drain'), /closed|draining/i);
+      assert.equal(runs.length, 1);
+      // A success racing the drain is charged, but its result must not be exposed.
+      runs[0].resolve(result('discarded', 100000)); await draining;
+      await assert.rejects(call({ action: 'collect', jobId: job.id }), /unknown|expired/i);
+      assert.equal(gate.active(), undefined);
+      if (role !== 'explorer') {
+        const budget = (await call({ action: 'status' })).details.budget;
+        assert.equal(budget.spentUsd, 0.2);
+        assert.equal(budget.reservedUsd, 0);
+      }
+      if (event === 'session_tree') {
+        await start('new branch');
+        assert.equal(runs.length, 2);
+      } else {
+        await assert.rejects(start('after shutdown'), /closed/i);
+        assert.equal(runs.length, 1);
+      }
+    });
+  }
+
+  test(`${role}: unconfirmed cleanup survives tree discard and holds its slot and any expensive gate`, async (t) => {
+    const { call, runs, handlers, gate, start } = lifecycleSetup(t);
+    const { details: { job } } = await start();
+    const draining = handlers.get('session_tree')({ type: 'session_tree' });
+    assert.equal(runs[0].options.signal.aborted, true);
+    runs[0].reject(new Error('Agent dispatch aborted; cleanup unconfirmed: child did not close'));
+    await draining;
+    const out = await call({ action: 'collect', jobId: job.id });
+    assert.equal(out.details.state, 'failed');
+    assert.equal(out.details.quarantined, true);
+    if (role !== 'explorer') {
+      assert.deepEqual(out.details.cost, { unknown: true });
+      assert.equal((await call({ action: 'status' })).details.budget.reservedUsd, 1);
+      assert.equal(gate.active(), `background ${role} job`);
+      await assert.rejects(start('blocked by gate'), /Another expensive operation is active/);
+    }
+    await call({ action: 'start', task: 'slot control', role: 'explorer' });
+    assert.equal(runs.length, 2);
+    await assert.rejects(call({ action: 'start', task: 'third', role: 'explorer' }), /limit|quarantin/i);
+    assert.equal(runs.length, 2);
+  });
+
+  test(`${role}: retained uncollected results block admission; collection permits oldest-first eviction`, async (t) => {
+    const { call, runs, start } = lifecycleSetup(t);
+    const ids = [];
+    for (let i = 0; i < 16; i++) {
+      const { details: { job } } = await start(`job ${i}`); ids.push(job.id);
+      runs[i].resolve(result(`answer ${i}`)); await tick();
+    }
+    await assert.rejects(start('overflow'), /retained|uncollected|limit/i);
+    assert.equal(runs.length, 16);
+    const first = await call({ action: 'collect', jobId: ids[0] });
+    assert.match(first.content[0].text, /answer 0/);
+    if (role === 'auditor') assert.deepEqual(first.details.evidence, { status: 'VERIFIED' });
+    assert.match((await call({ action: 'collect', jobId: ids[1] })).content[0].text, /answer 1/);
+    await start('after collection');
+    assert.equal(runs.length, 17);
+    await assert.rejects(call({ action: 'status', jobId: ids[0] }), /unknown|expired/i);
+    assert.match((await call({ action: 'collect', jobId: ids[1] })).content[0].text, /answer 1/);
+  });
+}
+
 // Real Pi extension loader (SDK-gated like the other runtime-discovery tests). It never starts a job,
 // so no child process and no model call can happen here.
-test('the real Pi loader registers the job tool and only the two lifecycle hooks, and only with an explorer role',
+test('the real Pi loader registers the job tool and only the three lifecycle hooks, and only with an eligible role',
   async (t) => {
     const sdkPath = process.env.PI_CODING_AGENT_SDK_PATH;
     if (!sdkPath) return t.skip('Set PI_CODING_AGENT_SDK_PATH for Pi runtime discovery');
@@ -191,7 +793,7 @@ test('the real Pi loader registers the job tool and only the two lifecycle hooks
       const on = await load(withExplorer);
       assert.ok(on.tools.has('pi_explorer_job'));
       assert.ok(on.tools.has('pi_role_agent') && on.tools.has('pi_council'), 'existing synchronous tools remain');
-      assert.deepEqual([...on.handlers.keys()].sort(), ['session_shutdown', 'session_tree']);
+      assert.deepEqual([...on.handlers.keys()].sort(), ['session_shutdown', 'session_start', 'session_tree']);
       for (const forbidden of ['turn_end', 'agent_end', 'agent_settled', 'session_before_tree']) {
         assert.equal(on.handlers.has(forbidden), false, `${forbidden} must not cancel jobs`);
       }
@@ -199,10 +801,56 @@ test('the real Pi loader registers the job tool and only the two lifecycle hooks
       const ctx = { cwd };
       assert.match((await def.execute('t1', { action: 'status' }, undefined, undefined, ctx)).content[0].text, /No jobs/);
       await assert.rejects(def.execute('t2', { action: 'start' }, undefined, undefined, ctx), /task/i);
-      // The no-explorer case is covered by the fake-pi test above: the extension reads its policy once at
+      // The explorer-less and no-eligible-role cases are covered by the fake-pi tests above: the extension reads its policy once at
       // import and Pi caches the module, so a second load in this process would reuse the first policy.
     } finally {
       if (previous === undefined) delete process.env.PI_ROLE_POLICY_PATH; else process.env.PI_ROLE_POLICY_PATH = previous;
       fs.rmSync(temp, { recursive: true, force: true });
     }
   });
+
+// ---- PI-8 T4: the auditor task and runner options carry the verdict identity
+function verdictFixture(t, verdict) {
+  const f = auditFixture(t);
+  const manifest = JSON.parse(fs.readFileSync(f.manifest, 'utf8'));
+  if (verdict) manifest.verdict = verdict;
+  const bytes = JSON.stringify(manifest);
+  fs.writeFileSync(f.manifest, bytes);
+  return { ...f, sha: createHash('sha256').update(bytes).digest('hex') };
+}
+const VID = { task: 'T4', todo: 'Artifacts/Plans/X-TODO.md', taskSha256: 'd'.repeat(64) };
+
+test('an auditor manifest with a verdict identity puts the exact required line and expectedVerdict into the run', async (t) => {
+  const f = verdictFixture(t, VID);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  await call({ action: 'start', task: 'review', role: 'auditor', evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  assert.equal(runs.length, 1);
+  assert.deepEqual(runs[0].options.expectedVerdict, VID);
+  assert.ok(runs[0].task.includes('VERDICT: <PASS|FAIL|INCOMPLETE> task=T4 todo=Artifacts/Plans/X-TODO.md taskSha256=' + 'd'.repeat(64)));
+  assert.match(runs[0].task, /last line/i);
+  assert.ok(runs[0].task.startsWith('review'));
+  assert.ok(runs[0].task.includes(f.manifest));
+});
+
+test('an auditor manifest without a verdict identity adds no requirement and no option', async (t) => {
+  const f = verdictFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  await call({ action: 'start', task: 'review', role: 'auditor', evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  assert.ok(!('expectedVerdict' in runs[0].options));
+  assert.ok(!runs[0].task.includes('VERDICT'));
+});
+
+test('a strategist or explorer job never receives a verdict requirement', async (t) => {
+  const { call, runs } = setup({ strategist: true, promptPaths: { strategist: '/plan', explorer: '/x' } });
+  await call({ action: 'start', task: 'plan', role: 'strategist' }, { cwd: projectCwd });
+  assert.ok(!('expectedVerdict' in runs[0].options));
+  assert.ok(!runs[0].task.includes('VERDICT'));
+});
+
+test('the auditor prompt documents the verdict line contract', () => {
+  const prompt = fs.readFileSync(path.join(repo, 'pi', 'agents', 'auditor.md'), 'utf8');
+  assert.match(prompt, /VERDICT: (<)?PASS\|FAIL\|INCOMPLETE/);
+  assert.match(prompt, /last line/i);
+  assert.match(prompt, /exactly once/i);
+  assert.match(prompt, /do not (quote|repeat)/i);
+});

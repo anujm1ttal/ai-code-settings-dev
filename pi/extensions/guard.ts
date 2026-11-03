@@ -4,6 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 import { conciergeToolDenial } from '../lib/concierge-guard.mjs';
+import { loadRolePolicy } from '../lib/role-policy.mjs';
+import { approvalWriteDenial, interceptRead, loadInterceptState } from '../lib/read-intercept.mjs';
 
 // Repo layout keeps the shared config under hooks/; the installed layout stages it at pi/license-gate.json because
 // Pi 1.4.0 warns (and waits for a key) whenever the agent directory contains a hooks/ folder.
@@ -222,6 +224,14 @@ function commandDenial(raw: unknown, cwd?: unknown): string | undefined {
   return undefined;
 }
 
+// Policy for bulk-read interception comes only from the private absolute PI_ROLE_POLICY_PATH. Anything missing or
+// invalid disables interception (reads pass); it never blocks toward a tool that would refuse the call.
+function interceptPolicy(): unknown {
+  const file = process.env.PI_ROLE_POLICY_PATH;
+  if (!file || !path.isAbsolute(file)) return undefined;
+  try { return loadRolePolicy(file); } catch { return undefined; }
+}
+
 // Explicitly selected by the pilot parent and shell/write-capable role children.
 export default function guard(pi: ExtensionAPI) {
   // A concierge child is read-only regardless of root and never falls back to the parent policy.
@@ -232,8 +242,18 @@ export default function guard(pi: ExtensionAPI) {
       const reason = conciergeToolDenial(conciergeRoot, event.toolName, event.input);
       return reason ? { block: true, reason } : undefined;
     }
+    if (event.toolName === 'read' || event.toolName === 'bash') {
+      // Parent only: child roles keep their own tool sets. No workflow special case (see the T9 design note).
+      if (!process.env.PI_ROLE) {
+        const state = loadInterceptState({ cwd: ctx.cwd, loadPolicy: interceptPolicy });
+        const redirect = interceptRead({ toolName: event.toolName, input: event.input, cwd: ctx.cwd, state });
+        if (redirect) return { block: true, reason: redirect };
+      }
+    }
     if (event.toolName === 'edit' || event.toolName === 'write') {
       if (typeof ctx.cwd !== 'string') return { block: true, reason: 'Missing project directory' };
+      const protectedState = approvalWriteDenial({ toolName: event.toolName, input: event.input, cwd: ctx.cwd });
+      if (protectedState) return { block: true, reason: protectedState };
       const reason = outsideProjectDenial(event.input.path, ctx.cwd) ??
         pathDenial(event.input.path, event.toolName === 'write' ? event.input.content : undefined, ctx.cwd);
       return reason ? { block: true, reason } : undefined;

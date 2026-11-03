@@ -1,0 +1,29 @@
+name: pi-symlink-witness
+# Witness run for the file-symlink rejection test that skips (EPERM) on an unprivileged Windows machine.
+# Needs only Node's built-in test runner: no SDK, no secrets.
+on:
+  workflow_dispatch:
+  push:
+    branches: [pi-4-roles]
+    paths: ['.github/workflows/pi-symlink-witness.yml']
+permissions:
+  contents: read
+jobs:
+  witness:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Source identity
+        shell: bash
+        run: |
+          git rev-parse HEAD
+          sha256sum tests/pi-audit-evidence.test.mjs pi/lib/audit-evidence.mjs
+      - name: Run the audit-evidence tests
+        run: node --test tests/pi-audit-evidence.test.mjs
