@@ -42,10 +42,16 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
     onTerminal: ({ id, role, state }) => notify?.(`Job ${id} (${role}) ${state}. Use pi_explorer_job collect with this id.`),
     run: (task, { signal, context, role, resultStore, dispatchId }) => {
       const requiredReadPath = context.manifestPath;
-      const childTask = requiredReadPath
+      const verdict = context.verdict;
+      let childTask = requiredReadPath
         ? `${task}\n\nEvidence manifest (read it first, then the captures it lists): ${requiredReadPath}` : task;
+      if (verdict) {
+        childTask += '\n\nRequired verdict line: the last line of your report must be exactly one line, once, with nothing after it, ' +
+          `choosing PASS, FAIL or INCOMPLETE:\nVERDICT: <PASS|FAIL|INCOMPLETE> task=${verdict.task} todo=${verdict.todo} taskSha256=${verdict.taskSha256}`;
+      }
       return runRoleImpl(policy, role, childTask, context.cwd, paths[role],
-        { signal, invocation, resultStore, dispatchId, ...(requiredReadPath ? { requiredReadPath } : {}) });
+        { signal, invocation, resultStore, dispatchId, ...(requiredReadPath ? { requiredReadPath } : {}),
+          ...(verdict ? { expectedVerdict: verdict } : {}) });
     },
   });
 
@@ -101,7 +107,8 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
         }
         // Plain value only: the tool context must not be retained by a detached job.
         const job = jobs.start(task, { key: toolCallId, context: { cwd: ctx.cwd,
-          ...(snapshot ? { manifestPath: snapshot.manifestPath } : {}) }, role,
+          ...(snapshot ? { manifestPath: snapshot.manifestPath } : {}),
+          ...(snapshot?.verdict ? { verdict: { ...snapshot.verdict } } : {}) }, role,
           ...(snapshot ? { evidence: { verify: () => recheckAuditManifest(snapshot) } } : {}) });
         return started(job);
       }

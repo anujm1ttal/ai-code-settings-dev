@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { validateVerdictIdentity } from './verdict.mjs';
 
 const MANIFEST_LIMIT = 64 * 1024;
 const CAPTURE_LIMIT = 4 * 1024 * 1024;
@@ -62,7 +63,9 @@ export function validateAuditManifest(root, manifestPath, expectedSha256) {
     seen.add(key);
     return Object.freeze({ path: capture.path, sha256: capture.sha256 });
   });
-  return Object.freeze({ manifestPath: manifest.path, manifestSha256: manifest.sha256, captures: Object.freeze(captures) });
+  const verdict = Object.hasOwn(parsed, 'verdict') ? Object.freeze(validateVerdictIdentity(parsed.verdict, 'Manifest verdict')) : undefined;
+  return Object.freeze({ manifestPath: manifest.path, manifestSha256: manifest.sha256, captures: Object.freeze(captures),
+    ...(verdict ? { verdict } : {}) });
 }
 
 export function recheckAuditManifest(snapshot) {

@@ -87,7 +87,7 @@ test('isolated preview stages the concierge guard dependency used by the selecte
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/lib/expensive-gate.mjs')), 'expensive gate module must be staged');
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/agents/council-synthesis.md')));
     assert.ok(fs.existsSync(path.join(handle.destination, 'pi/prompts/council.md')));
-    for (const lib of ['read-intercept', 'bulk-admission', 'role-policy', 'pricing']) {
+    for (const lib of ['read-intercept', 'bulk-admission', 'role-policy', 'pricing', 'verdict']) {
       assert.ok(fs.existsSync(path.join(handle.destination, `pi/lib/${lib}.mjs`)), `${lib} must be staged: guard.ts imports it`);
     }
     // The staged guard must actually load from the staged tree (a missing dependency would throw here).

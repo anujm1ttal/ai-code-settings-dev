@@ -159,3 +159,30 @@ test('recheck detects edits, deletion, same-size replacement and manifest change
     assert.throws(() => recheck(snapshot), /sha|digest|missing|enoent|file|size/i, mutation);
   }
 });
+
+// ---- PI-8 T4: manifest carries the verdict identity
+test('manifest verdict identity is validated and carried in the frozen snapshot', async (t) => {
+  const { validateAuditManifest } = await api();
+  const f = fixture(t);
+  const verdict = { task: 'T4', todo: 'Artifacts/Plans/X-TODO.md', taskSha256: 'c'.repeat(64) };
+  const sha = f.write({ version: 1, captures: [f.entry], verdict });
+  const snapshot = validateAuditManifest(f.root, f.manifest, sha);
+  assert.deepEqual(snapshot.verdict, verdict);
+  assert.ok(Object.isFrozen(snapshot.verdict));
+  const plain = validateAuditManifest(f.root, f.manifest, f.write());
+  assert.ok(!('verdict' in plain), 'no verdict key when the manifest has none');
+});
+
+test('malformed manifest verdict identities are rejected', async (t) => {
+  const { validateAuditManifest } = await api();
+  const f = fixture(t);
+  const ok = { task: 'T4', todo: 'Artifacts/Plans/X-TODO.md', taskSha256: 'c'.repeat(64) };
+  for (const bad of [
+    null, 'T4', [], {}, { ...ok, task: '' }, { ...ok, task: 'has space' }, { ...ok, todo: '' }, { ...ok, todo: 'a b' },
+    { ...ok, taskSha256: 'C'.repeat(64) }, { ...ok, taskSha256: 'c'.repeat(63) }, { ...ok, extra: 1 },
+    { task: 'T4', todo: ok.todo }, { ...ok, task: 4 },
+  ]) {
+    const sha = f.write({ version: 1, captures: [f.entry], verdict: bad });
+    assert.throws(() => validateAuditManifest(f.root, f.manifest, sha), /verdict/i, JSON.stringify(bad));
+  }
+});

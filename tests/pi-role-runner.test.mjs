@@ -1183,3 +1183,109 @@ test('fails if child exits without a final assistant response', async () => {
   await assert.rejects(runRole(policy, 'coder', 'Implement', '.', '/tmp/role.md',
     { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } }), /exited with code 1/);
 });
+
+// ---- PI-8 T4: expectedVerdict (auditor VERDICT line enforced in the runner)
+const V = { task: 'T4', todo: 'Artifacts/Plans/X-TODO.md', taskSha256: 'a'.repeat(64) };
+const vline = (verdict = 'PASS', o = {}) => `VERDICT: ${verdict} task=${o.task ?? V.task} todo=${o.todo ?? V.todo} taskSha256=${o.taskSha256 ?? V.taskSha256}`;
+async function auditWith(text, expectedVerdict = V, id = 'v1') {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-verdict-runner-'));
+  try {
+    const fake = fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', text)]);
+    const result = await runRole(policy, 'auditor', 'Review', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] }, resultStore: { dir, dispatchId: id }, expectedVerdict });
+    const file = fs.readFileSync(result.persisted.ref, 'utf8');
+    return { result, header: JSON.parse(file.slice(0, file.indexOf('\n'))), files: fs.readdirSync(dir) };
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+}
+
+test('expectedVerdict: a final matching VERDICT line stays complete', async () => {
+  for (const v of ['PASS', 'FAIL', 'INCOMPLETE']) {
+    const { result, header } = await auditWith(`Findings.\n${vline(v)}`, V, `ok-${v}`);
+    assert.equal(header.completeness, 'complete', v);
+    assert.equal(result.persisted.completeness, 'complete');
+    assert.match(result.envelope, /Status: COMPLETE/);
+    assert.equal(result.verdictStatus, 'ok');
+  }
+});
+
+test('expectedVerdict: absent, duplicate, trailing, wrong-hash, wrong-task and malformed lines persist as partial and report INCOMPLETE', async () => {
+  const cases = {
+    absent: 'Looks fine. PASS',
+    duplicate: `${vline()}\n${vline('FAIL')}`,
+    trailing: `${vline()}\nextra words`,
+    wrongHash: vline('PASS', { taskSha256: 'b'.repeat(64) }),
+    wrongTask: vline('PASS', { task: 'T5' }),
+    wrongTodo: vline('PASS', { todo: 'Artifacts/Plans/Y-TODO.md' }),
+    malformed: 'VERDICT: pass task=T4',
+    quoted: `The line is ${vline()} here\n${vline()}`,
+  };
+  for (const [name, text] of Object.entries(cases)) {
+    const { result, header } = await auditWith(text, V, `bad-${name}`);
+    assert.equal(header.completeness, 'partial', name);
+    assert.equal(result.persisted.completeness, 'partial', name);
+    assert.match(result.envelope, /Status: INCOMPLETE/, name);
+    assert.match(result.envelope, /VERDICT/, name);
+    assert.equal(result.verdictStatus, 'INCOMPLETE', name);
+  }
+});
+
+test('expectedVerdict: a bad line does not make usage unknown or throw', async () => {
+  const { result } = await auditWith('no verdict', V, 'usage');
+  assert.notEqual(result.usage, null);
+});
+
+test('expectedVerdict is validated: auditor-only, well-formed fields', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-verdict-opts-'));
+  try {
+    const run = (role, expectedVerdict) => runRole(policy, role, 'x', '.', '/tmp/role.md',
+      { spawnImpl: fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', 'x')]).spawnImpl, invocation: { command: 'pi', args: [] },
+        resultStore: { dir, dispatchId: 'opt' }, expectedVerdict });
+    await assert.rejects(run('coder', V), /auditor/);
+    await assert.rejects(run('auditor', { ...V, taskSha256: 'short' }), /expectedVerdict/);
+    await assert.rejects(run('auditor', { task: 'T4' }), /expectedVerdict/);
+    await assert.rejects(run('auditor', 'T4'), /expectedVerdict/);
+    assert.deepEqual(fs.readdirSync(dir), []);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('without expectedVerdict an auditor result is unchanged (no line required)', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-verdict-none-'));
+  try {
+    const fake = fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', 'PASS with no verdict line')]);
+    const result = await runRole(policy, 'auditor', 'Review', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] }, resultStore: { dir, dispatchId: 'plain' } });
+    assert.equal(result.persisted.completeness, 'complete');
+    assert.equal(result.verdictStatus, undefined);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+// ---- T5 mutation-pass additions (survivors turned into tests)
+test('T5: expectedVerdict without a resultStore is refused, and falsy values are not silently ignored', async () => {
+  const run = (expectedVerdict, resultStore) => runRole(policy, 'auditor', 'x', '.', '/tmp/role.md',
+    { spawnImpl: fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', 'x')]).spawnImpl, invocation: { command: 'pi', args: [] },
+      expectedVerdict, ...(resultStore ? { resultStore } : {}) });
+  await assert.rejects(run(V), /resultStore/);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-verdict-falsy-'));
+  try {
+    for (const bad of [null, '', 0, false]) await assert.rejects(run(bad, { dir, dispatchId: 'f' }), /expectedVerdict/, String(bad));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('T5: the whole persisted text is checked, so a quoted line in earlier narration makes the audit INCOMPLETE', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-verdict-narr-'));
+  try {
+    const fake = fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', `Draft: ${vline('FAIL')}`), assistant('pilot-claude', 'sonnet', 'high', vline())]);
+    const result = await runRole(policy, 'auditor', 'Review', '.', '/tmp/role.md',
+      { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] }, resultStore: { dir, dispatchId: 'narr' }, expectedVerdict: V });
+    assert.equal(result.verdictStatus, 'INCOMPLETE');
+    assert.equal(result.persisted.completeness, 'partial');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('T5: the INCOMPLETE envelope names the specific reason and keeps the final text as the summary', async () => {
+  const { result } = await auditWith('Looks fine, ship it', V, 'reason');
+  assert.match(result.envelope, /no VERDICT line/);
+  assert.match(result.envelope, /Summary: Looks fine, ship it/);
+  const wrong = await auditWith(vline('PASS', { task: 'T5' }), V, 'reason2');
+  assert.match(wrong.result.envelope, /task does not match/);
+});

@@ -4,6 +4,7 @@ import { StringDecoder } from 'node:string_decoder';
 import { fileURLToPath } from 'node:url';
 import { buildAgentArgs } from './role-policy.mjs';
 import { persistFullResult, buildEnvelope, buildIncompleteEnvelope } from './result-contract.mjs';
+import { validateVerdictIdentity, checkExpectedVerdict } from './verdict.mjs';
 
 const MAX_ERROR_BYTES = 2048;
 const MAX_STREAM_BYTES = 8 * 1024 * 1024;
@@ -19,6 +20,12 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     throw new Error('requiredReadPath cannot be used with packet-only review');
   }
   if (Boolean(ledger) !== Boolean(dispatchKey)) throw new Error('Accounting ledger and dispatch key must be supplied together');
+  let expectedVerdict;
+  if (options.expectedVerdict !== undefined) {
+    if (roleName !== 'auditor') throw new Error('expectedVerdict is auditor-only');
+    if (!options.resultStore) throw new Error('expectedVerdict requires a resultStore');
+    expectedVerdict = validateVerdictIdentity(options.expectedVerdict, 'expectedVerdict');
+  }
   const args = buildAgentArgs(policy, roleName, promptPath, task, { profile, promptFile });
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 ||
       !Number.isSafeInteger(killGraceMs) || killGraceMs <= 0) {
@@ -255,10 +262,18 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
       runtimeVerified, toolCounts: Object.fromEntries(toolCounts), successfulReads };
     if (options.resultStore) {
       const fullText = receivedText();
-      result.persisted = persistFullResult({ ...options.resultStore, role: roleName, completeness: 'complete', text: fullText });
+      // A missing or mismatched VERDICT line is an incomplete audit, not an error: the model call finished and
+      // was paid for, so usage stays known. Persisting it as partial makes mark-verified refuse it.
+      const verdictProblem = expectedVerdict ? checkExpectedVerdict(fullText, expectedVerdict) : undefined;
+      result.persisted = persistFullResult({ ...options.resultStore, role: roleName,
+        completeness: verdictProblem ? 'partial' : 'complete', text: fullText });
+      if (expectedVerdict) result.verdictStatus = verdictProblem ? 'INCOMPLETE' : 'ok';
       try {
-        result.envelope = buildEnvelope({ status: 'COMPLETE', persisted: result.persisted,
-          identity, summarySource: text, findingsSource: fullText });
+        result.envelope = verdictProblem
+          ? buildIncompleteEnvelope({ reason: `Auditor VERDICT line invalid: ${verdictProblem}`, partialText: text,
+            persisted: result.persisted, identity })
+          : buildEnvelope({ status: 'COMPLETE', persisted: result.persisted,
+            identity, summarySource: text, findingsSource: fullText });
       } catch (error) { error.persisted = result.persisted; throw error; }
     }
     return result;

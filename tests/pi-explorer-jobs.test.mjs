@@ -808,3 +808,49 @@ test('the real Pi loader registers the job tool and only the three lifecycle hoo
       fs.rmSync(temp, { recursive: true, force: true });
     }
   });
+
+// ---- PI-8 T4: the auditor task and runner options carry the verdict identity
+function verdictFixture(t, verdict) {
+  const f = auditFixture(t);
+  const manifest = JSON.parse(fs.readFileSync(f.manifest, 'utf8'));
+  if (verdict) manifest.verdict = verdict;
+  const bytes = JSON.stringify(manifest);
+  fs.writeFileSync(f.manifest, bytes);
+  return { ...f, sha: createHash('sha256').update(bytes).digest('hex') };
+}
+const VID = { task: 'T4', todo: 'Artifacts/Plans/X-TODO.md', taskSha256: 'd'.repeat(64) };
+
+test('an auditor manifest with a verdict identity puts the exact required line and expectedVerdict into the run', async (t) => {
+  const f = verdictFixture(t, VID);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  await call({ action: 'start', task: 'review', role: 'auditor', evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  assert.equal(runs.length, 1);
+  assert.deepEqual(runs[0].options.expectedVerdict, VID);
+  assert.ok(runs[0].task.includes('VERDICT: <PASS|FAIL|INCOMPLETE> task=T4 todo=Artifacts/Plans/X-TODO.md taskSha256=' + 'd'.repeat(64)));
+  assert.match(runs[0].task, /last line/i);
+  assert.ok(runs[0].task.startsWith('review'));
+  assert.ok(runs[0].task.includes(f.manifest));
+});
+
+test('an auditor manifest without a verdict identity adds no requirement and no option', async (t) => {
+  const f = verdictFixture(t);
+  const { call, runs } = setup({ auditor: true, promptPaths: { auditor: '/audit' } });
+  await call({ action: 'start', task: 'review', role: 'auditor', evidencePath: f.manifest, evidenceSha256: f.sha }, { cwd: f.root });
+  assert.ok(!('expectedVerdict' in runs[0].options));
+  assert.ok(!runs[0].task.includes('VERDICT'));
+});
+
+test('a strategist or explorer job never receives a verdict requirement', async (t) => {
+  const { call, runs } = setup({ strategist: true, promptPaths: { strategist: '/plan', explorer: '/x' } });
+  await call({ action: 'start', task: 'plan', role: 'strategist' }, { cwd: projectCwd });
+  assert.ok(!('expectedVerdict' in runs[0].options));
+  assert.ok(!runs[0].task.includes('VERDICT'));
+});
+
+test('the auditor prompt documents the verdict line contract', () => {
+  const prompt = fs.readFileSync(path.join(repo, 'pi', 'agents', 'auditor.md'), 'utf8');
+  assert.match(prompt, /VERDICT: (<)?PASS\|FAIL\|INCOMPLETE/);
+  assert.match(prompt, /last line/i);
+  assert.match(prompt, /exactly once/i);
+  assert.match(prompt, /do not (quote|repeat)/i);
+});
