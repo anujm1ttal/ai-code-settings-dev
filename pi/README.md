@@ -135,8 +135,7 @@ Jobs use a ten-minute child deadline and own their cancellation; aborting the st
 
 ## Bulk-read interception (PI-7 T9, source-only, not installed)
 
-When a valid `Artifacts/.agent/bulk-read-approval.json` and an absolute `PI_ROLE_POLICY_PATH` policy with a rate for the approved worker exist, the Parent guard redirects a whole-file `read` (no positive integer `limit`) or a plain `cat`/`less`/`more` of an approved, unchanged file to `pi_bulk_read`; the reason also offers a bounded `offset`/`limit` read. Child roles are never intercepted, and `/sync` and `/handoff` have no special case (without an approval nothing is touched). The Parent `write`/`edit` tools cannot write the approval, ledger or lock files.
-Limits, asserted by tests rather than enforced: the guard checks the approval schema, the policy rate and each file's hash, but **not** the cost cap, the cumulative ledger cap, a held ledger lock, or whether the `pi_bulk_read` tool is registered in the session, so a redirect can still end in a tool refusal (the escape is an `offset`/`limit` read). Fragmented bounded reads, any large positive `limit`, `head`/`tail`, pipes and compound commands, `sed`/`awk`/`grep`, interpreters, the `powershell` tool, hard links and shell writes of the state files are not blocked. This is routing, not isolation.
+The Parent guard no longer redirects reads (removed in PI-9 F3); `interceptRead` and `loadInterceptState` remain unused by the guard in `pi/lib/read-intercept.mjs` for a future `pi_bulk_read` release. The guard still blocks Parent `write`/`edit` of the approval, ledger and lock files in `Artifacts/.agent`; shell writes are not blocked. This is routing, not isolation.
 
 ## Limits
 

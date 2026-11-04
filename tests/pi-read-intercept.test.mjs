@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
+import { loadRolePolicy } from '../pi/lib/role-policy.mjs';
+import { interceptRead, loadInterceptState } from '../pi/lib/read-intercept.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const guardFile = path.join(root, 'pi/extensions/guard.ts');
@@ -52,10 +54,35 @@ async function withGuard(p, fn, extra = {}) {
   try { return await fn(g.call); } finally { g.restore(); }
 }
 const blocked = r => r?.block === true;
+// Exercise the retained library independently of the guard, reloading state on each call as before.
+async function withIntercept(p, fn) {
+  const call = async (toolName, input, cwd) => {
+    const state = loadInterceptState({ cwd, loadPolicy: () => loadRolePolicy(p.policyPath) });
+    const reason = interceptRead({ toolName, input, cwd, state });
+    return reason ? { block: true, reason } : undefined;
+  };
+  return fn(call);
+}
 
-test('whole-file reads of approved files are redirected to pi_bulk_read, in every path spelling', async t => {
+test('Parent whole-file read and plain cat are not redirected with a valid approval and policy', async t => {
   const p = project(t);
+  const state = loadInterceptState({ cwd: p.dir, loadPolicy: () => loadRolePolicy(p.policyPath) });
+  assert.ok(state, 'valid approval and absolute policy with worker rate');
+  for (const [toolName, input] of [['read', { path: 'a.txt' }], ['bash', { command: 'cat a.txt' }]]) {
+    assert.match(interceptRead({ toolName, input, cwd: p.dir, state }), /pi_bulk_read/, `${toolName} presence control`);
+  }
   await withGuard(p, async call => {
+    const results = await Promise.all([
+      call('read', { path: 'a.txt' }, p.dir),
+      call('bash', { command: 'cat a.txt' }, p.dir),
+    ]);
+    assert.deepEqual(results, [undefined, undefined], 'Parent reads must not be blocked or redirected');
+  });
+});
+
+test('library redirects whole-file reads of approved files to pi_bulk_read, in every path spelling', async t => {
+  const p = project(t);
+  await withIntercept(p, async call => {
     const spellings = ['a.txt', './a.txt', '@a.txt', path.join(p.dir, 'a.txt'), 'docs/../a.txt', 'docs/b.txt'];
     if (process.platform === 'win32') spellings.push('docs\\b.txt');
     for (const spelling of spellings) {
@@ -71,9 +98,9 @@ test('whole-file reads of approved files are redirected to pi_bulk_read, in ever
   });
 });
 
-test('bounded reads, unapproved files and fragmented reads pass (documented bypass)', async t => {
+test('library passes bounded reads, unapproved files and fragmented reads (documented bypass)', async t => {
   const p = project(t);
-  await withGuard(p, async call => {
+  await withIntercept(p, async call => {
     assert.equal(await call('read', { path: 'a.txt', limit: 50 }, p.dir), undefined);
     assert.equal(await call('read', { path: 'a.txt', offset: 1, limit: 2 }, p.dir), undefined);
     // Fragmented reads are NOT detected: three bounded reads reassemble the whole file.
@@ -87,7 +114,7 @@ test('bounded reads, unapproved files and fragmented reads pass (documented bypa
   });
 });
 
-test('no valid approval (or no policy rate) means no interception; tool registration itself is not checked', async t => {
+test('library does not intercept without a valid approval; guard reads pass regardless of policy path', async t => {
   const bad = [
     ['absent', project(t, { approval: false })],
     ['expired', project(t, { edit: a => ({ ...a, approvedAt: new Date(Date.now() - 7200000).toISOString(), expiresAt: new Date(Date.now() - 3600000).toISOString() }) })],
@@ -98,7 +125,7 @@ test('no valid approval (or no policy rate) means no interception; tool registra
   ];
   const garbage = project(t); fs.writeFileSync(path.join(garbage.dir, 'Artifacts', '.agent', 'bulk-read-approval.json'), '{not json');
   bad.push(['garbage', garbage]);
-  for (const [name, p] of bad) await withGuard(p, async call => {
+  for (const [name, p] of bad) await withIntercept(p, async call => {
     assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, name);
     assert.equal(await call('bash', { command: 'cat a.txt' }, p.dir), undefined, name);
   });
@@ -108,9 +135,10 @@ test('no valid approval (or no policy rate) means no interception; tool registra
   }
   fs.writeFileSync(p.policyPath, '{broken');
   await withGuard(p, async call => { assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, 'corrupt policy'); });
-  // Presence control: the same project with a good policy does intercept.
+  await withIntercept(p, async call => { assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, 'library rejects corrupt policy'); });
+  // Presence control: the retained library intercepts with the same good policy.
   fs.writeFileSync(p.policyPath, JSON.stringify(policy));
-  await withGuard(p, async call => { assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir))); });
+  await withIntercept(p, async call => { assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir))); });
 });
 
 test('/sync and /handoff posture: without an approval no read is touched; the guard has no workflow special case', async t => {
@@ -120,17 +148,17 @@ test('/sync and /handoff posture: without an approval no read is touched; the gu
   });
 });
 
-test('only the Parent is intercepted; child roles read normally', async t => {
+test('Parent and child roles read normally with an approval', async t => {
   const p = project(t);
   for (const role of ['explorer', 'coder', 'auditor']) {
     await withGuard(p, async call => { assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, role); }, { PI_ROLE: role });
   }
-  await withGuard(p, async call => { assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir))); });
+  await withGuard(p, async call => { assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined); });
 });
 
-test('a case alias of an approved file is still intercepted (Windows)', { skip: process.platform !== 'win32' }, async t => {
+test('library intercepts a case alias of an approved file (Windows)', { skip: process.platform !== 'win32' }, async t => {
   const p = project(t);
-  await withGuard(p, async call => {
+  await withIntercept(p, async call => {
     assert.ok(blocked(await call('read', { path: 'A.TXT' }, p.dir)));
     assert.ok(blocked(await call('read', { path: 'DOCS/B.TXT' }, p.dir)));
     assert.ok(blocked(await call('bash', { command: 'cat A.TXT' }, p.dir)));
@@ -141,15 +169,15 @@ test('a link to an approved file is intercepted; a link to an unapproved file is
   const p = project(t); let linked = true;
   try { fs.symlinkSync(path.join(p.dir, 'a.txt'), path.join(p.dir, 'ln.txt')); fs.symlinkSync(path.join(p.dir, 'other.txt'), path.join(p.dir, 'ln2.txt')); } catch { linked = false; }
   if (!linked) return t.skip('symlink creation not permitted here');
-  await withGuard(p, async call => {
+  await withIntercept(p, async call => {
     assert.ok(blocked(await call('read', { path: 'ln.txt' }, p.dir)));
     assert.equal(await call('read', { path: 'ln2.txt' }, p.dir), undefined);
   });
 });
 
-test('shell whole-file readers on an approved file are redirected; bounded and compound forms pass (documented bypasses)', async t => {
+test('library redirects shell whole-file readers; bounded and compound forms pass (documented bypasses)', async t => {
   const p = project(t);
-  await withGuard(p, async call => {
+  await withIntercept(p, async call => {
     for (const command of ['cat a.txt', 'cat ./a.txt', 'cat "a.txt"', "cat 'docs/b.txt'", 'cat -n a.txt', 'cat -A -n a.txt', 'less a.txt', 'more a.txt', 'cat other.txt a.txt', `cat ${path.join(p.dir, 'a.txt').replaceAll('\\', '/')}`]) {
       const r = await call('bash', { command }, p.dir);
       assert.ok(blocked(r), command); assert.match(r.reason, /pi_bulk_read/);
@@ -204,9 +232,9 @@ test('the concierge branch is unchanged and never intercepts', async t => {
 });
 
 // ---- mutation-pass additions ----
-test('file URLs are resolved; a directory is never intercepted even if listed as approved', async t => {
+test('library resolves file URLs; a directory is never intercepted even if listed as approved', async t => {
   const p = project(t, { edit: a => ({ ...a, approvedPaths: [...a.approvedPaths, 'docs'], approvedSha256: { ...a.approvedSha256, docs: hash('d') } }) });
-  await withGuard(p, async call => {
+  await withIntercept(p, async call => {
     assert.ok(blocked(await call('read', { path: pathToFileURL(path.join(p.dir, 'a.txt')).href }, p.dir)));
     assert.equal(await call('read', { path: 'docs' }, p.dir), undefined, 'directory');
     assert.equal(await call('read', { path: 'file:///definitely/not/there.txt' }, p.dir), undefined);
@@ -236,19 +264,22 @@ test('a project reached through a junction or link is protected the same way', a
   t.after(() => { try { fs.rmSync(link, { force: true, recursive: true }); } catch { /* removed */ } });
   await withGuard(p, async call => {
     assert.ok(blocked(await call('write', { path: 'Artifacts/.agent/bulk-read-approval.json', content: 'x' }, link)), 'write through a linked cwd');
-    assert.ok(blocked(await call('read', { path: 'a.txt' }, link)), 'read through a linked cwd');
+    assert.equal(await call('read', { path: 'a.txt' }, link), undefined, 'guard read through a linked cwd');
+  });
+  await withIntercept(p, async call => {
+    assert.ok(blocked(await call('read', { path: 'a.txt' }, link)), 'library read through a linked cwd');
   });
 });
 
-test('a relative PI_ROLE_POLICY_PATH disables interception even when it resolves to a real policy', async t => {
+test('a relative PI_ROLE_POLICY_PATH does not cause guard interception', async t => {
   const p = project(t); const relative = path.relative(process.cwd(), p.policyPath);
   if (path.isAbsolute(relative)) return t.skip('policy is on another drive; no relative spelling exists');
   await withGuard(p, async call => { assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined); }, { PI_ROLE_POLICY_PATH: relative });
 });
 
-test('shell metacharacters inside quotes do not hide a plain reader; outside quotes they disable interception', async t => {
+test('library sees shell metacharacters inside quotes as data; outside quotes they disable interception', async t => {
   const p = project(t);
-  await withGuard(p, async call => {
+  await withIntercept(p, async call => {
     assert.ok(blocked(await call('bash', { command: 'cat "a.txt" "o;ther"' }, p.dir)), 'quoted semicolon operand is data');
     assert.equal(await call('bash', { command: 'cat a.txt\ncat b' }, p.dir), undefined, 'newline');
     assert.equal(await call('bash', { command: 'cat a.txt\\' }, p.dir), undefined, 'backslash');
@@ -260,9 +291,9 @@ test('shell metacharacters inside quotes do not hide a plain reader; outside quo
 // ---- audit corrections (T9 MEDIUM-1..4) ----
 const touch = (file, seconds) => { const when = new Date(Date.now() + seconds * 1000); fs.utimesSync(file, when, when); };
 
-test('a file edited after approval is no longer redirected (the tool would refuse on hash); an unchanged one still is', async t => {
+test('library stops redirecting an edited file; an unchanged one still is redirected', async t => {
   const p = project(t); const a = path.join(p.dir, 'a.txt');
-  await withGuard(p, async call => {
+  await withIntercept(p, async call => {
     assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir)));
     fs.writeFileSync(a, 'one\ntwo\nCHANGED\n'); touch(a, 5);
     assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, 'edited file');
@@ -278,7 +309,7 @@ test('a file edited after approval is no longer redirected (the tool would refus
 test('a size change with an unchanged mtime is still detected (cache keys on both)', async t => {
   const p = project(t); const a = path.join(p.dir, 'a.txt');
   fs.utimesSync(a, 1700000000, 1700000000); const mtimeMs = fs.statSync(a).mtimeMs;
-  await withGuard(p, async call => {
+  await withIntercept(p, async call => {
     assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir)));
     fs.writeFileSync(a, 'a different length of content'+String.fromCharCode(10)); fs.utimesSync(a, 1700000000, 1700000000);
     assert.equal(fs.statSync(a).mtimeMs, mtimeMs, 'mtime restored (control)');
@@ -306,22 +337,27 @@ test('a policy with no rate for the approved worker disables interception (the t
   for (const jobBudget of [undefined, { perJobUsd: 1, perSessionUsd: 5, rates: {} }, { perJobUsd: 1, perSessionUsd: 5, rates: { 'pilot/m1': { inputPerMTok: 1, outputPerMTok: 2 } } }]) {
     const p = project(t); const next = { ...policy }; if (jobBudget) next.jobBudget = jobBudget; else delete next.jobBudget;
     fs.writeFileSync(p.policyPath, JSON.stringify(next));
-    await withGuard(p, async call => { assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, JSON.stringify(jobBudget)); });
+    await withIntercept(p, async call => { assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, JSON.stringify(jobBudget)); });
   }
 });
 
-test('Windows shell path spellings and Unicode spaces cannot dodge the write block or the read redirect', { skip: process.platform !== 'win32' }, async t => {
+test('Windows shell path spellings and Unicode spaces cannot dodge the write block; library redirects reads', { skip: process.platform !== 'win32' }, async t => {
   const p = project(t); const rest = p.dir.slice(2).replaceAll('\\', '/'); const drive = p.dir[0].toLowerCase();
   await withGuard(p, async call => {
     for (const prefix of [`/${drive}`, `/mnt/${drive}`, `/cygdrive/${drive}`]) {
       assert.ok(blocked(await call('write', { path: `${prefix}${rest}/Artifacts/.agent/bulk-read-approval.json`, content: 'x' }, p.dir)), `write ${prefix}`);
       assert.ok(blocked(await call('edit', { path: `${prefix}${rest}/Artifacts/.agent/bulk-read-ledger.jsonl`, edits: [] }, p.dir)), `edit ${prefix}`);
-      assert.ok(blocked(await call('read', { path: `${prefix}${rest}/a.txt` }, p.dir)), `read ${prefix}`);
+      assert.equal(await call('read', { path: `${prefix}${rest}/a.txt` }, p.dir), undefined, `guard read ${prefix}`);
     }
     for (const tail of ['\u00a0', '\u2003', ' \u00a0.', '::$DATA']) {
       assert.ok(blocked(await call('write', { path: `Artifacts/.agent/bulk-read-approval.json${tail}`, content: 'x' }, p.dir)), JSON.stringify(tail));
     }
     assert.equal(await call('write', { path: 'Artifacts/.agent/bulk-read-approval.json.bak', content: 'x' }, p.dir), undefined, 'a different file name is not protected');
+  });
+  await withIntercept(p, async call => {
+    for (const prefix of [`/${drive}`, `/mnt/${drive}`, `/cygdrive/${drive}`]) {
+      assert.ok(blocked(await call('read', { path: `${prefix}${rest}/a.txt` }, p.dir)), `library read ${prefix}`);
+    }
   });
 });
 
@@ -335,6 +371,11 @@ test('documented bypasses: hard links, shell forgery of state files, and an over
       assert.equal(await call('bash', { command }, p.dir), undefined, `shell forgery is not blocked: ${command}`);
     }
     assert.equal(await call('read', { path: 'a.txt', limit: 1e9 }, p.dir), undefined, 'any positive integer limit passes');
+  });
+  await withIntercept(p, async call => {
+    if (hard) assert.equal(await call('read', { path: 'hard.txt' }, p.dir), undefined, 'library does not detect a hard link');
+    assert.equal(await call('read', { path: 'a.txt', limit: 1e9 }, p.dir), undefined, 'library accepts any positive integer limit');
+    assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir)), 'library presence control');
   });
 });
 
@@ -357,6 +398,9 @@ test('with an approval present, /sync and /handoff state files stay readable and
       assert.equal(await call('write', { path: file, content: 'x' }, p.dir), undefined, `write ${file}`);
       assert.equal(await call('edit', { path: file, edits: [] }, p.dir), undefined, `edit ${file}`);
     }
+    assert.equal(await call('read', { path: 'a.txt' }, p.dir), undefined, 'guard does not redirect approved file');
+  });
+  await withIntercept(p, async call => {
     assert.ok(blocked(await call('read', { path: 'a.txt' }, p.dir)), 'presence control: approval is live');
   });
 });
