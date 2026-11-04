@@ -50,8 +50,9 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
           `choosing PASS, FAIL or INCOMPLETE:\nVERDICT: <PASS|FAIL|INCOMPLETE> task=${verdict.task} todo=${verdict.todo} taskSha256=${verdict.taskSha256}`;
       }
       return runRoleImpl(policy, role, childTask, context.cwd, paths[role],
-        { signal, invocation, resultStore, dispatchId, ...(requiredReadPath ? { requiredReadPath } : {}),
-          ...(verdict ? { expectedVerdict: verdict } : {}) });
+        { signal, invocation, resultStore, dispatchId,
+          ...(role === 'strategist' || role === 'auditor' ? { profile: 'read-only' } : {}),
+          ...(requiredReadPath ? { requiredReadPath } : {}), ...(verdict ? { expectedVerdict: verdict } : {}) });
     },
   });
 

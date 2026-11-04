@@ -35,6 +35,135 @@ function snapshot(root) {
   return rows;
 }
 
+test('L04: duplicate manifest destinations refuse before writes', async () => {
+  const root = sandbox();
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-manifest-fixture-'));
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const control = sandbox();
+    try { rollbackPreview(stagePreview({ sourceRoot, sandboxRoot: control })); }
+    finally { fs.rmSync(control, { recursive: true, force: true }); }
+    // Test-only module fixture: add a duplicate to the otherwise unreachable static file list.
+    const source = fs.readFileSync(modulePath, 'utf8');
+    const needle = "  'Pi-global.md',\n  'hooks/license-gate.json',";
+    assert.equal(source.split(needle).length, 2);
+    const module = path.join(fixture, 'release-preview.mjs');
+    fs.writeFileSync(module, source.replace(needle, "  'Pi-global.md', 'Pi-global.md',\n  'hooks/license-gate.json',"));
+    const injected = await import(pathToFileURL(module).href);
+    const before = snapshot(root);
+    assert.throws(() => injected.stagePreview({ sourceRoot, sandboxRoot: root }), /Duplicate Pi manifest destination/);
+    assert.deepEqual(snapshot(root), before);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); fs.rmSync(fixture, { recursive: true, force: true }); }
+});
+
+test('L07: an existing retained checker is not replaced', async () => {
+  const root = sandbox();
+  try {
+    const retained = path.join(root, 'agent/pi-retained');
+    fs.mkdirSync(retained, { recursive: true });
+    fs.writeFileSync(path.join(retained, 'sentinel'), Buffer.from([0, 255, 42]));
+    const { stagePreview, rollbackPreview } = await release();
+    const before = snapshot(root);
+    assert.throws(() => stagePreview({ sourceRoot, sandboxRoot: root }), /existing retained checker/);
+    assert.deepEqual(snapshot(root), before);
+    fs.rmSync(retained, { recursive: true });
+    rollbackPreview(stagePreview({ sourceRoot, sandboxRoot: root })); // valid control
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('L08: changed source after manifest refuses and restores destination', async () => {
+  const root = sandbox();
+  const originalRead = fs.readFileSync;
+  try {
+    const agent = path.join(root, 'agent');
+    fs.mkdirSync(agent);
+    fs.writeFileSync(path.join(agent, 'AGENTS.md'), 'prior bytes');
+    const { stagePreview, rollbackPreview } = await release();
+    const control = sandbox();
+    try { rollbackPreview(stagePreview({ sourceRoot, sandboxRoot: control })); }
+    finally { fs.rmSync(control, { recursive: true, force: true }); }
+    const before = snapshot(root);
+    const target = path.join(sourceRoot, 'Pi-global.md');
+    let reads = 0;
+    // Inject only the second read; do not modify the repository source.
+    fs.readFileSync = function (file, ...args) {
+      const bytes = originalRead.call(this, file, ...args);
+      if (file === target && ++reads === 2) return Buffer.from('changed after manifest');
+      return bytes;
+    };
+    assert.throws(() => stagePreview({ sourceRoot, sandboxRoot: root }), /Source changed after manifest/);
+    assert.equal(reads, 2);
+    fs.readFileSync = originalRead;
+    assert.deepEqual(snapshot(root), before);
+    assert.equal(fs.existsSync(path.join(root, 'backup')), false);
+  } finally { fs.readFileSync = originalRead; fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('L10: missing backup refuses rollback before removing originally absent files', async () => {
+  const root = sandbox();
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const control = sandbox();
+    try { rollbackPreview(stagePreview({ sourceRoot, sandboxRoot: control })); }
+    finally { fs.rmSync(control, { recursive: true, force: true }); }
+    const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    assert.ok(staged.records.some(record => !record.existed));
+    fs.rmSync(staged.backup, { recursive: true });
+    const before = snapshot(root);
+    assert.throws(() => rollbackPreview(staged), /backup is missing/);
+    assert.deepEqual(snapshot(root), before);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('L11: tampered backup refuses rollback before any destination changes', async () => {
+  const root = sandbox();
+  try {
+    fs.mkdirSync(path.join(root, 'agent'));
+    fs.writeFileSync(path.join(root, 'agent/AGENTS.md'), 'original');
+    const { stagePreview, rollbackPreview } = await release();
+    const control = sandbox();
+    try { rollbackPreview(stagePreview({ sourceRoot, sandboxRoot: control })); }
+    finally { fs.rmSync(control, { recursive: true, force: true }); }
+    const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    fs.writeFileSync(path.join(staged.backup, 'AGENTS.md'), 'tampered'); // same length
+    const before = snapshot(root);
+    assert.throws(() => rollbackPreview(staged), /backup hash mismatch/);
+    assert.deepEqual(snapshot(root), before);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('L14 refined: junction ancestor after staging refuses rollback before writes', async t => {
+  const root = sandbox();
+  let link;
+  try {
+    fs.mkdirSync(path.join(root, 'agent'));
+    fs.writeFileSync(path.join(root, 'agent/AGENTS.md'), 'prior backup bytes');
+    const { stagePreview, rollbackPreview } = await release();
+    const control = sandbox();
+    try { rollbackPreview(stagePreview({ sourceRoot, sandboxRoot: control })); }
+    finally { fs.rmSync(control, { recursive: true, force: true }); }
+    const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    link = path.join(staged.destination, 'pi/agents');
+    const displaced = path.join(root, 'displaced-agents');
+    fs.renameSync(link, displaced);
+    try { fs.symlinkSync(displaced, link, 'junction'); }
+    catch (error) {
+      fs.renameSync(displaced, link); link = undefined;
+      if (['EPERM', 'EACCES', 'ENOSYS'].includes(error.code)) return t.skip(`junction unavailable: ${error.code}`);
+      throw error;
+    }
+    const before = snapshot(root);
+    assert.throws(() => rollbackPreview(staged), /Symlink in isolated destination/);
+    assert.deepEqual(snapshot(root), before);
+  } finally {
+    if (link) {
+      try { if (fs.lstatSync(link).isSymbolicLink()) fs.unlinkSync(link); }
+      catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('preview stages the scoped runtime at the default dispatch path', async () => {
   const root = sandbox();
   try {
@@ -66,6 +195,71 @@ test('preview stages the scoped runtime at the default dispatch path', async () 
     assert.equal(dispatched.command, process.execPath);
     assert.equal(dispatched.launcher, path.join(staged.destination, 'pi/lib/child-runtime.mjs'));
     assert.equal(fs.readFileSync(dispatched.launcher, 'utf8'), fs.readFileSync(path.join(sourceRoot, 'pi/lib/child-runtime.mjs'), 'utf8'));
+    rollbackPreview(staged);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('preview stages the complete role guard closure byte-for-byte', async () => {
+  const root = sandbox();
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    const closure = ['pi/extensions/role-guard.ts', 'pi/lib/role-guard-core.mjs',
+      'pi/lib/role-ownership.mjs', 'pi/lib/todo-ownership.mjs', 'pi/lib/verdict.mjs'];
+    for (const relative of closure) {
+      const target = path.join(staged.destination, relative);
+      assert.ok(fs.existsSync(target), `${relative} must be staged`);
+      assert.deepEqual(fs.readFileSync(target), fs.readFileSync(path.join(sourceRoot, relative)), relative);
+    }
+    // Follow literal static and dynamic relative imports from the staged guard transitively.
+    const visited = new Set(), pending = [closure[0]];
+    while (pending.length) {
+      const relative = pending.pop();
+      if (visited.has(relative)) continue;
+      visited.add(relative);
+      const text = fs.readFileSync(path.join(staged.destination, relative), 'utf8');
+      const imports = [...text.matchAll(/\b(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]|\bimport\s*\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g)]
+        .map(match => match[1] ?? match[2]);
+      if (relative === closure[0] || relative === closure[1]) {
+        assert.ok(imports.length, `${relative} must have a relative import to check`);
+      }
+      for (const specifier of imports) {
+        const target = path.resolve(staged.destination, path.dirname(relative), specifier);
+        const next = path.relative(staged.destination, target);
+        assert.ok(next && next !== '..' && !next.startsWith(`..${path.sep}`) && !path.isAbsolute(next),
+          `${relative} import ${specifier} must stay inside the staged tree`);
+        assert.ok(fs.existsSync(target), `${relative} import ${specifier} must resolve in the staged tree`);
+        assert.deepEqual(fs.readFileSync(target), fs.readFileSync(path.join(sourceRoot, next)), next);
+        pending.push(next.split(path.sep).join('/'));
+      }
+    }
+    assert.ok(closure.every(relative => visited.has(relative)), 'all known guard dependencies were traversed');
+    rollbackPreview(staged);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('preview stages child recorder and its complete import closure without parent activation', async () => {
+  const root = sandbox();
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    const start = 'pi/extensions/auditor-recorder.ts';
+    const settings = JSON.parse(fs.readFileSync(path.join(staged.destination, 'settings.json'), 'utf8'));
+    assert.ok(!settings.extensions.includes(start));
+    const visited = new Set(), pending = [start];
+    while (pending.length) {
+      const rel = pending.pop(); if (visited.has(rel)) continue; visited.add(rel);
+      const target = path.join(staged.destination, rel);
+      assert.ok(fs.existsSync(target), `${rel} must be staged`);
+      const bytes = fs.readFileSync(target);
+      assert.deepEqual(bytes, fs.readFileSync(path.join(sourceRoot, rel)), rel);
+      for (const match of bytes.toString('utf8').matchAll(/\b(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]|\bimport\s*\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g)) {
+        const next = path.relative(staged.destination, path.resolve(path.dirname(target), match[1] ?? match[2]));
+        assert.ok(next && next !== '..' && !next.startsWith(`..${path.sep}`) && !path.isAbsolute(next));
+        pending.push(next.split(path.sep).join('/'));
+      }
+    }
+    for (const rel of ['pi/lib/auditor-recorder.mjs', 'pi/lib/role-ownership.mjs', 'pi/lib/todo-ownership.mjs', 'pi/lib/verdict.mjs']) assert.ok(visited.has(rel), `${rel} traversed`);
     rollbackPreview(staged);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
@@ -140,7 +334,7 @@ test('PI-4 preview stages exact job dependencies and loads the budget-denying jo
     assert.match((await tool.execute('status2', { action: 'status' }, undefined, undefined, context)).content[0].text, /No jobs/);
     rollbackPreview(staged);
     staged = undefined;
-    assert.deepEqual(snapshot(agent), before, 'PI-4 staged runtime rollback restores prior sandbox bytes');
+    assert.deepEqual(snapshot(agent).filter(([name]) => name !== 'pi-retained' && !name.startsWith(`pi-retained${path.sep}`)), before, 'PI-4 staged runtime rollback restores prior sandbox bytes');
     assert.equal(fs.existsSync(path.join(root, 'backup')), false);
   } finally {
     if (previous === undefined) delete process.env.PI_ROLE_POLICY_PATH; else process.env.PI_ROLE_POLICY_PATH = previous;
@@ -309,7 +503,7 @@ test('rollback restores the prior isolated agent directory byte-for-byte', async
     assert.ok(fs.existsSync(path.join(staged.destination, 'pi/agents/explorer.md')), 'rollback exercised after explorer staging');
     assert.notDeepEqual(snapshot(agent), before);
     rollbackPreview(staged);
-    assert.deepEqual(snapshot(agent), before);
+    assert.deepEqual(snapshot(agent).filter(([name]) => name !== 'pi-retained' && !name.startsWith(`pi-retained${path.sep}`)), before);
     assert.equal(fs.existsSync(path.join(root, 'backup')), false);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
@@ -329,6 +523,8 @@ test('isolated Pi preview backs up prior agent files and stages only Pi resource
     assert.equal(guidance, fs.readFileSync(path.join(sourceRoot, 'Pi-global.md'), 'utf8'));
     assert.doesNotMatch(guidance, /This file is \*\*source\*\*, not an installed Pi instruction/);
     const settings = JSON.parse(fs.readFileSync(path.join(agent, 'settings.json'), 'utf8'));
+    assert.equal(settings.extensions.includes('pi/extensions/role-guard.ts'), false,
+      'the child-only role guard must not be loaded by the parent');
     assert.deepEqual(settings.extensions, [
       'pi/extensions/guard.ts', 'pi/extensions/session-observability.ts', 'pi/extensions/role-agent.ts',
     ]);

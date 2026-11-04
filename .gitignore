@@ -38,3 +38,10 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local launchers
+start_claude.ps1
+start_pi.ps1
+
+# Pi role ownership: local project override (PI-9)
+/role-ownership.json

@@ -9,6 +9,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { PassThrough } from 'node:stream';
 import { stripTypeScriptTypes } from 'node:module';
+import { pathToFileURL } from 'node:url';
 import { runInNewContext } from 'node:vm';
 import { runRole } from '../pi/lib/role-runner.mjs';
 import { createJobManager } from '../pi/lib/job-manager.mjs';
@@ -286,6 +287,55 @@ test('nonzero exit, failed model response and timeout preserve partial work', as
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
+const recordBinding = { todo: 'Artifacts/TODO.md', taskId: 'T6', taskSha256: 'a'.repeat(64),
+  verdictRef: 'Artifacts/.agent/pi-results/a.result', verdictSha256: 'b'.repeat(64),
+  manifestPath: 'Artifacts/manifest.json', manifestSha256: 'c'.repeat(64), date: '2026-07-01' };
+
+test('U02 expected verdict and record cannot be combined even with valid result store', async t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-record-verdict-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const fake = fakeSpawn([runtimeProof, assistant('pilot-claude', 'sonnet', 'high', 'Recorded')]);
+  const common = { spawnImpl: fake.spawnImpl, profile: 'record', recordBinding, resultStore: { dir, dispatchId: 'control' } };
+  await assert.rejects(runRole(policy, 'auditor', 'record', dir, '/role', { ...common,
+    expectedVerdict: { task: 'T6', todo: 'Artifacts/TODO.md', taskSha256: 'a'.repeat(64) } }), /expectedVerdict.*record/i);
+  assert.equal(fake.calls.length, 0); assert.deepEqual(fs.readdirSync(dir), []);
+  await runRole(policy, 'auditor', 'record', dir, '/role', common);
+  assert.equal(fake.calls.length, 1);
+});
+
+test('record runner validates and isolates the binding before spawning', async () => {
+  const fake = fakeSpawn([runtimeProof, { type: 'tool_execution_start', toolName: 'pi_record_verification' },
+    assistant('pilot-claude', 'sonnet', 'high', 'Recorded')]);
+  const previous = process.env.PI_RECORD_BINDING;
+  process.env.PI_RECORD_BINDING = 'inherited';
+  try {
+    const call = (role, opts) => runRole(policy, role, 'Review', '.', '/role', { spawnImpl: fake.spawnImpl, ...opts });
+    for (const [role, opts] of [
+      ['auditor', { profile: 'record' }], ['coder', { profile: 'record', recordBinding }],
+      ['auditor', { recordBinding }], ['auditor', { profile: 'read-only', recordBinding }],
+      ['auditor', { profile: 'record', recordBinding: { ...recordBinding, extra: true } }],
+      ['auditor', { profile: 'record', recordBinding: (({ todo, ...rest }) => rest)(recordBinding) }],
+      ['auditor', { profile: 'record', recordBinding: { ...recordBinding, taskSha256: 'bad' } }],
+      ['auditor', { profile: 'record', recordBinding: { ...recordBinding, date: 'bad' } }],
+      ['auditor', { profile: 'record', recordBinding, expectedVerdict: {} }],
+    ]) await assert.rejects(call(role, opts));
+    assert.equal(fake.calls.length, 0);
+    const result = await call('auditor', { profile: 'record', recordBinding });
+    assert.equal(result.toolCounts.pi_record_verification, 1);
+    assert.deepEqual(JSON.parse(fake.calls[0].options.env.PI_RECORD_BINDING), recordBinding);
+    const normal = fakeSpawn([runtimeProof, assistant('pilot-claude', 'sonnet', 'high', 'Review')]);
+    await runRole(policy, 'auditor', 'Review', '.', '/role', { spawnImpl: normal.spawnImpl });
+    assert.equal(Object.hasOwn(normal.calls[0].options.env, 'PI_RECORD_BINDING'), false);
+    for (const toolName of ['edit', 'write', 'bash', 'unknown']) {
+      const denied = fakeSpawn([{ type: 'tool_execution_start', toolName }, assistant('pilot-claude', 'sonnet', 'high', 'x')]);
+      await assert.rejects(runRole(policy, 'auditor', 'x', '.', '/role',
+        { spawnImpl: denied.spawnImpl, profile: 'record', recordBinding }), new RegExp(`Auditor attempted ${toolName}`));
+    }
+  } finally {
+    if (previous === undefined) delete process.env.PI_RECORD_BINDING; else process.env.PI_RECORD_BINDING = previous;
+  }
+});
+
 test('dispatches an isolated auditor and verifies observed model and thinking', async () => {
   const fake = fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', 'FAIL: revise tests')]);
   const result = await runRole(policy, 'auditor', 'Review fixture', 'C:/fixture', 'C:/role.md',
@@ -300,6 +350,37 @@ test('dispatches an isolated auditor and verifies observed model and thinking', 
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
     usageCalls: [{ stopReason: 'stop', completeness: 'known', usage: assistant('pilot-claude', 'sonnet', 'high', '').message.usage }],
     runtimeVerified: false, toolCounts: {}, successfulReads: 0 });
+});
+
+test('detached strategist and auditor ignore record-shaped inputs and stay read-only', async t => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-record-detached-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const tools = new Map(), seen = [];
+  const Type = new Proxy({}, { get: () => () => ({}) });
+  const rates = Object.fromEntries(['strategist', 'auditor'].map(role =>
+    [policy.roles[role].model, { inputPerMTok: 1, outputPerMTok: 1 }]));
+  const expanded = { ...policy, jobBudget: { perJobUsd: 1, perSessionUsd: 2, rates } };
+  const jobs = registerExplorerJobs({ registerTool: tool => tools.set(tool.name, tool), on: () => {} },
+    { Type, policy: expanded, gate: { tryAcquire: () => () => {} }, promptPaths: { strategist: '/prompt', auditor: '/audit' },
+      accessImpl: () => {}, runRoleImpl: async (_p, role, _task, _cwd, _prompt, options) => {
+        seen.push(options); return { role, text: 'done', usage: null };
+      } });
+  await tools.get('pi_explorer_job').execute('id', { action: 'start', role: 'strategist', task: 'x',
+    profile: 'record', recordBinding }, undefined, undefined, { cwd: root });
+  const dir = path.join(root, 'Artifacts', 'Evidence'); fs.mkdirSync(dir, { recursive: true });
+  const capture = path.join(dir, 'capture'); fs.writeFileSync(capture, 'original');
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+  const manifest = path.join(dir, 'manifest.json');
+  fs.writeFileSync(manifest, JSON.stringify({ version: 1, captures: [{ path: capture, sha256: hash('original') }] }));
+  await tools.get('pi_explorer_job').execute('audit', { action: 'start', role: 'auditor', task: 'x',
+    evidencePath: manifest, evidenceSha256: hash(fs.readFileSync(manifest)), profile: 'record', recordBinding },
+    undefined, undefined, { cwd: root });
+  assert.equal(seen.length, 2);
+  for (const options of seen) {
+    assert.equal(options.profile, 'read-only');
+    assert.equal(Object.hasOwn(options, 'recordBinding'), false);
+  }
+  await jobs.shutdown();
 });
 
 test('explorer dispatches without project state and reports bounded tool metadata', async () => {
@@ -330,7 +411,7 @@ test('explorer dispatches without project state and reports bounded tool metadat
     assert.equal(args[args.indexOf('--tools') + 1], 'read,grep,find,ls');
     assert.ok(args.includes('--no-mcp'));
     assert.equal(args.includes('--extension'), false);
-    assert.equal(options.env.PI_ROLE, undefined);
+    assert.equal(options.env.PI_ROLE, 'explorer');
     assert.equal(options.env.PI_CONCIERGE_ROOT, undefined);
     assert.equal(fs.existsSync(path.join(root, 'Artifacts')), false);
   } finally {
@@ -591,7 +672,7 @@ test('role tool preserves persisted failures and perspective recheck errors', as
   assert.equal(failures.length, 0, failures.map(error => error.message).join('\n'));
 });
 
-function step3RoleTool(runRoleImpl) {
+function step3RoleTool(runRoleImpl, gates = []) {
   const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
   const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*;[ \t]*$/gm, '')
     .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
@@ -601,10 +682,79 @@ function step3RoleTool(runRoleImpl) {
     Type: { Object: () => ({}), String: () => ({}), Union: () => ({}), Literal: () => ({}), Optional: () => ({}) },
     loadRolePolicy: () => policy, runRole: runRoleImpl, runCouncilPerspective: runRoleImpl,
     runCouncilSession: async () => ({}), registerExplorerJobs: () => {}, createExpensiveGate: () => ({}),
-    withExpensiveGate: async (_gate, _label, run) => run() };
+    withExpensiveGate: async (_gate, label, run) => { gates.push(label); return run(); } };
   runInNewContext(js, sandbox)({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
-  return cwd => tools.get('pi_role_agent').execute('id', { role: 'coder', task: 'work' }, undefined, undefined, { cwd });
+  return (cwd, params = { role: 'coder', task: 'work' }) => tools.get('pi_role_agent').execute('id', params, undefined, undefined, { cwd });
 }
+
+test('role agent exposes the record schema without a model-supplied date', () => {
+  const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
+  const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*;[ \t]*$/gm, '')
+    .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
+    .replace(/export default function \(pi\s*\)/, 'function register(pi)') + '\nregister';
+  const tools = new Map();
+  const Type = new Proxy({}, { get: (_target, kind) => (...args) => ({ kind, args }) });
+  const sandbox = { ...strippedImportBindings, process: { env: { PI_ROLE_POLICY_PATH: path.resolve('fixture-policy.json') } },
+    Type, loadRolePolicy: () => policy, registerExplorerJobs: () => {}, createExpensiveGate: () => ({}) };
+  runInNewContext(js, sandbox)({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
+  const schema = tools.get('pi_role_agent').parameters;
+  const props = schema.args[0];
+  assert.equal(schema.args[1].additionalProperties, false);
+  assert.deepEqual(Array.from(props.profile.args[0].args[0], literal => literal.args[0]), ['read-only', 'record']);
+  for (const key of ['todo', 'taskId', 'taskSha256', 'verdictRef', 'verdictSha256', 'manifestPath', 'manifestSha256']) {
+    assert.equal(props[key].kind, 'Optional'); assert.equal(props[key].args[0].kind, 'String');
+  }
+  assert.equal(Object.hasOwn(props, 'date'), false);
+});
+
+test('role agent binds seven record fields and a locally computed date only for auditor', async t => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-record-dispatch-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const seen = [], gates = [];
+  const execute = step3RoleTool(async (_p, role, _task, _cwd, _prompt, options) => {
+    seen.push(options);
+    const persisted = persistFullResult({ ...options.resultStore, role, completeness: 'complete', text: 'done' });
+    return { role, model: 'fixture', thinking: 'high', text: 'done', persisted, usage: null };
+  }, gates);
+  const { date, ...fields } = recordBinding;
+  const params = { role: 'auditor', task: 'record', profile: 'record', ...fields };
+  for (const key of Object.keys(fields)) {
+    const missing = { ...params }; delete missing[key];
+    await assert.rejects(execute(root, missing), /record|binding/i);
+    await assert.rejects(execute(root, { ...params, [key]: '' }), /record|binding/i);
+    await assert.rejects(execute(root, { role: 'auditor', task: 'x', [key]: fields[key] }), /record|binding/i);
+  }
+  for (const bad of [{ ...params, role: 'coder' }, { ...params, date },
+    { ...params, profile: 'read-only' }, { ...params, taskSha256: null }]) {
+    await assert.rejects(execute(root, bad), /record|binding|profile/i);
+  }
+  assert.equal(seen.length, 0);
+  const localDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const before = localDate(); await execute(root, params); const after = localDate();
+  assert.deepEqual(JSON.parse(JSON.stringify(seen[0].recordBinding)), { ...fields, date: seen[0].recordBinding.date });
+  assert.ok([before, after].includes(seen[0].recordBinding.date));
+  assert.equal(seen[0].profile, 'record'); assert.deepEqual(gates, ['auditor']);
+});
+
+test('dispatcher forwards only a valid non-council read-only profile', async t => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-profile-dispatch-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const seen = [];
+  const execute = step3RoleTool(async (_p, role, _task, _cwd, _prompt, options) => {
+    seen.push(options.profile);
+    const persisted = persistFullResult({ ...options.resultStore, role, completeness: 'complete', text: 'done' });
+    return { role, model: 'fixture', thinking: 'medium', text: 'done', persisted, usage: null };
+  });
+  for (const role of ['strategist', 'coder', 'auditor', 'scribe']) {
+    await execute(root, { role, task: 'x', profile: 'read-only' }); assert.equal(seen.at(-1), 'read-only');
+  }
+  const count = seen.length;
+  for (const params of [{ role: 'coder', profile: 'unknown' }, { role: 'coder', profile: null },
+    { role: 'council-perspective', profile: 'read-only' }, { role: 'explorer', profile: 'read-only' }]) {
+    await assert.rejects(execute(root, { task: 'x', ...params }), /profile/i);
+  }
+  assert.equal(seen.length, count);
+});
 
 test('step3 synchronous output exposes final summary and bounded aggregate usage', async (t) => {
   const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-step3-sync-')));
@@ -1131,6 +1281,42 @@ test('stream overflow escalates to SIGKILL and reports unconfirmed cleanup when 
   const error = await result;
   assert.deepEqual(signals, ['SIGTERM', 'SIGKILL']);
   assert.match(error?.message ?? '', /exceeded 8 MiB.*cleanup unconfirmed/);
+});
+
+test('writer observations follow effective role tools and enforced profiles', async () => {
+  const R = ['read', 'grep', 'find', 'ls'];
+  const expanded = { ...policy, roles: { ...policy.roles,
+    strategist: { ...policy.roles.strategist, tools: [...R, 'edit', 'write'] },
+    scribe: { model: 'pilot-gpt/luna', thinking: 'low', tools: [...R, 'edit', 'write'] } } };
+  for (const role of ['strategist', 'coder', 'auditor', 'scribe']) {
+    const binding = expanded.roles[role]; const [provider, model] = binding.model.split('/');
+    for (const toolName of ['edit', 'write', 'bash']) {
+      const fake = fakeSpawn([{ type: 'tool_execution_start', toolName }, assistant(provider, model, binding.thinking, 'done')]);
+      const options = { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } };
+      if (binding.tools.includes(toolName)) assert.equal((await runRole(expanded, role, 'task', '.', '/prompt', options)).text, 'done');
+      else await assert.rejects(runRole(expanded, role, 'task', '.', '/prompt', options), /attempted/);
+      const read = fakeSpawn([{ type: 'tool_execution_start', toolName }, assistant(provider, model, binding.thinking, 'done')]);
+      await assert.rejects(runRole(expanded, role, 'task', '.', '/prompt', { ...options, spawnImpl: read.spawnImpl, profile: 'read-only' }), /attempted/);
+    }
+    const fake = fakeSpawn([assistant(provider, model, binding.thinking, 'done')]);
+    await runRole(expanded, role, 'task', '.', '/prompt', { spawnImpl: fake.spawnImpl, invocation: { command: 'pi', args: [] } });
+    assert.equal(fake.calls[0].options.env.PI_ROLE, role);
+  }
+});
+
+test('each missing writer guard dependency refuses launch from the runner location', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-runner-closure-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const source = path.resolve('pi');
+  for (const [i, missing] of ['extensions/role-guard.ts', 'lib/role-guard-core.mjs', 'lib/role-ownership.mjs',
+    'lib/todo-ownership.mjs', 'lib/verdict.mjs'].entries()) {
+    const copy = path.join(root, String(i)); fs.cpSync(source, copy, { recursive: true });
+    const { runRole: isolated } = await import(pathToFileURL(path.join(copy, 'lib/role-runner.mjs')).href);
+    fs.rmSync(path.join(copy, missing));
+    let spawned = false;
+    await assert.rejects(isolated(policy, 'coder', 'work', '.', '/prompt', { spawnImpl: () => { spawned = true; } }), /guard|dependency|closure/i, missing);
+    assert.equal(spawned, false, missing);
+  }
 });
 
 test('rejects an error assistant response instead of treating it as a completed task', async () => {

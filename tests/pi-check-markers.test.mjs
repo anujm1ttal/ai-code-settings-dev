@@ -7,7 +7,7 @@ import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { checkMarkers } from '../scripts/check-markers.mjs';
-import { markVerified } from '../scripts/mark-verified.mjs';
+import { buildAuditorRecording } from '../pi/lib/todo-ownership.mjs';
 import { canonicalTaskHash } from '../pi/lib/verdict.mjs';
 import { persistFullResult } from '../pi/lib/result-contract.mjs';
 
@@ -32,18 +32,64 @@ const result = (root, { id, task, line, todo = TODO, verdict = 'PASS', role = 'a
 const settle = (root, r) => fs.writeFileSync(path.join(root, RES, `${path.basename(r.ref, '.result')}.settlement.json`), JSON.stringify({
   version: 1, dispatchId: path.basename(r.ref, '.result'), role: 'auditor', state: 'succeeded', outcome: 'ok', cost: null,
   receipt: { ref: r.ref, sha256: r.sha256, bytes: r.bytes, completeness: 'complete' } }));
-// Build a TODO with real markVerified output for task `id`.
-function verified(root, { id = 'T1', rid = 'role-a', eol = '\n', bom = false, others = [] } = {}) {
+// Build the same bytes as the bound Auditor recorder, without invoking retired apply.
+function verified(root, { id = 'T1', rid = 'role-a', eol = '\n', bom = false, others = [], verdict = 'PASS', resultVerdict = verdict } = {}) {
   const p = put(root, TODO, (bom ? '\uFEFF' : '') + [L(id), ...others].join(eol) + eol);
-  const r = result(root, { id: rid, task: id, line: L(id) });
+  const r = result(root, { id: rid, task: id, line: L(id), verdict: resultVerdict });
   if (rid.startsWith('job-')) settle(root, r);
-  markVerified({ root, todo: p, taskId: id, resultRef: r.ref, apply: true, acceptUncorroborated: true, today: '2026-11-03' });
+  const built = buildAuditorRecording(fs.readFileSync(p), { taskId: id, verdict, date: '2026-11-03', ref: `${verdict}; verdict=${rid}; sha256=${r.sha256}` });
+  assert.equal(built.ok, true, built.reasons.join('; '));
+  fs.writeFileSync(p, built.candidate);
   return { p, r };
 }
 const one = (root, opts = {}) => checkMarkers({ root, todos: [path.join(root, TODO)], ...opts });
 const status = (out, i = 0) => out.findings[i]?.status;
 
-test('a line written by mark-verified is valid and exits 0 (LF, CRLF, BOM)', () => {
+test('C03: a checked verified FAIL with matching settled FAIL is invalid', () => project(root => {
+  const { p } = verified(root, { verdict: 'FAIL', rid: 'job-fail' });
+  assert.equal(status(one(root)), 'reviewed'); // valid settled FAIL control
+  fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('[ ]', '[x]').replace('Auditor-reviewed', 'Auditor-verified'));
+  const out = one(root);
+  assert.equal(status(out), 'invalid');
+  assert.equal(out.exit, 1);
+}));
+
+test('C04: a valid settled PASS with an impossible calendar date is invalid', () => project(root => {
+  const { p } = verified(root, { rid: 'job-date' });
+  assert.equal(status(one(root)), 'valid');
+  fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('2026-11-03', '2026-02-30'));
+  const out = one(root);
+  assert.equal(status(out), 'invalid');
+  assert.equal(out.exit, 1);
+}));
+
+test('duplicate unchecked task ids make the whole file ineligible', () => project(root => {
+  put(root, TODO, L('T1') + '\n' + L('T1') + '\n');
+  const out = one(root);
+  assert.equal(status(out), 'ineligible'); assert.equal(out.exit, 1);
+}));
+
+test('a FAIL recording on an unchecked task is reviewed', () => project(root => {
+  const r = result(root, { id: 'role-fail', task: 'T1', line: L('T1'), verdict: 'FAIL' });
+  put(root, TODO, L('T1') + ` — Auditor-reviewed 2026-11-03 (FAIL; verdict=role-fail; sha256=${r.sha256})\n`);
+  const out = one(root);
+  assert.equal(status(out), 'reviewed'); assert.equal(out.exit, 0);
+}));
+
+test('FAIL records check verdict, current definition, recorded hash and result presence', () => project(root => {
+  let { p, r } = verified(root, { verdict: 'FAIL', resultVerdict: 'PASS', rid: 'role-pass' });
+  assert.equal(status(one(root)), 'invalid');
+  ({ p, r } = verified(root, { verdict: 'FAIL', rid: 'role-stale' }));
+  assert.equal(status(one(root)), 'reviewed');
+  fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('Success: x', 'Success: changed'));
+  assert.equal(status(one(root)), 'stale-task');
+  ({ p, r } = verified(root, { verdict: 'FAIL', rid: 'role-hash' }));
+  fs.writeFileSync(r.ref, 'changed'); assert.equal(status(one(root)), 'hash-mismatch');
+  ({ p, r } = verified(root, { verdict: 'FAIL', rid: 'role-missing' }));
+  fs.unlinkSync(r.ref); assert.equal(status(one(root)), 'missing-file');
+}));
+
+test('a PASS recording is valid and exits 0 (LF, CRLF, BOM)', () => {
   for (const o of [{}, { eol: '\r\n' }, { eol: '\r\n', bom: true }]) project(root => {
     verified(root, o);
     const out = one(root);
@@ -123,10 +169,11 @@ test('malformed suffixes, a [x] with only a review suffix, and a non-[x] claimin
     L('T1').replace('[ ]', '[x]') + good + ' trailing',
     L('T1') + good,
     L('T1').replace('[ ]', '[-]') + good,
+    L('T1').replace('[ ]', '[-]') + ' — Auditor-reviewed 2026-11-03 (FAIL; verdict=role-a; sha256=' + 'a'.repeat(64) + ')',
   ]) {
     put(root, TODO, text + '\n');
     const out = one(root);
-    assert.equal(status(out), 'invalid', text); assert.equal(out.exit, 1);
+    assert.equal(status(out), text.endsWith(' trailing') ? 'ineligible' : 'invalid', text); assert.equal(out.exit, 1);
   }
 }));
 
@@ -134,12 +181,13 @@ test('duplicate task ids with a [x] are flagged', () => project(root => {
   const { p } = verified(root);
   fs.appendFileSync(p, L('T1') + '\n');
   const out = one(root);
-  assert.ok(out.findings.some(f => f.status === 'duplicate-id')); assert.equal(out.exit, 1);
+  assert.equal(status(out), 'ineligible'); assert.equal(out.exit, 1);
 }));
 
-test('lines inside code fences are ignored', () => project(root => {
-  put(root, TODO, ['```', L('T1').replace('[ ]', '[x]'), '```', L('T2')].join('\n') + '\n');
-  assert.deepEqual(one(root).findings, []);
+test('fenced and indented task lookalikes make the file ineligible', () => project(root => {
+  for (const text of [['```', L('T1'), '```', L('T2')].join('\n'), '  ' + L('T1')]) {
+    put(root, TODO, text + '\n'); assert.equal(status(one(root)), 'ineligible'); assert.equal(one(root).exit, 1);
+  }
 }));
 
 test('several TODOs aggregate counts and the worst exit', () => project(root => {
@@ -191,16 +239,14 @@ test('CLI: exit 0 clean, 1 findings, 2 usage or unreadable; prints one line per 
 }));
 
 // ---- T5 mutation-pass additions (survivors turned into tests)
-test('T5: ~~~ fences, blockquoted lookalikes and unchecked duplicate ids are not findings', () => project(root => {
+test('T5: ~~~ fences, blockquoted lookalikes and unchecked duplicate ids are ineligible', () => project(root => {
   put(root, TODO, ['~~~', L('T1').replace('[ ]', '[x]'), '~~~', '> ' + L('T2').replace('[ ]', '[x]'), L('T3'), L('T3')].join('\n') + '\n');
-  assert.deepEqual(one(root).findings, []);
+  assert.equal(status(one(root)), 'ineligible');
 }));
 
-test('T5: an uppercase [X] without a suffix is legacy; two legacy lines are both counted', () => project(root => {
+test('uppercase [X] is ineligible under the shared task grammar', () => project(root => {
   put(root, TODO, L('T1').replace('[ ]', '[X]') + '\n' + L('T2').replace('[ ]', '[x]') + '\n');
-  const out = one(root);
-  assert.deepEqual(out.counts, { legacy: 2 });
-  assert.deepEqual(out.findings.map(f => f.task), ['T1', 'T2']);
+  assert.equal(status(one(root)), 'ineligible');
 }));
 
 test('T5: a suffix that says FAIL is malformed even when the stored result says PASS; an 81-character id is invalid', () => project(root => {

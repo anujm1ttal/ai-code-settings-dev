@@ -1,10 +1,15 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import fs, { existsSync, readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { stripTypeScriptTypes } from 'node:module';
+import { runInNewContext } from 'node:vm';
+import { createHash, randomUUID } from 'node:crypto';
+import { loadRolePolicy } from '../pi/lib/role-policy.mjs';
+import { prepareResultDir, buildEnvelope, buildIncompleteEnvelope } from '../pi/lib/result-contract.mjs';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const launcher = path.join(os.homedir(), '.pi', 'agent', 'bin', 'pi-launcher.js');
@@ -12,6 +17,61 @@ const available = process.platform === 'win32'
   ? existsSync(launcher)
   : spawnSync('pi', ['--version'], { encoding: 'utf8', timeout: 5000 }).status === 0;
 const privatePolicyFixture = path.join(repo, 'tests', 'fixtures', 'pi-role-policy.json');
+
+// Execute the real extension body with only its runner and host replaced; no production seam.
+async function dispatchFixture(t) {
+  const sdkPath = process.env.PI_CODING_AGENT_SDK_PATH;
+  if (!sdkPath || !path.isAbsolute(sdkPath) || !existsSync(sdkPath)) { t.skip('installed Pi SDK required'); return; }
+  const aiPath = path.resolve(path.dirname(sdkPath), '../../pi-ai/dist/index.js');
+  const { Type, validateToolArguments } = await import(pathToFileURL(aiPath).href);
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-dispatch-guard-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const policyFile = path.join(root, 'policy.json'); fs.copyFileSync(privatePolicyFixture, policyFile);
+  const cwd = path.join(root, 'project'); fs.mkdirSync(cwd);
+  const source = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
+  const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['\"][^'\"]+['\"]\s*;[ \t]*$/gm, '')
+    .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", `const sourceRoot = ${JSON.stringify(path.join(repo, 'pi'))};`)
+    .replace(/export default function \(pi\s*\)/, 'function register(pi)') + '\nregister';
+  const tools = new Map(), calls = [];
+  const sandbox = { path, createHash, randomUUID, Type, Buffer, process: { env: { PI_ROLE_POLICY_PATH: policyFile } },
+    loadRolePolicy, prepareResultDir, buildEnvelope, buildIncompleteEnvelope,
+    runRole: async (...args) => { calls.push(args); return { role: args[1], text: 'control', usage: null }; },
+    registerExplorerJobs: () => {}, createExpensiveGate: () => ({}), withExpensiveGate: async (_g, _r, fn) => fn() };
+  runInNewContext(js, sandbox)({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
+  const tool = tools.get('pi_role_agent');
+  const execute = params => tool.execute('id', params, undefined, undefined, { cwd });
+  const validate = params => validateToolArguments(tool, { name: tool.name, arguments: params });
+  return { tool, calls, cwd, execute, validate };
+}
+
+const recordFields = { todo: 'Artifacts/TODO.md', taskId: 'T1', taskSha256: 'a'.repeat(64),
+  verdictRef: 'Artifacts/.agent/pi-results/a.result', verdictSha256: 'b'.repeat(64),
+  manifestPath: 'Artifacts/manifest.json', manifestSha256: 'c'.repeat(64) };
+
+test('X02 rejects caller date before dispatch, with valid record control', async t => {
+  const f = await dispatchFixture(t); if (!f) return;
+  const params = { role: 'auditor', task: 'record', profile: 'record', ...recordFields };
+  await assert.rejects(f.execute({ ...params, date: '2026-01-01' }), /record binding/i);
+  assert.equal(f.calls.length, 0); assert.deepEqual(fs.readdirSync(f.cwd), []);
+  await f.execute(params); assert.equal(f.calls.length, 1);
+  assert.equal(f.calls[0][5].recordBinding.taskId, 'T1');
+});
+
+test('X04 rejects record-only fields without profile before dispatch', async t => {
+  const f = await dispatchFixture(t); if (!f) return;
+  await assert.rejects(f.execute({ role: 'coder', task: 'work', todo: recordFields.todo }), /record binding/i);
+  assert.equal(f.calls.length, 0); assert.deepEqual(fs.readdirSync(f.cwd), []);
+  await f.execute({ role: 'coder', task: 'work' }); assert.equal(f.calls.length, 1);
+});
+
+test('X05 SDK schema rejects unknown property before execute', async t => {
+  const f = await dispatchFixture(t); if (!f) return;
+  const valid = { role: 'coder', task: 'work' };
+  assert.throws(() => f.validate({ ...valid, surprise: 'ignored otherwise' }), /validat|propert/i);
+  assert.equal(f.tool.parameters.additionalProperties, false);
+  assert.equal(f.calls.length, 0); assert.deepEqual(fs.readdirSync(f.cwd), []);
+  await f.execute(f.validate(valid)); assert.equal(f.calls.length, 1);
+});
 
 test('one shared expensive gate wraps synchronous expensive routes and is passed to jobs', () => {
   const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
@@ -54,6 +114,11 @@ test('role extension exposes a read-only explorer with unchanged tasks and bound
     /truncat/i, /not.found/i, /unresolved/i, /secrets/i, /user config/i]) {
     assert.match(prompt, pattern);
   }
+});
+
+test('role tool advertises optional read-only and record profiles', () => {
+  const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
+  assert.match(extension, /profile:\s*Type\.Optional\(Type\.Union\(\[Type\.Literal\('read-only'\), Type\.Literal\('record'\)\]\)\)/);
 });
 
 test('role extension exposes a scribe child schema and a dedicated prompt', () => {
