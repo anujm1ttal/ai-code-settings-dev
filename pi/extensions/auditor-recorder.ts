@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent';
 
 // Child-only: the parent provides the complete binding, never the model.
-export default async function register(pi: ExtensionAPI) {
+export default async function register(pi: ExtensionAPI, hooks: { queue?: any, afterInitialize?: () => void } = {}) {
   const role = process.env.PI_ROLE;
   const globalPath = path.join(process.env.PI_CODING_AGENT_DIR || path.join(os.homedir(), '.pi', 'agent'), 'role-ownership.json');
   let core: any, binding: any, queue: any, failure: string | undefined;
@@ -14,10 +14,11 @@ export default async function register(pi: ExtensionAPI) {
     const sdkPath = process.env.PI_CODING_AGENT_SDK_PATH;
     if (sdkPath && !path.isAbsolute(sdkPath)) throw new Error('SDK path must be absolute');
     const sdk = sdkPath ? await import(pathToFileURL(sdkPath).href) : await import('@earendil-works/pi-coding-agent');
-    queue = sdk.withFileMutationQueue;
+    queue = hooks.queue ?? sdk.withFileMutationQueue;
     core = await import('../lib/auditor-recorder.mjs');
     if (typeof queue !== 'function' || typeof core.validateBinding !== 'function' || typeof core.createRecorder !== 'function') throw new Error('recorder dependency unavailable');
     binding = core.validateBinding(JSON.parse(process.env.PI_RECORD_BINDING));
+    hooks.afterInitialize?.();
   } catch (error: any) { failure = error?.message || 'recorder dependency unavailable'; }
   let record: (() => any) | undefined, root: string | undefined;
   pi.registerTool({

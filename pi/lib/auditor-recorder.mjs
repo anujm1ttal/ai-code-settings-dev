@@ -37,7 +37,7 @@ function checkedFile(root, rel, io) {
   return current;
 }
 
-export function createRecorder({ binding, projectRoot, globalPath, role, fs: io = fs } = {}) {
+export function createRecorder({ binding, projectRoot, globalPath, role, fs: io = fs, authorize = authorizeMutation } = {}) {
   const bound = validateBinding(binding);
   let used = false;
   return function record() {
@@ -46,7 +46,7 @@ export function createRecorder({ binding, projectRoot, globalPath, role, fs: io 
       if (role !== 'auditor') throw new Error('auditor role required');
       if (typeof projectRoot !== 'string' || !path.isAbsolute(projectRoot) || io.realpathSync.native(projectRoot) !== projectRoot) throw new Error('project root must be absolute and canonical');
       const ownership = loadOwnership({ projectRoot, globalPath });
-      const auth = authorizeMutation({ ownership, role: 'auditor', projectRoot, requestedPath: bound.todo, operation: 'edit', globalPath });
+      const auth = authorize({ ownership, role: 'auditor', projectRoot, requestedPath: bound.todo, operation: 'edit', globalPath });
       if (!auth.allow || auth.relPath !== bound.todo) throw new Error(`ownership: ${auth.reason}`);
       const target = auth.canonicalPath, original = io.readFileSync(target);
       const prefixes = ownership.policy.approvalLinePrefixes;
