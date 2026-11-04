@@ -226,6 +226,13 @@ test('explorer requires each read tool exactly once at load and after mutation',
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test('P08 explorer cannot request the explicit read-only profile', () => {
+  const base = loadRolePolicy(policyFile);
+  const configured = { ...base, roles: { ...base.roles, explorer: { ...base.roles.auditor } } };
+  assert.equal(buildAgentArgs(configured, 'explorer', '/prompt', 'task').includes('read,grep,find,ls'), true);
+  assert.throws(() => buildAgentArgs(configured, 'explorer', '/prompt', 'task', { profile: 'read-only' }), /profile/i);
+});
+
 test('valid explorer builds exact read-only argv even when tools are reordered', () => {
   const original = loadRolePolicy(policyFile);
   const expanded = { ...original, roles: { ...original.roles,

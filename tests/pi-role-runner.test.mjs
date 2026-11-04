@@ -291,6 +291,18 @@ const recordBinding = { todo: 'Artifacts/TODO.md', taskId: 'T6', taskSha256: 'a'
   verdictRef: 'Artifacts/.agent/pi-results/a.result', verdictSha256: 'b'.repeat(64),
   manifestPath: 'Artifacts/manifest.json', manifestSha256: 'c'.repeat(64), date: '2026-07-01' };
 
+test('U02 expected verdict and record cannot be combined even with valid result store', async t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-record-verdict-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const fake = fakeSpawn([runtimeProof, assistant('pilot-claude', 'sonnet', 'high', 'Recorded')]);
+  const common = { spawnImpl: fake.spawnImpl, profile: 'record', recordBinding, resultStore: { dir, dispatchId: 'control' } };
+  await assert.rejects(runRole(policy, 'auditor', 'record', dir, '/role', { ...common,
+    expectedVerdict: { task: 'T6', todo: 'Artifacts/TODO.md', taskSha256: 'a'.repeat(64) } }), /expectedVerdict.*record/i);
+  assert.equal(fake.calls.length, 0); assert.deepEqual(fs.readdirSync(dir), []);
+  await runRole(policy, 'auditor', 'record', dir, '/role', common);
+  assert.equal(fake.calls.length, 1);
+});
+
 test('record runner validates and isolates the binding before spawning', async () => {
   const fake = fakeSpawn([runtimeProof, { type: 'tool_execution_start', toolName: 'pi_record_verification' },
     assistant('pilot-claude', 'sonnet', 'high', 'Recorded')]);

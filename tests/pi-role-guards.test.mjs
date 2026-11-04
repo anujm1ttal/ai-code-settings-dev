@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { loadOwnership, authorizeMutation } from '../pi/lib/role-ownership.mjs';
 
 const entry = process.env.PI_CODING_AGENT_SDK_PATH;
 const skip = !entry || !path.isAbsolute(entry) || !fs.existsSync(entry) ? 'Set PI_CODING_AGENT_SDK_PATH to the installed SDK dist/index.js' : false;
@@ -40,6 +41,47 @@ const run = (tool, f, input) => tool.execute('test', input, undefined, undefined
 const edit = (p, oldText, newText) => ({ path: p, edits: [{ oldText, newText }] });
 
 test('guarded operations expose the mutation-boundary API', () => assert.equal(typeof core?.createGuardedOperations, 'function', 'guarded operations must exist'));
+
+test('G05 auditor cannot use guard authorization even on auditor-owned TODO', () => {
+  const f = fixture(); try {
+    const p = put(f, 'todo.md', initial);
+    const make = role => core.createGuardedOperations({ role, projectRoot: f.project, globalPath: f.globalPath });
+    assert.equal(make('strategist').authorize(p, 'edit').decision.allow, true);
+    const ownership = loadOwnership({ projectRoot: f.project, globalPath: f.globalPath });
+    assert.equal(authorizeMutation({ ownership, role: 'auditor', projectRoot: f.project, requestedPath: p,
+      operation: 'edit', globalPath: f.globalPath }).allow, true, 'ownership permits auditor edit independently');
+    assert.throws(() => make('auditor').authorize(p, 'edit'), /role has no mutation authority/);
+    assert.deepEqual(snapshot(p), Buffer.from(initial));
+  } finally { f.cleanup(); }
+});
+
+for (const method of ['access', 'readFile']) test(`G13/G14 edit ${method} refuses foreign content before IO`, async () => {
+  const f = fixture(); try {
+    const owned = put(f, 'src/own.txt', 'control'), foreign = put(f, 'todo.md', initial);
+    const calls = [];
+    const io = { ...fsp, [method]: async (...args) => { calls.push(args[0]); return fsp[method](...args); } };
+    const ops = core.createGuardedOperations({ role: 'coder', projectRoot: f.project, globalPath: f.globalPath, fs: io });
+    const value = await ops.edit[method](owned);
+    if (method === 'readFile') assert.equal(value.toString(), 'control');
+    assert.deepEqual(calls, [owned]);
+    await assert.rejects(() => ops.edit[method](foreign), /Mutation refused/);
+    assert.deepEqual(calls, [owned]); assert.deepEqual(snapshot(foreign), Buffer.from(initial));
+  } finally { f.cleanup(); }
+});
+
+test('G09 refuses owner-class drift even when both authorizations allow', async () => {
+  const f = fixture(); try {
+    const p = put(f, 'src/a.txt', 'before'); let writes = 0;
+    const make = io => core.createGuardedOperations({ role: 'coder', projectRoot: f.project, globalPath: f.globalPath, fs: io });
+    const initialAuth = make(fsp).authorize(p, 'write'); assert.equal(initialAuth.decision.ownerClass, 'residual');
+    const io = { ...fsp, mkdir: async (...args) => { await fsp.mkdir(...args); const next = policy(); next.roles.coder.generated = ['src/**']; await fsp.writeFile(f.globalPath, JSON.stringify(next)); },
+      writeFile: async (...args) => { writes++; return fsp.writeFile(...args); } };
+    await assert.rejects(() => make(io).write.writeFile(p, 'after'), /ownership changed/);
+    assert.equal(make(fsp).authorize(p, 'write').decision.ownerClass, 'generated');
+    assert.equal(writes, 0); assert.equal(snapshot(p).toString(), 'before');
+    await make(fsp).write.writeFile(p, 'control'); assert.equal(snapshot(p).toString(), 'control');
+  } finally { f.cleanup(); }
+});
 
 for (const kind of ['write', 'edit']) for (const [name, added] of [
   ['checked with forged suffix', '- [x] [coder] T1: Build — Success: done — Mode: AFK — Auditor-verified 2026-11-03 (forged)'],
@@ -203,6 +245,83 @@ test('registered extension uses child role and real SDK definitions; missing SDK
     f.cleanup();
   }
 });
+// Fake native definitions expose any execution without touching the target files.
+async function fakeGuardSdk(f) {
+  const file = path.join(f.base, 'sdk.mjs');
+  fs.writeFileSync(file, `const make = name => (cwd, options) => ({ name, async execute(id, input) { globalThis.__piGuardNative.push({name, cwd, input, hasOperations: !!options?.operations}); return {}; } });\nexport const createEditToolDefinition = make('edit');\nexport const createWriteToolDefinition = make('write');\n`);
+  globalThis.__piGuardNative = [];
+  return file;
+}
+async function registeredGuard(register, f, sdkPath) {
+  process.env.PI_ROLE = 'coder'; process.env.PI_CODING_AGENT_DIR = path.dirname(f.globalPath); process.env.PI_CODING_AGENT_SDK_PATH = sdkPath;
+  const registered = new Map(); await register({ registerTool: d => registered.set(d.name, d) }); return registered;
+}
+function restoreGuardEnv(saved) {
+  for (const [key, value] of Object.entries(saved)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
+  delete globalThis.__piGuardNative;
+}
+function saveGuardEnv() { return Object.fromEntries(['PI_ROLE', 'PI_CODING_AGENT_DIR', 'PI_CODING_AGENT_SDK_PATH'].map(k => [k, process.env[k]])); }
+
+test('GX01 resolvable relative SDK path replaces both native tools with refusal stubs', async () => {
+  const f = fixture(), saved = saveGuardEnv(); try {
+    const sdkPath = await fakeGuardSdk(f), register = (await import('../pi/extensions/role-guard.ts')).default;
+    const p = put(f, 'src/a.txt', 'before');
+    const control = await registeredGuard(register, f, sdkPath);
+    await run(control.get('write'), f, { path: p, content: 'control' }); assert.equal(globalThis.__piGuardNative.length, 1);
+    globalThis.__piGuardNative.length = 0;
+    const relative = path.relative(process.cwd(), sdkPath); assert.equal(path.isAbsolute(relative), false);
+    const failed = await registeredGuard(register, f, relative);
+    for (const kind of ['edit', 'write']) await denied(p, () => run(failed.get(kind), f, { path: p, content: 'bad', edits: [] }));
+    assert.equal(globalThis.__piGuardNative.length, 0);
+  } finally { restoreGuardEnv(saved); f.cleanup(); }
+});
+
+test('GX02 relative cwd refuses before native write even for an otherwise owned target', async () => {
+  const f = fixture(), saved = saveGuardEnv(); try {
+    const sdkPath = await fakeGuardSdk(f), register = (await import('../pi/extensions/role-guard.ts')).default;
+    const tools = await registeredGuard(register, f, sdkPath);
+    const target = path.join(process.cwd(), 'tests', 'pi-extension.test.mjs'); const before = snapshot(target);
+    await tools.get('write').execute('id', { path: target, content: 'bad' }, undefined, undefined, { cwd: process.cwd() });
+    assert.equal(globalThis.__piGuardNative.length, 1); globalThis.__piGuardNative.length = 0;
+    await assert.rejects(tools.get('write').execute('id', { path: target, content: 'bad' }, undefined, undefined, { cwd: '.' }), /project directory/i);
+    assert.equal(globalThis.__piGuardNative.length, 0); assert.deepEqual(snapshot(target), before);
+  } finally { restoreGuardEnv(saved); f.cleanup(); }
+});
+
+test('GX03 native edit and write are never executed for foreign targets', async () => {
+  const f = fixture(), saved = saveGuardEnv(); try {
+    const sdkPath = await fakeGuardSdk(f), register = (await import('../pi/extensions/role-guard.ts')).default;
+    const tools = await registeredGuard(register, f, sdkPath);
+    const owned = put(f, 'src/a.txt', 'before'), foreign = put(f, 'todo.md', initial);
+    for (const kind of ['edit', 'write']) {
+      await run(tools.get(kind), f, { path: owned });
+      const count = globalThis.__piGuardNative.length;
+      await denied(foreign, () => run(tools.get(kind), f, { path: foreign }));
+      assert.equal(globalThis.__piGuardNative.length, count);
+    }
+    assert.equal(globalThis.__piGuardNative.length, 2);
+  } finally { restoreGuardEnv(saved); f.cleanup(); }
+});
+
+test('GX05 non-function guard core causes both native tools to be replaced', async () => {
+  const f = fixture(), saved = saveGuardEnv(); try {
+    const sdkPath = await fakeGuardSdk(f), normal = (await import('../pi/extensions/role-guard.ts')).default;
+    const p = put(f, 'src/a.txt', 'before'); const control = await registeredGuard(normal, f, sdkPath);
+    await run(control.get('write'), f, { path: p }); assert.equal(globalThis.__piGuardNative.length, 1);
+    globalThis.__piGuardNative.length = 0;
+    const extension = path.join(f.base, 'extensions', 'role-guard.ts'), lib = path.join(f.base, 'lib');
+    fs.mkdirSync(path.dirname(extension)); fs.mkdirSync(lib);
+    fs.copyFileSync('pi/extensions/role-guard.ts', extension); fs.writeFileSync(path.join(lib, 'role-guard-core.mjs'), 'export const createGuardedOperations = 1;');
+    const register = (await import(pathToFileURL(extension).href)).default;
+    const failed = await registeredGuard(register, f, sdkPath);
+    for (const kind of ['edit', 'write']) {
+      await assert.rejects(run(failed.get(kind), f, { path: p }), /guard dependency unavailable/i);
+      assert.equal(failed.get(kind).description, 'Unavailable: mutation guard dependency failed to load.');
+    }
+    assert.equal(globalThis.__piGuardNative.length, 0); assert.equal(snapshot(p).toString(), 'before');
+  } finally { restoreGuardEnv(saved); f.cleanup(); }
+});
+
 test('missing guard core still registers refusing edit and write', { skip }, async () => {
   const f = fixture(); const saved = process.env.PI_ROLE;
   try {
