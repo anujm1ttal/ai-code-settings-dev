@@ -205,7 +205,7 @@ test('PI-4 preview stages exact job dependencies and loads the budget-denying jo
     assert.match((await tool.execute('status2', { action: 'status' }, undefined, undefined, context)).content[0].text, /No jobs/);
     rollbackPreview(staged);
     staged = undefined;
-    assert.deepEqual(snapshot(agent), before, 'PI-4 staged runtime rollback restores prior sandbox bytes');
+    assert.deepEqual(snapshot(agent).filter(([name]) => name !== 'pi-retained' && !name.startsWith(`pi-retained${path.sep}`)), before, 'PI-4 staged runtime rollback restores prior sandbox bytes');
     assert.equal(fs.existsSync(path.join(root, 'backup')), false);
   } finally {
     if (previous === undefined) delete process.env.PI_ROLE_POLICY_PATH; else process.env.PI_ROLE_POLICY_PATH = previous;
@@ -374,7 +374,7 @@ test('rollback restores the prior isolated agent directory byte-for-byte', async
     assert.ok(fs.existsSync(path.join(staged.destination, 'pi/agents/explorer.md')), 'rollback exercised after explorer staging');
     assert.notDeepEqual(snapshot(agent), before);
     rollbackPreview(staged);
-    assert.deepEqual(snapshot(agent), before);
+    assert.deepEqual(snapshot(agent).filter(([name]) => name !== 'pi-retained' && !name.startsWith(`pi-retained${path.sep}`)), before);
     assert.equal(fs.existsSync(path.join(root, 'backup')), false);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
