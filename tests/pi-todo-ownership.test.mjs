@@ -180,6 +180,93 @@ test('auditor constructs exact bytes and validates no collateral change', async 
   });
 });
 
+test('T01 T02: uppercase marker and OTHER mode are not task grammar', () => {
+  const { parseTodo, validateStrategistChange } = api();
+  const good = b(`${task()}\n`);
+  assert.equal(parseTodo(good, opts).eligible, true);
+  assert.equal(validateStrategistChange(b(''), good, { ...opts, originalAbsent: true }).allow, true);
+  for (const bad of [b(`${task('T1', 'X')}\n`), b(`${task().replace('AFK', 'OTHER')}\n`)]) {
+    assert.equal(parseTodo(bad, opts).eligible, false);
+    assert.equal(validateStrategistChange(b(''), bad, { ...opts, originalAbsent: true }).allow, false);
+  }
+});
+
+test('T04: parser accepts Buffer but not Uint8Array bytes', () => {
+  const { parseTodo } = api();
+  const valid = b(`${task()}\n`);
+  assert.equal(parseTodo(valid, opts).eligible, true);
+  const parsed = parseTodo(new Uint8Array(valid), opts);
+  assert.equal(parsed.eligible, false);
+  assert.match(parsed.errors.join('; '), /expected a Buffer/);
+});
+
+test('T07: lone CR in prose rejects strategist and recorder without a candidate', () => {
+  const { parseTodo, validateStrategistChange, buildAuditorRecording } = api();
+  const good = b(`# Intro\nnote\n\n${task()}\n`);
+  const bad = b(`# Intro\rnote\n\n${task()}\n`);
+  assert.equal(parseTodo(good, opts).eligible, true);
+  assert.equal(validateStrategistChange(good, good, opts).allow, true);
+  assert.equal(buildAuditorRecording(good, args).ok, true);
+  const snapshot = Buffer.from(bad);
+  assert.equal(parseTodo(bad, opts).eligible, false);
+  assert.equal(validateStrategistChange(bad, bad, opts).allow, false);
+  const result = buildAuditorRecording(bad, args);
+  assert.equal(result.ok, false);
+  assert.equal(result.candidate, null);
+  assert.deepEqual(bad, snapshot);
+});
+
+test('T11: a fence directly after a task is an ambiguous continuation', () => {
+  const { parseTodo, validateStrategistChange } = api();
+  const good = b(`${task()}\n\n\`\`\`\nexample\n\`\`\`\n`);
+  const bad = b(`${task()}\n\`\`\`\nexample\n\`\`\`\n`);
+  assert.equal(parseTodo(good, opts).eligible, true);
+  assert.equal(validateStrategistChange(good, good, opts).allow, true);
+  assert.equal(parseTodo(bad, opts).eligible, false);
+  assert.equal(validateStrategistChange(good, bad, opts).allow, false);
+});
+
+test('T14: ambiguous task fields are rejected for parsing and creation', () => {
+  const { parseTodo, validateStrategistChange } = api();
+  const good = b(`${task()}\n`);
+  const creation = { ...opts, originalAbsent: true };
+  assert.equal(parseTodo(good, opts).eligible, true);
+  assert.equal(validateStrategistChange(b(''), good, creation).allow, true);
+  for (const line of [task().replace('Title', 'Title '), task().replace('criteria', ' criteria'), task().replace('Title', 'Title — Success: extra'), task().replace('criteria', 'criteria — Mode: AFK')]) {
+    const bad = b(`${line}\n`);
+    assert.equal(parseTodo(bad, opts).eligible, false, line);
+    assert.equal(validateStrategistChange(b(''), bad, creation).allow, false, line);
+  }
+});
+
+test('T21: identical invalid documents cannot bypass strategist validation', () => {
+  const { validateStrategistChange } = api();
+  const good = b(`${task()}\n`);
+  const bad = b(`# Intro\rnote\n\n${task()}\n`);
+  assert.equal(validateStrategistChange(good, good, opts).allow, true);
+  assert.equal(validateStrategistChange(bad, bad, opts).allow, false);
+  assert.equal(validateStrategistChange(good, bad, opts).allow, false);
+  assert.equal(validateStrategistChange(bad, good, opts).allow, false);
+});
+
+test('T31: unchanged nonapproval interior line preserves its ending', () => {
+  const { validateStrategistChange } = api();
+  const original = b(`# Heading\nprose\n\n${task()}\n`);
+  const same = b(`# Heading\nprose\n\n${task()}\n`);
+  const changed = b(`# Heading\nprose\r\n\n${task()}\n`);
+  assert.equal(validateStrategistChange(original, same, opts).allow, true);
+  const result = validateStrategistChange(original, changed, opts);
+  assert.equal(result.allow, false);
+  assert.ok(result.reasons.includes('unchanged line ending changed'));
+});
+
+test('T34: recording reference requires a full digest', () => {
+  const { formatRecordingRef } = api();
+  const input = { verdict: 'PASS', dispatchId: 'job-1', sha256: 'a'.repeat(64) };
+  assert.equal(formatRecordingRef(input), `PASS; verdict=job-1; sha256=${input.sha256}`);
+  assert.throws(() => formatRecordingRef({ ...input, sha256: 'a' }), /invalid recording reference/);
+});
+
 test('auditor refusal cases have a permitted presence control', async t => {
   const { buildAuditorRecording: build } = api();
   const original = b(`${task()}\n${task('T2')}\n`);

@@ -100,6 +100,58 @@ test('unsafe lexical paths and sibling prefix are refused', t => {
   } finally { fs.realpathSync.native = real; fs.lstatSync = lstat; }
 });
 
+test('O05: case-folded strategist patterns cannot overlap across lists', () => {
+  const p = base();
+  assert.doesNotThrow(() => validateOwnershipPolicy(p));
+  p.roles.strategist.plans = ['todo.TXT'];
+  assert.throws(() => validateOwnershipPolicy(p), /duplicate strategist pattern/);
+});
+
+test('O13: load rejects resolvable unsafe paths at its own boundary', t => {
+  const s = setup(t);
+  assert.equal(s.ownership.source, 'global');
+  // Construct without path.join normalizing away the unsafe segment.
+  const unsafeGlobal = `${s.root}${path.sep}..${path.sep}${path.basename(s.root)}${path.sep}global.json`;
+  const unsafeProject = `${s.root}${path.sep}..${path.sep}${path.basename(s.root)}`;
+  const read = fs.readFileSync, lstat = fs.lstatSync;
+  let accesses = 0;
+  try {
+    fs.readFileSync = (...args) => { accesses++; return read(...args); };
+    fs.lstatSync = (...args) => { accesses++; return lstat(...args); };
+    for (const input of [{ projectRoot: unsafeProject, globalPath: s.globalPath }, { projectRoot: s.root, globalPath: unsafeGlobal }]) {
+      const result = loadOwnership(input);
+      assert.equal(result.source, 'none');
+      assert.equal(result.policy, null);
+      assert.equal(result.reason, 'invalid paths');
+      assert.equal(accesses, 0);
+    }
+  } finally { fs.readFileSync = read; fs.lstatSync = lstat; }
+});
+
+test('O21 O22 O33: direct authorization rejects unsafe global, forged source and operation', t => {
+  const s = setup(t);
+  assert.equal(auth(s, 'coder', 'src/file', 'edit').allow, true);
+  const input = { ownership: s.ownership, role: 'coder', projectRoot: s.root, requestedPath: 'src/file', operation: 'edit', globalPath: s.globalPath };
+  const unsafeGlobal = `${s.root}${path.sep}..${path.sep}${path.basename(s.root)}${path.sep}global.json`;
+  const realpath = fs.realpathSync.native, lstat = fs.lstatSync;
+  let accesses = 0, invalidPath;
+  try {
+    fs.realpathSync.native = (...args) => { accesses++; return realpath(...args); };
+    fs.lstatSync = (...args) => { accesses++; return lstat(...args); };
+    invalidPath = authorizeMutation({ ...input, globalPath: unsafeGlobal });
+  } finally { fs.realpathSync.native = realpath; fs.lstatSync = lstat; }
+  assert.equal(invalidPath.allow, false);
+  assert.equal(invalidPath.reason, 'invalid global path');
+  assert.equal(invalidPath.relPath, null);
+  assert.equal(accesses, 0);
+  const forged = authorizeMutation({ ...input, ownership: { source: 'none', policy: s.ownership.policy } });
+  assert.equal(forged.allow, false);
+  assert.equal(forged.reason, 'no ownership');
+  const unknown = authorizeMutation({ ...input, operation: 'delete' });
+  assert.equal(unknown.allow, false);
+  assert.equal(unknown.reason, 'invalid role or operation');
+});
+
 test('filesystem aliases and nonregular files are refused', async t => {
   const s = setup(t); const file = path.join(s.root, 'Readme.md'); fs.writeFileSync(file, 'a');
   await t.test('case alias', t => { if (!fs.existsSync(path.join(s.root, 'README.md'))) return t.skip('filesystem is case-sensitive'); assert.equal(auth(s, 'coder', 'README.md').allow, false); });
