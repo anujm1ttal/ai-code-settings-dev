@@ -19,7 +19,7 @@ test('Pi global defaults to direct Parent reads and preserves routing safeguards
     assert.doesNotMatch(text, /\b(?:tier[_-]?(?:\d+|code)|(?:const|let|var|function|class)\s+\w*tier\w*|tier\s*[=:])/i, path);
   }
   const global = sourceText('Pi-global.md');
-  assert.ok(Buffer.byteLength(global, 'utf8') <= 6743, 'Pi-global.md UTF-8 byte ceiling');
+  assert.ok(Buffer.byteLength(global, 'utf8') <= 8192, 'Pi-global.md user-approved 8,192 B UTF-8 byte ceiling');
   assert.match(global, /parent[^\n.]*?(?:inspect|read)[^\n.]*?targeted\s+files[^\n.]*?cited\s+excerpts/i);
   assert.match(global, /parent[^\n.]*?access\s+and\s+model[^\n.]*?not\s+enforced/i);
   assert.match(global, /never\s+impersonate/i);
@@ -58,7 +58,7 @@ for (const path of ['Pi-global.md', 'pi/README.md']) {
     assert.match(text, /batched\s+call[^\n.]*?self[- ]contained[^\n.]*?no\s+follow[- ]ups?|no\s+follow[- ]ups?[^\n.]*?self[- ]contained[^\n.]*?batched|self[- ]contained[^\n.]*?batched[^\n.]*?no\s+follow[- ]ups?/i);
   });
 
-  // Pi-global.md has a 6,743-byte ceiling with little headroom, so the detailed batching mechanics live in pi/README.md only.
+  // Pi-global.md has a user-approved 8,192-byte ceiling, so the detailed batching mechanics live in pi/README.md only.
   if (path === 'pi/README.md') test(`${path} requires a self-contained question list`, () => {
     const text = sourceText(path);
     assert.match(text, /explorer/i, `${path} Explorer presence control`);
@@ -199,6 +199,7 @@ test('/explain requires an isolated read-only scribe and navigator skill', () =>
   assert.match(template, /codebase-navigator/);
   assert.match(template, /pi_role_agent/);
   assert.match(template, /role[^\n]*scribe/);
+  assert.match(template, /profile:\s*"read-only"/);
   assert.match(template, /missing.*policy.*stop|unavailable.*stop/i);
   assert.match(template, /\$ARGUMENTS/);
 });
@@ -358,7 +359,41 @@ test('Pi global preview routes each of the eight common-rule dispositions withou
   assert.match(orchestration, /no implementation[^.]*before the user approves the plan/i);
   assert.match(orchestration, /DRAFT plan or untagged task is not approved/);
   assert.match(orchestration, /"go ahead" does not approve a draft/);
-  assert.ok(Buffer.byteLength(source, 'utf8') <= 6743, 'Pi-global.md must stay within the 512 B Phase 2 growth ceiling over 6,231 B');
+  assert.ok(Buffer.byteLength(source, 'utf8') <= 8192, 'Pi-global.md must stay within the user-approved 8,192 B ceiling');
+});
+
+test('writer role contracts, ownership interview and bound recording match the source pilot', () => {
+  const global = sourceText('Pi-global.md');
+  const strategist = sourceText('pi/agents/strategist.md');
+  const coder = sourceText('pi/agents/coder.md');
+  const auditor = sourceText('pi/agents/auditor.md');
+  const scribe = sourceText('pi/agents/scribe.md');
+  const docs = sourceText('pi/prompts/docs.md');
+  assert.match(global, /Does any build\/test step regenerate docs or planning files\?/);
+  assert.match(global, /generated paths become Coder-owned/i);
+  assert.match(global, /Where the recorder is installed, Parent never writes markers/i);
+  assert.match(global, /Without it, where a project's task policy explicitly adopts a report-only auditor, the orchestrator may record its cited PASS as the matching `\[x\]`/);
+  assert.match(global, /Elsewhere follow that project's task authority rules/);
+  assert.match(global, /record profile[^\n]*pi_record_verification/i);
+  assert.match(global, /invalid[^\n]*override[^\n]*fail/i);
+  assert.match(strategist, /read[^\n]*grep[^\n]*find[^\n]*ls[^\n]*edit[^\n]*write/i);
+  assert.match(strategist, /existing IDs, markers, suffixes, verified definitions and approval blocks/i);
+  assert.match(strategist, /new tasks start `\[ \]`/i);
+  assert.match(strategist, /Auditor[^\n]*reopen/i);
+  assert.match(coder, /read[^\n]*grep[^\n]*find[^\n]*ls[^\n]*bash[^\n]*edit[^\n]*write/i);
+  assert.match(coder, /residual[^\n]*implementation/i);
+  assert.match(coder, /evidence[^\n]*create-only/i);
+  assert.match(coder, /Bash[^\n]*unenforced[^\n]*do not use/i);
+  assert.match(auditor, /report-only by default/i);
+  assert.match(auditor, /separate parent-bound `record` dispatch/i);
+  assert.match(auditor, /pi_record_verification[^\n]*no arguments/i);
+  assert.match(auditor, /PASS[^\n]*Auditor-verified[^\n]*FAIL[^\n]*Auditor-reviewed/i);
+  assert.match(scribe, /read[^\n]*grep[^\n]*find[^\n]*ls[^\n]*edit[^\n]*write/i);
+  assert.match(scribe, /declared docs/i);
+  assert.match(scribe, /approval blocks[^\n]*immutable/i);
+  assert.match(scribe, /read-only[^\n]*explain/i);
+  assert.match(docs, /main session/i);
+  assert.match(docs, /scribe[^\n]*edit[^\n]*declared docs/i);
 });
 
 test('/handoff runs in the main session, saves state locally and leaves backup to a separate action', () => {
