@@ -28,6 +28,7 @@ function hasExactExplorerTools(tools) {
 }
 const GUARD_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../extensions/guard.ts');
 const ROLE_GUARD_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../extensions/role-guard.ts');
+const RECORDER_PATH = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../extensions/auditor-recorder.ts');
 
 export function loadRolePolicy(file) {
   const policy = JSON.parse(readFileSync(file, 'utf8'));
@@ -79,6 +80,7 @@ export function buildAgentArgs(policy, roleName, promptPath, task, { profile, pr
     throw new Error(`${roleName[0].toUpperCase()}${roleName.slice(1)} tools violate role maximum`);
   }
   if (profile !== undefined && !(
+    (profile === 'record' && roleName === 'auditor') ||
     (profile === 'read-only' && ['strategist', 'coder', 'auditor', 'scribe'].includes(roleName)) ||
     (profile === 'council-read-only' && ['strategist', 'coder', 'auditor'].includes(roleName)) ||
     (profile === 'packet-only-review' && ['strategist', 'coder', 'auditor', 'explorer'].includes(roleName))
@@ -93,10 +95,12 @@ export function buildAgentArgs(policy, roleName, promptPath, task, { profile, pr
     '--model', role.model, '--thinking', role.thinking, '--exclude-tools', 'mcp__*',
     '--system-prompt', promptPath, ...(promptFile === undefined ? [] : [`@${promptFile}`]), `Task: ${task}`, // replaces Pi's default prompt (tool, rules and docs sections); only a cwd line is added by Pi
   ];
-  const tools = profile === 'council-read-only' || profile === 'read-only' || roleName === 'explorer' ? EXPLORER_TOOLS : role.tools;
+  const tools = profile === 'record' ? [...EXPLORER_TOOLS, 'pi_record_verification'] :
+    profile === 'council-read-only' || profile === 'read-only' || roleName === 'explorer' ? EXPLORER_TOOLS : role.tools;
   return [
     '--mode', 'json', '--print', '--no-session', '--no-extensions',
     ...(roleName === 'explorer' ? ['--no-mcp'] : []),
+    ...(profile === 'record' ? ['--extension', RECORDER_PATH] : []),
     ...(tools.some(tool => tool === 'edit' || tool === 'write') ? ['--extension', ROLE_GUARD_PATH] : []),
     ...(tools.some((tool) => WRITE_OR_SHELL.has(tool)) ? ['--extension', GUARD_PATH] : []),
     '--model', role.model, '--thinking', role.thinking,

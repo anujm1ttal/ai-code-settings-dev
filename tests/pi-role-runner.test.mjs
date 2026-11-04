@@ -287,6 +287,43 @@ test('nonzero exit, failed model response and timeout preserve partial work', as
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
+const recordBinding = { todo: 'Artifacts/TODO.md', taskId: 'T6', taskSha256: 'a'.repeat(64),
+  verdictRef: 'Artifacts/.agent/pi-results/a.result', verdictSha256: 'b'.repeat(64),
+  manifestPath: 'Artifacts/manifest.json', manifestSha256: 'c'.repeat(64), date: '2026-07-01' };
+
+test('record runner validates and isolates the binding before spawning', async () => {
+  const fake = fakeSpawn([runtimeProof, { type: 'tool_execution_start', toolName: 'pi_record_verification' },
+    assistant('pilot-claude', 'sonnet', 'high', 'Recorded')]);
+  const previous = process.env.PI_RECORD_BINDING;
+  process.env.PI_RECORD_BINDING = 'inherited';
+  try {
+    const call = (role, opts) => runRole(policy, role, 'Review', '.', '/role', { spawnImpl: fake.spawnImpl, ...opts });
+    for (const [role, opts] of [
+      ['auditor', { profile: 'record' }], ['coder', { profile: 'record', recordBinding }],
+      ['auditor', { recordBinding }], ['auditor', { profile: 'read-only', recordBinding }],
+      ['auditor', { profile: 'record', recordBinding: { ...recordBinding, extra: true } }],
+      ['auditor', { profile: 'record', recordBinding: (({ todo, ...rest }) => rest)(recordBinding) }],
+      ['auditor', { profile: 'record', recordBinding: { ...recordBinding, taskSha256: 'bad' } }],
+      ['auditor', { profile: 'record', recordBinding: { ...recordBinding, date: 'bad' } }],
+      ['auditor', { profile: 'record', recordBinding, expectedVerdict: {} }],
+    ]) await assert.rejects(call(role, opts));
+    assert.equal(fake.calls.length, 0);
+    const result = await call('auditor', { profile: 'record', recordBinding });
+    assert.equal(result.toolCounts.pi_record_verification, 1);
+    assert.deepEqual(JSON.parse(fake.calls[0].options.env.PI_RECORD_BINDING), recordBinding);
+    const normal = fakeSpawn([runtimeProof, assistant('pilot-claude', 'sonnet', 'high', 'Review')]);
+    await runRole(policy, 'auditor', 'Review', '.', '/role', { spawnImpl: normal.spawnImpl });
+    assert.equal(Object.hasOwn(normal.calls[0].options.env, 'PI_RECORD_BINDING'), false);
+    for (const toolName of ['edit', 'write', 'bash', 'unknown']) {
+      const denied = fakeSpawn([{ type: 'tool_execution_start', toolName }, assistant('pilot-claude', 'sonnet', 'high', 'x')]);
+      await assert.rejects(runRole(policy, 'auditor', 'x', '.', '/role',
+        { spawnImpl: denied.spawnImpl, profile: 'record', recordBinding }), new RegExp(`Auditor attempted ${toolName}`));
+    }
+  } finally {
+    if (previous === undefined) delete process.env.PI_RECORD_BINDING; else process.env.PI_RECORD_BINDING = previous;
+  }
+});
+
 test('dispatches an isolated auditor and verifies observed model and thinking', async () => {
   const fake = fakeSpawn([assistant('pilot-claude', 'sonnet', 'high', 'FAIL: revise tests')]);
   const result = await runRole(policy, 'auditor', 'Review fixture', 'C:/fixture', 'C:/role.md',
@@ -301,6 +338,37 @@ test('dispatches an isolated auditor and verifies observed model and thinking', 
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
     usageCalls: [{ stopReason: 'stop', completeness: 'known', usage: assistant('pilot-claude', 'sonnet', 'high', '').message.usage }],
     runtimeVerified: false, toolCounts: {}, successfulReads: 0 });
+});
+
+test('detached strategist and auditor ignore record-shaped inputs and stay read-only', async t => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-record-detached-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const tools = new Map(), seen = [];
+  const Type = new Proxy({}, { get: () => () => ({}) });
+  const rates = Object.fromEntries(['strategist', 'auditor'].map(role =>
+    [policy.roles[role].model, { inputPerMTok: 1, outputPerMTok: 1 }]));
+  const expanded = { ...policy, jobBudget: { perJobUsd: 1, perSessionUsd: 2, rates } };
+  const jobs = registerExplorerJobs({ registerTool: tool => tools.set(tool.name, tool), on: () => {} },
+    { Type, policy: expanded, gate: { tryAcquire: () => () => {} }, promptPaths: { strategist: '/prompt', auditor: '/audit' },
+      accessImpl: () => {}, runRoleImpl: async (_p, role, _task, _cwd, _prompt, options) => {
+        seen.push(options); return { role, text: 'done', usage: null };
+      } });
+  await tools.get('pi_explorer_job').execute('id', { action: 'start', role: 'strategist', task: 'x',
+    profile: 'record', recordBinding }, undefined, undefined, { cwd: root });
+  const dir = path.join(root, 'Artifacts', 'Evidence'); fs.mkdirSync(dir, { recursive: true });
+  const capture = path.join(dir, 'capture'); fs.writeFileSync(capture, 'original');
+  const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+  const manifest = path.join(dir, 'manifest.json');
+  fs.writeFileSync(manifest, JSON.stringify({ version: 1, captures: [{ path: capture, sha256: hash('original') }] }));
+  await tools.get('pi_explorer_job').execute('audit', { action: 'start', role: 'auditor', task: 'x',
+    evidencePath: manifest, evidenceSha256: hash(fs.readFileSync(manifest)), profile: 'record', recordBinding },
+    undefined, undefined, { cwd: root });
+  assert.equal(seen.length, 2);
+  for (const options of seen) {
+    assert.equal(options.profile, 'read-only');
+    assert.equal(Object.hasOwn(options, 'recordBinding'), false);
+  }
+  await jobs.shutdown();
 });
 
 test('explorer dispatches without project state and reports bounded tool metadata', async () => {
@@ -592,7 +660,7 @@ test('role tool preserves persisted failures and perspective recheck errors', as
   assert.equal(failures.length, 0, failures.map(error => error.message).join('\n'));
 });
 
-function step3RoleTool(runRoleImpl) {
+function step3RoleTool(runRoleImpl, gates = []) {
   const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
   const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*;[ \t]*$/gm, '')
     .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
@@ -602,10 +670,59 @@ function step3RoleTool(runRoleImpl) {
     Type: { Object: () => ({}), String: () => ({}), Union: () => ({}), Literal: () => ({}), Optional: () => ({}) },
     loadRolePolicy: () => policy, runRole: runRoleImpl, runCouncilPerspective: runRoleImpl,
     runCouncilSession: async () => ({}), registerExplorerJobs: () => {}, createExpensiveGate: () => ({}),
-    withExpensiveGate: async (_gate, _label, run) => run() };
+    withExpensiveGate: async (_gate, label, run) => { gates.push(label); return run(); } };
   runInNewContext(js, sandbox)({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
   return (cwd, params = { role: 'coder', task: 'work' }) => tools.get('pi_role_agent').execute('id', params, undefined, undefined, { cwd });
 }
+
+test('role agent exposes the record schema without a model-supplied date', () => {
+  const source = fs.readFileSync(new URL('../pi/extensions/role-agent.ts', import.meta.url), 'utf8');
+  const js = stripTypeScriptTypes(source).replace(/^import\s+[\s\S]*?\s+from\s+['"][^'"]+['"]\s*;[ \t]*$/gm, '')
+    .replace("const sourceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');", "const sourceRoot = '/fixture';")
+    .replace(/export default function \(pi\s*\)/, 'function register(pi)') + '\nregister';
+  const tools = new Map();
+  const Type = new Proxy({}, { get: (_target, kind) => (...args) => ({ kind, args }) });
+  const sandbox = { ...strippedImportBindings, process: { env: { PI_ROLE_POLICY_PATH: path.resolve('fixture-policy.json') } },
+    Type, loadRolePolicy: () => policy, registerExplorerJobs: () => {}, createExpensiveGate: () => ({}) };
+  runInNewContext(js, sandbox)({ registerTool: tool => tools.set(tool.name, tool), registerCommand: () => {} });
+  const schema = tools.get('pi_role_agent').parameters;
+  const props = schema.args[0];
+  assert.equal(schema.args[1].additionalProperties, false);
+  assert.deepEqual(Array.from(props.profile.args[0].args[0], literal => literal.args[0]), ['read-only', 'record']);
+  for (const key of ['todo', 'taskId', 'taskSha256', 'verdictRef', 'verdictSha256', 'manifestPath', 'manifestSha256']) {
+    assert.equal(props[key].kind, 'Optional'); assert.equal(props[key].args[0].kind, 'String');
+  }
+  assert.equal(Object.hasOwn(props, 'date'), false);
+});
+
+test('role agent binds seven record fields and a locally computed date only for auditor', async t => {
+  const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-record-dispatch-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const seen = [], gates = [];
+  const execute = step3RoleTool(async (_p, role, _task, _cwd, _prompt, options) => {
+    seen.push(options);
+    const persisted = persistFullResult({ ...options.resultStore, role, completeness: 'complete', text: 'done' });
+    return { role, model: 'fixture', thinking: 'high', text: 'done', persisted, usage: null };
+  }, gates);
+  const { date, ...fields } = recordBinding;
+  const params = { role: 'auditor', task: 'record', profile: 'record', ...fields };
+  for (const key of Object.keys(fields)) {
+    const missing = { ...params }; delete missing[key];
+    await assert.rejects(execute(root, missing), /record|binding/i);
+    await assert.rejects(execute(root, { ...params, [key]: '' }), /record|binding/i);
+    await assert.rejects(execute(root, { role: 'auditor', task: 'x', [key]: fields[key] }), /record|binding/i);
+  }
+  for (const bad of [{ ...params, role: 'coder' }, { ...params, date },
+    { ...params, profile: 'read-only' }, { ...params, taskSha256: null }]) {
+    await assert.rejects(execute(root, bad), /record|binding|profile/i);
+  }
+  assert.equal(seen.length, 0);
+  const localDate = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const before = localDate(); await execute(root, params); const after = localDate();
+  assert.deepEqual(JSON.parse(JSON.stringify(seen[0].recordBinding)), { ...fields, date: seen[0].recordBinding.date });
+  assert.ok([before, after].includes(seen[0].recordBinding.date));
+  assert.equal(seen[0].profile, 'record'); assert.deepEqual(gates, ['auditor']);
+});
 
 test('dispatcher forwards only a valid non-council read-only profile', async t => {
   const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-profile-dispatch-')));

@@ -282,6 +282,44 @@ test('each pilot role gets an exact model and explicit thinking level', () => {
   }
 });
 
+test('record profile has exactly the auditor recorder capability', () => {
+  const policy = loadRolePolicy(policyFile);
+  const args = buildAgentArgs(policy, 'auditor', '/tmp/role.md', 'Record', { profile: 'record' });
+  assert.deepEqual(args, ['--mode', 'json', '--print', '--no-session', '--no-extensions',
+    '--extension', path.join(repo, 'pi', 'extensions', 'auditor-recorder.ts'),
+    '--model', policy.roles.auditor.model, '--thinking', policy.roles.auditor.thinking,
+    '--tools', 'read,grep,find,ls,pi_record_verification', '--exclude-tools', 'mcp__*',
+    '--append-system-prompt', '/tmp/role.md', 'Task: Record']);
+});
+
+test('record cannot be granted by policy or dispatched to another role', () => {
+  const base = loadRolePolicy(policyFile);
+  const tools = ['read', 'grep', 'find', 'ls'];
+  const policy = { ...base, roles: { ...base.roles,
+    explorer: { ...base.roles.auditor, tools }, scribe: { ...base.roles.auditor, tools } } };
+  for (const role of ['strategist', 'coder', 'explorer', 'scribe']) {
+    assert.throws(() => buildAgentArgs(policy, role, '/prompt', 'x', { profile: 'record' }), /profile/i);
+  }
+  const unsafe = { ...base, roles: { ...base.roles,
+    auditor: { ...base.roles.auditor, tools: [...tools, 'pi_record_verification'] } } };
+  assert.throws(() => buildAgentArgs(unsafe, 'auditor', '/prompt', 'x', { profile: 'record' }), /Auditor tools/);
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'pi-record-policy-'));
+  try {
+    const file = path.join(dir, 'policy.json'); writeFileSync(file, JSON.stringify(unsafe));
+    assert.throws(() => loadRolePolicy(file), /Invalid role configuration for auditor/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('ordinary auditor argv remains exact and never loads recorder', () => {
+  const policy = loadRolePolicy(policyFile);
+  for (const profile of [undefined, 'read-only', 'council-read-only']) {
+    assert.deepEqual(buildAgentArgs(policy, 'auditor', '/prompt', 'x', { profile }),
+      ['--mode', 'json', '--print', '--no-session', '--no-extensions',
+        '--model', policy.roles.auditor.model, '--thinking', policy.roles.auditor.thinking,
+        '--tools', 'read,grep,find,ls', '--exclude-tools', 'mcp__*', '--append-system-prompt', '/prompt', 'Task: x']);
+  }
+});
+
 test('auditor has no shell, edit/write, extension, or MCP tools', () => {
   const policy = loadRolePolicy(policyFile);
   const args = buildAgentArgs(policy, 'auditor', '/tmp/role.md', 'Review a fixture');

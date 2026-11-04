@@ -111,20 +111,38 @@ export default function (pi: ExtensionAPI) {
     name: 'pi_role_agent',
     label: 'Pi role agent',
     description: 'Delegate a bounded task to a configured isolated strategist, coder, report-only auditor, read-only scribe, read-only explorer, or read-only council perspective. ' +
+      'Auditor is report-only by default; the separate record profile records one parent-bound settled verdict. ' +
       'The role policy selects one explicitly configured model and thinking level; inspect the returned evidence.',
     parameters: Type.Object({
       role: Type.Union([Type.Literal('strategist'), Type.Literal('coder'), Type.Literal('auditor'), Type.Literal('scribe'), Type.Literal('explorer'), Type.Literal('council-perspective')]),
       task: Type.String({ minLength: 1, description: 'Specific bounded task and expected output' }),
-      profile: Type.Optional(Type.Literal('read-only')),
+      profile: Type.Optional(Type.Union([Type.Literal('read-only'), Type.Literal('record')])),
+      todo: Type.Optional(Type.String({ minLength: 1 })),
+      taskId: Type.Optional(Type.String({ minLength: 1 })),
+      taskSha256: Type.Optional(Type.String({ minLength: 1 })),
+      verdictRef: Type.Optional(Type.String({ minLength: 1 })),
+      verdictSha256: Type.Optional(Type.String({ minLength: 1 })),
+      manifestPath: Type.Optional(Type.String({ minLength: 1 })),
+      manifestSha256: Type.Optional(Type.String({ minLength: 1 })),
       perspective: Type.Optional(Type.Union([Type.Literal('strategist'), Type.Literal('coder'), Type.Literal('auditor')])),
       evidencePath: Type.Optional(Type.String({ description: 'Council only: absolute synthetic evidence under project Artifacts/Temp' })),
       evidenceSha256: Type.Optional(Type.String({ description: 'Council only: one common SHA-256 for all perspective calls' })),
-    }),
+    }, { additionalProperties: false }),
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       const council = params.role === 'council-perspective';
-      if (params.profile !== undefined && (params.profile !== 'read-only' ||
-          !['strategist', 'coder', 'auditor', 'scribe'].includes(params.role))) {
-        throw new Error('Invalid role profile');
+      if (params.profile !== undefined && !(
+        (params.profile === 'read-only' && ['strategist', 'coder', 'auditor', 'scribe'].includes(params.role)) ||
+        (params.profile === 'record' && params.role === 'auditor')
+      )) throw new Error('Invalid role profile');
+      const recordKeys = ['todo', 'taskId', 'taskSha256', 'verdictRef', 'verdictSha256', 'manifestPath', 'manifestSha256'];
+      if (Object.hasOwn(params, 'date') || (params.profile === 'record'
+        ? recordKeys.some(key => typeof params[key] !== 'string' || !params[key])
+        : recordKeys.some(key => Object.hasOwn(params, key)))) throw new Error('Invalid record binding parameters');
+      let recordBinding;
+      if (params.profile === 'record') {
+        const now = new Date();
+        const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        recordBinding = { ...Object.fromEntries(recordKeys.map(key => [key, params[key]])), date };
       }
       const promptPath = path.join(sourceRoot, 'agents', council ? 'council-perspectives.md' : `${params.role}.md`);
       const identity = { dispatchId: `role-${randomUUID()}`, role: (council ? params.perspective : params.role) ?? params.role };
@@ -139,7 +157,7 @@ export default function (pi: ExtensionAPI) {
           evidencePath: params.evidencePath, evidenceSha256: params.evidenceSha256 }, ctx.cwd, promptPath,
           { signal, resultStore, ...accounting })
         : runRole(policy, params.role, params.task, ctx.cwd, promptPath,
-          { signal, resultStore, profile: params.profile, ...accounting }));
+          { signal, resultStore, profile: params.profile, ...(recordBinding ? { recordBinding } : {}), ...accounting }));
       let result;
       try {
         result = ['strategist', 'auditor', 'council-perspective'].includes(params.role)

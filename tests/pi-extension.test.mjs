@@ -56,9 +56,9 @@ test('role extension exposes a read-only explorer with unchanged tasks and bound
   }
 });
 
-test('role tool advertises an optional read-only profile', () => {
+test('role tool advertises optional read-only and record profiles', () => {
   const extension = readFileSync(path.join(repo, 'pi/extensions/role-agent.ts'), 'utf8');
-  assert.match(extension, /profile:\s*Type\.Optional\(Type\.Literal\('read-only'\)\)/);
+  assert.match(extension, /profile:\s*Type\.Optional\(Type\.Union\(\[Type\.Literal\('read-only'\), Type\.Literal\('record'\)\]\)\)/);
 });
 
 test('role extension exposes a scribe child schema and a dedicated prompt', () => {

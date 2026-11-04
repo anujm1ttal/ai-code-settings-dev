@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { buildAgentArgs } from './role-policy.mjs';
 import { persistFullResult, buildEnvelope, buildIncompleteEnvelope } from './result-contract.mjs';
 import { validateVerdictIdentity, checkExpectedVerdict } from './verdict.mjs';
+import { validateBinding } from './auditor-recorder.mjs';
 
 const MAX_ERROR_BYTES = 2048;
 const MAX_STREAM_BYTES = 8 * 1024 * 1024;
@@ -27,6 +28,14 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     invocation = { command: process.execPath, args: [fileURLToPath(new URL('./child-runtime.mjs', import.meta.url))] }, signal,
     timeoutMs = 10 * 60 * 1000, killGraceMs = 2000, ledger, dispatchKey,
     accountingCursor = { next: 0 } } = options;
+  let recordBinding;
+  if (profile === 'record') {
+    if (roleName !== 'auditor') throw new Error('Record profile is auditor-only');
+    if (options.expectedVerdict !== undefined) throw new Error('expectedVerdict cannot be used with record');
+    recordBinding = validateBinding(options.recordBinding);
+  } else if (options.recordBinding !== undefined) {
+    throw new Error('recordBinding requires record profile');
+  }
   if (profile === 'packet-only-review' && requiredReadPath !== undefined) {
     throw new Error('requiredReadPath cannot be used with packet-only review');
   }
@@ -50,6 +59,8 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   delete env.PI_ROLE;
   env.PI_ROLE = roleName;
   delete env.PI_CONCIERGE_ROOT;
+  delete env.PI_RECORD_BINDING;
+  if (recordBinding) env.PI_RECORD_BINDING = JSON.stringify(recordBinding);
   const child = spawnImpl(invocation.command, [...invocation.args, ...args], {
     // No `signal` here: Node would kill only the direct child on abort and orphan descendants.
     // Abort is handled below through the tree-aware cleanup.
