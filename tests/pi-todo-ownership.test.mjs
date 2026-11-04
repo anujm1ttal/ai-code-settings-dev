@@ -12,6 +12,15 @@ const verified = ' — Auditor-verified 2026-01-02 (ref)';
 const reviewed = ' — Auditor-reviewed 2026-01-02 (ref)';
 const args = { taskId: 'T1', verdict: 'PASS', date: '2026-01-02', ref: 'ref' };
 
+test('recording reference formatter validates and emits the marker contract', () => {
+  const format = api().formatRecordingRef;
+  assert.equal(typeof format, 'function');
+  const sha256 = 'a'.repeat(64);
+  assert.equal(format({ verdict: 'PASS', dispatchId: 'job-1', sha256 }), `PASS; verdict=job-1; sha256=${sha256}`);
+  assert.equal(format({ verdict: 'FAIL', dispatchId: 'job-2', sha256 }), `FAIL; verdict=job-2; sha256=${sha256}`);
+  for (const value of [{ verdict: 'INCOMPLETE', dispatchId: 'job-1', sha256 }, { verdict: 'PASS', dispatchId: '..', sha256 }, { verdict: 'PASS', dispatchId: 'a'.repeat(81), sha256 }, { verdict: 'PASS', dispatchId: 'job-1', sha256: 'A'.repeat(64) }]) assert.throws(() => format(value));
+});
+
 test('approval-only parser permits document task lookalikes and preserves exact approval blocks', () => {
   const { parseApprovalBlocks: parse } = api();
   assert.equal(typeof parse, 'function');

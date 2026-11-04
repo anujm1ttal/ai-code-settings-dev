@@ -109,6 +109,32 @@ test('preview stages the complete role guard closure byte-for-byte', async () =>
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
 
+test('preview stages child recorder and its complete import closure without parent activation', async () => {
+  const root = sandbox();
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    const start = 'pi/extensions/auditor-recorder.ts';
+    const settings = JSON.parse(fs.readFileSync(path.join(staged.destination, 'settings.json'), 'utf8'));
+    assert.ok(!settings.extensions.includes(start));
+    const visited = new Set(), pending = [start];
+    while (pending.length) {
+      const rel = pending.pop(); if (visited.has(rel)) continue; visited.add(rel);
+      const target = path.join(staged.destination, rel);
+      assert.ok(fs.existsSync(target), `${rel} must be staged`);
+      const bytes = fs.readFileSync(target);
+      assert.deepEqual(bytes, fs.readFileSync(path.join(sourceRoot, rel)), rel);
+      for (const match of bytes.toString('utf8').matchAll(/\b(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]|\bimport\s*\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g)) {
+        const next = path.relative(staged.destination, path.resolve(path.dirname(target), match[1] ?? match[2]));
+        assert.ok(next && next !== '..' && !next.startsWith(`..${path.sep}`) && !path.isAbsolute(next));
+        pending.push(next.split(path.sep).join('/'));
+      }
+    }
+    for (const rel of ['pi/lib/auditor-recorder.mjs', 'pi/lib/role-ownership.mjs', 'pi/lib/todo-ownership.mjs', 'pi/lib/verdict.mjs']) assert.ok(visited.has(rel), `${rel} traversed`);
+    rollbackPreview(staged);
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
 test('isolated preview stages the concierge guard dependency used by the selected guard extension', async () => {
   const root = sandbox();
   try {

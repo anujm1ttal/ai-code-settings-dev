@@ -154,6 +154,13 @@ export function validateStrategistChange(originalBuf, candidateBuf, opts = { app
   return answer(reasons.length === 0, reasons);
 }
 
+export function formatRecordingRef({ verdict, dispatchId, sha256 } = {}) {
+  if (!['PASS', 'FAIL'].includes(verdict) || typeof dispatchId !== 'string' ||
+      !(new RegExp(`^${ID}$`)).test(dispatchId) || dispatchId === '.' || dispatchId === '..' ||
+      typeof sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(sha256)) throw new Error('invalid recording reference');
+  return `${verdict}; verdict=${dispatchId}; sha256=${sha256}`;
+}
+
 function validDate(s) {
   if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
   const date = new Date(`${s}T00:00:00Z`);
