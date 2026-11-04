@@ -45,6 +45,24 @@ function verified(root, { id = 'T1', rid = 'role-a', eol = '\n', bom = false, ot
 const one = (root, opts = {}) => checkMarkers({ root, todos: [path.join(root, TODO)], ...opts });
 const status = (out, i = 0) => out.findings[i]?.status;
 
+test('C03: a checked verified FAIL with matching settled FAIL is invalid', () => project(root => {
+  const { p } = verified(root, { verdict: 'FAIL', rid: 'job-fail' });
+  assert.equal(status(one(root)), 'reviewed'); // valid settled FAIL control
+  fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('[ ]', '[x]').replace('Auditor-reviewed', 'Auditor-verified'));
+  const out = one(root);
+  assert.equal(status(out), 'invalid');
+  assert.equal(out.exit, 1);
+}));
+
+test('C04: a valid settled PASS with an impossible calendar date is invalid', () => project(root => {
+  const { p } = verified(root, { rid: 'job-date' });
+  assert.equal(status(one(root)), 'valid');
+  fs.writeFileSync(p, fs.readFileSync(p, 'utf8').replace('2026-11-03', '2026-02-30'));
+  const out = one(root);
+  assert.equal(status(out), 'invalid');
+  assert.equal(out.exit, 1);
+}));
+
 test('duplicate unchecked task ids make the whole file ineligible', () => project(root => {
   put(root, TODO, L('T1') + '\n' + L('T1') + '\n');
   const out = one(root);
