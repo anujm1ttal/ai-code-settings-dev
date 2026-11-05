@@ -262,6 +262,29 @@ function restoreGuardEnv(saved) {
 }
 function saveGuardEnv() { return Object.fromEntries(['PI_ROLE', 'PI_CODING_AGENT_DIR', 'PI_CODING_AGENT_SDK_PATH'].map(k => [k, process.env[k]])); }
 
+test('PI10 guard handshake appears only after both healthy registrations succeed', async () => {
+  const f = fixture(), saved = { ...saveGuardEnv(), PI_ROLE_GUARD_NONCE: process.env.PI_ROLE_GUARD_NONCE };
+  const symbol = Symbol.for('pi.role.guard.v1');
+  try {
+    const sdkPath = await fakeGuardSdk(f), register = (await import('../pi/extensions/role-guard.ts')).default;
+    process.env.PI_ROLE = 'coder'; process.env.PI_ROLE_GUARD_NONCE = 'test-nonce';
+    process.env.PI_CODING_AGENT_SDK_PATH = sdkPath;
+    const registered = [];
+    await register({ registerTool: d => { assert.equal(d[symbol], undefined); registered.push(d); } });
+    assert.deepEqual(registered.map(d => d.name), ['edit', 'write']);
+    for (const d of registered) assert.deepEqual(d[symbol], { version: 1, role: 'coder', nonce: 'test-nonce', guarded: true });
+    const failed = [];
+    await assert.rejects(register({ registerTool: d => { failed.push(d); if (d.name === 'write') throw Error('registration failed'); } }), /registration failed/);
+    assert.deepEqual(failed.map(d => d.name), ['edit', 'write']);
+    for (const d of failed) assert.equal(d[symbol], undefined);
+    process.env.PI_CODING_AGENT_SDK_PATH = path.join(f.base, 'missing-sdk.js');
+    const stubs = [];
+    await register({ registerTool: d => stubs.push(d) });
+    assert.deepEqual(stubs.map(d => d.name), ['edit', 'write']);
+    for (const d of stubs) assert.equal(d[symbol], undefined);
+  } finally { restoreGuardEnv(saved); f.cleanup(); }
+});
+
 test('GX01 resolvable relative SDK path replaces both native tools with refusal stubs', async () => {
   const f = fixture(), saved = saveGuardEnv(); try {
     const sdkPath = await fakeGuardSdk(f), register = (await import('../pi/extensions/role-guard.ts')).default;

@@ -8,6 +8,7 @@ export default async function register(pi: ExtensionAPI) {
   const role = process.env.PI_ROLE;
   const globalPath = path.join(process.env.PI_CODING_AGENT_DIR || path.join(os.homedir(), '.pi', 'agent'), 'role-ownership.json');
   let definitions: any[];
+  let healthy = false;
   try {
     const sdkPath = process.env.PI_CODING_AGENT_SDK_PATH;
     if (sdkPath && !path.isAbsolute(sdkPath)) throw new Error('SDK path must be absolute');
@@ -25,6 +26,7 @@ export default async function register(pi: ExtensionAPI) {
         return factories[kind](cwd, { operations: ops[kind] }).execute(id, input, signal, update, ctx);
       } };
     });
+    healthy = true;
   } catch {
     definitions = (['edit', 'write'] as const).map(name => ({
       name, label: name, description: 'Unavailable: mutation guard dependency failed to load.',
@@ -33,4 +35,8 @@ export default async function register(pi: ExtensionAPI) {
     }));
   }
   for (const definition of definitions) pi.registerTool(definition);
+  if (healthy) {
+    const tag = Object.freeze({ version: 1, role, nonce: process.env.PI_ROLE_GUARD_NONCE, guarded: true });
+    for (const definition of definitions) definition[Symbol.for('pi.role.guard.v1')] = tag;
+  }
 }

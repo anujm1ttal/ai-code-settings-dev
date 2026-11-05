@@ -175,12 +175,13 @@ test('preview stages the scoped runtime at the default dispatch path', async () 
     const { PassThrough } = await import('node:stream');
     const policy = loadRolePolicy(path.join(sourceRoot, 'tests/fixtures/pi-role-policy.json'));
     let dispatched;
-    const spawnImpl = (command, args) => {
+    const spawnImpl = (command, args, options) => {
       dispatched = { command, launcher: args[0] };
       const child = new EventEmitter();
       child.stdout = new PassThrough(); child.stderr = new PassThrough();
       queueMicrotask(() => {
         for (const event of [
+          { type: 'pi_role_guard_ready', version: 1, role: 'coder', nonce: options.env.PI_ROLE_GUARD_NONCE, tools: ['edit', 'write'] },
           { type: 'pi_child_runtime', retryEnabled: false, retryMaxRetries: 0, providerMaxRetries: 0, compactionEnabled: false },
           { type: 'message_end', message: { role: 'assistant', provider: 'pilot-gpt', model: 'sol', thinkingLevel: 'medium',
             stopReason: 'stop', content: [{ type: 'text', text: 'done' }],
