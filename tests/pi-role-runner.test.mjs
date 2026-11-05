@@ -33,7 +33,7 @@ function fakeSpawn(events, exitCode = 0) {
     child.stderr = new PassThrough();
     child.kill = () => {};
     queueMicrotask(() => {
-      for (const event of events) child.stdout.write(`${JSON.stringify(event)}\n`);
+      for (const event of (typeof events === 'function' ? events(options) : events)) child.stdout.write(`${JSON.stringify(event)}\n`);
       child.stdout.end();
       child.stderr.end();
       child.emit('close', exitCode);
@@ -51,6 +51,100 @@ const assistant = (provider, model, thinkingLevel, text) => ({ type: 'message_en
   content: [{ type: 'text', text }], usage: { input: 1, output: 1, cacheRead: 0, cacheWrite: 0,
     totalTokens: 2, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
 } });
+
+// Runner protocol fixtures read the proposed dispatch nonce from the spawned environment.
+// The fallback makes baseline failures behavioural before that environment exists.
+const pi10WriterPolicy = { ...policy, roles: { ...policy.roles,
+  strategist: { ...policy.roles.strategist, tools: ['read', 'edit', 'write'] },
+  scribe: { model: 'pilot-gpt/sol', thinking: 'high', tools: ['read', 'edit', 'write'] } } };
+for (const role of ['coder', 'strategist', 'scribe']) test(`PI10 RED ${role} no-tool completion without receipt is refused`, async () => {
+  const config = pi10WriterPolicy.roles[role]; const [provider, model] = config.model.split('/');
+  const fake = fakeSpawn([runtimeProof, assistant(provider, model, config.thinking, 'no tools')]);
+  await assert.rejects(runRole(pi10WriterPolicy, role, 'offline', '.', '/prompt', { spawnImpl: fake.spawnImpl }), /guard|proof|receipt/i);
+});
+for (const tool of ['edit', 'write']) test(`PI10 RED ${tool}-only effective writer requires receipt`, async () => {
+  const restricted = { ...pi10WriterPolicy, roles: { ...pi10WriterPolicy.roles,
+    coder: { ...pi10WriterPolicy.roles.coder, tools: ['read', tool] } } };
+  const fake = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'no tools')]);
+  await assert.rejects(runRole(restricted, 'coder', 'offline', '.', '/prompt', { spawnImpl: fake.spawnImpl }), /guard|proof|receipt/i);
+});
+const pi10Receipt = options => ({ type: 'pi_role_guard_ready', version: 1, role: 'coder',
+  nonce: options.env.PI_ROLE_GUARD_NONCE ?? 'baseline-no-nonce', tools: ['edit', 'write'] });
+for (const [name, mutate] of [
+  ['wrong role', r => ({ ...r, role: 'scribe' })],
+  ['wrong nonce', r => ({ ...r, nonce: `${r.nonce}-wrong` })],
+  ['malformed receipt', r => ({ ...r, nonce: null, tools: 'edit,write' })],
+]) test(`PI10 RED runner refuses ${name}`, async () => {
+  const fake = fakeSpawn(options => [runtimeProof, mutate(pi10Receipt(options)), assistant('pilot-gpt', 'sol', 'medium', 'no tools')]);
+  await assert.rejects(runRole(pi10WriterPolicy, 'coder', 'offline', '.', '/prompt', { spawnImpl: fake.spawnImpl }), /guard|proof|receipt/i);
+});
+test('PI10 RED valid receipt is accepted before agent_start', async () => {
+  const fake = fakeSpawn(options => [runtimeProof, pi10Receipt(options), { type: 'agent_start' },
+    assistant('pilot-gpt', 'sol', 'medium', 'no tools')]);
+  const result = await runRole(pi10WriterPolicy, 'coder', 'offline', '.', '/prompt', { spawnImpl: fake.spawnImpl });
+  assert.equal(result.guardVerified, true, 'runner must report acceptance of dispatch-bound receipt');
+});
+for (const [name, events] of [
+  ['late after agent_start', r => [{ type: 'agent_start' }, r]],
+  ['late after tool start', r => [{ type: 'tool_execution_start', toolName: 'read' }, r]],
+  ['duplicate', r => [r, r]],
+]) test(`PI10 RED runner refuses ${name} receipt`, async () => {
+  const fake = fakeSpawn(options => [runtimeProof, ...events(pi10Receipt(options)), assistant('pilot-gpt', 'sol', 'medium', 'no tools')]);
+  await assert.rejects(runRole(pi10WriterPolicy, 'coder', 'offline', '.', '/prompt', { spawnImpl: fake.spawnImpl }), /guard|proof|receipt/i);
+});
+test('PI10 RED malformed JSONL triggers immediate writer cleanup', async () => {
+  let killed = false;
+  const spawnImpl = () => {
+    const child = new EventEmitter(); child.stdout = new PassThrough(); child.stderr = new PassThrough();
+    child.kill = () => { killed = true; child.stdout.end(); child.stderr.end(); child.emit('close', 1); };
+    queueMicrotask(() => child.stdout.write('{malformed json\n'));
+    return child;
+  };
+  await assert.rejects(runRole(pi10WriterPolicy, 'coder', 'offline', '.', '/prompt',
+    { spawnImpl, timeoutMs: 100, killGraceMs: 50 }), /malformed/i);
+  assert.equal(killed, true, 'malformed stream must trigger cleanup immediately, not wait for timeout');
+});
+// T2 proposal: testOnlyChildEntrypoint is honoured only with NODE_ENV=test AND
+// NODE_TEST_CONTEXT set by node --test; this is a trusted test affordance, not a sandbox.
+test('PI10 RED guarded testOnlyChildEntrypoint runs the alternate child', async () => {
+  const before = process.env.NODE_ENV; process.env.NODE_ENV = 'test';
+  try {
+    assert.ok(process.env.NODE_TEST_CONTEXT, 'must run under node --test');
+    const fake = fakeSpawn(options => [runtimeProof, pi10Receipt(options), assistant('pilot-gpt', 'sol', 'medium', 'done')]);
+    const result = await runRole(pi10WriterPolicy, 'coder', 'offline', '.', '/prompt',
+      { spawnImpl: fake.spawnImpl, testOnlyChildEntrypoint: { command: 'test-child', args: [] } });
+    assert.equal(fake.calls[0].command, 'test-child');
+    assert.equal(result.guardVerified, true);
+  } finally { if (before === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = before; }
+});
+test('PI10 RED testOnlyChildEntrypoint is refused outside node test context', async () => {
+  const beforeEnv = process.env.NODE_ENV, beforeContext = process.env.NODE_TEST_CONTEXT;
+  process.env.NODE_ENV = 'production'; delete process.env.NODE_TEST_CONTEXT;
+  try {
+    const fake = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'done')]);
+    await assert.rejects(runRole(pi10WriterPolicy, 'coder', 'offline', '.', '/prompt',
+      { spawnImpl: fake.spawnImpl, testOnlyChildEntrypoint: { command: 'test-child', args: [] } }), /test|entrypoint/i);
+    assert.equal(fake.calls.length, 0);
+  } finally {
+    if (beforeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = beforeEnv;
+    if (beforeContext === undefined) delete process.env.NODE_TEST_CONTEXT; else process.env.NODE_TEST_CONTEXT = beforeContext;
+  }
+});
+test('PI10 RED production writer refuses alternate invocation before spawn', async () => {
+  const fake = fakeSpawn([assistant('pilot-gpt', 'sol', 'medium', 'done')]);
+  await assert.rejects(runRole(pi10WriterPolicy, 'coder', 'offline', '.', '/prompt',
+    { spawnImpl: fake.spawnImpl, invocation: { command: 'alternate', args: [] } }), /invocation|entrypoint|runtime/i);
+  assert.equal(fake.calls.length, 0);
+});
+test('PI10 RED production writer refuses inherited alternate runtime before spawn', async () => {
+  const prior = process.env.PI_CHILD_RUNTIME_MODULE;
+  process.env.PI_CHILD_RUNTIME_MODULE = path.resolve('offline-alternate.mjs');
+  try {
+    const fake = fakeSpawn([runtimeProof, assistant('pilot-gpt', 'sol', 'medium', 'done')]);
+    await assert.rejects(runRole(pi10WriterPolicy, 'coder', 'offline', '.', '/prompt', { spawnImpl: fake.spawnImpl }), /runtime|entrypoint|override/i);
+    assert.equal(fake.calls.length, 0);
+  } finally { if (prior === undefined) delete process.env.PI_CHILD_RUNTIME_MODULE; else process.env.PI_CHILD_RUNTIME_MODULE = prior; }
+});
 
 test('runner witness survives manager bounding', async (t) => {
   const root = fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(), 'pi-t4-witness-')));
