@@ -155,8 +155,16 @@ test('failed-sync-and-council-retain-earlier-calls', async t => {
   const cwd = fixture(t);
   const events = [assistant(usage, 'toolUse'), assistant({ ...usage, input: 4 }, 'error')];
   let failure;
-  try { await runRole(policy, 'coder', 'fixture', cwd, '/prompt', { spawnImpl: fakeSpawn(events),
-    invocation: { command: 'fixture', args: [] } }); } catch (error) { failure = error; }
+  const priorEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'test';
+  try {
+    const spawnImpl = (command, args, options) => fakeSpawn([
+      { type: 'pi_role_guard_ready', version: 1, role: 'coder', nonce: options.env.PI_ROLE_GUARD_NONCE, tools: ['edit', 'write'] },
+      ...events,
+    ])(command, args, options);
+    try { await runRole(policy, 'coder', 'fixture', cwd, '/prompt', { spawnImpl,
+      testOnlyChildEntrypoint: { command: 'fixture', args: [] } }); } catch (error) { failure = error; }
+  } finally { if (priorEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = priorEnv; }
   assert.ok(failure); assert.deepEqual(failure.usageCalls.map(c => c.usage.input), [10, 4]);
   const accounting = await import('../pi/lib/task-usage.mjs');
   const book = accounting.createTaskUsage({ cwd, rates, clock: () => 123456789 }); bind(book);

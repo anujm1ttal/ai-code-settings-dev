@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { accessSync, constants, statSync } from 'node:fs';
 import path from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
@@ -25,7 +26,7 @@ function verifyWriterGuardClosure() {
 
 export async function runRole(policy, roleName, task, cwd, promptPath, options = {}) {
   const { profile, promptFile, requiredReadPath, spawnImpl = spawn, killerImpl = spawn,
-    invocation = { command: process.execPath, args: [fileURLToPath(new URL('./child-runtime.mjs', import.meta.url))] }, signal,
+    signal,
     timeoutMs = 10 * 60 * 1000, killGraceMs = 2000, ledger, dispatchKey,
     accountingCursor = { next: 0 } } = options;
   let recordBinding;
@@ -49,7 +50,20 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   const args = buildAgentArgs(policy, roleName, promptPath, task, { profile, promptFile });
   const toolsIndex = args.indexOf('--tools');
   const effectiveTools = new Set(toolsIndex < 0 ? [] : args[toolsIndex + 1].split(','));
-  if (effectiveTools.has('edit') || effectiveTools.has('write')) verifyWriterGuardClosure();
+  const writer = effectiveTools.has('edit') || effectiveTools.has('write');
+  if (writer) verifyWriterGuardClosure();
+  const testEntrypoint = options.testOnlyChildEntrypoint;
+  if (testEntrypoint !== undefined && (!writer || process.env.NODE_ENV !== 'test' || !process.env.NODE_TEST_CONTEXT)) {
+    throw new Error('Test-only child entrypoint requires NODE_ENV=test and NODE_TEST_CONTEXT');
+  }
+  if (writer && options.invocation !== undefined) throw new Error('Writer alternate invocation refused');
+  if (writer && process.env.PI_CHILD_RUNTIME_MODULE && !testEntrypoint) throw new Error('Writer alternate runtime override refused');
+  const invocation = testEntrypoint ?? options.invocation ??
+    { command: process.execPath, args: [fileURLToPath(new URL('./child-runtime.mjs', import.meta.url))] };
+  if (testEntrypoint && (typeof invocation.command !== 'string' || !Array.isArray(invocation.args))) {
+    throw new Error('Invalid test-only child entrypoint');
+  }
+  const guardNonce = writer ? randomBytes(32).toString('hex') : undefined;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 ||
       !Number.isSafeInteger(killGraceMs) || killGraceMs <= 0) {
     throw new Error('Pi subagent timeout and kill grace must be positive milliseconds');
@@ -57,6 +71,8 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   if (signal?.aborted) throw new Error('Agent dispatch aborted');
   const env = { ...process.env };
   delete env.PI_ROLE;
+  delete env.PI_ROLE_GUARD_NONCE;
+  if (writer) env.PI_ROLE_GUARD_NONCE = guardNonce;
   env.PI_ROLE = roleName;
   delete env.PI_CONCIERGE_ROOT;
   delete env.PI_RECORD_BINDING;
@@ -86,12 +102,36 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   const usageCalls = [];
   let streamError;
   let runtimeVerified = false;
+  let guardVerified = false;
+  let readinessTimer;
 
   const acceptLine = (line) => {
     if (!line.trim() || streamError) return;
     let event;
     try { event = JSON.parse(line); }
-    catch { streamError = new Error('Malformed Pi JSON event'); return; }
+    catch {
+      streamError = new Error('Malformed Pi JSON event');
+      if (writer) startCleanup(streamError);
+      return;
+    }
+    if (writer && (!event || typeof event !== 'object' || Array.isArray(event))) {
+      streamError = new Error('Malformed Pi JSON event');
+      startCleanup(streamError);
+      return;
+    }
+    if (writer && event?.type === 'pi_role_guard_ready') {
+      if (guardVerified) { startCleanup(new Error('Duplicate guard receipt')); return; }
+      const mismatch = event.version !== 1 ? 'version' : event.role !== roleName ? 'role' :
+        event.nonce !== guardNonce ? 'nonce' :
+        !Array.isArray(event.tools) || event.tools.length !== 2 || event.tools[0] !== 'edit' || event.tools[1] !== 'write' ? 'tools' : undefined;
+      if (mismatch) { startCleanup(new Error(`Invalid guard receipt: ${mismatch} mismatch`)); return; }
+      guardVerified = true;
+      clearTimeout(readinessTimer);
+      return;
+    }
+    if (writer && !guardVerified && (event?.type === 'agent_start' || event?.type === 'tool_execution_start')) {
+      startCleanup(new Error('Missing guard receipt before agent or tool start')); return;
+    }
     if (options.resultStore && event.type === 'message_update' &&
         event.assistantMessageEvent?.type === 'text_delta') {
       const delta = event.assistantMessageEvent;
@@ -241,11 +281,12 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     catch (error) { failure ??= error; }
   };
   const startCleanup = (error) => {
-    if (finished) return;
     failure ??= error;
+    if (finished) return;
     if (cleanupStarted) return;
     cleanupStarted = true;
     clearTimeout(timeoutTimer);
+    clearTimeout(readinessTimer);
     killTimer = setTimeout(() => {
       terminate('SIGKILL');
       failureTimer = setTimeout(() => rejectCleanup(new Error(
@@ -259,19 +300,22 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
   signal?.addEventListener('abort', onAbort, { once: true });
   timeoutTimer = setTimeout(() => startCleanup(
     new Error(`Pi ${roleName} subagent timed out after ${timeoutMs} ms`)), timeoutMs);
+  if (writer) readinessTimer = setTimeout(() => startCleanup(new Error('Guard receipt readiness deadline exceeded after 30000 ms')), 30000);
   if (signal?.aborted) onAbort();
   try {
     let exitCode;
     try { exitCode = await Promise.race([close, cleanupFailure]); }
     finally {
       finished = true;
-      clearTimeout(timeoutTimer); clearTimeout(killTimer); clearTimeout(failureTimer);
+      clearTimeout(timeoutTimer); clearTimeout(readinessTimer); clearTimeout(killTimer); clearTimeout(failureTimer);
       signal?.removeEventListener('abort', onAbort);
     }
     if (failure) throw failure;
     buffer += decoder.end();
     if (buffer.trim()) acceptLine(buffer);
+    if (failure) throw failure;
     if (streamError) throw streamError;
+    if (writer && !guardVerified) throw new Error('Missing guard receipt before completion');
     if (signal?.aborted) throw new Error('Agent dispatch aborted');
     if (exitCode !== 0) throw new Error(`Pi subagent exited with code ${exitCode}: ${stderr}`);
     if (packetToolObserved) throw new Error('Packet-only review profile observed a tool call');
@@ -284,7 +328,7 @@ export async function runRole(policy, roleName, task, cwd, promptPath, options =
     const result = { role: roleName, model: policy.roles[roleName].model,
       thinking: policy.roles[roleName].thinking, text,
       usage: usageCalls.some(call => call.completeness === 'unknown') ? null : usage, usageCalls,
-      runtimeVerified, toolCounts: Object.fromEntries(toolCounts), successfulReads };
+      runtimeVerified, ...(writer ? { guardVerified } : {}), toolCounts: Object.fromEntries(toolCounts), successfulReads };
     if (options.resultStore) {
       const fullText = receivedText();
       // A missing or mismatched VERDICT line is an incomplete audit, not an error: the model call finished and

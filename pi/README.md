@@ -28,6 +28,16 @@ Effective profiles (`buildAgentArgs` in `role-policy.mjs`):
 
 Children with `edit`/`write` load `role-guard.ts`; children with `bash`, `edit` or `write` load `guard.ts`.
 
+**Guard registration proof (PI-10, source only).** A writer child (`edit` or `write` effective) must prove its guard registered; SDK load diagnostics alone are not enough:
+- Scope: only children whose effective tools include `edit` or `write`; read-only children get no nonce or receipt.
+- `role-guard.ts` tags its healthy `edit`/`write` definitions with the role and a per-dispatch nonce only after both register. If its dependencies fail, it registers untagged replacements that throw on execution.
+- `child-runtime.mjs` checks at the resource-loader reload step that the guard loaded with no loader errors, exactly one guard extension at the expected path, both `edit`/`write` definitions tagged with the matching role and nonce, and no colliding `edit`/`write` from another extension.
+- A failed check exits with a bounded `Guard proof ...` error; there is no inference. On success it emits one `pi_role_guard_ready` JSONL receipt (version, role, nonce, tools).
+- `role-runner.mjs` generates a fresh nonce per writer dispatch and requires that receipt before any `agent_start` or tool start and before a successful return, within a 30000 ms readiness deadline.
+- A missing, malformed, wrong, duplicate or late receipt starts cleanup and fails the dispatch. On success the result carries `guardVerified: true`.
+- Production writer runs refuse `options.invocation` and an inherited `PI_CHILD_RUNTIME_MODULE`. The only exception is the test-only seam `options.testOnlyChildEntrypoint`, accepted only for writer dispatches with `NODE_ENV=test` and `NODE_TEST_CONTEXT`; it is environment-gated test plumbing, not a security boundary.
+- Loader-error checks are one input, not the proof: a guard that loads cleanly but registers no tagged `edit`/`write` fails. This is distinct from post-hoc event observation, which checks only what already ran.
+
 **Policy source.** A project-root `role-ownership.json` overrides; otherwise the global file in `PI_CODING_AGENT_DIR` or `~/.pi/agent/` is used (`role-ownership.mjs`).
 
 **Fail closed.** A present but invalid or inaccessible override, or an invalid or missing global file, yields no ownership and refuses every writer mutation (`role-ownership.mjs`, `role-guard-core.mjs`). Unsafe path forms (UNC, drive-relative, `..`, trailing dot or space, 8.3 tilde, device names), links, junctions and multi-link targets are refused.
@@ -145,6 +155,7 @@ The Parent guard no longer redirects reads (removed in PI-9 F3); `interceptRead`
 - The auditor's lack of shell prevents independent test reruns. A caller-supplied summary is not evidence: it must read captured raw output and compare it with the source itself.
 - The runner uses a ten-minute default child deadline and a two-second force-kill grace period; the actual multi-minute deadline is not live-tested. An isolated Pi agent-directory preview and its rollback (prior bytes and absence restored; the `pi-retained/` checker intentionally kept) do not prove that the current source has been installed or that live rollback and cross-project behavior work.
 - **PI-9 gaps:** Coder `bash` is not ownership-checked and can change others' files. Tool allowlists and guards are not an OS sandbox.
+- **PI-10 guard proof (source only):** Bash is not covered (Coder `bash` can still change files); the barrier checks only extension-registered tools; the nonce is readable by a Bash-capable child, so this is integrity of the trusted runtime, not authentication or an OS sandbox. It exists in the SOURCE tree only; it is not installed, and a live install remains a separate, explicitly approved Pi-only release.
 - **No cross-process lock or compare-and-swap:** drift checks and the mutation queue are in-process; another process can change a TODO or doc between check and rename.
 - **Audit linkage:** the recorder hash-checks the manifest in its binding, but the job settlement does not link to that manifest.
 - **Release checks:** the import closure is regex-based; the 20 prompt templates (the 19 listed above plus the internal `bulk-read-system.md`) and seven role prompts are hard-coded in `release-preview.mjs`, so a new template needs a code change. Ownership overlap detection is heuristic.

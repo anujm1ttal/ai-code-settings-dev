@@ -8,9 +8,48 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const packageName = '@earendil-works/pi-coding-agent';
+const rawStdoutWrite = process.stdout.write.bind(process.stdout);
+
+function installGuardBarrier(sdk) {
+  const toolsIndex = process.argv.indexOf('--tools');
+  const tools = new Set(toolsIndex < 0 ? [] : (process.argv[toolsIndex + 1] || '').split(','));
+  if (!tools.has('edit') && !tools.has('write')) return;
+  const role = process.env.PI_ROLE, nonce = process.env.PI_ROLE_GUARD_NONCE;
+  if (!['coder', 'strategist', 'scribe'].includes(role) || !nonce) throw new Error('Guard proof missing role or nonce');
+  const Loader = sdk.DefaultResourceLoader;
+  if (typeof Loader?.prototype?.reload !== 'function' || typeof Loader.prototype.getExtensions !== 'function') {
+    throw new Error('Guard proof loader unavailable');
+  }
+  const expected = path.resolve(fileURLToPath(new URL('../extensions/role-guard.ts', import.meta.url)));
+  const original = Loader.prototype.reload;
+  let emitted = false;
+  Loader.prototype.reload = async function (...args) {
+    const result = await original.apply(this, args);
+    const loaded = this.getExtensions();
+    if (!loaded || !Array.isArray(loaded.extensions) || !Array.isArray(loaded.errors)) throw new Error('Guard proof invalid loader result');
+    if (loaded.errors.length) throw new Error(`Guard proof load error: ${String(loaded.errors[0]?.error ?? loaded.errors[0]?.message ?? 'unknown').slice(0, 300)}`);
+    const guards = loaded.extensions.filter(ext => typeof ext.resolvedPath === 'string' && path.resolve(ext.resolvedPath) === expected);
+    if (guards.length !== 1) throw new Error('Guard proof expected extension missing or duplicated');
+    const guard = guards[0];
+    for (const name of ['edit', 'write']) {
+      const selected = guard.tools?.get(name)?.definition;
+      const tag = selected?.[Symbol.for('pi.role.guard.v1')];
+      if (selected?.name !== name || tag?.version !== 1 || tag.role !== role || tag.nonce !== nonce || tag.guarded !== true) {
+        throw new Error(`Guard proof invalid ${name} definition`);
+      }
+      if (loaded.extensions.some(ext => ext !== guard && ext.tools?.has(name))) throw new Error(`Guard proof ${name} collision`);
+    }
+    if (!emitted) {
+      await new Promise((resolve, reject) => rawStdoutWrite(JSON.stringify({ type: 'pi_role_guard_ready', version: 1,
+        role, nonce, tools: ['edit', 'write'] }) + '\n', error => error ? reject(error) : resolve()));
+      emitted = true;
+    }
+    return result;
+  };
+}
 
 function modulePath() {
   if (process.env.PI_CHILD_RUNTIME_MODULE) {
@@ -64,6 +103,7 @@ async function launch() {
     console.log(JSON.stringify(effective));
     return;
   }
+  installGuardBarrier(sdk);
   // Real Pi's CLI calls setupCli before main; keep its proxy/HTTP and process initialization.
   if (!process.env.PI_CHILD_RUNTIME_MODULE ||
       (path.basename(entry) === 'index.js' && path.basename(path.dirname(entry)) === 'dist')) {

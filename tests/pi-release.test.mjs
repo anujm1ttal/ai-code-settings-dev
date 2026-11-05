@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { test } from 'node:test';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -175,12 +175,13 @@ test('preview stages the scoped runtime at the default dispatch path', async () 
     const { PassThrough } = await import('node:stream');
     const policy = loadRolePolicy(path.join(sourceRoot, 'tests/fixtures/pi-role-policy.json'));
     let dispatched;
-    const spawnImpl = (command, args) => {
+    const spawnImpl = (command, args, options) => {
       dispatched = { command, launcher: args[0] };
       const child = new EventEmitter();
       child.stdout = new PassThrough(); child.stderr = new PassThrough();
       queueMicrotask(() => {
         for (const event of [
+          { type: 'pi_role_guard_ready', version: 1, role: 'coder', nonce: options.env.PI_ROLE_GUARD_NONCE, tools: ['edit', 'write'] },
           { type: 'pi_child_runtime', retryEnabled: false, retryMaxRetries: 0, providerMaxRetries: 0, compactionEnabled: false },
           { type: 'message_end', message: { role: 'assistant', provider: 'pilot-gpt', model: 'sol', thinkingLevel: 'medium',
             stopReason: 'stop', content: [{ type: 'text', text: 'done' }],
@@ -211,12 +212,18 @@ test('preview stages the complete role guard closure byte-for-byte', async () =>
       assert.ok(fs.existsSync(target), `${relative} must be staged`);
       assert.deepEqual(fs.readFileSync(target), fs.readFileSync(path.join(sourceRoot, relative)), relative);
     }
-    // Follow literal static and dynamic relative imports from the staged guard transitively.
-    const visited = new Set(), pending = [closure[0]];
+    // Follow all three entrypoints, including the runner's own dependencies.
+    const visited = new Set(), pending = [closure[0], 'pi/lib/child-runtime.mjs', 'pi/lib/role-runner.mjs'];
+    const manifest = new Set(staged.manifest.map(entry => entry.destination));
+    if (process.env.PI10_RELEASE_MUTATION === 'missing-guard-core') {
+      fs.rmSync(path.join(staged.destination, 'pi/lib/role-guard-core.mjs'));
+    }
     while (pending.length) {
       const relative = pending.pop();
       if (visited.has(relative)) continue;
       visited.add(relative);
+      assert.ok(manifest.has(relative), `${relative} must be in the staging manifest`);
+      assert.ok(fs.existsSync(path.join(staged.destination, relative)), `${relative} must exist in staged tree`);
       const text = fs.readFileSync(path.join(staged.destination, relative), 'utf8');
       const imports = [...text.matchAll(/\b(?:import|export)\s+(?:type\s+)?(?:[^'";]*?\s+from\s+)?['"](\.{1,2}\/[^'"]+)['"]|\bimport\s*\(\s*['"](\.{1,2}\/[^'"]+)['"]\s*\)/g)]
         .map(match => match[1] ?? match[2]);
@@ -234,8 +241,118 @@ test('preview stages the complete role guard closure byte-for-byte', async () =>
       }
     }
     assert.ok(closure.every(relative => visited.has(relative)), 'all known guard dependencies were traversed');
+    const runnerSource = fs.readFileSync(path.join(staged.destination, 'pi/lib/role-runner.mjs'), 'utf8');
+    const guardList = runnerSource.match(/const GUARD_CLOSURE = \[([\s\S]*?)\];/);
+    assert.ok(guardList, 'runner guard closure declaration exists');
+    const guardEntries = [...guardList[1].matchAll(/'([^']+)'/g)].map(match =>
+      path.posix.normalize(path.posix.join('pi/lib', match[1])));
+    assert.deepEqual(new Set(guardEntries), new Set(closure), 'runner preflight covers guard closure');
     rollbackPreview(staged);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('PI10 staged default runner executes healthy guard and refuses silent guard before inference', { timeout: 90000 }, async () => {
+  const entry = process.env.PI_CODING_AGENT_SDK_PATH;
+  assert.ok(entry && path.isAbsolute(entry) && fs.existsSync(entry), 'installed SDK entry required; no skip');
+  const root = sandbox();
+  let staged;
+  try {
+    const agent = path.join(root, 'agent'), cwd = path.join(root, 'work space');
+    fs.mkdirSync(agent); fs.mkdirSync(cwd);
+    fs.writeFileSync(path.join(agent, 'AGENTS.md'), Buffer.from([0, 255, 42]));
+    // The SDK creates these disposable stores on first startup; pre-seed them so
+    // the rollback comparison isolates preview-owned paths from SDK initialization.
+    fs.writeFileSync(path.join(agent, 'auth.json'), '{}');
+    fs.writeFileSync(path.join(agent, 'models-store.json'), '{}');
+    const before = snapshot(agent);
+    const { stagePreview, rollbackPreview } = await release();
+    staged = stagePreview({ sourceRoot, sandboxRoot: root });
+    const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+    for (const item of staged.manifest.filter(item => !item.source.startsWith('synthetic:'))) {
+      const source = fs.readFileSync(path.join(sourceRoot, item.source));
+      const actual = fs.readFileSync(path.join(agent, item.destination));
+      assert.deepEqual(actual, source, item.source);
+      assert.equal(hash(actual), item.sha256, item.source);
+    }
+    const guard = path.join(agent, 'pi/extensions/role-guard.ts');
+    const healthy = fs.readFileSync(guard);
+    const prompt = path.join(root, 'prompt.md'); fs.writeFileSync(prompt, 'Offline fixture');
+    const preload = path.join(root, 'preload.mjs');
+    fs.writeFileSync(preload, `import { appendFileSync } from 'node:fs'; import * as sdk from ${JSON.stringify(pathToFileURL(entry).href)};
+const refresh=sdk.AgentSession.prototype._refreshToolRegistry; sdk.AgentSession.prototype._refreshToolRegistry=function(...args) { for (const [name,d] of this._baseToolDefinitions) { if (['edit','write'].includes(name) && !d.__pi10Counted) { const execute=d.execute; d.execute=function(...a) { appendFileSync(process.env.PI10_NATIVE,name+'\\n'); return execute.apply(this,a); }; d.__pi10Counted=true; } } return refresh.apply(this,args); };
+let calls=0; const fake=model=>{ calls++; appendFileSync(process.env.PI10_INFERENCE,'fake\\n'); const content=calls===1?[{type:'toolCall',id:'w',name:'write',arguments:{path:'created.txt',content:'created'}},{type:'toolCall',id:'e',name:'edit',arguments:{path:'edited.txt',edits:[{oldText:'before',newText:'after'}]}}]:[{type:'text',text:'offline complete'}]; const message={role:'assistant',content,api:model.api,provider:model.provider,model:model.id,usage:{input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}},stopReason:calls===1?'toolUse':'stop',timestamp:Date.now()}; return {result:async()=>message,async *[Symbol.asyncIterator](){yield {type:'done',reason:message.stopReason,message};}}; };
+const build=sdk.AgentSession.prototype._buildRuntime; sdk.AgentSession.prototype._buildRuntime=function(...args){const result=build.apply(this,args);this.agent.streamFunction=fake;this._modelRuntime.hasConfiguredAuth=()=>true;return result}; const prompt=sdk.AgentSession.prototype.prompt; sdk.AgentSession.prototype.prompt=function(...args){if(this.agent.streamFunction!==fake)throw Error('fake stream not installed');return prompt.apply(this,args)};
+`);
+    const { runRole } = await import(pathToFileURL(path.join(agent, 'pi/lib/role-runner.mjs')).href);
+    const policy = { allowedModels: ['openai/gpt-4o'], roles: { coder: { model: 'openai/gpt-4o', thinking: 'off', tools: ['read', 'edit', 'write'] } } };
+    const native = path.join(root, 'native'), inference = path.join(root, 'inference');
+    fs.writeFileSync(native, ''); fs.writeFileSync(inference, '');
+    fs.writeFileSync(path.join(cwd, 'edited.txt'), 'before');
+    const keys = ['PATH', 'Path', 'SystemRoot', 'SYSTEMROOT', 'ComSpec', 'COMSPEC', 'PATHEXT', 'WINDIR', 'windir'];
+    const clean = Object.fromEntries(keys.filter(key => process.env[key] !== undefined).map(key => [key, process.env[key]]));
+    let launches = 0, stderr = '', stdout = '';
+    const spawnImpl = (command, args, options) => {
+      launches++;
+      assert.equal(command, process.execPath);
+      assert.equal(args[0], path.join(agent, 'pi/lib/child-runtime.mjs'));
+      assert.ok(args.includes(guard), 'staged policy selects staged guard');
+      const child = spawn(command, args, { ...options, env: { ...clean, PI_ROLE: options.env.PI_ROLE,
+        PI_ROLE_GUARD_NONCE: options.env.PI_ROLE_GUARD_NONCE, HOME: root, USERPROFILE: root, TEMP: root, TMP: root,
+        PI_CODING_AGENT_DIR: agent, PI10_NATIVE: native, PI10_INFERENCE: inference, PI_OFFLINE: '1', PI_SKIP_VERSION_CHECK: '1',
+        PI_MANAGED_INSTALL_ROOT: path.resolve(path.dirname(path.dirname(entry)), '../../../../..'), PI_CODING_AGENT_SDK_PATH: entry,
+        NODE_OPTIONS: `--import "${pathToFileURL(preload).href}"` } });
+      child.stdout.on('data', chunk => { stdout += chunk; }); child.stderr.on('data', chunk => { stderr += chunk; });
+      return child;
+    };
+    const result = await runRole(policy, 'coder', 'offline', cwd, prompt, { spawnImpl }).catch(error => { throw new Error(`${error.message}: ${stderr}`); });
+    assert.equal(result.guardVerified, true); assert.equal(result.runtimeVerified, true);
+    assert.equal(result.text, 'offline complete');
+    const events = stdout.trim().split(/\r?\n/).map(line => JSON.parse(line));
+    const receipts = events.filter(event => event.type === 'pi_role_guard_ready');
+    assert.equal(receipts.length, 1); assert.equal(receipts[0].role, 'coder'); assert.deepEqual(receipts[0].tools, ['edit', 'write']);
+    assert.deepEqual(events.filter(event => event.type === 'tool_execution_end').map(event => [event.toolName, event.isError]), [['write', false], ['edit', false]]);
+    assert.equal(fs.readFileSync(path.join(cwd, 'created.txt'), 'utf8'), 'created');
+    assert.equal(fs.readFileSync(path.join(cwd, 'edited.txt'), 'utf8'), 'after');
+    assert.equal(fs.readFileSync(native, 'utf8'), ''); assert.notEqual(fs.readFileSync(inference, 'utf8'), '');
+    fs.rmSync(path.join(cwd, 'created.txt')); fs.writeFileSync(path.join(cwd, 'edited.txt'), 'before');
+    fs.writeFileSync(inference, ''); stderr = ''; stdout = '';
+    fs.writeFileSync(guard, 'export default function () {}\n');
+    await assert.rejects(runRole(policy, 'coder', 'offline', cwd, prompt, { spawnImpl }), /Missing guard receipt before completion/);
+    assert.match(stderr, /Guard proof invalid edit definition/);
+    assert.equal(launches, 2); assert.equal(fs.readFileSync(native, 'utf8'), ''); assert.equal(fs.readFileSync(inference, 'utf8'), '');
+    assert.equal(fs.existsSync(path.join(cwd, 'created.txt')), false); assert.equal(fs.readFileSync(path.join(cwd, 'edited.txt'), 'utf8'), 'before');
+    assert.doesNotMatch(stdout, /pi_role_guard_ready|tool_execution_start/);
+    fs.writeFileSync(guard, healthy);
+    rollbackPreview(staged); staged = undefined;
+    assert.deepEqual(snapshot(agent).filter(([name]) => name !== 'pi-retained' && !name.startsWith(`pi-retained${path.sep}`)), before);
+    assert.equal(fs.existsSync(path.join(root, 'backup')), false);
+  } finally {
+    if (staged) (await release()).rollbackPreview(staged);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('PI10 unstaged relative import refuses before any preview write', async () => {
+  const root = sandbox(), control = sandbox();
+  const fixture = fs.mkdtempSync(path.join(os.tmpdir(), 'pi10-preview-source-'));
+  try {
+    const { stagePreview, rollbackPreview } = await release();
+    const healthy = stagePreview({ sourceRoot, sandboxRoot: control });
+    for (const item of healthy.manifest.filter(item => !item.source.startsWith('synthetic:'))) {
+      const target = path.join(fixture, item.source);
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.copyFileSync(path.join(sourceRoot, item.source), target);
+    }
+    rollbackPreview(healthy);
+    fs.appendFileSync(path.join(fixture, 'pi/lib/child-runtime.mjs'), "\nimport './pi10-unstaged.mjs';\n");
+    assert.equal(fs.existsSync(path.join(fixture, 'pi/lib/pi10-unstaged.mjs')), false);
+    const before = snapshot(root);
+    assert.throws(() => stagePreview({ sourceRoot: fixture, sandboxRoot: root }), /Unstaged relative import: pi\/lib\/child-runtime\.mjs -> pi\/lib\/pi10-unstaged\.mjs/);
+    assert.deepEqual(snapshot(root), before);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true }); fs.rmSync(control, { recursive: true, force: true });
+    fs.rmSync(fixture, { recursive: true, force: true });
+  }
 });
 
 test('preview stages child recorder and its complete import closure without parent activation', async () => {
