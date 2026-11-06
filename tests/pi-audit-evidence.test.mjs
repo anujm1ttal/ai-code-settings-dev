@@ -186,3 +186,16 @@ test('malformed manifest verdict identities are rejected', async (t) => {
     assert.throws(() => validateAuditManifest(f.root, f.manifest, sha), /verdict/i, JSON.stringify(bad));
   }
 });
+
+test('manifest shape errors state the expected format and name the offending part', async (t) => {
+  const { validateAuditManifest: validate } = await api(); const f = fixture(t);
+  const shape = /\{ "version": 1, "captures": \[\{ "path", "sha256" \}\] \}/;
+  assert.throws(() => validate(f.root, f.manifest, f.write({ captures: [f.entry] })), shape);
+  assert.throws(() => validate(f.root, f.manifest, f.write({ version: 1, evidence: [f.entry.path] })),
+    /captures must contain 1 to 64 .*path.*sha256.*other keys.*ignored/i);
+  assert.throws(() => validate(f.root, f.manifest, f.write({ version: 1, captures: [f.entry.path] })),
+    /capture entry.*object.*"path".*"sha256"/i);
+  assert.throws(() => validate(f.root, f.manifest, f.write({ version: 1, captures: [{ path: f.entry.path }] })),
+    /capture.*lowercase.*"sha256"/i);
+  assert.doesNotThrow(() => validate(f.root, f.manifest, f.write()));
+});

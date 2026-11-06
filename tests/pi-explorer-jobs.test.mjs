@@ -424,6 +424,9 @@ test('registers for strategist or auditor even without explorer and documents ro
     assert.match(def.description, /never.*task completion/i);
     assert.match(def.description, /metadata-only notification when a job finishes; it never starts a model turn\./);
     assert.ok(def.parameters.args[0].evidencePath && def.parameters.args[0].evidenceSha256);
+    const described = (key) => def.parameters.args[0][key].args[0].args[0].description;
+    assert.match(described('evidencePath'), /"version": 1.*"captures".*"path".*"sha256"/);
+    assert.match(described('evidenceSha256'), /SHA-256 of the manifest file itself/i);
     assert.ok(def.parameters.args[0].role, 'role parameter is advertised');
   }
 });

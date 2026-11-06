@@ -6,6 +6,7 @@ import { validateVerdictIdentity } from './verdict.mjs';
 const MANIFEST_LIMIT = 64 * 1024;
 const CAPTURE_LIMIT = 4 * 1024 * 1024;
 const DIGEST = /^[a-f0-9]{64}$/;
+const SHAPE = '{ "version": 1, "captures": [{ "path", "sha256" }] }';
 const comparable = (value) => process.platform === 'win32' ? value.toLowerCase() : value;
 const samePath = (a, b) => comparable(a) === comparable(b);
 
@@ -49,14 +50,14 @@ export function validateAuditManifest(root, manifestPath, expectedSha256) {
   let parsed;
   try { parsed = JSON.parse(manifest.bytes.toString('utf8')); }
   catch { throw new Error('Manifest must contain valid JSON'); }
-  if (!parsed || parsed.version !== 1) throw new Error('Manifest version must be 1');
+  if (!parsed || parsed.version !== 1) throw new Error(`Manifest version must be 1; expected ${SHAPE}`);
   if (!Array.isArray(parsed.captures) || parsed.captures.length < 1 || parsed.captures.length > 64) {
-    throw new Error('Manifest captures must contain 1 to 64 entries');
+    throw new Error('Manifest captures must contain 1 to 64 entries, each { path, sha256 }; other keys (for example "evidence") are ignored');
   }
   const seen = new Set();
   const captures = parsed.captures.map((entry) => {
-    if (!entry || typeof entry.path !== 'string' || !entry.path.trim()) throw new Error('Capture file path is required');
-    if (typeof entry.sha256 !== 'string' || !DIGEST.test(entry.sha256)) throw new Error('Capture requires an exact lowercase SHA-256 digest');
+    if (!entry || typeof entry.path !== 'string' || !entry.path.trim()) throw new Error('Capture entry must be an object with a non-empty string "path" and a lowercase "sha256"');
+    if (typeof entry.sha256 !== 'string' || !DIGEST.test(entry.sha256)) throw new Error('Capture requires an exact lowercase SHA-256 digest in "sha256"');
     const capture = readChecked(path.resolve(root, entry.path), CAPTURE_LIMIT, 'Capture', entry.sha256, directory);
     const key = comparable(capture.path);
     if (seen.has(key)) throw new Error('Duplicate capture path');
