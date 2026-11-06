@@ -260,6 +260,12 @@ test('/sync reconciles state in the main session on a real project with no child
   assert.match(template, /STALE/);
   assert.match(template, /MISMATCH/);
   assert.match(template, /BACKLOG/);
+  assert.ok(Buffer.byteLength(template) <= 3000);
+  assert.match(template, /node .*pi-retained\/scripts\/sync-facts\.mjs/);
+  assert.match(template, /node scripts\/sync-facts\.mjs/);
+  assert.match(template, /never read a state file whole/i);
+  assert.match(template, /at most 60 lines/i);
+  assert.match(template, /cut -c1-160/);
   assert.match(template, /no.*\[x\]/i);
   assert.match(template, /local-only/i);
   assert.match(template, /\$ARGUMENTS/);

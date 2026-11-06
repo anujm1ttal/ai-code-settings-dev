@@ -121,7 +121,7 @@ test('manifest stages the checker closure and retains it after rollback', () => 
   try {
     fs.writeFileSync(path.join(root, '.pi-pilot-sandbox'), 'pi-t16-isolated\n');
     const handle = stagePreview({ sourceRoot, sandboxRoot: root });
-    const expected = ['scripts/check-markers.mjs', 'pi/lib/verdict.mjs', 'pi/lib/todo-ownership.mjs'];
+    const expected = ['scripts/check-markers.mjs', 'scripts/sync-facts.mjs', 'pi/lib/verdict.mjs', 'pi/lib/todo-ownership.mjs'];
     for (const source of expected) {
       const destination = `pi-retained/${source}`;
       const entry = handle.manifest.find(item => item.source === source && item.destination === destination);

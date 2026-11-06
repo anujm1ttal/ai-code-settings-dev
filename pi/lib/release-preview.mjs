@@ -19,7 +19,7 @@ const FILES = [
   'pi/lib/role-guard-core.mjs', 'pi/lib/role-ownership.mjs', 'pi/lib/todo-ownership.mjs', 'pi/lib/auditor-recorder.mjs',
 ];
 const PROMPTS = ['agents-md', 'audit', 'blueprint', 'bulk-read-system', 'clean', 'council', 'docs', 'explain', 'graduate', 'grill', 'handoff', 'implement', 'ingest', 'learn', 'registry-audit', 'skill-graph', 'snapshot', 'sweep', 'sync', 'triage'].map(name => `pi/prompts/${name}.md`);
-const RETAINED = ['scripts/check-markers.mjs', 'pi/lib/verdict.mjs', 'pi/lib/todo-ownership.mjs'];
+const RETAINED = ['scripts/check-markers.mjs', 'scripts/sync-facts.mjs', 'pi/lib/verdict.mjs', 'pi/lib/todo-ownership.mjs'];
 const OWNERSHIP = Buffer.from(JSON.stringify({ version: 1, roles: { strategist: { plans: [], todos: ['Artifacts/Plans/*.md'] }, coder: { residual: true, generated: [] }, auditor: { todos: ['Artifacts/Plans/*.md'] }, scribe: { docs: [] } }, protected: [], approvalLinePrefixes: ['Approval:'] }, null, 2) + '\n');
 
 function verifySandbox(root) {
