@@ -240,15 +240,17 @@ export function createJobManager({ run, gate, budget, ledger, onTerminal, expens
   function collect(id, { recoveryOffset, destination = 'calling-tool', deliveryId } = {}) {
     const job = get(id);
     if (!isTerminal(job)) return { id: job.id, state: job.state, role: job.role, ready: false };
+    // Clients that fill every schema field send 0; with no retained partial text that can only mean a plain collect.
+    if (recoveryOffset === 0 && !(job.recovery && job.partialText !== undefined)) recoveryOffset = undefined;
     const callId = jobAccounting.getStore()?.toolCallId;
     const outputLedger = currentJobAccounting() ?? job.ledger;
     const outputId = deliveryId ?? (typeof callId === 'string' ? JSON.stringify([job.id, callId]) : randomUUID());
-    job.collected = true;
     if (recoveryOffset !== undefined) {
       if (!Number.isSafeInteger(recoveryOffset) || recoveryOffset < 0) throw new Error('recoveryOffset must be a nonnegative integer');
-      if (!job.recovery || job.partialText === undefined) throw new Error('No retained partial text available for recovery');
+      if (!job.recovery || job.partialText === undefined) throw new Error('No retained partial text available for recovery; omit recoveryOffset to collect a completed job');
       const chars = Array.from(job.partialText);
       if (recoveryOffset > chars.length) throw new Error('recoveryOffset exceeds retained text');
+      job.collected = true;
       let page = '', index = recoveryOffset, bytes = 0;
       while (index < chars.length && bytes + Buffer.byteLength(chars[index]) <= 1400) {
         page += chars[index]; bytes += Buffer.byteLength(chars[index++]);
@@ -259,6 +261,7 @@ export function createJobManager({ run, gate, budget, ledger, onTerminal, expens
       return { id: job.id, state: job.state, role: job.role, ready: true,
         text, recoveryOffset, nextRecoveryOffset: next };
     }
+    job.collected = true;
     if (job.evidence) verifyEvidence(job);
     const envelope = job.resultStore || expensiveRoles.includes(job.role) ? collectionEnvelope(job) : undefined;
     if (accountingEnabled(outputLedger)) outputLedger.record({ type: 'output', destination, deliveryId: outputId,

@@ -77,7 +77,7 @@ export function registerExplorerJobs(pi, { Type, policy, promptPath, promptPaths
       evidencePath: Type.Optional(Type.String({ description: 'auditor start: absolute path to a JSON evidence manifest under project Artifacts/: { "version": 1, "captures": [{ "path": "<file under Artifacts/>", "sha256": "<lowercase SHA-256 of that file>" }] }; 1-64 captures' })),
       evidenceSha256: Type.Optional(Type.String({ description: 'auditor start: lowercase SHA-256 of the manifest file itself, not of a capture' })),
       jobId: Type.Optional(Type.String({ description: 'status (optional), collect, cancel: the id returned by start' })),
-      recoveryOffset: Type.Optional(Type.Integer({ minimum: 0, description: 'collect only: recover retained partial text, starting at this code point offset; use nextRecoveryOffset for subsequent pages' })),
+      recoveryOffset: Type.Optional(Type.Integer({ minimum: 0, description: 'collect only, for recovering retained partial text of an incomplete job, starting at this code point offset; use nextRecoveryOffset for subsequent pages. Omit for a normal collect (0 on a completed job is treated as omitted; a nonzero offset on one is refused)' })),
     }),
     async execute(toolCallId, params, signal, _onUpdate, ctx) {
       const action = params?.action;

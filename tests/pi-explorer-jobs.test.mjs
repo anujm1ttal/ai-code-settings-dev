@@ -294,6 +294,34 @@ test('collect reports not ready, then the result with usage on the tool result e
   assert.equal(JSON.stringify(status).includes('Cited answer'), false);
 });
 
+test('recoveryOffset 0 on a completed job is a normal collect; usage is still reported once', async () => {
+  const { call, runs } = setup();
+  const { details: { job } } = await call({ action: 'start', task: 'Explore' });
+  runs[0].resolve(result('Cited answer', 21));
+  await tick();
+  const first = await call({ action: 'collect', jobId: job.id, recoveryOffset: 0 });
+  assert.match(first.content[0].text, /Cited answer/);
+  assert.equal(first.usage.totalTokens, 21);
+  assert.equal(first.details.recoveryOffset, undefined, 'a normal collect must not look like a recovery page');
+  const second = await call({ action: 'collect', jobId: job.id, recoveryOffset: 0 });
+  assert.match(second.content[0].text, /Cited answer/);
+  assert.equal(second.usage, undefined, 'usage must not be reported twice');
+});
+
+test('a nonzero recoveryOffset on a completed job is refused with guidance and leaves it uncollected', async () => {
+  const { call, runs } = setup();
+  const { details: { job } } = await call({ action: 'start', task: 'Explore' });
+  runs[0].resolve(result('Cited answer', 21));
+  await tick();
+  await assert.rejects(call({ action: 'collect', jobId: job.id, recoveryOffset: 5 }),
+    /No retained partial text available for recovery; omit recoveryOffset to collect a completed job/);
+  const status = await call({ action: 'status', jobId: job.id });
+  assert.notEqual(status.details.job.collected, true, 'a refused recovery must not mark the job collected');
+  const plain = await call({ action: 'collect', jobId: job.id });
+  assert.match(plain.content[0].text, /Cited answer/);
+  assert.equal(plain.usage.totalTokens, 21);
+});
+
 test('a failed job collects as an error result with unknown usage', async () => {
   const { call, runs } = setup();
   const { details: { job } } = await call({ action: 'start', task: 'Explore' });
@@ -427,6 +455,7 @@ test('registers for strategist or auditor even without explorer and documents ro
     const described = (key) => def.parameters.args[0][key].args[0].args[0].description;
     assert.match(described('evidencePath'), /"version": 1.*"captures".*"path".*"sha256"/);
     assert.match(described('evidenceSha256'), /SHA-256 of the manifest file itself/i);
+    assert.match(described('recoveryOffset'), /omit.*normal collect.*0.*completed job.*omitted/i);
     assert.ok(def.parameters.args[0].role, 'role parameter is advertised');
   }
 });
