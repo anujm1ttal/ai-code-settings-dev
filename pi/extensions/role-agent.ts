@@ -117,13 +117,13 @@ export default function (pi: ExtensionAPI) {
       role: Type.Union([Type.Literal('strategist'), Type.Literal('coder'), Type.Literal('auditor'), Type.Literal('scribe'), Type.Literal('explorer'), Type.Literal('council-perspective')]),
       task: Type.String({ minLength: 1, description: 'Specific bounded task and expected output' }),
       profile: Type.Optional(Type.Union([Type.Literal('read-only'), Type.Literal('record')])),
-      todo: Type.Optional(Type.String({ minLength: 1 })),
-      taskId: Type.Optional(Type.String({ minLength: 1 })),
-      taskSha256: Type.Optional(Type.String({ minLength: 1 })),
-      verdictRef: Type.Optional(Type.String({ minLength: 1 })),
-      verdictSha256: Type.Optional(Type.String({ minLength: 1 })),
-      manifestPath: Type.Optional(Type.String({ minLength: 1 })),
-      manifestSha256: Type.Optional(Type.String({ minLength: 1 })),
+      todo: Type.Optional(Type.String({ minLength: 1, description: 'Record profile only.' })),
+      taskId: Type.Optional(Type.String({ minLength: 1, description: 'Record profile only.' })),
+      taskSha256: Type.Optional(Type.String({ minLength: 1, description: 'Record profile only.' })),
+      verdictRef: Type.Optional(Type.String({ minLength: 1, description: 'Record profile only.' })),
+      verdictSha256: Type.Optional(Type.String({ minLength: 1, description: 'Record profile only.' })),
+      manifestPath: Type.Optional(Type.String({ minLength: 1, description: 'Record profile only.' })),
+      manifestSha256: Type.Optional(Type.String({ minLength: 1, description: 'Record profile only.' })),
       perspective: Type.Optional(Type.Union([Type.Literal('strategist'), Type.Literal('coder'), Type.Literal('auditor')])),
       evidencePath: Type.Optional(Type.String({ description: 'Council only: absolute synthetic evidence under project Artifacts/Temp' })),
       evidenceSha256: Type.Optional(Type.String({ description: 'Council only: one common SHA-256 for all perspective calls' })),
@@ -135,9 +135,19 @@ export default function (pi: ExtensionAPI) {
         (params.profile === 'record' && params.role === 'auditor')
       )) throw new Error('Invalid role profile');
       const recordKeys = ['todo', 'taskId', 'taskSha256', 'verdictRef', 'verdictSha256', 'manifestPath', 'manifestSha256'];
-      if (Object.hasOwn(params, 'date') || (params.profile === 'record'
-        ? recordKeys.some(key => typeof params[key] !== 'string' || !params[key])
-        : recordKeys.some(key => Object.hasOwn(params, key)))) throw new Error('Invalid record binding parameters');
+      if (Object.hasOwn(params, 'date')) {
+        throw new Error('Invalid record binding parameters: caller-supplied date is not allowed');
+      }
+      if (params.profile === 'record') {
+        const missing = recordKeys.filter(key => typeof params[key] !== 'string' || !params[key]);
+        if (missing.length) throw new Error(`Invalid record binding parameters: profile "record" requires non-empty ${missing.join(', ')}`);
+      } else {
+        const present = recordKeys.filter(key => Object.hasOwn(params, key));
+        if (present.length) {
+          const [verb, pronoun] = present.length === 1 ? ['is', 'it'] : ['are', 'them'];
+          throw new Error(`Invalid record binding parameters: ${present.join(', ')} ${verb} record-only; omit ${pronoun} unless profile is "record"`);
+        }
+      }
       let recordBinding;
       if (params.profile === 'record') {
         const now = new Date();

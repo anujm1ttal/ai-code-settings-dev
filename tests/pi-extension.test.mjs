@@ -51,7 +51,10 @@ const recordFields = { todo: 'Artifacts/TODO.md', taskId: 'T1', taskSha256: 'a'.
 test('X02 rejects caller date before dispatch, with valid record control', async t => {
   const f = await dispatchFixture(t); if (!f) return;
   const params = { role: 'auditor', task: 'record', profile: 'record', ...recordFields };
-  await assert.rejects(f.execute({ ...params, date: '2026-01-01' }), /record binding/i);
+  await assert.rejects(f.execute({ ...params, date: '2026-01-01' }),
+    { message: 'Invalid record binding parameters: caller-supplied date is not allowed' });
+  await assert.rejects(f.execute({ ...params, taskId: '', date: undefined }),
+    { message: 'Invalid record binding parameters: caller-supplied date is not allowed' });
   assert.equal(f.calls.length, 0); assert.deepEqual(fs.readdirSync(f.cwd), []);
   await f.execute(params); assert.equal(f.calls.length, 1);
   assert.equal(f.calls[0][5].recordBinding.taskId, 'T1');
@@ -59,9 +62,40 @@ test('X02 rejects caller date before dispatch, with valid record control', async
 
 test('X04 rejects record-only fields without profile before dispatch', async t => {
   const f = await dispatchFixture(t); if (!f) return;
-  await assert.rejects(f.execute({ role: 'coder', task: 'work', todo: recordFields.todo }), /record binding/i);
+  await assert.rejects(f.execute({ role: 'coder', task: 'work', todo: recordFields.todo }),
+    { message: 'Invalid record binding parameters: todo is record-only; omit it unless profile is "record"' });
+  await assert.rejects(f.execute({ role: 'coder', task: 'work', profile: 'read-only',
+    todo: recordFields.todo, taskId: recordFields.taskId }),
+    { message: 'Invalid record binding parameters: todo, taskId are record-only; omit them unless profile is "record"' });
+  for (const key of Object.keys(recordFields)) {
+    await assert.rejects(f.execute({ role: 'coder', task: 'work', [key]: undefined }),
+      { message: `Invalid record binding parameters: ${key} is record-only; omit it unless profile is "record"` });
+  }
   assert.equal(f.calls.length, 0); assert.deepEqual(fs.readdirSync(f.cwd), []);
-  await f.execute({ role: 'coder', task: 'work' }); assert.equal(f.calls.length, 1);
+  await f.execute({ role: 'coder', task: 'work' });
+  await f.execute({ role: 'coder', task: 'work', profile: 'read-only' });
+  assert.equal(f.calls.length, 2);
+});
+
+test('record profile identifies missing and empty binding keys before dispatch', async t => {
+  const f = await dispatchFixture(t); if (!f) return;
+  const { taskId, ...remainingFields } = recordFields;
+  const params = { role: 'auditor', task: 'record', profile: 'record', ...remainingFields };
+  for (const invalid of [params, { ...params, taskId: '' }, { ...params, taskId: null }]) {
+    await assert.rejects(f.execute(invalid),
+      { message: 'Invalid record binding parameters: profile "record" requires non-empty taskId' });
+  }
+  await assert.rejects(f.execute({ ...params, todo: '' }),
+    { message: 'Invalid record binding parameters: profile "record" requires non-empty todo, taskId' });
+  assert.equal(f.calls.length, 0); assert.deepEqual(fs.readdirSync(f.cwd), []);
+  await f.execute({ ...params, taskId }); assert.equal(f.calls.length, 1);
+});
+
+test('record binding schema descriptions identify all record-only fields', async t => {
+  const f = await dispatchFixture(t); if (!f) return;
+  for (const key of Object.keys(recordFields)) {
+    assert.match(f.tool.parameters.properties[key].description ?? '', /Record profile only\./);
+  }
 });
 
 test('X05 SDK schema rejects unknown property before execute', async t => {
