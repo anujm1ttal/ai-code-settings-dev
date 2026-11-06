@@ -142,7 +142,9 @@ export default function (pi: ExtensionAPI) {
         const missing = recordKeys.filter(key => typeof params[key] !== 'string' || !params[key]);
         if (missing.length) throw new Error(`Invalid record binding parameters: profile "record" requires non-empty ${missing.join(', ')}`);
       } else {
-        const present = recordKeys.filter(key => Object.hasOwn(params, key));
+        // Clients that fill every schema field send filler such as "/" or "none"; only real-looking values are refused.
+        const filler = value => typeof value === 'string' && /^(?:|\/|-|none|n\/a|null|undefined)$/i.test(value.trim());
+        const present = recordKeys.filter(key => Object.hasOwn(params, key) && !filler(params[key]));
         if (present.length) {
           const [verb, pronoun] = present.length === 1 ? ['is', 'it'] : ['are', 'them'];
           throw new Error(`Invalid record binding parameters: ${present.join(', ')} ${verb} record-only; omit ${pronoun} unless profile is "record"`);

@@ -77,6 +77,24 @@ test('X04 rejects record-only fields without profile before dispatch', async t =
   assert.equal(f.calls.length, 2);
 });
 
+test('placeholder record-only values are ignored outside the record profile; real values are still refused', async t => {
+  const f = await dispatchFixture(t); if (!f) return;
+  const placeholders = Object.fromEntries(Object.keys(recordFields).map((key, i) => [key, ['/', '', ' none ', 'N/A', 'null', '-', 'undefined'][i]]));
+  for (const role of ['coder', 'strategist', 'scribe']) {
+    await f.execute({ role, task: 'work', profile: 'read-only', ...placeholders });
+  }
+  await f.execute({ role: 'coder', task: 'work', ...placeholders });
+  assert.equal(f.calls.length, 4, 'placeholder-only calls dispatch');
+  for (const call of f.calls) assert.equal(call[5].recordBinding, undefined, 'placeholders never become a record binding');
+  await assert.rejects(f.execute({ role: 'coder', task: 'work', profile: 'read-only', ...placeholders, taskId: 'T1' }),
+    { message: 'Invalid record binding parameters: taskId is record-only; omit it unless profile is "record"' });
+  await assert.rejects(f.execute({ role: 'coder', task: 'work', ...recordFields }),
+    { message: /todo, taskId, taskSha256, verdictRef, verdictSha256, manifestPath, manifestSha256 are record-only/ });
+  await assert.rejects(f.execute({ role: 'coder', task: 'work', todo: undefined }),
+    { message: 'Invalid record binding parameters: todo is record-only; omit it unless profile is "record"' });
+  assert.equal(f.calls.length, 4, 'refused calls never dispatch');
+});
+
 test('record profile identifies missing and empty binding keys before dispatch', async t => {
   const f = await dispatchFixture(t); if (!f) return;
   const { taskId, ...remainingFields } = recordFields;
