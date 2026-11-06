@@ -109,7 +109,7 @@ test('ineligible input cases have a passing presence control', async t => {
 
 test('all roles and markers parse, including blocked and review records', () => {
   const { parseTodo } = api();
-  const roles = ['strategist', 'coder', 'auditor', 'scribe', 'user', 'explorer'];
+  const roles = ['strategist', 'coder', 'auditor', 'scribe', 'user', 'explorer', 'orchestrator'];
   const source = roles.map((role, i) => `- [${[' ', 'x', '-'][i % 3]}] [${role}] ID${i}: Title — Success: criteria — Mode: ${i % 2 ? 'HITL' : 'AFK'}${i === 0 ? ' — Blocked by: ID1, ID2' : ''}${i === 1 ? verified : ''}${i === 2 ? reviewed : ''}`).join('\n');
   const parsed = parseTodo(b(source), opts);
   assert.equal(parsed.eligible, true, parsed.errors.join('; '));
@@ -117,6 +117,20 @@ test('all roles and markers parse, including blocked and review records', () => 
   assert.deepEqual(parsed.tasks[0].blockedBy, ['ID1', 'ID2']);
   assert.equal(parsed.tasks[1].suffix, verified);
   assert.equal(parsed.tasks[2].suffix, reviewed);
+});
+
+test('malformed task rows add one format hint naming the field order and the allowed roles', () => {
+  const { parseTodo } = api();
+  const swapped = '- [ ] [coder] T1: Title — Success: criteria — Blocked by: T2 — Mode: AFK';
+  const parsed = parseTodo(b(`${swapped}\n- [ ] [coder] T3: Title — Success: x — Blocked by: T2 — Mode: AFK\n`), opts);
+  assert.equal(parsed.eligible, false);
+  assert.equal(parsed.errors.filter(e => /malformed or indented task/.test(e)).length, 2);
+  const hints = parsed.errors.filter(e => /^task format:/.test(e));
+  assert.equal(hints.length, 1, 'one hint, not one per row');
+  assert.match(hints[0], /Success:.*Mode: HITL\|AFK.*then optional.*Blocked by:/s);
+  assert.match(hints[0], /orchestrator/);
+  assert.equal(parseTodo(b(`${task()}\n`), opts).errors.length, 0, 'a valid file gets no hint');
+  assert.equal(parseTodo(b('- [ ] [orchestrator] T1: Title — Success: criteria — Mode: HITL\n'), opts).eligible, true);
 });
 
 test('approval hashes include BOM and all block line endings', () => {

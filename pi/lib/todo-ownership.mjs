@@ -3,7 +3,8 @@ import { createHash } from 'node:crypto';
 import { canonicalTaskHash, stripReviewSuffix } from './verdict.mjs';
 
 const ID = '[A-Za-z0-9._-]{1,80}'; // verdict.mjs VALID_ID
-const TASK = new RegExp(`^- \\[([ x-])\\] \\[(strategist|coder|auditor|scribe|user|explorer)\\] (${ID}): (.+?) — Success: (.+?) — Mode: (HITL|AFK)(?: — Blocked by: (${ID}(?:, ${ID})*))?$`);
+const TASK = new RegExp(`^- \\[([ x-])\\] \\[(strategist|coder|auditor|scribe|user|explorer|orchestrator)\\] (${ID}): (.+?) — Success: (.+?) — Mode: (HITL|AFK)(?: — Blocked by: (${ID}(?:, ${ID})*))?$`);
+const TASK_FORMAT_HINT = 'task format: - [ ] [role] ID: title — Success: criteria — Mode: HITL|AFK, then optional — Blocked by: ID[, ID] (Mode comes before Blocked by; Blocked by holds task IDs only; role is one of strategist, coder, auditor, scribe, user, explorer, orchestrator)';
 const LOOKALIKE = /^\s*(?:>\s*)*(?:[-*+]\s*\[|\d+[.)]\s*\[)/;
 const HEADING = /^ {0,3}#{1,6}(?:\s|$)/;
 const sha = s => createHash('sha256').update(s).digest('hex');
@@ -104,6 +105,7 @@ function parse(buffer, opts, strictTasks) {
   }
   if (fence) errors.push('unclosed fence');
   finishApproval(lines.length - 1);
+  if (errors.some(e => e.endsWith('malformed or indented task'))) errors.push(TASK_FORMAT_HINT);
   return result();
 }
 
