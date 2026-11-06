@@ -265,6 +265,10 @@ test('/sync reconciles state in the main session on a real project with no child
   assert.match(template, /node scripts\/sync-facts\.mjs/);
   assert.match(template, /never read a state file whole/i);
   assert.match(template, /at most 60 lines/i);
+  assert.match(template, /each cut to 160 columns/i);
+  assert.match(template, /head -60 \S+ \| cut -c1-160/);
+  assert.match(template, /do not load skills/i);
+  assert.match(template, /do not sample (?:the )?BACKLOG/i);
   assert.match(template, /cut -c1-160/);
   assert.match(template, /no.*\[x\]/i);
   assert.match(template, /local-only/i);

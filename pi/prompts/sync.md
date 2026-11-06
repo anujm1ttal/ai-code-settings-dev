@@ -5,7 +5,7 @@ argument-hint: "[scope]"
 
 Sync `$ARGUMENTS` in the **main session** on the current real project. Do not dispatch a child; use your own read/shell tools. Never print secrets or run a credential helper.
 
-Never read a state file whole (the read tool silently truncates near 50 KB). Beyond the script use grep or read at most 60 lines; do not write search results to Artifacts/Temp just to read them back.
+Never read a state file whole (the read tool silently truncates near 50 KB). Beyond the script use grep or read at most 60 lines, each cut to 160 columns (e.g. `head -60 FILE | cut -c1-160`); do not write search results to Artifacts/Temp just to read them back. Do not load skills for this command, and do not sample BACKLOG beyond the script's output.
 
 1. **Learnings:** read only titles if present, e.g. `cut -c1-160 Artifacts/learnings/HOT.md | head -40`.
 2. **Inventory:** start with `node "$HOME/.pi/agent/pi-retained/scripts/sync-facts.mjs"` (or `node scripts/sync-facts.mjs` inside ai-code-settings source). Use its output for inventory, state validation and BACKLOG. Check recent changes as needed.
