@@ -80,7 +80,10 @@ EXCLUDED_PATHS: tuple[str, ...] = (
 # were a blind glob instead of scoped to this exact prefix — silently hide real
 # drift elsewhere in skills/ (the CPI-1 T5 lesson: a broad exclusion is the same
 # failure class as the literal-swap defect it fixed).
-HARNESS_OWNED_PREFIXES: tuple[tuple[str, str], ...] = (("skills", "synced/"),)
+# skills/code-map/ is the second entry: licensed content installed only in ~/.claude/,
+# never vendored here. deploy.sh preserves it via `sync_tree.py --preserve code-map/`
+# (tests/test_verify_deploy_parity.py asserts the two stay in step).
+HARNESS_OWNED_PREFIXES: tuple[tuple[str, str], ...] = (("skills", "synced/"), ("skills", "code-map/"))
 
 
 def is_harness_owned(dirname: str, relpath: str) -> bool:
