@@ -1,7 +1,7 @@
 ---
 description: Triage cross-project learnings from GLOBAL_INBOX.md into global rules, skills, or standards.
 argument-hint: ""
-model: claude-haiku-4-5
+model: claude-haiku-5-5
 ---
 
 # Command: /graduate

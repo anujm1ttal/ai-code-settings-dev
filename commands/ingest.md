@@ -1,7 +1,7 @@
 ---
 description: Formalizes manual output from Rhino/GH, Power BI, or external editors for AI analysis. Owned by the concierge. Bridges user-design and AI-logic.
 argument-hint: "<source-file-or-type>"
-model: claude-haiku-4-5
+model: claude-haiku-5-5
 ---
 
 # Command: /ingest

@@ -1,7 +1,7 @@
 ---
 description: Triggers the scribe to generate all required YouTube upload metadata (Title options, Description, Tags, Pinned Comment).
 argument-hint: ""
-model: claude-haiku-4-5
+model: claude-haiku-5-5
 ---
 
 # Command: /pack

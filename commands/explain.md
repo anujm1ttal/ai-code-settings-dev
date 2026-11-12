@@ -2,7 +2,7 @@
 description: Triggers the scribe to explain or teach a codebase. Supports depth selection and targeted Q&A. Invokes codebase-navigator skill.
 argument-hint: "[--flow|--why|--find] [topic]"
 allowed-tools: Read, Grep, Glob
-model: claude-haiku-4-5
+model: claude-haiku-5-5
 ---
 
 # Command: /explain

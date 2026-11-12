@@ -1,7 +1,7 @@
 ---
 description: Capture a project-specific or global lesson into Artifacts/learnings/ or GLOBAL_INBOX.md.
 argument-hint: "[--global] <lesson>"
-model: claude-haiku-4-5
+model: claude-haiku-5-5
 ---
 
 # Command: /learn

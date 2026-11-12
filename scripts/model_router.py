@@ -13,17 +13,17 @@ import io
 import sys
 
 ModelTier = Literal["opus", "sonnet", "haiku"]
-ModelID = Literal["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-4-5"]
+ModelID = Literal["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]
 
 # Agent-to-model binding (mandatory)
 AGENT_MODELS: dict[str, tuple[ModelTier, ModelID]] = {
     "strategist": ("opus", "claude-opus-5-5"),
     "coder": ("sonnet", "claude-sonnet-5-5"),
     "auditor": ("sonnet", "claude-sonnet-5-5"),
-    "scribe": ("haiku", "claude-haiku-4-5"),
-    "concierge": ("haiku", "claude-haiku-4-5"),
+    "scribe": ("haiku", "claude-haiku-5-5"),
+    "concierge": ("haiku", "claude-haiku-5-5"),
     "council": ("opus", "claude-opus-5-5"),
-    "creative-director": ("haiku", "claude-haiku-4-5"),
+    "creative-director": ("haiku", "claude-haiku-5-5"),
     "geometry-validator": ("sonnet", "claude-sonnet-5-5"),
 }
 
@@ -32,7 +32,7 @@ AGENT_MODELS: dict[str, tuple[ModelTier, ModelID]] = {
 MODEL_PRICING: dict[ModelID, float] = {
     "claude-opus-5-5": 15.0,
     "claude-sonnet-5-5": 3.0,
-    "claude-haiku-4-5": 0.8,
+    "claude-haiku-5-5": 0.8,
 }
 
 # Reasoning effort mapping to model tier
@@ -120,7 +120,7 @@ def get_skill_model(
         return agent_model
 
     # Default to haiku if unknown
-    return ("haiku", "claude-haiku-4-5")
+    return ("haiku", "claude-haiku-5-5")
 
 
 def get_model_for_task(
@@ -155,7 +155,7 @@ def get_model_for_task(
     model_id: ModelID = {
         "opus": "claude-opus-5-5",
         "sonnet": "claude-sonnet-5-5",
-        "haiku": "claude-haiku-4-5",
+        "haiku": "claude-haiku-5-5",
     }[tier]  # type: ignore
 
     return (tier, model_id, f"Task type: {task_type}")
@@ -186,7 +186,7 @@ def print_routing_table():
         model_id = {
             "opus": "claude-opus-5-5",
             "sonnet": "claude-sonnet-5-5",
-            "haiku": "claude-haiku-4-5",
+            "haiku": "claude-haiku-5-5",
         }[tier]
         key = (reasoning, tier)
         if key not in seen:

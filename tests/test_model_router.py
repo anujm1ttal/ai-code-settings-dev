@@ -62,4 +62,4 @@ def test_malformed_frontmatter_does_not_crash(tmp_path: Path):
 
 def test_estimate_cost_scales_with_tokens():
     assert model_router.estimate_cost(1_000_000, "claude-sonnet-5-5") == pytest.approx(3.0)
-    assert model_router.estimate_cost(100_000, "claude-haiku-4-5") == pytest.approx(0.08)
+    assert model_router.estimate_cost(100_000, "claude-haiku-5-5") == pytest.approx(0.08)
