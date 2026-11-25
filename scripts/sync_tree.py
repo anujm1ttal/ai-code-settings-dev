@@ -3,10 +3,15 @@
 Used by deploy.sh step 5 instead of `rm -rf` + `cp -r`: an identical file keeps its mtime,
 so open Claude Code sessions do not re-inject it as "changed on disk".
 
-Usage: python scripts/sync_tree.py SRC DST
+Usage: python scripts/sync_tree.py [--preserve PREFIX ...] SRC DST
+
+`--preserve PREFIX` (repeatable, must end with "/") leaves dest-only files under that
+dst-relative prefix alone instead of deleting them — for content installed only in the
+destination that must never be vendored (licensed skills). Scoped to the exact prefix.
 """
 from __future__ import annotations
 
+import argparse
 import filecmp
 import shutil
 import sys
@@ -21,9 +26,12 @@ class SyncResult:
     unchanged: int
 
 
-def mirror(src: Path, dst: Path) -> SyncResult:
+def mirror(src: Path, dst: Path, preserve: tuple[str, ...] = ()) -> SyncResult:
     if not src.is_dir():
         raise NotADirectoryError(f"sync source is not a directory: {src}")
+    for prefix in preserve:
+        if len(prefix) < 2 or not prefix.endswith("/"):
+            raise ValueError(f"preserve prefix must be a non-root path ending in '/': {prefix!r}")
     dst.mkdir(parents=True, exist_ok=True)
 
     src_files = {p.relative_to(src) for p in src.rglob("*") if p.is_file()}
@@ -42,6 +50,8 @@ def mirror(src: Path, dst: Path) -> SyncResult:
     removed = 0
     for p in sorted(dst.rglob("*"), key=lambda q: len(q.parts), reverse=True):
         rel = p.relative_to(dst)
+        if rel.as_posix().startswith(preserve):
+            continue
         if p.is_file() or p.is_symlink():
             if rel not in src_files:
                 p.unlink()
@@ -53,10 +63,16 @@ def mirror(src: Path, dst: Path) -> SyncResult:
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print("usage: sync_tree.py SRC DST", file=sys.stderr)
+    parser = argparse.ArgumentParser(prog="sync_tree.py")
+    parser.add_argument("--preserve", action="append", default=[], metavar="PREFIX")
+    parser.add_argument("src")
+    parser.add_argument("dst")
+    args = parser.parse_args(argv)
+    try:
+        result = mirror(Path(args.src), Path(args.dst), tuple(args.preserve))
+    except ValueError as exc:
+        print(f"sync_tree.py: {exc}", file=sys.stderr)
         return 2
-    result = mirror(Path(argv[0]), Path(argv[1]))
     print(f"copied {result.copied}, removed {result.removed}, unchanged {result.unchanged}")
     return 0
 

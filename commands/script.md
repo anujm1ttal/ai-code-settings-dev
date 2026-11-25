@@ -1,7 +1,7 @@
 ---
 description: Triggers the scribe to write or expand a YouTube script based on an approved video plan.
 argument-hint: ""
-model: claude-haiku-4-5
+model: claude-haiku-5-5
 ---
 
 # Command: /script

@@ -1,7 +1,7 @@
 ---
 description: Triggers the concierge to execute a clean session end. Compresses context, snapshots state, and prepares a brief for the next session.
 argument-hint: "[--lite|--phase]"
-model: claude-haiku-4-5
+model: claude-haiku-5-5
 ---
 
 # Command: /handoff

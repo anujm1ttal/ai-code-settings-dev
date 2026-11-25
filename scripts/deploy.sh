@@ -215,7 +215,10 @@ fi
 # re-inject it as "changed on disk", a full cache write per file per session.
 for dir in agents rules skills templates commands hooks; do
   echo -n "  $dir: "
-  python "$SOURCE/scripts/sync_tree.py" "$SOURCE/$dir" "$DEST/$dir"
+  # skills/code-map/ is licensed, destination-only content: never vendored, never deleted.
+  case "$dir" in skills) PRESERVE="--preserve code-map/" ;; *) PRESERVE="" ;; esac
+  # shellcheck disable=SC2086 # PRESERVE is intentionally word-split into flag + value
+  python "$SOURCE/scripts/sync_tree.py" $PRESERVE "$SOURCE/$dir" "$DEST/$dir"
 done
 
 if [ -d "$SYNCED_PRESERVE" ]; then

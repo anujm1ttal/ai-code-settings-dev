@@ -72,11 +72,11 @@ def test_audit_subagent_flags_mismatch(tmp_path: Path):
     meta = session_dir / "agent-1.meta.json"
     meta.write_text(json.dumps({"agentType": "coder"}), encoding="utf-8")
     transcript = session_dir / "agent-1.jsonl"
-    transcript.write_text(json.dumps({"message": {"model": "claude-haiku-4-5"}}), encoding="utf-8")
+    transcript.write_text(json.dumps({"message": {"model": "claude-haiku-5-5"}}), encoding="utf-8")
 
     row = mra.audit_subagent(meta, {"coder": "claude-sonnet-5"})
 
     assert row is not None
     assert row["status"] == "MISMATCH"
     assert row["expected"] == "claude-sonnet-5"
-    assert row["actual"] == "claude-haiku-4-5"
+    assert row["actual"] == "claude-haiku-5-5"

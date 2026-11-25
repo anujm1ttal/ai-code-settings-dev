@@ -52,6 +52,49 @@ def test_dest_only_files_and_empty_dirs_are_removed(tmp_path: Path):
     assert result.removed == 2
 
 
+def test_preserved_prefix_survives_but_siblings_are_still_removed(tmp_path: Path):
+    src, dst = tmp_path / "src", tmp_path / "dst"
+    _tree(src, {"keep.md": "k"})
+    _tree(dst, {
+        "keep.md": "k",
+        "code-map/SKILL.md": "licensed",
+        "code-map/scripts/g.mjs": "licensed",
+        "code-map-evil/x.md": "stale",
+        "stale.md": "y",
+    })
+    result = sync_tree.mirror(src, dst, preserve=("code-map/",))
+    assert sorted(p.relative_to(dst).as_posix() for p in dst.rglob("*") if p.is_file()) == [
+        "code-map/SKILL.md", "code-map/scripts/g.mjs", "keep.md",
+    ]
+    assert result.removed == 2  # stale.md and code-map-evil/x.md, not the preserved tree
+
+
+def test_preserve_prefix_must_end_with_slash(tmp_path: Path):
+    src, dst = tmp_path / "src", tmp_path / "dst"
+    _tree(src, {"a.md": "1"})
+    for bad in ("code-map", "", "/"):
+        try:
+            sync_tree.mirror(src, dst, preserve=(bad,))
+        except ValueError as exc:
+            assert repr(bad) in str(exc)
+        else:
+            raise AssertionError(f"preserve prefix {bad!r} was accepted")
+
+
+def test_cli_preserve_flag(tmp_path: Path):
+    src, dst = tmp_path / "src", tmp_path / "dst"
+    _tree(src, {"a.md": "1"})
+    _tree(dst, {"code-map/SKILL.md": "licensed", "stale.md": "y"})
+    proc = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "sync_tree.py"),
+         "--preserve", "code-map/", str(src), str(dst)],
+        capture_output=True, text=True,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert (dst / "code-map" / "SKILL.md").read_text() == "licensed"
+    assert not (dst / "stale.md").exists()
+
+
 def test_missing_dest_is_created(tmp_path: Path):
     src, dst = tmp_path / "src", tmp_path / "dst"
     _tree(src, {"x/y.md": "z"})

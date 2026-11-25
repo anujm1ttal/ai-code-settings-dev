@@ -138,6 +138,43 @@ def test_source_only_fixture_exits_zero_not_blocking(tmp_path: Path) -> None:
     assert report.has_loss is False
 
 
+# --------------------------------------------------------------------- unmanaged skills
+
+
+def test_unmanaged_code_map_is_not_drift(tmp_path: Path) -> None:
+    """skills/code-map/ is licensed content installed only in ~/.claude/ — it must
+    never be back-ported, so it must not register as deployed-only drift."""
+    source_root = tmp_path / "source"
+    dest_root = tmp_path / "dest"
+    _write(dest_root / "skills" / "code-map" / "SKILL.md", b"licensed\n")
+    _write(dest_root / "skills" / "code-map" / "scripts" / "generate.mjs", b"x\n")
+
+    report = vdp.build_report(source_root, dest_root)
+
+    assert report.mismatches == ()
+    assert report.has_loss is False
+
+
+@pytest.mark.parametrize("relpath", ["skills/other-skill/SKILL.md", "skills/code-map-evil/SKILL.md"])
+def test_unmanaged_exclusion_is_scoped_not_a_glob(tmp_path: Path, relpath: str) -> None:
+    source_root = tmp_path / "source"
+    dest_root = tmp_path / "dest"
+    _write(dest_root / relpath, b"real drift\n")
+
+    report = vdp.build_report(source_root, dest_root)
+
+    assert [m.relpath for m in report.mismatches] == [relpath]
+    assert report.has_loss is True
+
+
+def test_deploy_sh_preserves_every_unmanaged_skill_prefix() -> None:
+    """Parity ignores a prefix only if deploy.sh also refuses to delete it —
+    otherwise the checker would hide content the next deploy destroys."""
+    deploy = (REPO_ROOT / "scripts" / "deploy.sh").read_text(encoding="utf-8")
+    assert ("skills", "code-map/") in vdp.HARNESS_OWNED_PREFIXES
+    assert "--preserve code-map/" in deploy
+
+
 # --------------------------------------------------------------------- replay control
 
 

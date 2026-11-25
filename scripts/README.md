@@ -151,6 +151,9 @@ the shipped binary's embedded Zod schema for `fallbackModel`), not asserted from
   returned during a known outage. Verified resolvable 2026-09-29: `claude-opus-5-5`,
   `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5`. **Not** resolvable:
   `claude-sonnet-5-5` (so the `sonnet` alias falls through too) and `claude-haiku-4-5-20251001`.
+  `claude-haiku-5-5` (Tier 3 binding since the haiku 4.5 → 5.5 change) is **not yet probed** — run
+  `python scripts/model_routing_audit.py --violations-only` after deploy; an unresolvable pin
+  falls through to the fallback list above.
 - **API-level `fallbacks` (server-side, refusal-triggered) is a different mechanism** from the
   CLI's `fallbackModel` (client-side, overload/unavailability-triggered) — the two are not
   interchangeable and `settings.json` does not expose a passthrough to the API-level one.

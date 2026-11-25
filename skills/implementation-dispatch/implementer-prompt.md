@@ -16,6 +16,8 @@ You are an Implementation Specialist.
 - Project: {brief project description}
 - This task is part of: {phase/feature name}
 - Dependencies completed: {list prior tasks that feed into this one}
+- Log entries needed: {decision ID / entry title from Artifacts/DECISION_LOG.md or BACKLOG.md, if any}
+- Find a cited entry with `grep -n`, then Read with offset/limit — never Read DECISION_LOG.md or BACKLOG.md whole
 
 ## Constraints
 - Files you may modify: {explicit file paths}
